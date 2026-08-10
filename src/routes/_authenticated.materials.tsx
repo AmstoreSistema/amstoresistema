@@ -1247,39 +1247,44 @@ function MaterialsPage() {
                   )}
                 </div>
 
-                <div className="space-y-4">
+                <div className="space-y-4 pt-4 border-t">
                   <div className="flex items-center justify-between">
-                    <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Cortes ({cuts.length})</h3>
+                    <h3 className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Cortes Ativos ({cuts.length})</h3>
                   </div>
-                  <div className="space-y-3">
-                    {cuts.map(cut => (
-                      <div key={cut.id} className="p-4 border rounded-2xl bg-gray-50/50 hover:bg-white transition-colors group">
-                        <div className="flex justify-between items-start mb-2">
-                          <div>
-                            <p className="text-sm font-bold">{cut.name}</p>
-                            <p className="text-[10px] text-muted-foreground">{cut.width} × {cut.height} cm • {cut.width * cut.height} cm²</p>
-                          </div>
-                          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <Button variant="ghost" size="icon" className="size-7 rounded-full text-destructive" onClick={() => removeCut.mutate(cut.id)}>
-                              <Trash2 className="size-3.5" />
+                  <div className="space-y-2">
+                    {cuts.length === 0 ? (
+                      <div className="text-center py-8 bg-gray-50/50 rounded-2xl border-2 border-dashed border-gray-100">
+                        <Layers className="size-6 text-gray-300 mx-auto mb-2 opacity-20" />
+                        <p className="text-[10px] text-gray-400 font-medium">Nenhum corte realizado</p>
+                      </div>
+                    ) : (
+                      cuts.map(cut => (
+                        <div key={cut.id} className="p-3 border rounded-xl bg-white hover:border-blue-200 transition-all group shadow-sm">
+                          <div className="flex justify-between items-start mb-2">
+                            <div>
+                              <p className="text-xs font-bold truncate max-w-[180px]">{cut.name}</p>
+                              <p className="text-[9px] text-muted-foreground font-medium">{cut.width}×{cut.height} cm • {num(cut.width * cut.height)} cm²</p>
+                            </div>
+                            <Button variant="ghost" size="icon" className="size-6 rounded-full text-destructive opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => removeCut.mutate(cut.id)}>
+                              <Trash2 className="size-3" />
                             </Button>
                           </div>
+                          <div className="flex justify-between items-center gap-2">
+                            <span className="text-[10px] font-bold text-success">{brl(activeMaterial?.cost_price ? (activeMaterial.cost_price / ((activeMaterial.width || 0) * 100 * (activeMaterial.height || 0) * 100)) * (cut.width * cut.height) : 0)}</span>
+                            <Select defaultValue={cut.status}>
+                              <SelectTrigger className="h-6 w-24 text-[9px] uppercase font-bold rounded-lg border-gray-100 bg-gray-50/50">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="disponivel">Disponível</SelectItem>
+                                <SelectItem value="utilizado">Utilizado</SelectItem>
+                                <SelectItem value="reservado">Reservado</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
                         </div>
-                        <div className="flex justify-between items-center">
-                          <span className="text-xs font-bold text-success">{brl(activeMaterial?.cost_price ? (activeMaterial.cost_price / ((activeMaterial.width || 0) * 100 * (activeMaterial.height || 0) * 100)) * (cut.width * cut.height) : 0)}</span>
-                          <Select defaultValue={cut.status}>
-                            <SelectTrigger className="h-7 w-28 text-[10px] uppercase font-bold rounded-lg border-none bg-white shadow-sm">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="disponivel">Disponível</SelectItem>
-                              <SelectItem value="utilizado">Utilizado</SelectItem>
-                              <SelectItem value="reservado">Reservado</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      </div>
-                    ))}
+                      ))
+                    )}
                   </div>
                 </div>
               </div>
