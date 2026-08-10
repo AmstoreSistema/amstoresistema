@@ -57,7 +57,8 @@ function SalesPage() {
   const groupedSales = useMemo(() => {
     const groups: Record<string, any[]> = {};
     filtered.forEach(s => {
-      const d = dateBR(s.created_at ? String(s.created_at) : "");
+      const createdAt = s.created_at;
+      const d = dateBR(typeof createdAt === 'string' ? createdAt : "");
       if (!groups[d]) groups[d] = [];
       groups[d].push(s);
     });
