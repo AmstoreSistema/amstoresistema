@@ -1063,7 +1063,7 @@ function MaterialsPage() {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <Button variant="outline" className="gap-2 text-pink-500 border-pink-100 hover:bg-pink-50">
+              <Button variant="outline" className="gap-2 text-pink-500 border-pink-100 hover:bg-pink-50" onClick={handleOptimize}>
                 <div className="size-2 rounded-full bg-pink-500 animate-pulse" />
                 Otimizar
               </Button>
