@@ -373,7 +373,7 @@ function ProductsPage() {
                 </div>
                 <div className="grid gap-2">
                   <Label>Cor</Label>
-                  <Input value={(form as any).color || ""} onChange={e => setForm({ ...form, color: e.target.value })} />
+                  <Input value={form.color || ""} onChange={e => setForm({ ...form, color: e.target.value })} />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
@@ -388,7 +388,7 @@ function ProductsPage() {
               </div>
               <div className="grid gap-2">
                 <Label>Descrição</Label>
-                <Input value={(form as any).description || ""} onChange={e => setForm({ ...form, description: e.target.value })} />
+                <Input value={form.description || ""} onChange={e => setForm({ ...form, description: e.target.value })} />
               </div>
             </div>
             
