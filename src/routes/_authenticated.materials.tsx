@@ -589,144 +589,151 @@ function MaterialsPage() {
                   </DialogContent>
                 </Dialog>
 
-                {/* Condicional para Ferragem */}
-                {form.type === "Ferragem" ? (
-                  <>
-                    {/* Unidade de Medida */}
-                    <div className="space-y-2">
-                      <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Unidade de Medida *</Label>
-                      <Select value={form.unit || "un"} onValueChange={v => setForm({ ...form, unit: v })}>
-                        <SelectTrigger className="h-11 rounded-xl">
-                          <SelectValue placeholder="Selecione" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {units.map(u => <SelectItem key={u.id} value={u.abbreviation}>{u.name} ({u.abbreviation})</SelectItem>)}
-                        </SelectContent>
+                <div className="grid gap-6 sm:grid-cols-2">
+                  {/* Unidade de Medida - Agora aparece sempre para facilitar */}
+                  <div className="space-y-2">
+                    <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+                      Unidade de Medida *
+                    </Label>
+                    <Select 
+                      value={form.unit || "un"} 
+                      onValueChange={v => setForm({ ...form, unit: v })}
+                    >
+                      <SelectTrigger className="h-11 rounded-xl bg-muted/5">
+                        <SelectValue placeholder="Selecione..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {units.length > 0 ? (
+                          units.map(u => (
+                            <SelectItem key={u.id} value={u.abbreviation}>{u.name} ({u.abbreviation})</SelectItem>
+                          ))
+                        ) : (
+                          <SelectItem value="un">Unidade (un)</SelectItem>
+                        )}
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-                      </Select>
+                  {/* Custo */}
+                  <div className="space-y-2">
+                    <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Custo por Unidade (R$)</Label>
+                    <Input 
+                      type="number"
+                      step="0.01"
+                      placeholder="0" 
+                      value={form.cost_price || ""} 
+                      onChange={e => setForm({ ...form, cost_price: Number(e.target.value) })}
+                      className="h-11 rounded-xl"
+                    />
+                  </div>
+
+                  {/* Condicional para Ferragem */}
+                  {form.type === "Ferragem" ? (
+                    <>
+                      {/* Estoque Atual */}
+                      <div className="space-y-2">
+                        <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Estoque Atual</Label>
+                        <Input 
+                          type="number"
+                          value={form.current_stock ?? 0} 
+                          onChange={e => setForm({ ...form, current_stock: Number(e.target.value) })}
+                          className="h-11 rounded-xl"
+                        />
+                      </div>
+
+                      {/* Estoque Mínimo */}
+                      <div className="space-y-2">
+                        <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Estoque Mínimo</Label>
+                        <Input 
+                          type="number"
+                          value={form.min_stock ?? 0} 
+                          onChange={e => setForm({ ...form, min_stock: Number(e.target.value) })}
+                          className="h-11 rounded-xl"
+                        />
+                      </div>
+
+                      {/* Especificação */}
+                      <div className="col-span-full space-y-2">
+                        <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Especificação (ex: 1.0/1.0/2.0, 4x1, 5cm, 2.8x1, 1cm)</Label>
+                        <Input 
+                          placeholder="Ex: 1.0/1.0/2.0 ou 4x1, 5cm" 
+                          value={form.specification || ""} 
+                          onChange={e => setForm({ ...form, specification: e.target.value })}
+                          className="h-11 rounded-xl"
+                        />
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      {/* Cor */}
+                      <div className="space-y-2">
+                        <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Cor</Label>
+                        <Input 
+                          placeholder="Ex: Preto, Branco, Azul" 
+                          value={form.color || ""} 
+                          onChange={e => setForm({ ...form, color: e.target.value })}
+                          className="h-11 rounded-xl"
+                        />
+                      </div>
+
+                      {/* Dimensões - Somente para categorias específicas */}
+                      {["Couro", "Estrutura", "Forro", "Tecido"].includes(form.type || "") && (
+                        <>
+                          <div className="space-y-2">
+                            <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Largura (cm) *</Label>
+                            <Input 
+                              type="number"
+                              value={form.width || ""} 
+                              onChange={e => setForm({ ...form, width: Number(e.target.value) })}
+                              className="h-11 rounded-xl"
+                            />
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Altura (cm) *</Label>
+                            <Input 
+                              type="number"
+                              value={form.height || ""} 
+                              onChange={e => setForm({ ...form, height: Number(e.target.value) })}
+                              className="h-11 rounded-xl"
+                            />
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Espessura (cm)</Label>
+                            <Input 
+                              type="number"
+                              step="0.1"
+                              value={form.thickness || ""} 
+                              onChange={e => setForm({ ...form, thickness: Number(e.target.value) })}
+                              className="h-11 rounded-xl"
+                            />
+                          </div>
+                        </>
+                      )}
+                    </>
+                  )}
+                </div>
+
+                {/* Área de Cálculo de Área Total (Somente para Couro, Forro, Estrutura e Tecido) */}
+                {["Couro", "Forro", "Estrutura", "Tecido"].includes(form.type || "") && form.width && form.height && (
+                  <div className="rounded-2xl border border-blue-100 bg-blue-50/50 p-6 animate-in zoom-in-95 duration-300 mt-4">
+                    <div className="flex flex-col gap-1">
+                      <span className="text-xs font-semibold text-blue-600 uppercase tracking-wider">Área Total da Peça:</span>
+                      <div className="flex items-baseline gap-2">
+                        <span className="text-3xl font-bold text-blue-900">
+                          {num(Number(form.width) * Number(form.height))} cm²
+                        </span>
+                        <span className="text-sm text-blue-600/70">
+                          ({form.width}cm × {form.height}cm)
+                        </span>
+                      </div>
+                      <div className="mt-2 flex items-center gap-2 text-xs text-blue-700 font-medium bg-blue-100/50 w-fit px-3 py-1 rounded-full">
+                        <CheckCircle2 className="size-3" />
+                        Material será cadastrado como 1 unidade (peça única)
+                      </div>
                     </div>
-
-                    {/* Estoque Atual */}
-                    <div className="space-y-2">
-                      <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Estoque Atual</Label>
-                      <Input 
-                        type="number"
-                        value={form.current_stock ?? 0} 
-                        onChange={e => setForm({ ...form, current_stock: Number(e.target.value) })}
-                        className="h-11 rounded-xl"
-                      />
-                    </div>
-
-                    {/* Estoque Mínimo */}
-                    <div className="space-y-2">
-                      <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Estoque Mínimo</Label>
-                      <Input 
-                        type="number"
-                        value={form.min_stock ?? 0} 
-                        onChange={e => setForm({ ...form, min_stock: Number(e.target.value) })}
-                        className="h-11 rounded-xl"
-                      />
-                    </div>
-
-                    {/* Especificação */}
-                    <div className="col-span-full space-y-2">
-                      <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Especificação (ex: 1.0/1.0/2.0, 4x1, 5cm, 2.8x1, 1cm)</Label>
-                      <Input 
-                        placeholder="Ex: 1.0/1.0/2.0 ou 4x1, 5cm" 
-                        value={form.specification || ""} 
-                        onChange={e => setForm({ ...form, specification: e.target.value })}
-                        className="h-11 rounded-xl"
-                      />
-                      <p className="text-[10px] text-muted-foreground flex items-center gap-1">
-                        <span className="text-yellow-500">💡</span> Use este campo para numeração, medidas em mm, ou dimensões específicas
-                      </p>
-                    </div>
-
-                    {/* Custo */}
-                    <div className="space-y-2">
-                      <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Custo por Unidade (R$)</Label>
-                      <Input 
-                        type="number"
-                        step="0.01"
-                        placeholder="0" 
-                        value={form.cost_price ?? 0} 
-                        onChange={e => setForm({ ...form, cost_price: Number(e.target.value) })}
-                        className="h-11 rounded-xl"
-                      />
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    {/* Cor */}
-                    <div className="space-y-2">
-                      <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Cor</Label>
-                      <Input 
-                        placeholder="Ex: Preto, Branco, Azul" 
-                        value={form.color || ""} 
-                        onChange={e => setForm({ ...form, color: e.target.value })}
-                        className="h-11 rounded-xl"
-                      />
-                    </div>
-
-                    {/* Custo */}
-                    <div className="space-y-2">
-                      <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Custo por Unidade (R$)</Label>
-                      <Input 
-                        type="number"
-                        step="0.01"
-                        placeholder="0" 
-                        value={form.cost_price || ""} 
-                        onChange={e => setForm({ ...form, cost_price: Number(e.target.value) })}
-                        className="h-11 rounded-xl"
-                      />
-                    </div>
-
-                    {/* Dimensões - Somente para categorias específicas */}
-                    {["Couro", "Estrutura", "Forro", "Tecido"].includes(form.type || "") && (
-                      <>
-                        <div className="space-y-2">
-                          <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Largura (cm) *</Label>
-                          <Input 
-                            type="number"
-                            value={form.width || ""} 
-                            onChange={e => setForm({ ...form, width: Number(e.target.value) })}
-                            className="h-11 rounded-xl"
-                          />
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Altura (cm) *</Label>
-                          <Input 
-                            type="number"
-                            value={form.height || ""} 
-                            onChange={e => setForm({ ...form, height: Number(e.target.value) })}
-                            className="h-11 rounded-xl"
-                          />
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Espessura (cm)</Label>
-                          <Input 
-                            type="number"
-                            step="0.1"
-                            value={form.thickness || ""} 
-                            onChange={e => setForm({ ...form, thickness: Number(e.target.value) })}
-                            className="h-11 rounded-xl"
-                          />
-                        </div>
-                      </>
-                    )}
-
-                    <div className="space-y-2">
-                      <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Unidade de Medida</Label>
-                      <Input 
-                        placeholder="Ex: m2, un, par"
-                        value={form.unit || ""} 
-                        onChange={e => setForm({ ...form, unit: e.target.value })}
-                        className="h-11 rounded-xl"
-                      />
-                    </div>
-                  </>
+                  </div>
                 )}
               </div>
 
