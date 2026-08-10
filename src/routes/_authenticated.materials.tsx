@@ -1049,19 +1049,19 @@ function MaterialsPage() {
                   backgroundSize: '20px 20px'
                 }}
               >
-                <div className="absolute -top-6 left-1/2 -translate-x-1/2 text-[10px] font-bold text-orange-400">{(activeMaterial?.width || 0) * 100} cm</div>
-                <div className="absolute -left-10 top-1/2 -translate-y-1/2 -rotate-90 text-[10px] font-bold text-orange-400">{(activeMaterial?.height || 0) * 100} cm</div>
+                <div className="absolute -top-8 left-1/2 -translate-x-1/2 text-xs font-bold text-orange-400">{(activeMaterial?.width || 0) * 100} cm</div>
+                <div className="absolute -left-12 top-1/2 -translate-y-1/2 -rotate-90 text-xs font-bold text-orange-400">{(activeMaterial?.height || 0) * 100} cm</div>
                 
                 {/* Render mock/real cuts */}
                 {cuts.map((cut, idx) => (
                   <div 
                     key={cut.id}
-                    className="absolute border-2 border-blue-600 bg-blue-500/20 flex items-center justify-center p-1 text-[8px] font-bold text-blue-900 leading-tight text-center overflow-hidden"
+                    className="absolute border-2 border-blue-600 bg-blue-500/20 flex items-center justify-center p-2 text-[9px] font-bold text-blue-900 leading-tight text-center overflow-hidden"
                     style={{
-                      width: `${cut.width * 2}px`,
-                      height: `${cut.height * 2}px`,
-                      left: `${(idx % 10) * 30}px`,
-                      top: `${Math.floor(idx / 10) * 30}px`
+                      width: `${(cut.width / 100) * 350}px`,
+                      height: `${(cut.height / 100) * 350}px`,
+                      left: `${(idx % 10) * 40}px`,
+                      top: `${Math.floor(idx / 10) * 40}px`
                     }}
                   >
                     <span className="truncate">{cut.name}</span>
