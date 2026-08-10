@@ -1092,20 +1092,20 @@ function MaterialsPage() {
                   <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-4">Estatísticas</h3>
                   <div className="space-y-3">
                     <div className="flex justify-between text-xs">
-                      <span className="text-muted-foreground">Custo por cm²:</span>
+                      <span className="text-muted-foreground">Custo por m²:</span>
                       <span className="font-bold">{brl(activeMaterial?.cost_price ? activeMaterial.cost_price / ((activeMaterial.width || 1) * (activeMaterial.height || 1)) : 0)}</span>
                     </div>
                     <div className="flex justify-between text-xs">
                       <span className="text-muted-foreground">Área Total:</span>
-                      <span className="font-bold">{(activeMaterial?.width || 0) * (activeMaterial?.height || 0)} cm²</span>
+                      <span className="font-bold">{(activeMaterial?.width || 0) * (activeMaterial?.height || 0)} m²</span>
                     </div>
                     <div className="flex justify-between text-xs text-blue-600">
                       <span className="">Área Utilizada:</span>
-                      <span className="font-bold">{num(cuts.reduce((sum, c) => sum + (c.width * c.height), 0))} cm²</span>
+                      <span className="font-bold">{num(cuts.reduce((sum, c) => sum + (c.width * c.height), 0))} m²</span>
                     </div>
                     <div className="flex justify-between text-xs text-success">
                       <span className="">Área Disponível:</span>
-                      <span className="font-bold">{num(((activeMaterial?.width || 0) * (activeMaterial?.height || 0)) - cuts.reduce((sum, c) => sum + (c.width * c.height), 0))} cm²</span>
+                      <span className="font-bold">{num(((activeMaterial?.width || 0) * (activeMaterial?.height || 0)) - cuts.reduce((sum, c) => sum + (c.width * c.height), 0))} m²</span>
                     </div>
                     <div className="flex justify-between text-xs">
                       <span className="text-muted-foreground">Aproveitamento:</span>
