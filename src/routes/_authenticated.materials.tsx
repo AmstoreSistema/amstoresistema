@@ -1030,10 +1030,10 @@ function MaterialsPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-[1fr,360px] overflow-hidden flex-1">
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr,400px] overflow-hidden flex-1">
             {/* Canvas Area */}
-            <div className="p-4 bg-gray-50/50 flex flex-col items-center justify-center min-h-[400px] relative overflow-auto border-b lg:border-b-0">
-              <div className="absolute top-4 left-6 flex flex-col sm:flex-row gap-x-6 gap-y-2 text-[10px] font-bold uppercase tracking-tight text-muted-foreground/60">
+            <div className="p-8 bg-gray-50/50 flex flex-col items-center justify-center min-h-[500px] relative overflow-auto border-b lg:border-b-0">
+              <div className="absolute top-6 left-8 flex flex-col sm:flex-row gap-x-8 gap-y-2 text-[11px] font-bold uppercase tracking-tight text-muted-foreground/60">
                 <div className="flex items-center gap-1.5"><PlusCircle className="size-3 text-blue-500" /> Arrastar: Mover</div>
                 <div className="flex items-center gap-1.5"><div className="size-2 rounded-full bg-blue-500" /> Handle: Rotacionar</div>
                 <div className="flex items-center gap-1.5"><span className="text-blue-500">Ctrl+Click</span>: Seleção</div>
