@@ -18,9 +18,15 @@ function AuthPage() {
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    console.log("Attempting sign in for:", email);
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) {
+      console.error("Sign in error:", error);
       alert(error.message);
+    } else {
+      console.log("Sign in successful, session:", data.session);
+      // Force a navigation check
+      window.location.href = "/dashboard";
     }
     setLoading(false);
   };
