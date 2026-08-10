@@ -78,6 +78,7 @@ const menuGroups: { label: string; items: Item[] }[] = [
     items: [
       {
         title: "Sistema",
+        url: "#sistema",
         icon: ShieldCheck,
         items: [
           { title: "Auditoria", url: "/audit", icon: ShieldCheck },
