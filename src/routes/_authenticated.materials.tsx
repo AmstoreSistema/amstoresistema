@@ -362,14 +362,16 @@ function MaterialsPage() {
                   </div>
                 </div>
 
-                <div className="mt-4 grid grid-cols-2 gap-2 border-t border-border/50 pt-4 opacity-0 transition-opacity group-hover:opacity-100">
-                  <Button variant="outline" size="sm" className="h-8 gap-1" onClick={() => openVariations(m)}>
-                    <Palette className="size-3" /> Variações
-                  </Button>
-                  <Button variant="outline" size="sm" className="h-8 gap-1" onClick={() => openEdit(m)}>
-                    <Pencil className="size-3" /> Editar
-                  </Button>
-                  <Button variant="outline" size="sm" className="h-8 col-span-2 gap-1 text-destructive hover:bg-destructive/5" onClick={() => remove.mutate(m.id)}>
+                <div className="mt-4 flex flex-col gap-2 border-t border-border/50 pt-4">
+                  <div className="grid grid-cols-2 gap-2">
+                    <Button variant="outline" size="sm" className="h-8 gap-1" onClick={() => openVariations(m)}>
+                      <Palette className="size-3" /> Variações
+                    </Button>
+                    <Button variant="outline" size="sm" className="h-8 gap-1" onClick={() => openEdit(m)}>
+                      <Pencil className="size-3" /> Editar
+                    </Button>
+                  </div>
+                  <Button variant="outline" size="sm" className="h-8 w-full gap-1 text-destructive hover:bg-destructive/5" onClick={() => remove.mutate(m.id)}>
                     <Trash2 className="size-3" /> Excluir Material
                   </Button>
                 </div>
