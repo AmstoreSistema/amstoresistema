@@ -1030,22 +1030,21 @@ function MaterialsPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-[1fr,320px] overflow-hidden flex-1">
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr,360px] overflow-hidden flex-1">
             {/* Canvas Area */}
-            <div className="p-4 bg-gray-50/30 flex flex-col items-center justify-center min-h-[400px] relative overflow-auto">
-              <div className="absolute top-4 left-6 flex gap-4 text-[10px] font-bold uppercase tracking-tighter text-muted-foreground">
-                <div className="flex items-center gap-1.5"><PlusCircle className="size-3 text-blue-500" /> Arrastar: Mover cortes</div>
-                <div className="flex items-center gap-1.5"><div className="size-2 rounded-full bg-blue-500" /> Handle azul: Rotacionar</div>
-                <div className="flex items-center gap-1.5"><span className="text-blue-500">Ctrl+Click</span>: Seleção múltipla</div>
-                <div className="flex items-center gap-1.5"><span className="text-blue-500">Shift+Drag</span>: Pan</div>
+            <div className="p-4 bg-gray-50/50 flex flex-col items-center justify-center min-h-[400px] relative overflow-auto border-b lg:border-b-0">
+              <div className="absolute top-4 left-6 flex flex-col sm:flex-row gap-x-6 gap-y-2 text-[10px] font-bold uppercase tracking-tight text-muted-foreground/60">
+                <div className="flex items-center gap-1.5"><PlusCircle className="size-3 text-blue-500" /> Arrastar: Mover</div>
+                <div className="flex items-center gap-1.5"><div className="size-2 rounded-full bg-blue-500" /> Handle: Rotacionar</div>
+                <div className="flex items-center gap-1.5"><span className="text-blue-500">Ctrl+Click</span>: Seleção</div>
               </div>
 
               {/* The Material Canvas */}
               <div 
                 className="relative bg-white shadow-2xl border-2 border-orange-200/50"
                 style={{ 
-                  width: `${(activeMaterial?.width || 100) * 300}px`, 
-                  height: `${(activeMaterial?.height || 100) * 300}px`,
+                  width: `${(activeMaterial?.width || 100) * 200}px`, 
+                  height: `${(activeMaterial?.height || 100) * 200}px`,
                   backgroundImage: 'radial-gradient(#fed7aa 0.5px, transparent 0.5px)',
                   backgroundSize: '10px 10px'
                 }}
@@ -1059,8 +1058,8 @@ function MaterialsPage() {
                     key={cut.id}
                     className="absolute border-2 border-blue-600 bg-blue-500/20 flex items-center justify-center p-1 text-[8px] font-bold text-blue-900 leading-tight text-center overflow-hidden"
                     style={{
-                      width: `${cut.width * 3}px`,
-                      height: `${cut.height * 3}px`,
+                      width: `${cut.width * 2}px`,
+                      height: `${cut.height * 2}px`,
                       left: `${(idx % 10) * 30}px`,
                       top: `${Math.floor(idx / 10) * 30}px`
                     }}
@@ -1086,69 +1085,78 @@ function MaterialsPage() {
             </div>
 
             {/* Sidebar Stats Area */}
-            <div className="border-l bg-white flex flex-col h-full overflow-y-auto">
-              <div className="p-5 space-y-5">
+            <div className="border-l bg-white flex flex-col h-full overflow-hidden">
+              <div className="flex-1 overflow-y-auto p-5 space-y-6 scrollbar-thin">
                 <div>
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-4">Estatísticas</h3>
+                  <h3 className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-4 border-b pb-2">Resumo de Área & Custos</h3>
                   <div className="space-y-3">
-                    <div className="flex justify-between text-xs">
+                    <div className="flex justify-between items-center text-xs">
                       <span className="text-muted-foreground">Custo por cm²:</span>
-                      <span className="font-bold">
+                      <span className="font-bold bg-gray-50 px-2 py-0.5 rounded text-[10px]">
                         {activeMaterial?.cost_price 
                           ? brl(activeMaterial.cost_price / ((activeMaterial.width || 0) * 100 * (activeMaterial.height || 0) * 100)) 
                           : brl(0)}
                       </span>
                     </div>
-                    <div className="flex justify-between text-xs">
-                      <span className="text-muted-foreground">Área Total:</span>
+                    <div className="flex justify-between items-center text-xs">
+                      <span className="text-muted-foreground">Área Total da Peça:</span>
                       <span className="font-bold">
                         {num((activeMaterial?.width || 0) * 100 * (activeMaterial?.height || 0) * 100)} cm²
                       </span>
                     </div>
-                    <div className="flex justify-between text-xs text-blue-600">
-                      <span className="">Área Utilizada:</span>
+                    <div className="flex justify-between items-center text-xs text-blue-600">
+                      <span className="font-medium">Área Utilizada:</span>
                       <span className="font-bold">{num(cuts.reduce((sum, c) => sum + (c.width * c.height), 0))} cm²</span>
                     </div>
-                    <div className="flex justify-between text-xs text-success">
-                      <span className="">Área Disponível:</span>
+                    <div className="flex justify-between items-center text-xs text-success">
+                      <span className="font-medium">Área Disponível:</span>
                       <span className="font-bold">{num(((activeMaterial?.width || 0) * 100 * (activeMaterial?.height || 0) * 100) - cuts.reduce((sum, c) => sum + (c.width * c.height), 0))} cm²</span>
                     </div>
-                    <div className="flex justify-between text-xs">
-                      <span className="text-muted-foreground">Aproveitamento:</span>
-                      <span className="font-bold text-pink-500">
-                        {num((cuts.reduce((sum, c) => sum + (c.width * c.height), 0) / (((activeMaterial?.width || 0) * 100 * (activeMaterial?.height || 0) * 100) || 1)) * 100)}%
-                      </span>
+                    
+                    <div className="pt-2">
+                      <div className="flex justify-between items-center text-[10px] mb-1">
+                        <span className="text-muted-foreground font-bold uppercase">Aproveitamento</span>
+                        <span className="font-bold text-pink-500">
+                          {num((cuts.reduce((sum, c) => sum + (c.width * c.height), 0) / (((activeMaterial?.width || 0) * 100 * (activeMaterial?.height || 0) * 100) || 1)) * 100)}%
+                        </span>
+                      </div>
+                      <div className="h-2 w-full bg-gray-100 rounded-full overflow-hidden">
+                        <div 
+                          className="h-full bg-pink-500 transition-all duration-500" 
+                          style={{ width: `${Math.min(100, (cuts.reduce((sum, c) => sum + (c.width * c.height), 0) / (((activeMaterial?.width || 0) * 100 * (activeMaterial?.height || 0) * 100) || 1)) * 100)}%` }}
+                        />
+                      </div>
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-3 gap-2 mt-4">
+                  <div className="grid grid-cols-3 gap-2 mt-6">
                     <div className="text-center p-2 rounded-xl border border-success/20 bg-success/5">
-                      <p className="text-[9px] text-success font-bold uppercase">Disponível</p>
-                      <p className="text-sm font-bold text-success">{cuts.filter(c => c.status === 'disponivel').length}</p>
+                      <p className="text-[8px] text-success font-bold uppercase">Disponível</p>
+                      <p className="text-xs font-bold text-success">{cuts.filter(c => c.status === 'disponivel').length}</p>
                     </div>
                     <div className="text-center p-2 rounded-xl border border-blue-200 bg-blue-50">
-                      <p className="text-[9px] text-blue-600 font-bold uppercase">Utilizado</p>
-                      <p className="text-sm font-bold text-blue-600">{cuts.filter(c => c.status === 'utilizado').length}</p>
+                      <p className="text-[8px] text-blue-600 font-bold uppercase">Utilizado</p>
+                      <p className="text-xs font-bold text-blue-600">{cuts.filter(c => c.status === 'utilizado').length}</p>
                     </div>
                     <div className="text-center p-2 rounded-xl border border-orange-200 bg-orange-50">
-                      <p className="text-[9px] text-orange-500 font-bold uppercase">Reservado</p>
-                      <p className="text-sm font-bold text-orange-500">{cuts.filter(c => c.status === 'reservado').length}</p>
+                      <p className="text-[8px] text-orange-500 font-bold uppercase">Reservado</p>
+                      <p className="text-xs font-bold text-orange-500">{cuts.filter(c => c.status === 'reservado').length}</p>
                     </div>
                   </div>
 
-                  <div className="mt-4 flex justify-between items-center border-t pt-4">
-                    <span className="text-xs font-bold text-muted-foreground uppercase">Custo Total da Peça:</span>
-                    <span className="text-lg font-bold text-success">{brl(activeMaterial?.cost_price || 0)}</span>
+                  <div className="mt-6 flex justify-between items-center bg-gray-50 p-3 rounded-2xl border border-dashed border-gray-200">
+                    <span className="text-[10px] font-bold text-muted-foreground uppercase">Custo Total Peça:</span>
+                    <span className="text-base font-bold text-success">{brl(activeMaterial?.cost_price || 0)}</span>
                   </div>
                 </div>
 
                 <div className="space-y-4">
                   {!isAddingCut ? (
                     <Button 
-                      className="w-full bg-blue-600 hover:bg-blue-700 h-11 rounded-xl gap-2 shadow-lg shadow-blue-100"
+                      className="w-full bg-blue-600 hover:bg-blue-700 h-10 rounded-xl gap-2 shadow-lg shadow-blue-100 text-xs font-bold"
                       onClick={() => setIsAddingCut(true)}
                     >
-                      <Plus className="size-4" /> Realizar Novo Corte
+                      <Plus className="size-3.5" /> Novo Corte
                     </Button>
                   ) : (
                     <div className="p-4 border rounded-2xl bg-blue-50/50 space-y-3 animate-in fade-in slide-in-from-top-2">
@@ -1238,39 +1246,44 @@ function MaterialsPage() {
                   )}
                 </div>
 
-                <div className="space-y-4">
+                <div className="space-y-4 pt-4 border-t">
                   <div className="flex items-center justify-between">
-                    <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Cortes ({cuts.length})</h3>
+                    <h3 className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Cortes Ativos ({cuts.length})</h3>
                   </div>
-                  <div className="space-y-3">
-                    {cuts.map(cut => (
-                      <div key={cut.id} className="p-4 border rounded-2xl bg-gray-50/50 hover:bg-white transition-colors group">
-                        <div className="flex justify-between items-start mb-2">
-                          <div>
-                            <p className="text-sm font-bold">{cut.name}</p>
-                            <p className="text-[10px] text-muted-foreground">{cut.width} × {cut.height} cm • {cut.width * cut.height} cm²</p>
-                          </div>
-                          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <Button variant="ghost" size="icon" className="size-7 rounded-full text-destructive" onClick={() => removeCut.mutate(cut.id)}>
-                              <Trash2 className="size-3.5" />
+                  <div className="space-y-2">
+                    {cuts.length === 0 ? (
+                      <div className="text-center py-8 bg-gray-50/50 rounded-2xl border-2 border-dashed border-gray-100">
+                        <Layers className="size-6 text-gray-300 mx-auto mb-2 opacity-20" />
+                        <p className="text-[10px] text-gray-400 font-medium">Nenhum corte realizado</p>
+                      </div>
+                    ) : (
+                      cuts.map(cut => (
+                        <div key={cut.id} className="p-3 border rounded-xl bg-white hover:border-blue-200 transition-all group shadow-sm">
+                          <div className="flex justify-between items-start mb-2">
+                            <div>
+                              <p className="text-xs font-bold truncate max-w-[180px]">{cut.name}</p>
+                              <p className="text-[9px] text-muted-foreground font-medium">{cut.width}×{cut.height} cm • {num(cut.width * cut.height)} cm²</p>
+                            </div>
+                            <Button variant="ghost" size="icon" className="size-6 rounded-full text-destructive opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => removeCut.mutate(cut.id)}>
+                              <Trash2 className="size-3" />
                             </Button>
                           </div>
+                          <div className="flex justify-between items-center gap-2">
+                            <span className="text-[10px] font-bold text-success">{brl(activeMaterial?.cost_price ? (activeMaterial.cost_price / ((activeMaterial.width || 0) * 100 * (activeMaterial.height || 0) * 100)) * (cut.width * cut.height) : 0)}</span>
+                            <Select defaultValue={cut.status}>
+                              <SelectTrigger className="h-6 w-24 text-[9px] uppercase font-bold rounded-lg border-gray-100 bg-gray-50/50">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="disponivel">Disponível</SelectItem>
+                                <SelectItem value="utilizado">Utilizado</SelectItem>
+                                <SelectItem value="reservado">Reservado</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
                         </div>
-                        <div className="flex justify-between items-center">
-                          <span className="text-xs font-bold text-success">{brl(activeMaterial?.cost_price ? (activeMaterial.cost_price / ((activeMaterial.width || 0) * 100 * (activeMaterial.height || 0) * 100)) * (cut.width * cut.height) : 0)}</span>
-                          <Select defaultValue={cut.status}>
-                            <SelectTrigger className="h-7 w-28 text-[10px] uppercase font-bold rounded-lg border-none bg-white shadow-sm">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="disponivel">Disponível</SelectItem>
-                              <SelectItem value="utilizado">Utilizado</SelectItem>
-                              <SelectItem value="reservado">Reservado</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      </div>
-                    ))}
+                      ))
+                    )}
                   </div>
                 </div>
               </div>
