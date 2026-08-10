@@ -9,7 +9,10 @@ import {
   Pencil,
   Trash2,
   Package,
-  Layers
+  Layers,
+  Upload,
+  RefreshCw,
+  X
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -61,6 +64,11 @@ type Material = {
   supplier: string | null;
   image_url: string | null;
   sku: string | null;
+  width: number | null;
+  height: number | null;
+  thickness: number | null;
+  color: string | null;
+  description: string | null;
 };
 
 function MaterialsPage() {
@@ -227,70 +235,198 @@ function MaterialsPage() {
       )}
 
       <Dialog open={formOpen} onOpenChange={setFormOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>{editing ? "Editar Material" : "Novo Material"}</DialogTitle>
-            <DialogDescription>Preencha os dados do material abaixo.</DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <Label>Nome do material</Label>
-              <Input 
-                value={form.name || ""} 
-                onChange={e => setForm({ ...form, name: e.target.value })} 
-                placeholder="Ex: Couro Bovino Preto"
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="grid gap-2">
-                <Label>Tipo</Label>
-                <Select value={form.type || ""} onValueChange={v => setForm({ ...form, type: v })}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {MATERIAL_TYPES.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl rounded-3xl p-0 border-none bg-white">
+          <div className="flex items-center justify-between border-b px-6 py-4">
+            <h2 className="text-lg font-semibold">{editing ? "Editar Material" : "Novo Material"}</h2>
+            <Button variant="ghost" size="icon" onClick={() => setFormOpen(false)} className="rounded-full">
+              <X className="size-4" />
+            </Button>
+          </div>
+
+          <div className="p-6">
+            <div className="space-y-6">
+              {/* Imagem do Material */}
+              <div className="space-y-2">
+                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Imagem do Material</Label>
+                <div className="relative flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-muted-foreground/20 bg-muted/5 p-8 transition-colors hover:bg-muted/10">
+                  {form.image_url ? (
+                    <div className="group relative w-full overflow-hidden rounded-xl aspect-video">
+                      <img src={form.image_url} alt="Preview" className="h-full w-full object-cover" />
+                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Button variant="destructive" size="sm" onClick={() => setForm({ ...form, image_url: null })}>Remover</Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white shadow-sm mb-3">
+                        <Upload className="size-6 text-muted-foreground" />
+                      </div>
+                      <p className="text-sm font-medium">Clique para fazer upload da imagem</p>
+                      <p className="text-[10px] text-muted-foreground mt-1">Máximo 5MB</p>
+                      <Input 
+                        type="text" 
+                        placeholder="Ou cole a URL da imagem aqui" 
+                        className="mt-4 max-w-xs text-center text-xs"
+                        value={form.image_url || ""}
+                        onChange={e => setForm({ ...form, image_url: e.target.value })}
+                      />
+                    </>
+                  )}
+                </div>
               </div>
-              <div className="grid gap-2">
-                <Label>Unidade</Label>
-                <Input value={form.unit || ""} onChange={e => setForm({ ...form, unit: e.target.value })} placeholder="Ex: m2, un, par" />
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Nome */}
+                <div className="space-y-2">
+                  <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Nome *</Label>
+                  <Input 
+                    placeholder="Ex: Couro Legítimo Marrom" 
+                    value={form.name || ""} 
+                    onChange={e => setForm({ ...form, name: e.target.value })}
+                    className="h-11 rounded-xl"
+                  />
+                </div>
+
+                {/* SKU */}
+                <div className="space-y-2">
+                  <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">SKU *</Label>
+                  <div className="relative">
+                    <Input 
+                      placeholder="MATEOK2BCVB" 
+                      value={form.sku || ""} 
+                      onChange={e => setForm({ ...form, sku: e.target.value })}
+                      className="h-11 rounded-xl pr-10"
+                    />
+                    <button className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                      <RefreshCw className="size-4" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Categoria */}
+                <div className="space-y-2">
+                  <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Categoria *</Label>
+                  <Select value={form.type || ""} onValueChange={v => setForm({ ...form, type: v })}>
+                    <SelectTrigger className="h-11 rounded-xl">
+                      <SelectValue placeholder="Selecione a categoria" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {MATERIAL_TYPES.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Fornecedor */}
+                <div className="space-y-2">
+                  <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Fornecedor</Label>
+                  <div className="flex gap-2">
+                    <Select value={form.supplier || ""} onValueChange={v => setForm({ ...form, supplier: v })}>
+                      <SelectTrigger className="h-11 flex-1 rounded-xl">
+                        <SelectValue placeholder="Selecione o fornecedor" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Fornecedor A">Fornecedor A</SelectItem>
+                        <SelectItem value="Fornecedor B">Fornecedor B</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Button variant="outline" size="icon" className="h-11 w-11 rounded-xl border-orange-200 text-orange-500 hover:bg-orange-50 hover:text-orange-600">
+                      <Plus className="size-4" />
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Cor */}
+                <div className="space-y-2">
+                  <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Cor</Label>
+                  <Input 
+                    placeholder="Ex: Preto, Branco, Azul" 
+                    value={form.color || ""} 
+                    onChange={e => setForm({ ...form, color: e.target.value })}
+                    className="h-11 rounded-xl"
+                  />
+                </div>
+
+                {/* Custo */}
+                <div className="space-y-2">
+                  <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Custo por Unidade (R$)</Label>
+                  <Input 
+                    type="number"
+                    step="0.01"
+                    placeholder="0" 
+                    value={form.cost_price || ""} 
+                    onChange={e => setForm({ ...form, cost_price: Number(e.target.value) })}
+                    className="h-11 rounded-xl"
+                  />
+                </div>
+
+                {/* Dimensões */}
+                <div className="space-y-2">
+                  <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Largura (cm) *</Label>
+                  <Input 
+                    type="number"
+                    value={form.width || ""} 
+                    onChange={e => setForm({ ...form, width: Number(e.target.value) })}
+                    className="h-11 rounded-xl"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Altura (cm) *</Label>
+                  <Input 
+                    type="number"
+                    value={form.height || ""} 
+                    onChange={e => setForm({ ...form, height: Number(e.target.value) })}
+                    className="h-11 rounded-xl"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Espessura (cm)</Label>
+                  <Input 
+                    type="number"
+                    step="0.1"
+                    value={form.thickness || ""} 
+                    onChange={e => setForm({ ...form, thickness: Number(e.target.value) })}
+                    className="h-11 rounded-xl"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Unidade de Medida</Label>
+                  <Input 
+                    placeholder="Ex: m2, un, par"
+                    value={form.unit || ""} 
+                    onChange={e => setForm({ ...form, unit: e.target.value })}
+                    className="h-11 rounded-xl"
+                  />
+                </div>
               </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="grid gap-2">
-                <Label>Estoque Atual</Label>
-                <Input type="number" value={form.current_stock || 0} onChange={e => setForm({ ...form, current_stock: Number(e.target.value) })} />
+
+              {/* Descrição */}
+              <div className="space-y-2">
+                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Descrição</Label>
+                <textarea 
+                  className="w-full rounded-2xl border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 min-h-[100px]"
+                  placeholder="Descrição detalhada do material"
+                  value={form.description || ""} 
+                  onChange={e => setForm({ ...form, description: e.target.value })}
+                />
               </div>
-              <div className="grid gap-2">
-                <Label>Estoque Mínimo</Label>
-                <Input type="number" value={form.min_stock || 0} onChange={e => setForm({ ...form, min_stock: Number(e.target.value) })} />
-              </div>
-            </div>
-            <div className="grid gap-2">
-              <Label>Preço de Custo (R$)</Label>
-              <Input type="number" step="0.01" value={form.cost_price || 0} onChange={e => setForm({ ...form, cost_price: Number(e.target.value) })} />
-            </div>
-            <div className="grid gap-2">
-              <Label>Fornecedor</Label>
-              <Input value={form.supplier || ""} onChange={e => setForm({ ...form, supplier: e.target.value })} />
-            </div>
-            <div className="grid gap-2">
-              <Label>SKU / Código</Label>
-              <Input value={form.sku || ""} onChange={e => setForm({ ...form, sku: e.target.value })} />
-            </div>
-            <div className="grid gap-2">
-              <Label>URL da Imagem</Label>
-              <Input value={form.image_url || ""} onChange={e => setForm({ ...form, image_url: e.target.value })} placeholder="https://..." />
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setFormOpen(false)}>Cancelar</Button>
-            <Button onClick={submit} disabled={save.isPending}>
-              {save.isPending ? "Salvando..." : "Salvar"}
+
+          <div className="flex items-center justify-end gap-3 border-t px-6 py-4 bg-gray-50/50 rounded-b-3xl">
+            <Button variant="outline" onClick={() => setFormOpen(false)} className="h-11 rounded-xl px-8">
+              Cancelar
             </Button>
-          </DialogFooter>
+            <Button onClick={submit} disabled={save.isPending} className="h-11 rounded-xl px-8 bg-blue-600 hover:bg-blue-700 gap-2">
+              {save.isPending ? "Salvando..." : (
+                <>
+                  <Package className="size-4" /> Cadastrar
+                </>
+              )}
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
