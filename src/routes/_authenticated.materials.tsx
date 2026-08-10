@@ -682,9 +682,10 @@ function MaterialsPage() {
                       {["Couro", "Estrutura", "Forro", "Tecido"].includes(form.type || "") && (
                         <>
                           <div className="space-y-2">
-                            <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Largura (cm) *</Label>
+                            <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Largura (m) *</Label>
                             <Input 
                               type="number"
+                              step="0.01"
                               value={form.width || ""} 
                               onChange={e => setForm({ ...form, width: Number(e.target.value) })}
                               className="h-11 rounded-xl"
@@ -692,9 +693,10 @@ function MaterialsPage() {
                           </div>
 
                           <div className="space-y-2">
-                            <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Altura (cm) *</Label>
+                            <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Altura (m) *</Label>
                             <Input 
                               type="number"
+                              step="0.01"
                               value={form.height || ""} 
                               onChange={e => setForm({ ...form, height: Number(e.target.value) })}
                               className="h-11 rounded-xl"
@@ -724,10 +726,10 @@ function MaterialsPage() {
                       <span className="text-xs font-semibold text-blue-600 uppercase tracking-wider">Área Total da Peça:</span>
                       <div className="flex items-baseline gap-2">
                         <span className="text-3xl font-bold text-blue-900">
-                          {num(Number(form.width) * Number(form.height))} cm²
+                          {num(Number(form.width) * Number(form.height))} m²
                         </span>
                         <span className="text-sm text-blue-600/70">
-                          ({form.width}cm × {form.height}cm)
+                          ({form.width}m × {form.height}m)
                         </span>
                       </div>
                       <div className="mt-2 flex items-center gap-2 text-xs text-blue-700 font-medium bg-blue-100/50 w-fit px-3 py-1 rounded-full">
@@ -1048,8 +1050,8 @@ function MaterialsPage() {
                   backgroundSize: '10px 10px'
                 }}
               >
-                <div className="absolute -top-6 left-1/2 -translate-x-1/2 text-[10px] font-bold text-orange-400">{activeMaterial?.width} cm</div>
-                <div className="absolute -left-10 top-1/2 -translate-y-1/2 -rotate-90 text-[10px] font-bold text-orange-400">{activeMaterial?.height} cm</div>
+                <div className="absolute -top-6 left-1/2 -translate-x-1/2 text-[10px] font-bold text-orange-400">{activeMaterial?.width} m</div>
+                <div className="absolute -left-10 top-1/2 -translate-y-1/2 -rotate-90 text-[10px] font-bold text-orange-400">{activeMaterial?.height} m</div>
                 
                 {/* Render mock/real cuts */}
                 {cuts.map((cut, idx) => (
@@ -1078,7 +1080,7 @@ function MaterialsPage() {
                 <div className="flex items-center gap-2">
                   <Label className="text-[10px] uppercase font-bold text-muted-foreground">Grid</Label>
                   <Input type="range" className="w-24 accent-blue-600" />
-                  <span className="text-xs font-bold text-muted-foreground">5cm</span>
+                  <span className="text-xs font-bold text-muted-foreground">0.05m</span>
                 </div>
               </div>
             </div>
@@ -1090,20 +1092,20 @@ function MaterialsPage() {
                   <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-4">Estatísticas</h3>
                   <div className="space-y-3">
                     <div className="flex justify-between text-xs">
-                      <span className="text-muted-foreground">Custo por cm²:</span>
+                      <span className="text-muted-foreground">Custo por m²:</span>
                       <span className="font-bold">{brl(activeMaterial?.cost_price ? activeMaterial.cost_price / ((activeMaterial.width || 1) * (activeMaterial.height || 1)) : 0)}</span>
                     </div>
                     <div className="flex justify-between text-xs">
                       <span className="text-muted-foreground">Área Total:</span>
-                      <span className="font-bold">{(activeMaterial?.width || 0) * (activeMaterial?.height || 0)} cm²</span>
+                      <span className="font-bold">{(activeMaterial?.width || 0) * (activeMaterial?.height || 0)} m²</span>
                     </div>
                     <div className="flex justify-between text-xs text-blue-600">
                       <span className="">Área Utilizada:</span>
-                      <span className="font-bold">{num(cuts.reduce((sum, c) => sum + (c.width * c.height), 0))} cm²</span>
+                      <span className="font-bold">{num(cuts.reduce((sum, c) => sum + (c.width * c.height), 0))} m²</span>
                     </div>
                     <div className="flex justify-between text-xs text-success">
                       <span className="">Área Disponível:</span>
-                      <span className="font-bold">{num(((activeMaterial?.width || 0) * (activeMaterial?.height || 0)) - cuts.reduce((sum, c) => sum + (c.width * c.height), 0))} cm²</span>
+                      <span className="font-bold">{num(((activeMaterial?.width || 0) * (activeMaterial?.height || 0)) - cuts.reduce((sum, c) => sum + (c.width * c.height), 0))} m²</span>
                     </div>
                     <div className="flex justify-between text-xs">
                       <span className="text-muted-foreground">Aproveitamento:</span>
@@ -1129,7 +1131,7 @@ function MaterialsPage() {
                   </div>
 
                   <div className="mt-4 flex justify-between items-center border-t pt-4">
-                    <span className="text-xs font-bold text-muted-foreground uppercase">Custo Total:</span>
+                    <span className="text-xs font-bold text-muted-foreground uppercase">Custo Total da Peça:</span>
                     <span className="text-lg font-bold text-success">{brl(activeMaterial?.cost_price || 0)}</span>
                   </div>
                 </div>
@@ -1155,9 +1157,10 @@ function MaterialsPage() {
                       </div>
                       <div className="grid grid-cols-2 gap-2">
                         <div className="space-y-1">
-                          <Label className="text-[10px] font-bold uppercase text-muted-foreground">Largura (cm)</Label>
+                          <Label className="text-[10px] font-bold uppercase text-muted-foreground">Largura (m)</Label>
                           <Input 
                             type="number"
+                            step="0.01"
                             placeholder="0" 
                             value={newCutForm.width || ""}
                             onChange={e => setNewCutForm({...newCutForm, width: Number(e.target.value)})}
@@ -1165,9 +1168,10 @@ function MaterialsPage() {
                           />
                         </div>
                         <div className="space-y-1">
-                          <Label className="text-[10px] font-bold uppercase text-muted-foreground">Altura (cm)</Label>
+                          <Label className="text-[10px] font-bold uppercase text-muted-foreground">Altura (m)</Label>
                           <Input 
                             type="number"
+                            step="0.01"
                             placeholder="0" 
                             value={newCutForm.height || ""}
                             onChange={e => setNewCutForm({...newCutForm, height: Number(e.target.value)})}
@@ -1179,13 +1183,13 @@ function MaterialsPage() {
                       {newCutForm.width > 0 && newCutForm.height > 0 && activeMaterial && (
                         <div className="bg-white p-3 rounded-lg border border-blue-100 flex justify-between items-center">
                           <div className="flex flex-col">
-                            <span className="text-[10px] font-bold text-muted-foreground uppercase">Custo Proporcional</span>
+                            <span className="text-[10px] font-bold text-muted-foreground uppercase">Custo Proporcional do Corte</span>
                             <span className="text-sm font-bold text-success">
-                              {brl((activeMaterial.cost_price / ((activeMaterial.width || 1) * (activeMaterial.height || 1))) * (newCutForm.width * newCutForm.height))}
+                              {brl(Number(((activeMaterial.cost_price / ((activeMaterial.width || 1) * (activeMaterial.height || 1))) * (newCutForm.width * newCutForm.height)).toFixed(2)))}
                             </span>
                           </div>
                           <span className="text-[10px] font-medium text-blue-600">
-                            {num(newCutForm.width * newCutForm.height)} cm²
+                            {num(newCutForm.width * newCutForm.height)} m²
                           </span>
                         </div>
                       )}
