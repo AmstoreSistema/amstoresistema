@@ -1069,17 +1069,17 @@ function MaterialsPage() {
                 ))}
               </div>
 
-              <div className="mt-4 flex items-center gap-6 p-2 bg-white rounded-xl shadow-sm border">
-                <div className="flex items-center gap-2">
-                  <Label className="text-[10px] uppercase font-bold text-muted-foreground">Zoom</Label>
-                  <Input type="range" className="w-24 accent-blue-600" />
-                  <span className="text-xs font-bold text-muted-foreground">100%</span>
+              <div className="mt-8 flex items-center gap-8 p-3 bg-white rounded-2xl shadow-sm border">
+                <div className="flex items-center gap-3">
+                  <Label className="text-[11px] uppercase font-bold text-muted-foreground">Zoom</Label>
+                  <Input type="range" className="w-32 accent-blue-600" defaultValue={100} />
+                  <span className="text-xs font-bold text-muted-foreground w-10">100%</span>
                 </div>
-                <div className="h-4 w-px bg-border" />
-                <div className="flex items-center gap-2">
-                  <Label className="text-[10px] uppercase font-bold text-muted-foreground">Grid</Label>
-                  <Input type="range" className="w-24 accent-blue-600" />
-                  <span className="text-xs font-bold text-muted-foreground">5cm</span>
+                <div className="h-6 w-px bg-border" />
+                <div className="flex items-center gap-3">
+                  <Label className="text-[11px] uppercase font-bold text-muted-foreground">Grid</Label>
+                  <Input type="range" className="w-32 accent-blue-600" defaultValue={5} />
+                  <span className="text-xs font-bold text-muted-foreground w-10">5cm</span>
                 </div>
               </div>
             </div>
