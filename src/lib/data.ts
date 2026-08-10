@@ -4,12 +4,18 @@ import { toast } from "sonner";
 
 export function useRows<T = any>(
   table: string,
-  opts?: { select?: string | undefined; order?: { column: string; ascending?: boolean | undefined } | undefined; limit?: number | undefined },
+  opts?: {
+    select?: string | undefined;
+    order?: { column: string; ascending?: boolean | undefined } | undefined;
+    limit?: number | undefined;
+    filters?: { column: string; value: unknown }[] | undefined;
+  },
 ) {
   return useQuery({
-    queryKey: [table, opts?.select ?? "*", opts?.order?.column ?? "", opts?.limit ?? 0],
+    queryKey: [table, opts?.select ?? "*", opts?.order?.column ?? "", opts?.limit ?? 0, opts?.filters ?? []],
     queryFn: async () => {
       let q = supabase.from(table as any).select(opts?.select ?? "*");
+      for (const f of opts?.filters ?? []) q = q.eq(f.column, f.value as never);
       if (opts?.order) q = q.order(opts.order.column, { ascending: opts.order.ascending ?? false });
       if (opts?.limit) q = q.limit(opts.limit);
       const { data, error } = await q;
