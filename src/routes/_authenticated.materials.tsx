@@ -260,7 +260,8 @@ function MaterialsPage() {
       toast.error(error.message);
     } else {
       toast.success("Excluído com sucesso");
-      window.location.reload();
+      const queryClient = (await import("@tanstack/react-query")).useQueryClient();
+      queryClient.invalidateQueries({ queryKey: [table] });
     }
   };
 
