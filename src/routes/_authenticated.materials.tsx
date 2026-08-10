@@ -1108,17 +1108,26 @@ function MaterialsPage() {
                 ))}
               </div>
 
-              <div className="mt-8 flex items-center gap-8 p-3 bg-white rounded-2xl shadow-sm border">
-                <div className="flex items-center gap-3">
-                  <Label className="text-[11px] uppercase font-bold text-muted-foreground">Zoom</Label>
-                  <Input type="range" className="w-32 accent-blue-600" defaultValue={100} />
-                  <span className="text-xs font-bold text-muted-foreground w-10">100%</span>
+              <div className="mt-8 flex flex-col gap-4 w-full max-w-2xl">
+                <div className="flex items-center gap-8 p-3 bg-white rounded-2xl shadow-sm border justify-center">
+                  <div className="flex items-center gap-3">
+                    <Label className="text-[11px] uppercase font-bold text-muted-foreground">Zoom</Label>
+                    <Input type="range" className="w-32 accent-blue-600" defaultValue={100} />
+                    <span className="text-xs font-bold text-muted-foreground w-10">100%</span>
+                  </div>
+                  <div className="h-6 w-px bg-border" />
+                  <div className="flex items-center gap-3">
+                    <Label className="text-[11px] uppercase font-bold text-muted-foreground">Grid</Label>
+                    <Input type="range" className="w-32 accent-blue-600" defaultValue={5} />
+                    <span className="text-xs font-bold text-muted-foreground w-10">5cm</span>
+                  </div>
                 </div>
-                <div className="h-6 w-px bg-border" />
-                <div className="flex items-center gap-3">
-                  <Label className="text-[11px] uppercase font-bold text-muted-foreground">Grid</Label>
-                  <Input type="range" className="w-32 accent-blue-600" defaultValue={5} />
-                  <span className="text-xs font-bold text-muted-foreground w-10">5cm</span>
+
+                <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-[10px] font-bold uppercase tracking-tight text-muted-foreground/60 py-2">
+                  <div className="flex items-center gap-1.5"><div className="size-3 flex items-center justify-center bg-blue-100 rounded text-blue-600 font-bold">?</div> Dicas:</div>
+                  <div className="flex items-center gap-1.5"><PlusCircle className="size-3 text-blue-500" /> Arrastar para Mover</div>
+                  <div className="flex items-center gap-1.5"><div className="size-2 rounded-full bg-blue-500" /> Alça para Rotacionar</div>
+                  <div className="flex items-center gap-1.5"><span className="text-blue-500">Ctrl+Click</span>: Selecionar</div>
                 </div>
               </div>
             </div>
