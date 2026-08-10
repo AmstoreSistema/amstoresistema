@@ -18,17 +18,28 @@ function AuthPage() {
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    console.log("Attempting sign in for:", email);
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) {
-      console.error("Sign in error:", error);
-      alert(error.message);
-    } else {
-      console.log("Sign in successful, session:", data.session);
-      // Force a navigation check
-      window.location.href = "/dashboard";
+    try {
+      console.log("Tentando login para:", email);
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      
+      if (error) {
+        console.error("Erro no login:", error);
+        alert(`Erro ao acessar: ${error.message}`);
+      } else if (data.session) {
+        console.log("Login realizado com sucesso!");
+        // O TanStack Router deve detectar a mudança de sessão se estivermos usando observers,
+        // mas forçamos o redirecionamento para garantir.
+        window.location.href = "/dashboard";
+      } else {
+        console.warn("Login sem sessão retornada");
+        alert("Erro inesperado: Sessão não iniciada.");
+      }
+    } catch (err) {
+      console.error("Erro fatal no login:", err);
+      alert("Ocorreu um erro ao processar o login.");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   return (
