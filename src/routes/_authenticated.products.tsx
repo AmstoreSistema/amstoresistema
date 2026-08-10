@@ -60,6 +60,8 @@ type Product = {
   active: boolean;
   image_url: string | null;
   production_time_hours: number;
+  color?: string;
+  description?: string;
 };
 
 type Material = { 
