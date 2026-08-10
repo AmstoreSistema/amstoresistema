@@ -187,10 +187,10 @@ function ProductsPage() {
     const { error } = await supabase.from("product_materials").insert({
       product_id: bomProduct.id,
       material_id: newMaterial,
-      material_variation_id: (newVariation || null) as any,
-      material_cut_id: (newCut || null) as any,
+      material_variation_id: newVariation || undefined,
+      material_cut_id: newCut || undefined,
       quantity: Number(newQty || 0),
-    });
+    } as any);
     if (error) {
       toast.error(error.message);
       return;
