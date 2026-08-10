@@ -1121,17 +1121,17 @@ function MaterialsPage() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-3 gap-2 mt-4 bg-gray-50 p-1 rounded-xl">
-                    <div className="text-center p-2 rounded-lg bg-white shadow-sm">
-                      <p className="text-[10px] text-muted-foreground uppercase font-bold">Disponível</p>
+                  <div className="grid grid-cols-3 gap-2 mt-4">
+                    <div className="text-center p-2 rounded-xl border border-success/20 bg-success/5">
+                      <p className="text-[9px] text-success font-bold uppercase">Disponível</p>
                       <p className="text-sm font-bold text-success">{cuts.filter(c => c.status === 'disponivel').length}</p>
                     </div>
-                    <div className="text-center p-2">
-                      <p className="text-[10px] text-muted-foreground uppercase font-bold">Utilizado</p>
+                    <div className="text-center p-2 rounded-xl border border-blue-200 bg-blue-50">
+                      <p className="text-[9px] text-blue-600 font-bold uppercase">Utilizado</p>
                       <p className="text-sm font-bold text-blue-600">{cuts.filter(c => c.status === 'utilizado').length}</p>
                     </div>
-                    <div className="text-center p-2">
-                      <p className="text-[10px] text-muted-foreground uppercase font-bold">Reservado</p>
+                    <div className="text-center p-2 rounded-xl border border-orange-200 bg-orange-50">
+                      <p className="text-[9px] text-orange-500 font-bold uppercase">Reservado</p>
                       <p className="text-sm font-bold text-orange-500">{cuts.filter(c => c.status === 'reservado').length}</p>
                     </div>
                   </div>
