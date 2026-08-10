@@ -1044,14 +1044,14 @@ function MaterialsPage() {
               <div 
                 className="relative bg-white shadow-2xl border-2 border-orange-200/50"
                 style={{ 
-                  width: `${(activeMaterial?.width || 100) * 4}px`, 
-                  height: `${(activeMaterial?.height || 100) * 4}px`,
+                  width: `${(activeMaterial?.width || 100) * 400}px`, 
+                  height: `${(activeMaterial?.height || 100) * 400}px`,
                   backgroundImage: 'radial-gradient(#fed7aa 0.5px, transparent 0.5px)',
                   backgroundSize: '10px 10px'
                 }}
               >
-                <div className="absolute -top-6 left-1/2 -translate-x-1/2 text-[10px] font-bold text-orange-400">{activeMaterial?.width} m</div>
-                <div className="absolute -left-10 top-1/2 -translate-y-1/2 -rotate-90 text-[10px] font-bold text-orange-400">{activeMaterial?.height} m</div>
+                <div className="absolute -top-6 left-1/2 -translate-x-1/2 text-[10px] font-bold text-orange-400">{(activeMaterial?.width || 0) * 100} cm</div>
+                <div className="absolute -left-10 top-1/2 -translate-y-1/2 -rotate-90 text-[10px] font-bold text-orange-400">{(activeMaterial?.height || 0) * 100} cm</div>
                 
                 {/* Render mock/real cuts */}
                 {cuts.map((cut, idx) => (
@@ -1080,7 +1080,7 @@ function MaterialsPage() {
                 <div className="flex items-center gap-2">
                   <Label className="text-[10px] uppercase font-bold text-muted-foreground">Grid</Label>
                   <Input type="range" className="w-24 accent-blue-600" />
-                  <span className="text-xs font-bold text-muted-foreground">0.05m</span>
+                  <span className="text-xs font-bold text-muted-foreground">5cm</span>
                 </div>
               </div>
             </div>
@@ -1092,25 +1092,31 @@ function MaterialsPage() {
                   <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-4">Estatísticas</h3>
                   <div className="space-y-3">
                     <div className="flex justify-between text-xs">
-                      <span className="text-muted-foreground">Custo por m²:</span>
-                      <span className="font-bold">{brl(activeMaterial?.cost_price ? activeMaterial.cost_price / ((activeMaterial.width || 1) * (activeMaterial.height || 1)) : 0)}</span>
+                      <span className="text-muted-foreground">Custo por cm²:</span>
+                      <span className="font-bold">
+                        {activeMaterial?.cost_price 
+                          ? brl(activeMaterial.cost_price / ((activeMaterial.width || 0) * 100 * (activeMaterial.height || 0) * 100)) 
+                          : brl(0)}
+                      </span>
                     </div>
                     <div className="flex justify-between text-xs">
                       <span className="text-muted-foreground">Área Total:</span>
-                      <span className="font-bold">{(activeMaterial?.width || 0) * (activeMaterial?.height || 0)} m²</span>
+                      <span className="font-bold">
+                        {num((activeMaterial?.width || 0) * 100 * (activeMaterial?.height || 0) * 100)} cm²
+                      </span>
                     </div>
                     <div className="flex justify-between text-xs text-blue-600">
                       <span className="">Área Utilizada:</span>
-                      <span className="font-bold">{num(cuts.reduce((sum, c) => sum + (c.width * c.height), 0))} m²</span>
+                      <span className="font-bold">{num(cuts.reduce((sum, c) => sum + (c.width * c.height), 0))} cm²</span>
                     </div>
                     <div className="flex justify-between text-xs text-success">
                       <span className="">Área Disponível:</span>
-                      <span className="font-bold">{num(((activeMaterial?.width || 0) * (activeMaterial?.height || 0)) - cuts.reduce((sum, c) => sum + (c.width * c.height), 0))} m²</span>
+                      <span className="font-bold">{num(((activeMaterial?.width || 0) * 100 * (activeMaterial?.height || 0) * 100) - cuts.reduce((sum, c) => sum + (c.width * c.height), 0))} cm²</span>
                     </div>
                     <div className="flex justify-between text-xs">
                       <span className="text-muted-foreground">Aproveitamento:</span>
                       <span className="font-bold text-pink-500">
-                        {num((cuts.reduce((sum, c) => sum + (c.width * c.height), 0) / (((activeMaterial?.width || 1) * (activeMaterial?.height || 1)) || 1)) * 100)}%
+                        {num((cuts.reduce((sum, c) => sum + (c.width * c.height), 0) / (((activeMaterial?.width || 0) * 100 * (activeMaterial?.height || 0) * 100) || 1)) * 100)}%
                       </span>
                     </div>
                   </div>
@@ -1157,10 +1163,10 @@ function MaterialsPage() {
                       </div>
                       <div className="grid grid-cols-2 gap-2">
                         <div className="space-y-1">
-                          <Label className="text-[10px] font-bold uppercase text-muted-foreground">Largura (m)</Label>
+                          <Label className="text-[10px] font-bold uppercase text-muted-foreground">Largura (cm)</Label>
                           <Input 
                             type="number"
-                            step="0.01"
+                            step="0.1"
                             placeholder="0" 
                             value={newCutForm.width || ""}
                             onChange={e => setNewCutForm({...newCutForm, width: Number(e.target.value)})}
@@ -1168,10 +1174,10 @@ function MaterialsPage() {
                           />
                         </div>
                         <div className="space-y-1">
-                          <Label className="text-[10px] font-bold uppercase text-muted-foreground">Altura (m)</Label>
+                          <Label className="text-[10px] font-bold uppercase text-muted-foreground">Altura (cm)</Label>
                           <Input 
                             type="number"
-                            step="0.01"
+                            step="0.1"
                             placeholder="0" 
                             value={newCutForm.height || ""}
                             onChange={e => setNewCutForm({...newCutForm, height: Number(e.target.value)})}
@@ -1185,11 +1191,11 @@ function MaterialsPage() {
                           <div className="flex flex-col">
                             <span className="text-[10px] font-bold text-muted-foreground uppercase">Custo Proporcional do Corte</span>
                             <span className="text-sm font-bold text-success">
-                              {brl(Number(((activeMaterial.cost_price / ((activeMaterial.width || 1) * (activeMaterial.height || 1))) * (newCutForm.width * newCutForm.height)).toFixed(2)))}
+                              {brl(Number(((activeMaterial.cost_price / ((activeMaterial.width || 0) * 100 * (activeMaterial.height || 0) * 100)) * (newCutForm.width * newCutForm.height)).toFixed(2)))}
                             </span>
                           </div>
                           <span className="text-[10px] font-medium text-blue-600">
-                            {num(newCutForm.width * newCutForm.height)} m²
+                            {num(newCutForm.width * newCutForm.height)} cm²
                           </span>
                         </div>
                       )}
@@ -1251,7 +1257,7 @@ function MaterialsPage() {
                           </div>
                         </div>
                         <div className="flex justify-between items-center">
-                          <span className="text-xs font-bold text-success">{brl(activeMaterial?.cost_price ? (activeMaterial.cost_price / ((activeMaterial.width || 1) * (activeMaterial.height || 1))) * (cut.width * cut.height) : 0)}</span>
+                          <span className="text-xs font-bold text-success">{brl(activeMaterial?.cost_price ? (activeMaterial.cost_price / ((activeMaterial.width || 0) * 100 * (activeMaterial.height || 0) * 100)) * (cut.width * cut.height) : 0)}</span>
                           <Select defaultValue={cut.status}>
                             <SelectTrigger className="h-7 w-28 text-[10px] uppercase font-bold rounded-lg border-none bg-white shadow-sm">
                               <SelectValue />
