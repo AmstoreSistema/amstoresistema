@@ -84,6 +84,8 @@ function ProductsPage() {
   const [form, setForm] = useState<Partial<Product>>({});
   const [bomProduct, setBomProduct] = useState<Product | null>(null);
   const [newMaterial, setNewMaterial] = useState("");
+  const [newVariation, setNewVariation] = useState("");
+  const [newCut, setNewCut] = useState("");
   const [newQty, setNewQty] = useState("1");
 
   const materialById = useMemo(() => new Map(materials.map((m) => [m.id, m])), [materials]);
