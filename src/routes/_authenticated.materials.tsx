@@ -1058,8 +1058,8 @@ function MaterialsPage() {
                     key={cut.id}
                     className="absolute border-2 border-blue-600 bg-blue-500/20 flex items-center justify-center p-1 text-[8px] font-bold text-blue-900 leading-tight text-center overflow-hidden"
                     style={{
-                      width: `${cut.width * 3}px`,
-                      height: `${cut.height * 3}px`,
+                      width: `${cut.width * 2}px`,
+                      height: `${cut.height * 2}px`,
                       left: `${(idx % 10) * 30}px`,
                       top: `${Math.floor(idx / 10) * 30}px`
                     }}
