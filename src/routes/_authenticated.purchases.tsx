@@ -100,14 +100,25 @@ function PurchasesPage() {
       for (const item of items) {
         const mat = materials.find((m) => m.id === item.material_id);
         if (!mat) continue;
+        
         const nextStock = Number(mat.current_stock) + item.quantity;
         
+        // Se for um material com dimensões (Couro, Forro, Estrutura, Tecido), 
+        // e se o material original tiver dimensões, podemos querer adicionar área ou apenas registrar a peça.
+        // O prompt pede que se o valor for maior, atualizar o valor.
+        
+        const updates: any = { 
+          current_stock: nextStock,
+        };
+
+        // Se o custo da compra for maior que o custo atual, atualiza o custo do material
+        if (item.cost > (mat.cost_price || 0)) {
+          updates.cost_price = item.cost;
+        }
+
         const { error: matError } = await supabase
           .from("materials")
-          .update({ 
-            current_stock: nextStock,
-            cost_price: item.cost // Update cost price to the latest purchase cost
-          })
+          .update(updates)
           .eq("id", item.material_id);
         
         if (matError) throw matError;
