@@ -9,14 +9,10 @@ import {
   Trash2, 
   Search,
   Clock,
-  CircleDollarSign,
-  TrendingUp,
-  Tag
 } from "lucide-react";
 import { toast } from "sonner";
 
 import { PageHeader } from "@/components/page-header";
-import { StatCard } from "@/components/stat-card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -72,6 +68,8 @@ type Material = {
   unit: string; 
   cost_price: number;
   type: string;
+  width?: number;
+  height?: number;
 };
 
 type MaterialVariation = {
@@ -117,17 +115,34 @@ function ProductsPage() {
   const [editing, setEditing] = useState<Product | null>(null);
   const [form, setForm] = useState<Partial<Product>>({});
   const [bomProduct, setBomProduct] = useState<Product | null>(null);
+  
   const [newMaterial, setNewMaterial] = useState("");
   const [newVariation, setNewVariation] = useState("");
   const [newCut, setNewCut] = useState("");
   const [newQty, setNewQty] = useState("1");
 
   const materialById = useMemo(() => new Map(materials.map((m) => [m.id, m])), [materials]);
+  const variationById = useMemo(() => new Map(allVariations.map((v) => [v.id, v])), [allVariations]);
+  const cutById = useMemo(() => new Map(allCuts.map((c) => [c.id, c])), [allCuts]);
 
   const bomCost = (productId: string) =>
     compositions
       .filter((c) => c.product_id === productId)
-      .reduce((s, c) => s + Number(c.quantity) * Number(materialById.get(c.material_id)?.cost_price ?? 0), 0);
+      .reduce((s, c) => {
+        if (c.material_variation_id) {
+          const v = variationById.get(c.material_variation_id);
+          return s + Number(c.quantity) * Number(v?.cost_price ?? 0);
+        }
+        if (c.material_cut_id) {
+          const cut = cutById.get(c.material_cut_id);
+          const m = materialById.get(c.material_id);
+          if (m && cut) {
+            const costPerCm2 = (m.cost_price || 0) / ((m.width || 0) * 100 * (m.height || 0) * 100 || 1);
+            return s + Number(c.quantity) * (cut.width * cut.height * costPerCm2);
+          }
+        }
+        return s + Number(c.quantity) * Number(materialById.get(c.material_id)?.cost_price ?? 0);
+      }, 0);
 
   const categories = useMemo(() => ["Todos", ...new Set(products.map(p => p.category))], [products]);
 
@@ -172,6 +187,8 @@ function ProductsPage() {
     const { error } = await supabase.from("product_materials").insert({
       product_id: bomProduct.id,
       material_id: newMaterial,
+      material_variation_id: newVariation || null,
+      material_cut_id: newCut || null,
       quantity: Number(newQty || 0),
     });
     if (error) {
@@ -180,6 +197,8 @@ function ProductsPage() {
     }
     await logAudit("composicao", "products", `Material adicionado ao produto ${bomProduct.name}`, bomProduct.id);
     setNewMaterial("");
+    setNewVariation("");
+    setNewCut("");
     setNewQty("1");
     qc.invalidateQueries();
     toast.success("Material adicionado à composição");
@@ -196,6 +215,10 @@ function ProductsPage() {
   };
 
   const bomRows = bomProduct ? compositions.filter((c) => c.product_id === bomProduct.id) : [];
+
+  const selectedMaterial = materials.find(m => m.id === newMaterial);
+  const availableVariations = allVariations.filter(v => v.material_id === newMaterial);
+  const availableCuts = allCuts.filter(c => c.material_id === newMaterial);
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -398,29 +421,74 @@ function ProductsPage() {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="flex flex-wrap items-end gap-2 rounded-2xl border border-border bg-muted/40 p-4">
-            <div className="min-w-[200px] flex-1">
-              <Label className="mb-1.5 block text-xs">Material</Label>
-              <Select value={newMaterial} onValueChange={setNewMaterial}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione o material" />
-                </SelectTrigger>
-                <SelectContent>
-                  {materials.map((m) => (
-                    <SelectItem key={m.id} value={m.id}>
-                      {m.name} ({m.unit})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+          <div className="space-y-4 rounded-2xl border border-border bg-muted/40 p-4">
+            <div className="grid gap-4">
+              <div className="flex-1">
+                <Label className="mb-1.5 block text-xs">Material</Label>
+                <Select value={newMaterial} onValueChange={(val) => {
+                  setNewMaterial(val);
+                  setNewVariation("");
+                  setNewCut("");
+                }}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione o material" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {materials.map((m) => (
+                      <SelectItem key={m.id} value={m.id}>
+                        {m.name} ({m.unit})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {availableVariations.length > 0 && (
+                <div className="flex-1 animate-in fade-in slide-in-from-top-1">
+                  <Label className="mb-1.5 block text-xs">Variação (Cor/Tamanho)</Label>
+                  <Select value={newVariation} onValueChange={setNewVariation}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione a variação" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableVariations.map((v) => (
+                        <SelectItem key={v.id} value={v.id}>
+                          {v.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              {availableCuts.length > 0 && (
+                <div className="flex-1 animate-in fade-in slide-in-from-top-1">
+                  <Label className="mb-1.5 block text-xs">Corte Disponível</Label>
+                  <Select value={newCut} onValueChange={setNewCut}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione o corte" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableCuts.map((c) => (
+                        <SelectItem key={c.id} value={c.id}>
+                          {c.name} ({c.width}x{c.height}cm)
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              <div className="flex items-end gap-2">
+                <div className="w-28">
+                  <Label className="mb-1.5 block text-xs">Quantidade</Label>
+                  <Input type="number" step="0.01" value={newQty} onChange={(e) => setNewQty(e.target.value)} />
+                </div>
+                <Button onClick={addComposition} className="gap-2 flex-1">
+                  <Plus className="size-4" /> Adicionar Material
+                </Button>
+              </div>
             </div>
-            <div className="w-28">
-              <Label className="mb-1.5 block text-xs">Quantidade</Label>
-              <Input type="number" step="0.01" value={newQty} onChange={(e) => setNewQty(e.target.value)} />
-            </div>
-            <Button onClick={addComposition} className="gap-2">
-              <Plus className="size-4" /> Adicionar
-            </Button>
           </div>
 
           <div className="mt-4 max-h-72 overflow-auto rounded-2xl border border-border">
@@ -436,11 +504,27 @@ function ProductsPage() {
               <tbody className="divide-y divide-border">
                 {bomRows.map((c) => {
                   const m = materialById.get(c.material_id);
+                  const v = c.material_variation_id ? variationById.get(c.material_variation_id) : null;
+                  const cut = c.material_cut_id ? cutById.get(c.material_cut_id) : null;
+                  
+                  let unitCost = Number(m?.cost_price || 0);
+                  if (v) unitCost = Number(v.cost_price || 0);
+                  if (cut && m) {
+                    const costPerCm2 = (m.cost_price || 0) / ((m.width || 0) * 100 * (m.height || 0) * 100 || 1);
+                    unitCost = cut.width * cut.height * costPerCm2;
+                  }
+
                   return (
                     <tr key={c.id}>
-                      <td className="px-4 py-3">{m?.name ?? "—"}</td>
+                      <td className="px-4 py-3">
+                        <div className="flex flex-col">
+                          <span className="font-medium">{m?.name ?? "—"}</span>
+                          {v && <span className="text-[10px] text-muted-foreground">Variação: {v.name}</span>}
+                          {cut && <span className="text-[10px] text-muted-foreground">Corte: {cut.name} ({cut.width}x{cut.height}cm)</span>}
+                        </div>
+                      </td>
                       <td className="px-4 py-3 font-medium">{num(c.quantity)} {m?.unit ?? ""}</td>
-                      <td className="px-4 py-3 font-bold text-destructive">{brl(Number(c.quantity) * Number(m?.cost_price ?? 0))}</td>
+                      <td className="px-4 py-3 font-bold text-destructive">{brl(Number(c.quantity) * unitCost)}</td>
                       <td className="px-4 py-3 text-right">
                         <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => removeComposition(c.id)}>
                           <Trash2 className="size-4" />
