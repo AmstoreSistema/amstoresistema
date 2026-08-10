@@ -210,6 +210,47 @@ export type Database = {
         }
         Relationships: []
       }
+      material_variations: {
+        Row: {
+          cost_price: number | null
+          created_at: string | null
+          current_stock: number | null
+          id: string
+          material_id: string
+          name: string
+          notes: string | null
+          specification: string | null
+        }
+        Insert: {
+          cost_price?: number | null
+          created_at?: string | null
+          current_stock?: number | null
+          id?: string
+          material_id: string
+          name: string
+          notes?: string | null
+          specification?: string | null
+        }
+        Update: {
+          cost_price?: number | null
+          created_at?: string | null
+          current_stock?: number | null
+          id?: string
+          material_id?: string
+          name?: string
+          notes?: string | null
+          specification?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "material_variations_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "materials"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       materials: {
         Row: {
           color: string | null
