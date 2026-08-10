@@ -629,92 +629,87 @@ function MaterialsPage() {
                     />
                   </div>
 
-                  {/* Condicional para Ferragem */}
-                  {form.type === "Ferragem" ? (
+                  {/* Estoque Atual */}
+                  <div className="space-y-2">
+                    <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Estoque Atual</Label>
+                    <Input 
+                      type="number"
+                      value={form.current_stock ?? 0} 
+                      onChange={e => setForm({ ...form, current_stock: Number(e.target.value) })}
+                      className="h-11 rounded-xl"
+                    />
+                  </div>
+
+                  {/* Estoque Mínimo */}
+                  <div className="space-y-2">
+                    <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Estoque Mínimo</Label>
+                    <Input 
+                      type="number"
+                      value={form.min_stock ?? 0} 
+                      onChange={e => setForm({ ...form, min_stock: Number(e.target.value) })}
+                      className="h-11 rounded-xl"
+                    />
+                  </div>
+
+                  {/* Especificação */}
+                  <div className="col-span-full space-y-2">
+                    <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Especificação (ex: 1.0/1.0/2.0, 4x1, 5cm, 2.8x1, 1cm)</Label>
+                    <Input 
+                      placeholder="Ex: 1.0/1.0/2.0 ou 4x1, 5cm" 
+                      value={form.specification || ""} 
+                      onChange={e => setForm({ ...form, specification: e.target.value })}
+                      className="h-11 rounded-xl"
+                    />
+                  </div>
+
+                  {/* Cor */}
+                  {form.type !== "Ferragem" && (
+                    <div className="space-y-2">
+                      <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Cor</Label>
+                      <Input 
+                        placeholder="Ex: Preto, Branco, Azul" 
+                        value={form.color || ""} 
+                        onChange={e => setForm({ ...form, color: e.target.value })}
+                        className="h-11 rounded-xl"
+                      />
+                    </div>
+                  )}
+
+                  {/* Dimensões - Somente para categorias específicas */}
+                  {["Couro", "Estrutura", "Forro", "Tecido"].includes(form.type || "") && (
                     <>
-                      {/* Estoque Atual */}
                       <div className="space-y-2">
-                        <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Estoque Atual</Label>
+                        <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Largura (m) *</Label>
                         <Input 
                           type="number"
-                          value={form.current_stock ?? 0} 
-                          onChange={e => setForm({ ...form, current_stock: Number(e.target.value) })}
+                          step="0.01"
+                          value={form.width || ""} 
+                          onChange={e => setForm({ ...form, width: Number(e.target.value) })}
                           className="h-11 rounded-xl"
                         />
                       </div>
 
-                      {/* Estoque Mínimo */}
                       <div className="space-y-2">
-                        <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Estoque Mínimo</Label>
+                        <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Altura (m) *</Label>
                         <Input 
                           type="number"
-                          value={form.min_stock ?? 0} 
-                          onChange={e => setForm({ ...form, min_stock: Number(e.target.value) })}
+                          step="0.01"
+                          value={form.height || ""} 
+                          onChange={e => setForm({ ...form, height: Number(e.target.value) })}
                           className="h-11 rounded-xl"
                         />
                       </div>
 
-                      {/* Especificação */}
-                      <div className="col-span-full space-y-2">
-                        <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Especificação (ex: 1.0/1.0/2.0, 4x1, 5cm, 2.8x1, 1cm)</Label>
-                        <Input 
-                          placeholder="Ex: 1.0/1.0/2.0 ou 4x1, 5cm" 
-                          value={form.specification || ""} 
-                          onChange={e => setForm({ ...form, specification: e.target.value })}
-                          className="h-11 rounded-xl"
-                        />
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      {/* Cor */}
                       <div className="space-y-2">
-                        <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Cor</Label>
+                        <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Espessura (cm)</Label>
                         <Input 
-                          placeholder="Ex: Preto, Branco, Azul" 
-                          value={form.color || ""} 
-                          onChange={e => setForm({ ...form, color: e.target.value })}
+                          type="number"
+                          step="0.1"
+                          value={form.thickness || ""} 
+                          onChange={e => setForm({ ...form, thickness: Number(e.target.value) })}
                           className="h-11 rounded-xl"
                         />
                       </div>
-
-                      {/* Dimensões - Somente para categorias específicas */}
-                      {["Couro", "Estrutura", "Forro", "Tecido"].includes(form.type || "") && (
-                        <>
-                          <div className="space-y-2">
-                            <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Largura (m) *</Label>
-                            <Input 
-                              type="number"
-                              step="0.01"
-                              value={form.width || ""} 
-                              onChange={e => setForm({ ...form, width: Number(e.target.value) })}
-                              className="h-11 rounded-xl"
-                            />
-                          </div>
-
-                          <div className="space-y-2">
-                            <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Altura (m) *</Label>
-                            <Input 
-                              type="number"
-                              step="0.01"
-                              value={form.height || ""} 
-                              onChange={e => setForm({ ...form, height: Number(e.target.value) })}
-                              className="h-11 rounded-xl"
-                            />
-                          </div>
-
-                          <div className="space-y-2">
-                            <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Espessura (cm)</Label>
-                            <Input 
-                              type="number"
-                              step="0.1"
-                              value={form.thickness || ""} 
-                              onChange={e => setForm({ ...form, thickness: Number(e.target.value) })}
-                              className="h-11 rounded-xl"
-                            />
-                          </div>
-                        </>
-                      )}
                     </>
                   )}
                 </div>
@@ -734,7 +729,7 @@ function MaterialsPage() {
                       </div>
                       <div className="mt-2 flex items-center gap-2 text-xs text-blue-700 font-medium bg-blue-100/50 w-fit px-3 py-1 rounded-full">
                         <CheckCircle2 className="size-3" />
-                        Material será cadastrado como 1 unidade (peça única)
+                        O material possui {form.current_stock || 0} peça(s) com esta medida no estoque.
                       </div>
                     </div>
                   </div>
