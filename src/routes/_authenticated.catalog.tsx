@@ -60,7 +60,7 @@ function CatalogPage() {
     <div className="space-y-6 animate-in fade-in duration-500">
       <PageHeader 
         title="Catálogo de Produtos" 
-        description="Visualize todos os produtos ativos do seu catálogo"
+        description="Navegue pelos produtos com promoções ativas"
         icon={ShoppingBag}
       />
 
@@ -138,12 +138,12 @@ function CatalogPage() {
                    </div>
                    <div className="text-right">
                       <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest">Valor Unitário</p>
-                      <p className="text-2xl font-black text-gold font-display">{brl(p.sale_price)}</p>
+                      <p className="text-2xl font-black text-slate-800 font-display">{brl(p.sale_price)}</p>
                    </div>
                 </div>
 
                 <Button className="w-full mt-6 rounded-2xl h-12 font-bold gap-2 group/btn bg-gradient-gold border-none shadow-gold hover:shadow-gold/40">
-                   Ver Detalhes <ArrowRight className="size-4 transition-transform group-hover/btn:translate-x-1" />
+                    Ver Detalhes <ArrowRight className="size-4 transition-transform group-hover/btn:translate-x-1" />
                 </Button>
               </CardContent>
             </Card>

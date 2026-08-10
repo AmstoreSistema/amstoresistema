@@ -102,8 +102,8 @@ function StockPage() {
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       <PageHeader 
-        title="Controle de Estoque" 
-        description="Gestão de saldos, localizações e ajustes"
+        title="Estoque" 
+        description="Produtos acabados prontos para venda"
         icon={WarehouseIcon}
         actions={
           <div className="flex gap-2">
@@ -117,10 +117,12 @@ function StockPage() {
         }
       />
 
-      <div className="grid gap-4 sm:grid-cols-3">
-        <StatCard title="Itens em Estoque" value={stats.total} icon={Package} tone="dark" />
-        <StatCard title="Abaixo do Mínimo" value={stats.low} icon={AlertTriangle} tone="destructive" />
-        <StatCard title="Investimento" value={brl(stats.totalValue)} icon={CircleDollarSign} tone="gold" />
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+        <StatCard title="Total de Itens" value={stats.total} icon={Package} tone="dark" sub="0 produto(s)" />
+        <StatCard title="Estoque baixo" value={stats.low} icon={AlertTriangle} tone="destructive" />
+        <StatCard title="Custo Total" value={brl(0)} icon={CircleDollarSign} tone="destructive" />
+        <StatCard title="Valor Varejo" value={brl(0)} icon={TrendingUp} tone="success" />
+        <StatCard title="Valor Atacado" value={brl(0)} icon={DollarSign} tone="gold" />
       </div>
 
       <div className="flex flex-col gap-4">
