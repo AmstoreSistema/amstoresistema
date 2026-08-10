@@ -1043,8 +1043,8 @@ function MaterialsPage() {
               <div 
                 className="relative bg-white shadow-2xl border-2 border-orange-200/50"
                 style={{ 
-                  width: `${(activeMaterial?.width || 100) * 300}px`, 
-                  height: `${(activeMaterial?.height || 100) * 300}px`,
+                  width: `${(activeMaterial?.width || 100) * 200}px`, 
+                  height: `${(activeMaterial?.height || 100) * 200}px`,
                   backgroundImage: 'radial-gradient(#fed7aa 0.5px, transparent 0.5px)',
                   backgroundSize: '10px 10px'
                 }}
