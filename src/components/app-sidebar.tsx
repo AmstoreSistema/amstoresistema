@@ -93,6 +93,7 @@ const menuGroups: { label: string; items: Item[] }[] = [
     items: [
       {
         title: "Loja",
+        url: "#loja",
         icon: Store,
         items: [
           { title: "Painel de controle", url: "/store", icon: Store },
