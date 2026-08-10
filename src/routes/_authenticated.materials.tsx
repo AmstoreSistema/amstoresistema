@@ -124,13 +124,15 @@ function MaterialsPage() {
   });
 
   // Cuts states
+  // Cuts states
   const [cutsOpen, setCutsOpen] = useState(false);
+  const [newCutForm, setNewCutForm] = useState({ name: "", width: 0, height: 0 });
+  const [isAddingCut, setIsAddingCut] = useState(false);
   const { data: cuts = [] } = useRows<{id: string, name: string, width: number, height: number, status: string}>("material_cuts", {
     filters: activeMaterial ? [{ column: "material_id", value: activeMaterial.id }] : undefined
   });
   const saveCut = useSaveRow("material_cuts", "Corte");
   const removeCut = useDeleteRow("material_cuts", "Corte");
-
   // New states for Config Modal
   const [newConfigValue, setNewConfigValue] = useState("");
   const [newConfigLabel, setNewConfigLabel] = useState("");
@@ -1053,15 +1055,15 @@ function MaterialsPage() {
                 {cuts.map((cut, idx) => (
                   <div 
                     key={cut.id}
-                    className="absolute border-2 border-blue-600 bg-blue-500/20 flex items-center justify-center p-1 text-[8px] font-bold text-blue-900 leading-tight text-center"
+                    className="absolute border-2 border-blue-600 bg-blue-500/20 flex items-center justify-center p-1 text-[8px] font-bold text-blue-900 leading-tight text-center overflow-hidden"
                     style={{
                       width: `${cut.width * 4}px`,
                       height: `${cut.height * 4}px`,
-                      left: `${idx * 20}px`,
-                      top: `${idx * 20}px`
+                      left: `${(idx % 10) * 30}px`,
+                      top: `${Math.floor(idx / 10) * 30}px`
                     }}
                   >
-                    {cut.name}<br/>{cut.width}x{cut.height}cm
+                    <span className="truncate">{cut.name}</span>
                   </div>
                 ))}
               </div>
@@ -1097,15 +1099,17 @@ function MaterialsPage() {
                     </div>
                     <div className="flex justify-between text-xs text-blue-600">
                       <span className="">Área Utilizada:</span>
-                      <span className="font-bold">0 cm²</span>
+                      <span className="font-bold">{num(cuts.reduce((sum, c) => sum + (c.width * c.height), 0))} cm²</span>
                     </div>
                     <div className="flex justify-between text-xs text-success">
                       <span className="">Área Disponível:</span>
-                      <span className="font-bold">{(activeMaterial?.width || 0) * (activeMaterial?.height || 0)} cm²</span>
+                      <span className="font-bold">{num(((activeMaterial?.width || 0) * (activeMaterial?.height || 0)) - cuts.reduce((sum, c) => sum + (c.width * c.height), 0))} cm²</span>
                     </div>
                     <div className="flex justify-between text-xs">
                       <span className="text-muted-foreground">Aproveitamento:</span>
-                      <span className="font-bold text-pink-500">0.0%</span>
+                      <span className="font-bold text-pink-500">
+                        {num((cuts.reduce((sum, c) => sum + (c.width * c.height), 0) / (((activeMaterial?.width || 1) * (activeMaterial?.height || 1)) || 1)) * 100)}%
+                      </span>
                     </div>
                   </div>
 
@@ -1130,9 +1134,99 @@ function MaterialsPage() {
                   </div>
                 </div>
 
-                <Button className="w-full bg-blue-600 hover:bg-blue-700 h-11 rounded-xl gap-2 shadow-lg shadow-blue-100">
-                  <Plus className="size-4" /> Realizar Novo Corte
-                </Button>
+                <div className="space-y-4">
+                  {!isAddingCut ? (
+                    <Button 
+                      className="w-full bg-blue-600 hover:bg-blue-700 h-11 rounded-xl gap-2 shadow-lg shadow-blue-100"
+                      onClick={() => setIsAddingCut(true)}
+                    >
+                      <Plus className="size-4" /> Realizar Novo Corte
+                    </Button>
+                  ) : (
+                    <div className="p-4 border rounded-2xl bg-blue-50/50 space-y-3 animate-in fade-in slide-in-from-top-2">
+                      <div className="space-y-1">
+                        <Label className="text-[10px] font-bold uppercase text-muted-foreground">Nome do Corte</Label>
+                        <Input 
+                          placeholder="Ex: Forro Bolsa Monica" 
+                          value={newCutForm.name}
+                          onChange={e => setNewCutForm({...newCutForm, name: e.target.value})}
+                          className="h-9 rounded-lg"
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="space-y-1">
+                          <Label className="text-[10px] font-bold uppercase text-muted-foreground">Largura (cm)</Label>
+                          <Input 
+                            type="number"
+                            placeholder="0" 
+                            value={newCutForm.width || ""}
+                            onChange={e => setNewCutForm({...newCutForm, width: Number(e.target.value)})}
+                            className="h-9 rounded-lg"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-[10px] font-bold uppercase text-muted-foreground">Altura (cm)</Label>
+                          <Input 
+                            type="number"
+                            placeholder="0" 
+                            value={newCutForm.height || ""}
+                            onChange={e => setNewCutForm({...newCutForm, height: Number(e.target.value)})}
+                            className="h-9 rounded-lg"
+                          />
+                        </div>
+                      </div>
+
+                      {newCutForm.width > 0 && newCutForm.height > 0 && activeMaterial && (
+                        <div className="bg-white p-3 rounded-lg border border-blue-100 flex justify-between items-center">
+                          <div className="flex flex-col">
+                            <span className="text-[10px] font-bold text-muted-foreground uppercase">Custo Proporcional</span>
+                            <span className="text-sm font-bold text-success">
+                              {brl((activeMaterial.cost_price / ((activeMaterial.width || 1) * (activeMaterial.height || 1))) * (newCutForm.width * newCutForm.height))}
+                            </span>
+                          </div>
+                          <span className="text-[10px] font-medium text-blue-600">
+                            {num(newCutForm.width * newCutForm.height)} cm²
+                          </span>
+                        </div>
+                      )}
+
+                      <div className="flex gap-2">
+                        <Button 
+                          variant="ghost" 
+                          className="flex-1 h-9 rounded-lg text-xs"
+                          onClick={() => setIsAddingCut(false)}
+                        >
+                          Cancelar
+                        </Button>
+                        <Button 
+                          className="flex-1 h-9 rounded-lg bg-blue-600 hover:bg-blue-700 text-xs"
+                          onClick={() => {
+                            if (!newCutForm.name || !newCutForm.width || !newCutForm.height) {
+                              toast.error("Preencha todos os campos do corte");
+                              return;
+                            }
+                            saveCut.mutate({
+                              values: {
+                                ...newCutForm,
+                                material_id: activeMaterial?.id,
+                                status: 'disponivel',
+                                x: 0,
+                                y: 0
+                              }
+                            }, {
+                              onSuccess: () => {
+                                setIsAddingCut(false);
+                                setNewCutForm({ name: "", width: 0, height: 0 });
+                              }
+                            });
+                          }}
+                        >
+                          Adicionar
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
 
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
