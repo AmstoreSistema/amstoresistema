@@ -81,6 +81,9 @@ function MaterialsPage() {
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Material | null>(null);
   const [form, setForm] = useState<Partial<Material>>({});
+  const [supplierDialogOpen, setSupplierDialogOpen] = useState(false);
+  const [newSupplierName, setNewSupplierName] = useState("");
+
 
   const filtered = useMemo(() => {
     return materials.filter(m => {
@@ -121,6 +124,14 @@ function MaterialsPage() {
     }, {
       onSuccess: () => setFormOpen(false)
     });
+  };
+
+  const handleAddSupplier = () => {
+    if (!newSupplierName.trim()) return;
+    setForm({ ...form, supplier: newSupplierName });
+    setNewSupplierName("");
+    setSupplierDialogOpen(false);
+    toast.success("Fornecedor adicionado");
   };
 
   return (
@@ -361,13 +372,50 @@ function MaterialsPage() {
                       <SelectContent>
                         <SelectItem value="Fornecedor A">Fornecedor A</SelectItem>
                         <SelectItem value="Fornecedor B">Fornecedor B</SelectItem>
+                        {form.supplier && !["Fornecedor A", "Fornecedor B"].includes(form.supplier) && (
+                          <SelectItem value={form.supplier}>{form.supplier}</SelectItem>
+                        )}
                       </SelectContent>
                     </Select>
-                    <Button variant="outline" size="icon" className="h-11 w-11 rounded-xl border-orange-200 text-orange-500 hover:bg-orange-50 hover:text-orange-600">
+                    <Button 
+                      variant="outline" 
+                      size="icon" 
+                      className="h-11 w-11 rounded-xl border-orange-200 text-orange-500 hover:bg-orange-50 hover:text-orange-600"
+                      onClick={() => setSupplierDialogOpen(true)}
+                    >
                       <Plus className="size-4" />
                     </Button>
                   </div>
                 </div>
+
+                <Dialog open={supplierDialogOpen} onOpenChange={setSupplierDialogOpen}>
+                  <DialogContent className="sm:max-w-[425px] rounded-3xl">
+                    <DialogHeader>
+                      <DialogTitle>Novo Fornecedor</DialogTitle>
+                      <DialogDescription>
+                        Digite o nome do novo fornecedor para este material.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="py-4">
+                      <Label htmlFor="supplier-name" className="text-right">Nome</Label>
+                      <Input
+                        id="supplier-name"
+                        value={newSupplierName}
+                        onChange={(e) => setNewSupplierName(e.target.value)}
+                        className="col-span-3 mt-2 h-11 rounded-xl"
+                        placeholder="Nome do fornecedor"
+                        autoFocus
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') handleAddSupplier();
+                        }}
+                      />
+                    </div>
+                    <DialogFooter>
+                      <Button variant="outline" onClick={() => setSupplierDialogOpen(false)} className="rounded-xl">Cancelar</Button>
+                      <Button onClick={handleAddSupplier} className="rounded-xl bg-orange-500 hover:bg-orange-600">Adicionar</Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
 
                 {/* Cor */}
                 <div className="space-y-2">
