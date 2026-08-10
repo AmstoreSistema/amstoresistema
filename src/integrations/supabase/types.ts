@@ -194,46 +194,64 @@ export type Database = {
       }
       materials: {
         Row: {
+          color: string | null
           cost_price: number | null
           created_at: string | null
           current_stock: number | null
+          description: string | null
+          height: number | null
           id: string
           image_url: string | null
           min_stock: number
           name: string
           sku: string | null
+          specification: string | null
           supplier: string | null
+          thickness: number | null
           type: string
           unit: string
           updated_at: string | null
+          width: number | null
         }
         Insert: {
+          color?: string | null
           cost_price?: number | null
           created_at?: string | null
           current_stock?: number | null
+          description?: string | null
+          height?: number | null
           id?: string
           image_url?: string | null
           min_stock?: number
           name: string
           sku?: string | null
+          specification?: string | null
           supplier?: string | null
+          thickness?: number | null
           type?: string
           unit: string
           updated_at?: string | null
+          width?: number | null
         }
         Update: {
+          color?: string | null
           cost_price?: number | null
           created_at?: string | null
           current_stock?: number | null
+          description?: string | null
+          height?: number | null
           id?: string
           image_url?: string | null
           min_stock?: number
           name?: string
           sku?: string | null
+          specification?: string | null
           supplier?: string | null
+          thickness?: number | null
           type?: string
           unit?: string
           updated_at?: string | null
+          width?: number | null
         }
         Relationships: []
       }
