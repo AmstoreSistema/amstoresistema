@@ -13,8 +13,11 @@ import {
   Upload,
   RefreshCw,
   X,
-  PlusCircle
+  PlusCircle,
+  Palette,
+  Info
 } from "lucide-react";
+
 import { toast } from "sonner";
 
 import { PageHeader } from "@/components/page-header";
