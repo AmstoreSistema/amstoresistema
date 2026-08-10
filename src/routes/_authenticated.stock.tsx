@@ -5,14 +5,15 @@ import {
   Search,
   Filter,
   Plus,
-  ArrowRight,
   History,
   AlertTriangle,
-  Boxes,
   Barcode,
   Calendar,
   Pencil,
-  Settings2
+  Settings2,
+  CircleDollarSign,
+  TrendingUp,
+  DollarSign
 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";

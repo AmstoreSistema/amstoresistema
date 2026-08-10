@@ -11,6 +11,7 @@ import {
   Layers,
   ShoppingBag
 } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
@@ -64,31 +65,48 @@ function CatalogPage() {
         icon={ShoppingBag}
       />
 
-      <div className="flex flex-col gap-4">
-        <div className="flex flex-wrap gap-2">
-          {categories.map(c => (
-            <Button 
-              key={c}
-              variant={activeCategory === c ? "default" : "outline"}
-              size="sm"
-              onClick={() => setActiveCategory(c)}
-              className="rounded-full px-4"
-            >
-              {c}
-            </Button>
-          ))}
+      <Card className="rounded-3xl border-border/40 bg-card/50 backdrop-blur-sm p-6 mb-6">
+        <div className="flex flex-col gap-6">
+          <div className="flex flex-col md:flex-row gap-4 items-center">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+              <Input 
+                placeholder="Buscar por nome ou código..." 
+                className="pl-10 h-11 rounded-xl bg-background border-border/40"
+                value={term}
+                onChange={e => setTerm(e.target.value)}
+              />
+            </div>
+            <div className="flex gap-2">
+              <Select value={activeCategory} onValueChange={setActiveCategory}>
+                <SelectTrigger className="w-[180px] h-11 rounded-xl">
+                  <SelectValue placeholder="Todas as categorias" />
+                </SelectTrigger>
+                <SelectContent>
+                  {categories.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              <Select defaultValue="Todas as numerações">
+                <SelectTrigger className="w-[180px] h-11 rounded-xl">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Todas as numerações">Todas as numerações</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div className="flex items-center gap-4 bg-muted/20 p-4 rounded-2xl border border-border/40">
+            <div className="size-10 rounded-xl bg-blue-500/10 flex items-center justify-center">
+              <Package className="size-5 text-blue-500" />
+            </div>
+            <div>
+               <p className="text-xs text-muted-foreground">Todos os produtos</p>
+               <p className="text-lg font-black tracking-tight"><span className="text-blue-500">{products.reduce((s, p) => s + Number(p.current_stock), 0)}</span> unidades em {products.length} produto(s)</p>
+            </div>
+          </div>
         </div>
-
-        <div className="relative max-w-md">
-          <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-          <Input 
-            placeholder="Buscar no catálogo..." 
-            className="pl-10 h-11 rounded-2xl bg-card border-border/40"
-            value={term}
-            onChange={e => setTerm(e.target.value)}
-          />
-        </div>
-      </div>
+      </Card>
 
       {isLoading ? (
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
