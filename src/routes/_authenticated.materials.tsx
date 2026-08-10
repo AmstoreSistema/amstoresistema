@@ -729,7 +729,7 @@ function MaterialsPage() {
                       </div>
                       <div className="mt-2 flex items-center gap-2 text-xs text-blue-700 font-medium bg-blue-100/50 w-fit px-3 py-1 rounded-full">
                         <CheckCircle2 className="size-3" />
-                        O material possui {form.current_stock || 0} peça(s) com esta medida no estoque.
+                        O material possui {form.current_stock || 0} peça(s) com esta medida no estoque. Mas se eu comprar meio metro de altura, como vai funcionar na hora de exibir a quantidade correta?
                       </div>
                     </div>
                   </div>
