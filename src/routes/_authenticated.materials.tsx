@@ -235,10 +235,10 @@ function MaterialsPage() {
       )}
 
       <Dialog open={formOpen} onOpenChange={setFormOpen}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl rounded-3xl p-0 border-none bg-white">
-          <div className="flex items-center justify-between border-b px-6 py-4">
+        <DialogContent className="max-h-[95vh] w-[95vw] overflow-y-auto sm:max-w-3xl rounded-3xl p-0 border-none bg-white [&>button]:hidden">
+          <div className="flex items-center justify-between border-b px-6 py-4 sticky top-0 bg-white z-10">
             <h2 className="text-lg font-semibold">{editing ? "Editar Material" : "Novo Material"}</h2>
-            <Button variant="ghost" size="icon" onClick={() => setFormOpen(false)} className="rounded-full">
+            <Button variant="ghost" size="icon" onClick={() => setFormOpen(false)} className="rounded-full hover:bg-muted">
               <X className="size-4" />
             </Button>
           </div>
@@ -248,12 +248,40 @@ function MaterialsPage() {
               {/* Imagem do Material */}
               <div className="space-y-2">
                 <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Imagem do Material</Label>
-                <div className="relative flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-muted-foreground/20 bg-muted/5 p-8 transition-colors hover:bg-muted/10">
+                <div 
+                  className="relative flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-muted-foreground/20 bg-muted/5 p-8 transition-colors hover:bg-muted/10 cursor-pointer"
+                  onClick={() => document.getElementById('material-image-upload')?.click()}
+                >
+                  <input 
+                    type="file" 
+                    id="material-image-upload" 
+                    className="hidden" 
+                    accept="image/*"
+                    onChange={e => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        const reader = new FileReader();
+                        reader.onloadend = () => {
+                          setForm({ ...form, image_url: reader.result as string });
+                        };
+                        reader.readAsDataURL(file);
+                      }
+                    }}
+                  />
                   {form.image_url ? (
-                    <div className="group relative w-full overflow-hidden rounded-xl aspect-video">
-                      <img src={form.image_url} alt="Preview" className="h-full w-full object-cover" />
+                    <div className="group relative w-full overflow-hidden rounded-xl aspect-video max-h-48">
+                      <img src={form.image_url} alt="Preview" className="h-full w-full object-contain" />
                       <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Button variant="destructive" size="sm" onClick={() => setForm({ ...form, image_url: null })}>Remover</Button>
+                        <Button 
+                          variant="destructive" 
+                          size="sm" 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setForm({ ...form, image_url: null });
+                          }}
+                        >
+                          Remover
+                        </Button>
                       </div>
                     </div>
                   ) : (
@@ -263,13 +291,15 @@ function MaterialsPage() {
                       </div>
                       <p className="text-sm font-medium">Clique para fazer upload da imagem</p>
                       <p className="text-[10px] text-muted-foreground mt-1">Máximo 5MB</p>
-                      <Input 
-                        type="text" 
-                        placeholder="Ou cole a URL da imagem aqui" 
-                        className="mt-4 max-w-xs text-center text-xs"
-                        value={form.image_url || ""}
-                        onChange={e => setForm({ ...form, image_url: e.target.value })}
-                      />
+                      <div className="mt-4 w-full max-w-xs flex gap-2" onClick={e => e.stopPropagation()}>
+                        <Input 
+                          type="text" 
+                          placeholder="Ou cole a URL da imagem aqui" 
+                          className="text-xs h-8"
+                          value={form.image_url || ""}
+                          onChange={e => setForm({ ...form, image_url: e.target.value })}
+                        />
+                      </div>
                     </>
                   )}
                 </div>
@@ -297,7 +327,11 @@ function MaterialsPage() {
                       onChange={e => setForm({ ...form, sku: e.target.value })}
                       className="h-11 rounded-xl pr-10"
                     />
-                    <button className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                    <button 
+                      type="button"
+                      onClick={() => setForm({ ...form, sku: Math.random().toString(36).substring(2, 10).toUpperCase() })}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    >
                       <RefreshCw className="size-4" />
                     </button>
                   </div>
