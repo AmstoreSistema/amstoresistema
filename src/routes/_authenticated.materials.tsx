@@ -122,6 +122,13 @@ function MaterialsPage() {
     cost_price: 0
   });
 
+  // Cuts states
+  const [cutsOpen, setCutsOpen] = useState(false);
+  const { data: cuts = [] } = useRows<{id: string, name: string, width: number, height: number, status: string}>("material_cuts", {
+    filters: activeMaterial ? [{ column: "material_id", value: activeMaterial.id }] : undefined
+  });
+  const saveCut = useSaveRow("material_cuts", "Corte");
+  const removeCut = useDeleteRow("material_cuts", "Corte");
 
   // New states for Config Modal
   const [newConfigValue, setNewConfigValue] = useState("");
@@ -200,6 +207,11 @@ function MaterialsPage() {
       name: ""
     });
     setVariationsOpen(true);
+  };
+
+  const openCuts = (m: Material) => {
+    setActiveMaterial(m);
+    setCutsOpen(true);
   };
 
 
@@ -378,16 +390,23 @@ function MaterialsPage() {
 
                 <div className="mt-4 flex flex-col gap-2 border-t border-border/50 pt-4">
                   <div className="grid grid-cols-2 gap-2">
+                    {["Couro", "Estrutura", "Forro"].includes(m.type || "") && (
+                      <Button variant="default" size="sm" className="h-8 gap-1 bg-blue-600 hover:bg-blue-700" onClick={() => openCuts(m)}>
+                        <Layers className="size-3" /> Ver Cortes
+                      </Button>
+                    )}
                     <Button variant="outline" size="sm" className="h-8 gap-1" onClick={() => openVariations(m)}>
                       <Palette className="size-3" /> Variações
                     </Button>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
                     <Button variant="outline" size="sm" className="h-8 gap-1" onClick={() => openEdit(m)}>
                       <Pencil className="size-3" /> Editar
                     </Button>
+                    <Button variant="outline" size="sm" className="h-8 w-full gap-1 text-destructive hover:bg-destructive/5" onClick={() => remove.mutate(m.id)}>
+                      <Trash2 className="size-3" /> Excluir
+                    </Button>
                   </div>
-                  <Button variant="outline" size="sm" className="h-8 w-full gap-1 text-destructive hover:bg-destructive/5" onClick={() => remove.mutate(m.id)}>
-                    <Trash2 className="size-3" /> Excluir Material
-                  </Button>
                 </div>
 
               </CardContent>
@@ -971,6 +990,179 @@ function MaterialsPage() {
             <Button variant="outline" onClick={() => setVariationsOpen(false)} className="h-10 rounded-xl px-6">
               Fechar
             </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal de Cortes (Leather/Structure/Lining) */}
+      <Dialog open={cutsOpen} onOpenChange={setCutsOpen}>
+        <DialogContent className="max-h-[95vh] w-[95vw] overflow-y-auto sm:max-w-[1400px] rounded-3xl p-0 border-none bg-white">
+          <div className="flex items-center justify-between border-b px-6 py-4 sticky top-0 bg-white z-20">
+            <div className="flex items-center gap-3">
+              <div className="flex items-center justify-center size-10 rounded-xl bg-blue-50 text-blue-600">
+                <Layers className="size-5" />
+              </div>
+              <div>
+                <h2 className="text-lg font-semibold">{activeMaterial?.name}</h2>
+                <p className="text-[10px] uppercase tracking-widest text-muted-foreground">SKU: {activeMaterial?.sku || "—"}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" className="gap-2 text-pink-500 border-pink-100 hover:bg-pink-50">
+                <div className="size-2 rounded-full bg-pink-500 animate-pulse" />
+                Otimizar
+              </Button>
+              <Button variant="ghost" size="icon" onClick={() => setCutsOpen(false)} className="rounded-full">
+                <X className="size-4" />
+              </Button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr,350px] overflow-hidden">
+            {/* Canvas Area */}
+            <div className="p-8 bg-gray-50/30 flex flex-col items-center justify-center min-h-[600px] relative">
+              <div className="absolute top-4 left-6 flex gap-4 text-[10px] font-bold uppercase tracking-tighter text-muted-foreground">
+                <div className="flex items-center gap-1.5"><PlusCircle className="size-3 text-blue-500" /> Arrastar: Mover cortes</div>
+                <div className="flex items-center gap-1.5"><div className="size-2 rounded-full bg-blue-500" /> Handle azul: Rotacionar</div>
+                <div className="flex items-center gap-1.5"><span className="text-blue-500">Ctrl+Click</span>: Seleção múltipla</div>
+                <div className="flex items-center gap-1.5"><span className="text-blue-500">Shift+Drag</span>: Pan</div>
+              </div>
+
+              {/* The Material Canvas */}
+              <div 
+                className="relative bg-white shadow-2xl border-2 border-orange-200/50"
+                style={{ 
+                  width: `${(activeMaterial?.width || 100) * 4}px`, 
+                  height: `${(activeMaterial?.height || 100) * 4}px`,
+                  backgroundImage: 'radial-gradient(#fed7aa 0.5px, transparent 0.5px)',
+                  backgroundSize: '10px 10px'
+                }}
+              >
+                <div className="absolute -top-6 left-1/2 -translate-x-1/2 text-[10px] font-bold text-orange-400">{activeMaterial?.width} cm</div>
+                <div className="absolute -left-10 top-1/2 -translate-y-1/2 -rotate-90 text-[10px] font-bold text-orange-400">{activeMaterial?.height} cm</div>
+                
+                {/* Render mock/real cuts */}
+                {cuts.map((cut, idx) => (
+                  <div 
+                    key={cut.id}
+                    className="absolute border-2 border-blue-600 bg-blue-500/20 flex items-center justify-center p-1 text-[8px] font-bold text-blue-900 leading-tight text-center"
+                    style={{
+                      width: `${cut.width * 4}px`,
+                      height: `${cut.height * 4}px`,
+                      left: `${idx * 20}px`,
+                      top: `${idx * 20}px`
+                    }}
+                  >
+                    {cut.name}<br/>{cut.width}x{cut.height}cm
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-8 flex items-center gap-6 p-3 bg-white rounded-2xl shadow-sm border">
+                <div className="flex items-center gap-2">
+                  <Label className="text-[10px] uppercase font-bold text-muted-foreground">Zoom</Label>
+                  <Input type="range" className="w-24 accent-blue-600" />
+                  <span className="text-xs font-bold text-muted-foreground">100%</span>
+                </div>
+                <div className="h-4 w-px bg-border" />
+                <div className="flex items-center gap-2">
+                  <Label className="text-[10px] uppercase font-bold text-muted-foreground">Grid</Label>
+                  <Input type="range" className="w-24 accent-blue-600" />
+                  <span className="text-xs font-bold text-muted-foreground">5cm</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Sidebar Stats Area */}
+            <div className="border-l bg-white flex flex-col h-full overflow-y-auto">
+              <div className="p-6 space-y-6">
+                <div>
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-4">Estatísticas</h3>
+                  <div className="space-y-3">
+                    <div className="flex justify-between text-xs">
+                      <span className="text-muted-foreground">Custo por cm²:</span>
+                      <span className="font-bold">{brl(activeMaterial?.cost_price ? activeMaterial.cost_price / ((activeMaterial.width || 1) * (activeMaterial.height || 1)) : 0)}</span>
+                    </div>
+                    <div className="flex justify-between text-xs">
+                      <span className="text-muted-foreground">Área Total:</span>
+                      <span className="font-bold">{(activeMaterial?.width || 0) * (activeMaterial?.height || 0)} cm²</span>
+                    </div>
+                    <div className="flex justify-between text-xs text-blue-600">
+                      <span className="">Área Utilizada:</span>
+                      <span className="font-bold">0 cm²</span>
+                    </div>
+                    <div className="flex justify-between text-xs text-success">
+                      <span className="">Área Disponível:</span>
+                      <span className="font-bold">{(activeMaterial?.width || 0) * (activeMaterial?.height || 0)} cm²</span>
+                    </div>
+                    <div className="flex justify-between text-xs">
+                      <span className="text-muted-foreground">Aproveitamento:</span>
+                      <span className="font-bold text-pink-500">0.0%</span>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-2 mt-4 bg-gray-50 p-1 rounded-xl">
+                    <div className="text-center p-2 rounded-lg bg-white shadow-sm">
+                      <p className="text-[10px] text-muted-foreground uppercase font-bold">Disponível</p>
+                      <p className="text-sm font-bold text-success">{cuts.filter(c => c.status === 'disponivel').length}</p>
+                    </div>
+                    <div className="text-center p-2">
+                      <p className="text-[10px] text-muted-foreground uppercase font-bold">Utilizado</p>
+                      <p className="text-sm font-bold text-blue-600">{cuts.filter(c => c.status === 'utilizado').length}</p>
+                    </div>
+                    <div className="text-center p-2">
+                      <p className="text-[10px] text-muted-foreground uppercase font-bold">Reservado</p>
+                      <p className="text-sm font-bold text-orange-500">{cuts.filter(c => c.status === 'reservado').length}</p>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 flex justify-between items-center border-t pt-4">
+                    <span className="text-xs font-bold text-muted-foreground uppercase">Custo Total:</span>
+                    <span className="text-lg font-bold text-success">{brl(activeMaterial?.cost_price || 0)}</span>
+                  </div>
+                </div>
+
+                <Button className="w-full bg-blue-600 hover:bg-blue-700 h-11 rounded-xl gap-2 shadow-lg shadow-blue-100">
+                  <Plus className="size-4" /> Realizar Novo Corte
+                </Button>
+
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Cortes ({cuts.length})</h3>
+                  </div>
+                  <div className="space-y-3">
+                    {cuts.map(cut => (
+                      <div key={cut.id} className="p-4 border rounded-2xl bg-gray-50/50 hover:bg-white transition-colors group">
+                        <div className="flex justify-between items-start mb-2">
+                          <div>
+                            <p className="text-sm font-bold">{cut.name}</p>
+                            <p className="text-[10px] text-muted-foreground">{cut.width} × {cut.height} cm • {cut.width * cut.height} cm²</p>
+                          </div>
+                          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <Button variant="ghost" size="icon" className="size-7 rounded-full text-destructive" onClick={() => removeCut.mutate(cut.id)}>
+                              <Trash2 className="size-3.5" />
+                            </Button>
+                          </div>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-xs font-bold text-success">{brl(activeMaterial?.cost_price ? (activeMaterial.cost_price / ((activeMaterial.width || 1) * (activeMaterial.height || 1))) * (cut.width * cut.height) : 0)}</span>
+                          <Select defaultValue={cut.status}>
+                            <SelectTrigger className="h-7 w-28 text-[10px] uppercase font-bold rounded-lg border-none bg-white shadow-sm">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="disponivel">Disponível</SelectItem>
+                              <SelectItem value="utilizado">Utilizado</SelectItem>
+                              <SelectItem value="reservado">Reservado</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
