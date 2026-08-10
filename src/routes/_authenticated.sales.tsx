@@ -39,37 +39,23 @@ export const Route = createFileRoute("/_authenticated/sales")({
   component: SalesPage,
 });
 
-type Sale = {
-  id: string;
-  created_at: string;
-  total_amount: number;
-  payment_method: string;
-  status: string;
-  is_debt: boolean;
-  client_id: string | null;
-  discount: number;
-};
-
-type Client = { id: string; name: string };
-
 function SalesPage() {
-  const { data: sales = [], isLoading } = useRows<Sale>("sales", { order: { column: "created_at", ascending: false } });
-  const { data: clients = [] } = useRows<Client>("clients");
+  const { data: sales = [], isLoading } = useRows("sales", { order: { column: "created_at", ascending: false } });
+  const { data: clients = [] } = useRows("clients");
 
   const [term, setTerm] = useState("");
 
-  const clientById = useMemo(() => new Map(clients.map(c => [c.id, c])), [clients]);
+  const clientById = useMemo(() => new Map(clients.map((c: any) => [c.id, c])), [clients]);
 
   const filtered = useMemo(() => {
-    return sales.filter(s => {
+    return (sales as any[]).filter(s => {
       const clientName = clientById.get(s.client_id || "")?.name || "Consumidor";
       return clientName.toLowerCase().includes(term.toLowerCase()) || s.id.toLowerCase().includes(term.toLowerCase());
     });
   }, [sales, term, clientById]);
 
-  // Group sales by date
   const groupedSales = useMemo(() => {
-    const groups: Record<string, Sale[]> = {};
+    const groups: Record<string, any[]> = {};
     filtered.forEach(s => {
       const d = dateBR(s.created_at);
       if (!groups[d]) groups[d] = [];
@@ -80,15 +66,9 @@ function SalesPage() {
 
   const stats = useMemo(() => {
     const today = new Date().toISOString().split('T')[0];
-    const todaySales = (sales || []).filter(s => {
-      const dateStr = s.created_at ? String(s.created_at) : "";
-      return dateStr.startsWith(today);
-    });
-    const fiados = (sales || []).filter(s => {
-      const isDebt = !!s.is_debt;
-      const status = s.status ? String(s.status) : "";
-      return isDebt && status !== "paid";
-    });
+    const todaySales = (sales as any[]).filter(s => String(s.created_at || "").startsWith(today));
+    const fiados = (sales as any[]).filter(s => !!s.is_debt && String(s.status || "") !== "paid");
+    
     return {
       countToday: todaySales.length,
       totalToday: todaySales.reduce((sum, s) => sum + Number(s.total_amount), 0),
@@ -96,9 +76,8 @@ function SalesPage() {
     };
   }, [sales]);
 
-  const getStatusBadge = (s: Sale) => {
-    const status = s.status ? (s.status as string) : "";
-    if (s.is_debt && status !== "paid") return <Badge className="bg-destructive/10 text-destructive border-none">Pendente (Fiado)</Badge>;
+  const getStatusBadge = (s: any) => {
+    if (s.is_debt && String(s.status || "") !== "paid") return <Badge className="bg-destructive/10 text-destructive border-none">Pendente (Fiado)</Badge>;
     return <Badge className="bg-success/10 text-success border-none">Pago</Badge>;
   };
 
