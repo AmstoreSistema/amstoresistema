@@ -1052,14 +1052,14 @@ function MaterialsPage() {
       {/* Modal de Cortes (Leather/Structure/Lining) */}
       <Dialog open={cutsOpen} onOpenChange={setCutsOpen}>
         <DialogContent className="max-h-[95vh] w-[98vw] sm:max-w-[1400px] rounded-3xl p-0 border-none bg-white overflow-hidden flex flex-col">
-          <div className="flex items-center justify-between border-b px-8 py-5 sticky top-0 bg-white z-20">
+          <div className="flex items-center justify-between border-b px-6 py-3 sticky top-0 bg-white z-20">
             <div className="flex items-center gap-3">
-              <div className="flex items-center justify-center size-10 rounded-xl bg-blue-50 text-blue-600">
-                <Layers className="size-5" />
+              <div className="flex items-center justify-center size-8 rounded-lg bg-blue-50 text-blue-600">
+                <Layers className="size-4" />
               </div>
               <div>
-                <h2 className="text-lg font-semibold">{activeMaterial?.name}</h2>
-                <p className="text-[10px] uppercase tracking-widest text-muted-foreground">SKU: {activeMaterial?.sku || "—"}</p>
+                <h2 className="text-base font-semibold">{activeMaterial?.name}</h2>
+                <p className="text-[9px] uppercase tracking-widest text-muted-foreground">SKU: {activeMaterial?.sku || "—"}</p>
               </div>
             </div>
             <div className="flex items-center gap-2">
