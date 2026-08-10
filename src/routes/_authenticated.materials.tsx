@@ -1043,10 +1043,10 @@ function MaterialsPage() {
               <div 
                 className="relative bg-white shadow-2xl border-2 border-orange-200/50"
                 style={{ 
-                  width: `${(activeMaterial?.width || 100) * 200}px`, 
-                  height: `${(activeMaterial?.height || 100) * 200}px`,
+                  width: `${(activeMaterial?.width || 1) * 350}px`, 
+                  height: `${(activeMaterial?.height || 1) * 350}px`,
                   backgroundImage: 'radial-gradient(#fed7aa 0.5px, transparent 0.5px)',
-                  backgroundSize: '10px 10px'
+                  backgroundSize: '20px 20px'
                 }}
               >
                 <div className="absolute -top-6 left-1/2 -translate-x-1/2 text-[10px] font-bold text-orange-400">{(activeMaterial?.width || 0) * 100} cm</div>
