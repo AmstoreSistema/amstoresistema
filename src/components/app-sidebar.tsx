@@ -170,7 +170,7 @@ export function AppSidebar() {
         </div>
       </SidebarHeader>
 
-      <SidebarContent className="no-scrollbar gap-0 overflow-y-auto">
+      <SidebarContent className="scrollbar-hide gap-0 overflow-y-auto overflow-x-hidden">
         {menuGroups.map((group) => (
           <SidebarGroup key={group.label} className="py-2">
             <SidebarGroupLabel className="px-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-sidebar-foreground/45">
