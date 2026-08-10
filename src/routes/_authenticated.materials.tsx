@@ -51,7 +51,7 @@ export const Route = createFileRoute("/_authenticated/materials")({
   component: MaterialsPage,
 });
 
-export const MATERIAL_TYPES = ["Couro", "Tecido", "Ferragem", "Forro", "Cola", "Linha", "Outro"];
+export const MATERIAL_TYPES = ["Couro", "Tecido", "Ferragem", "Forro", "Cola", "Linha", "Estrutura", "Outro"];
 
 type Material = {
   id: string;
@@ -512,37 +512,41 @@ function MaterialsPage() {
                       />
                     </div>
 
-                    {/* Dimensões */}
-                    <div className="space-y-2">
-                      <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Largura (cm) *</Label>
-                      <Input 
-                        type="number"
-                        value={form.width || ""} 
-                        onChange={e => setForm({ ...form, width: Number(e.target.value) })}
-                        className="h-11 rounded-xl"
-                      />
-                    </div>
+                    {/* Dimensões - Somente para categorias específicas */}
+                    {["Couro", "Estrutura", "Forro", "Tecido"].includes(form.type || "") && (
+                      <>
+                        <div className="space-y-2">
+                          <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Largura (cm) *</Label>
+                          <Input 
+                            type="number"
+                            value={form.width || ""} 
+                            onChange={e => setForm({ ...form, width: Number(e.target.value) })}
+                            className="h-11 rounded-xl"
+                          />
+                        </div>
 
-                    <div className="space-y-2">
-                      <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Altura (cm) *</Label>
-                      <Input 
-                        type="number"
-                        value={form.height || ""} 
-                        onChange={e => setForm({ ...form, height: Number(e.target.value) })}
-                        className="h-11 rounded-xl"
-                      />
-                    </div>
+                        <div className="space-y-2">
+                          <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Altura (cm) *</Label>
+                          <Input 
+                            type="number"
+                            value={form.height || ""} 
+                            onChange={e => setForm({ ...form, height: Number(e.target.value) })}
+                            className="h-11 rounded-xl"
+                          />
+                        </div>
 
-                    <div className="space-y-2">
-                      <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Espessura (cm)</Label>
-                      <Input 
-                        type="number"
-                        step="0.1"
-                        value={form.thickness || ""} 
-                        onChange={e => setForm({ ...form, thickness: Number(e.target.value) })}
-                        className="h-11 rounded-xl"
-                      />
-                    </div>
+                        <div className="space-y-2">
+                          <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Espessura (cm)</Label>
+                          <Input 
+                            type="number"
+                            step="0.1"
+                            value={form.thickness || ""} 
+                            onChange={e => setForm({ ...form, thickness: Number(e.target.value) })}
+                            className="h-11 rounded-xl"
+                          />
+                        </div>
+                      </>
+                    )}
 
                     <div className="space-y-2">
                       <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Unidade de Medida</Label>
