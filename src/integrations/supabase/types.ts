@@ -14,26 +14,183 @@ export type Database = {
   }
   public: {
     Tables: {
+      accounts: {
+        Row: {
+          amount: number
+          category: string | null
+          created_at: string
+          description: string
+          due_date: string | null
+          id: string
+          kind: string
+          status: string
+        }
+        Insert: {
+          amount?: number
+          category?: string | null
+          created_at?: string
+          description: string
+          due_date?: string | null
+          id?: string
+          kind?: string
+          status?: string
+        }
+        Update: {
+          amount?: number
+          category?: string | null
+          created_at?: string
+          description?: string
+          due_date?: string | null
+          id?: string
+          kind?: string
+          status?: string
+        }
+        Relationships: []
+      }
+      app_settings: {
+        Row: {
+          key: string
+          updated_at: string
+          value: string | null
+        }
+        Insert: {
+          key: string
+          updated_at?: string
+          value?: string | null
+        }
+        Update: {
+          key?: string
+          updated_at?: string
+          value?: string | null
+        }
+        Relationships: []
+      }
+      audit_log: {
+        Row: {
+          action: string
+          created_at: string
+          details: string | null
+          entity: string
+          entity_id: string | null
+          id: string
+          user_email: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          details?: string | null
+          entity: string
+          entity_id?: string | null
+          id?: string
+          user_email?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          details?: string | null
+          entity?: string
+          entity_id?: string | null
+          id?: string
+          user_email?: string | null
+        }
+        Relationships: []
+      }
+      cashback_entries: {
+        Row: {
+          amount: number
+          client_id: string
+          created_at: string
+          description: string | null
+          id: string
+          kind: string
+        }
+        Insert: {
+          amount?: number
+          client_id: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          kind?: string
+        }
+        Update: {
+          amount?: number
+          client_id?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          kind?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cashback_entries_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clients: {
         Row: {
+          address: string | null
+          cashback_balance: number
           created_at: string | null
+          email: string | null
           id: string
           name: string
+          notes: string | null
           phone: string | null
         }
         Insert: {
+          address?: string | null
+          cashback_balance?: number
           created_at?: string | null
+          email?: string | null
           id?: string
           name: string
+          notes?: string | null
           phone?: string | null
         }
         Update: {
+          address?: string | null
+          cashback_balance?: number
           created_at?: string | null
+          email?: string | null
           id?: string
           name?: string
+          notes?: string | null
           phone?: string | null
         }
         Relationships: []
+      }
+      debt_payments: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          sale_id: string
+        }
+        Insert: {
+          amount?: number
+          created_at?: string
+          id?: string
+          sale_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          sale_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "debt_payments_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
+            referencedRelation: "sales"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       materials: {
         Row: {
@@ -41,7 +198,10 @@ export type Database = {
           created_at: string | null
           current_stock: number | null
           id: string
+          min_stock: number
           name: string
+          supplier: string | null
+          type: string
           unit: string
           updated_at: string | null
         }
@@ -50,7 +210,10 @@ export type Database = {
           created_at?: string | null
           current_stock?: number | null
           id?: string
+          min_stock?: number
           name: string
+          supplier?: string | null
+          type?: string
           unit: string
           updated_at?: string | null
         }
@@ -59,7 +222,10 @@ export type Database = {
           created_at?: string | null
           current_stock?: number | null
           id?: string
+          min_stock?: number
           name?: string
+          supplier?: string | null
+          type?: string
           unit?: string
           updated_at?: string | null
         }
@@ -141,30 +307,125 @@ export type Database = {
       }
       products: {
         Row: {
+          active: boolean
+          category: string
+          cost_price: number
           created_at: string | null
           current_stock: number | null
           id: string
+          image_url: string | null
+          min_stock: number
           name: string
           sale_price: number | null
+          sku: string | null
           updated_at: string | null
         }
         Insert: {
+          active?: boolean
+          category?: string
+          cost_price?: number
           created_at?: string | null
           current_stock?: number | null
           id?: string
+          image_url?: string | null
+          min_stock?: number
           name: string
           sale_price?: number | null
+          sku?: string | null
           updated_at?: string | null
         }
         Update: {
+          active?: boolean
+          category?: string
+          cost_price?: number
           created_at?: string | null
           current_stock?: number | null
           id?: string
+          image_url?: string | null
+          min_stock?: number
           name?: string
           sale_price?: number | null
+          sku?: string | null
           updated_at?: string | null
         }
         Relationships: []
+      }
+      promotions: {
+        Row: {
+          active: boolean
+          code: string | null
+          created_at: string
+          discount_percent: number
+          ends_at: string | null
+          id: string
+          name: string
+          starts_at: string | null
+        }
+        Insert: {
+          active?: boolean
+          code?: string | null
+          created_at?: string
+          discount_percent?: number
+          ends_at?: string | null
+          id?: string
+          name: string
+          starts_at?: string | null
+        }
+        Update: {
+          active?: boolean
+          code?: string | null
+          created_at?: string
+          discount_percent?: number
+          ends_at?: string | null
+          id?: string
+          name?: string
+          starts_at?: string | null
+        }
+        Relationships: []
+      }
+      purchases: {
+        Row: {
+          created_at: string
+          id: string
+          material_id: string | null
+          notes: string | null
+          quantity: number
+          received_at: string | null
+          status: string
+          supplier: string
+          unit_cost: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          material_id?: string | null
+          notes?: string | null
+          quantity?: number
+          received_at?: string | null
+          status?: string
+          supplier?: string
+          unit_cost?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          material_id?: string | null
+          notes?: string | null
+          quantity?: number
+          received_at?: string | null
+          status?: string
+          supplier?: string
+          unit_cost?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "purchases_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "materials"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       sale_items: {
         Row: {
@@ -209,24 +470,36 @@ export type Database = {
         Row: {
           client_id: string | null
           created_at: string | null
+          discount: number
           id: string
           is_debt: boolean | null
+          notes: string | null
+          paid_amount: number
+          payment_method: string
           status: string | null
           total_amount: number
         }
         Insert: {
           client_id?: string | null
           created_at?: string | null
+          discount?: number
           id?: string
           is_debt?: boolean | null
+          notes?: string | null
+          paid_amount?: number
+          payment_method?: string
           status?: string | null
           total_amount: number
         }
         Update: {
           client_id?: string | null
           created_at?: string | null
+          discount?: number
           id?: string
           is_debt?: boolean | null
+          notes?: string | null
+          paid_amount?: number
+          payment_method?: string
           status?: string | null
           total_amount?: number
         }
