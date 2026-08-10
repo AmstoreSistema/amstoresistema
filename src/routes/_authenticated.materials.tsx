@@ -1191,7 +1191,7 @@ function MaterialsPage() {
                           <div className="flex flex-col">
                             <span className="text-[10px] font-bold text-muted-foreground uppercase">Custo Proporcional do Corte</span>
                             <span className="text-sm font-bold text-success">
-                              {brl(Number(((activeMaterial.cost_price / ((activeMaterial.width || 1) * (activeMaterial.height || 1))) * (newCutForm.width * newCutForm.height)).toFixed(2)))}
+                              {brl(Number(((activeMaterial.cost_price / ((activeMaterial.width || 0) * 100 * (activeMaterial.height || 0) * 100)) * (newCutForm.width * newCutForm.height)).toFixed(2)))}
                             </span>
                           </div>
                           <span className="text-[10px] font-medium text-blue-600">
