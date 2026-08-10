@@ -69,6 +69,7 @@ type Material = {
   thickness: number | null;
   color: string | null;
   description: string | null;
+  specification: string | null;
 };
 
 function MaterialsPage() {
@@ -417,71 +418,143 @@ function MaterialsPage() {
                   </DialogContent>
                 </Dialog>
 
-                {/* Cor */}
-                <div className="space-y-2">
-                  <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Cor</Label>
-                  <Input 
-                    placeholder="Ex: Preto, Branco, Azul" 
-                    value={form.color || ""} 
-                    onChange={e => setForm({ ...form, color: e.target.value })}
-                    className="h-11 rounded-xl"
-                  />
-                </div>
+                {/* Condicional para Ferragem */}
+                {form.type === "Ferragem" ? (
+                  <>
+                    {/* Unidade de Medida */}
+                    <div className="space-y-2">
+                      <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Unidade de Medida *</Label>
+                      <Select value={form.unit || "un"} onValueChange={v => setForm({ ...form, unit: v })}>
+                        <SelectTrigger className="h-11 rounded-xl">
+                          <SelectValue placeholder="Selecione" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="un">Unidade</SelectItem>
+                          <SelectItem value="par">Par</SelectItem>
+                          <SelectItem value="kit">Kit</SelectItem>
+                          <SelectItem value="m">Metro</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
 
-                {/* Custo */}
-                <div className="space-y-2">
-                  <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Custo por Unidade (R$)</Label>
-                  <Input 
-                    type="number"
-                    step="0.01"
-                    placeholder="0" 
-                    value={form.cost_price || ""} 
-                    onChange={e => setForm({ ...form, cost_price: Number(e.target.value) })}
-                    className="h-11 rounded-xl"
-                  />
-                </div>
+                    {/* Estoque Atual */}
+                    <div className="space-y-2">
+                      <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Estoque Atual</Label>
+                      <Input 
+                        type="number"
+                        value={form.current_stock ?? 0} 
+                        onChange={e => setForm({ ...form, current_stock: Number(e.target.value) })}
+                        className="h-11 rounded-xl"
+                      />
+                    </div>
 
-                {/* Dimensões */}
-                <div className="space-y-2">
-                  <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Largura (cm) *</Label>
-                  <Input 
-                    type="number"
-                    value={form.width || ""} 
-                    onChange={e => setForm({ ...form, width: Number(e.target.value) })}
-                    className="h-11 rounded-xl"
-                  />
-                </div>
+                    {/* Estoque Mínimo */}
+                    <div className="space-y-2">
+                      <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Estoque Mínimo</Label>
+                      <Input 
+                        type="number"
+                        value={form.min_stock ?? 0} 
+                        onChange={e => setForm({ ...form, min_stock: Number(e.target.value) })}
+                        className="h-11 rounded-xl"
+                      />
+                    </div>
 
-                <div className="space-y-2">
-                  <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Altura (cm) *</Label>
-                  <Input 
-                    type="number"
-                    value={form.height || ""} 
-                    onChange={e => setForm({ ...form, height: Number(e.target.value) })}
-                    className="h-11 rounded-xl"
-                  />
-                </div>
+                    {/* Especificação */}
+                    <div className="col-span-full space-y-2">
+                      <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Especificação (ex: 1.0/1.0/2.0, 4x1, 5cm, 2.8x1, 1cm)</Label>
+                      <Input 
+                        placeholder="Ex: 1.0/1.0/2.0 ou 4x1, 5cm" 
+                        value={form.specification || ""} 
+                        onChange={e => setForm({ ...form, specification: e.target.value })}
+                        className="h-11 rounded-xl"
+                      />
+                      <p className="text-[10px] text-muted-foreground flex items-center gap-1">
+                        <span className="text-yellow-500">💡</span> Use este campo para numeração, medidas em mm, ou dimensões específicas
+                      </p>
+                    </div>
 
-                <div className="space-y-2">
-                  <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Espessura (cm)</Label>
-                  <Input 
-                    type="number"
-                    step="0.1"
-                    value={form.thickness || ""} 
-                    onChange={e => setForm({ ...form, thickness: Number(e.target.value) })}
-                    className="h-11 rounded-xl"
-                  />
-                </div>
+                    {/* Custo */}
+                    <div className="space-y-2">
+                      <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Custo por Unidade (R$)</Label>
+                      <Input 
+                        type="number"
+                        step="0.01"
+                        placeholder="0" 
+                        value={form.cost_price ?? 0} 
+                        onChange={e => setForm({ ...form, cost_price: Number(e.target.value) })}
+                        className="h-11 rounded-xl"
+                      />
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    {/* Cor */}
+                    <div className="space-y-2">
+                      <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Cor</Label>
+                      <Input 
+                        placeholder="Ex: Preto, Branco, Azul" 
+                        value={form.color || ""} 
+                        onChange={e => setForm({ ...form, color: e.target.value })}
+                        className="h-11 rounded-xl"
+                      />
+                    </div>
 
-                <div className="space-y-2">
-                  <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Unidade de Medida</Label>
-                  <Input 
-                    placeholder="Ex: m2, un, par"
-                    value={form.unit || ""} 
-                    onChange={e => setForm({ ...form, unit: e.target.value })}
-                    className="h-11 rounded-xl"
-                  />
-                </div>
+                    {/* Custo */}
+                    <div className="space-y-2">
+                      <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Custo por Unidade (R$)</Label>
+                      <Input 
+                        type="number"
+                        step="0.01"
+                        placeholder="0" 
+                        value={form.cost_price || ""} 
+                        onChange={e => setForm({ ...form, cost_price: Number(e.target.value) })}
+                        className="h-11 rounded-xl"
+                      />
+                    </div>
+
+                    {/* Dimensões */}
+                    <div className="space-y-2">
+                      <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Largura (cm) *</Label>
+                      <Input 
+                        type="number"
+                        value={form.width || ""} 
+                        onChange={e => setForm({ ...form, width: Number(e.target.value) })}
+                        className="h-11 rounded-xl"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Altura (cm) *</Label>
+                      <Input 
+                        type="number"
+                        value={form.height || ""} 
+                        onChange={e => setForm({ ...form, height: Number(e.target.value) })}
+                        className="h-11 rounded-xl"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Espessura (cm)</Label>
+                      <Input 
+                        type="number"
+                        step="0.1"
+                        value={form.thickness || ""} 
+                        onChange={e => setForm({ ...form, thickness: Number(e.target.value) })}
+                        className="h-11 rounded-xl"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Unidade de Medida</Label>
+                      <Input 
+                        placeholder="Ex: m2, un, par"
+                        value={form.unit || ""} 
+                        onChange={e => setForm({ ...form, unit: e.target.value })}
+                        className="h-11 rounded-xl"
+                      />
+                    </div>
+                  </>
+                )}
               </div>
 
               {/* Descrição */}
