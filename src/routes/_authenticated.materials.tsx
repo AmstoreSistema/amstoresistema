@@ -1050,8 +1050,8 @@ function MaterialsPage() {
                   backgroundSize: '10px 10px'
                 }}
               >
-                <div className="absolute -top-6 left-1/2 -translate-x-1/2 text-[10px] font-bold text-orange-400">{activeMaterial?.width} cm</div>
-                <div className="absolute -left-10 top-1/2 -translate-y-1/2 -rotate-90 text-[10px] font-bold text-orange-400">{activeMaterial?.height} cm</div>
+                <div className="absolute -top-6 left-1/2 -translate-x-1/2 text-[10px] font-bold text-orange-400">{activeMaterial?.width} m</div>
+                <div className="absolute -left-10 top-1/2 -translate-y-1/2 -rotate-90 text-[10px] font-bold text-orange-400">{activeMaterial?.height} m</div>
                 
                 {/* Render mock/real cuts */}
                 {cuts.map((cut, idx) => (
