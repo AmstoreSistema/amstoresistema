@@ -77,11 +77,19 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "Lovable Generated Project" },
+      { title: "AmStore Gestão — Produção, Estoque e Vendas" },
+      {
+        name: "description",
+        content:
+          "Sistema AmStore Gestão para cadastrar matéria-prima, compor produtos, controlar ordens de produção, estoque, vendas e fiado em um só lugar.",
+      },
       { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Lovable Generated Project" },
+      { property: "og:title", content: "AmStore Gestão — Produção, Estoque e Vendas" },
+      {
+        property: "og:description",
+        content:
+          "Sistema AmStore Gestão para cadastrar matéria-prima, compor produtos, controlar ordens de produção, estoque, vendas e fiado em um só lugar.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:site", content: "@Lovable" },
