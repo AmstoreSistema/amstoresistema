@@ -16,14 +16,13 @@ export const Route = createFileRoute("/_authenticated")({
 function AuthenticatedLayout() {
   return (
     <div className="flex min-h-screen bg-background text-foreground">
-      {/* Sidebar Mockup */}
       <aside className="w-64 border-r bg-card hidden md:flex flex-col">
         <div className="p-6 border-b">
           <h1 className="text-xl font-bold text-primary italic">AmStore</h1>
           <p className="text-xs text-muted-foreground uppercase tracking-wider mt-1">Gestão</p>
         </div>
         <nav className="flex-1 p-4 space-y-1">
-          <NavItem to="/" icon="📊">Dashboard</NavItem>
+          <NavItem to="/dashboard" icon="📊">Dashboard</NavItem>
           <div className="pt-4 pb-2 px-2 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Menu Principal</div>
           <NavItem to="/materials" icon="📦">Materiais</NavItem>
           <NavItem to="/products" icon="🎨">Produtos</NavItem>
@@ -44,7 +43,6 @@ function AuthenticatedLayout() {
         </div>
       </aside>
 
-      {/* Main Content */}
       <main className="flex-1 overflow-auto">
         <header className="h-16 border-b bg-card flex items-center px-6 sticky top-0 z-10">
           <div className="flex-1">
