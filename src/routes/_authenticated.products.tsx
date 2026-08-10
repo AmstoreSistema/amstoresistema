@@ -168,7 +168,7 @@ function ProductsPage() {
         description="Catálogo completo com fichas técnicas"
         icon={Package}
         actions={
-          <Button onClick={openNew} className="gap-2">
+          <Button onClick={openNew} className="gap-2 bg-gradient-gold border-none shadow-gold font-bold">
             <Plus className="size-4" /> Novo Produto
           </Button>
         }
