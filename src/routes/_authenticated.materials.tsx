@@ -203,12 +203,23 @@ function MaterialsPage() {
   };
 
 
-  const handleAddSupplier = () => {
+  const handleAddSupplier = async () => {
     if (!newSupplierName.trim()) return;
-    setForm({ ...form, supplier: newSupplierName });
-    setNewSupplierName("");
-    setSupplierDialogOpen(false);
-    toast.success("Fornecedor adicionado");
+    
+    const { supabase } = await import("@/integrations/supabase/client");
+    const { error } = await supabase.from("suppliers").insert({ name: newSupplierName });
+    
+    if (error) {
+      toast.error(error.message);
+    } else {
+      setForm({ ...form, supplier: newSupplierName });
+      setNewSupplierName("");
+      setSupplierDialogOpen(false);
+      toast.success("Fornecedor adicionado");
+      
+      const queryClient = (await import("@tanstack/react-query")).useQueryClient();
+      queryClient.invalidateQueries({ queryKey: ["suppliers"] });
+    }
   };
 
   const handleAddConfig = async () => {
