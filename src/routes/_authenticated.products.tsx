@@ -66,8 +66,39 @@ type Product = {
   production_time_hours: number;
 };
 
-type Material = { id: string; name: string; unit: string; cost_price: number };
-type Composition = { id: string; product_id: string; material_id: string; quantity: number };
+type Material = { 
+  id: string; 
+  name: string; 
+  unit: string; 
+  cost_price: number;
+  type: string;
+};
+
+type MaterialVariation = {
+  id: string;
+  material_id: string;
+  name: string;
+  current_stock: number;
+  cost_price: number;
+};
+
+type MaterialCut = {
+  id: string;
+  material_id: string;
+  name: string;
+  width: number;
+  height: number;
+  status: string;
+};
+
+type Composition = { 
+  id: string; 
+  product_id: string; 
+  material_id: string; 
+  material_variation_id: string | null;
+  material_cut_id: string | null;
+  quantity: number 
+};
 
 function ProductsPage() {
   const qc = useQueryClient();
