@@ -18,11 +18,21 @@ function AuthPage() {
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) {
-      alert(error.message);
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      
+      if (error) {
+        alert(`Erro ao acessar: ${error.message}`);
+      } else if (data.session) {
+        // Successful login, TanStack Router will handle the session change via beforeLoad gates
+        // and index.tsx redirect to dashboard.
+        window.location.href = "/dashboard";
+      }
+    } catch (err) {
+      alert("Ocorreu um erro ao processar o login.");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   return (
