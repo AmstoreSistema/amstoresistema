@@ -70,7 +70,7 @@ function SalesPage() {
       const dateStr = s.created_at ? String(s.created_at) : "";
       return dateStr.startsWith(today);
     });
-    const fiados = (sales as any[]).filter(s => !!s.is_debt && String(s.status || "") !== "paid");
+    const fiados = (sales as any[]).filter(s => !!s.is_debt && (s.status ? String(s.status) : "") !== "paid");
     
     return {
       countToday: todaySales.length,
