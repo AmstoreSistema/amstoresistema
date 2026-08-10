@@ -182,8 +182,9 @@ export function AppSidebar() {
               <SidebarMenu className="gap-0.5 px-2">
                 {group.items.map((item) => {
                   const hasSubItems = item.items && item.items.length > 0;
+                  const isCollapsibleHeader = hasSubItems && item.url?.startsWith('#');
                   
-                  if (hasSubItems) {
+                  if (isCollapsibleHeader) {
                     const isAnyActive = item.items!.some(
                       (sub) => pathname === sub.url
                     );
