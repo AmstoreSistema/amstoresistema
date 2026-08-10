@@ -85,7 +85,6 @@ function AuthPage() {
             <img src="https://www.google.com/favicon.ico" alt="Google" className="w-4 h-4 mr-2" />
             Google
           </Button>
-          </Button>
 
           <div className="mt-6 p-4 bg-muted rounded-lg text-xs text-muted-foreground space-y-2 border border-border/50">
             <p className="font-semibold text-foreground/80 flex items-center gap-1.5">
