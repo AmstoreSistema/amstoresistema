@@ -1030,7 +1030,7 @@ function MaterialsPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-[1fr,320px] overflow-hidden flex-1">
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr,360px] overflow-hidden flex-1">
             {/* Canvas Area */}
             <div className="p-4 bg-gray-50/30 flex flex-col items-center justify-center min-h-[400px] relative overflow-auto">
               <div className="absolute top-4 left-6 flex gap-4 text-[10px] font-bold uppercase tracking-tighter text-muted-foreground">
