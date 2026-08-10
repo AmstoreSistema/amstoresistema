@@ -1107,7 +1107,9 @@ function MaterialsPage() {
                     </div>
                     <div className="flex justify-between text-xs">
                       <span className="text-muted-foreground">Aproveitamento:</span>
-                      <span className="font-bold text-pink-500">0.0%</span>
+                      <span className="font-bold text-pink-500">
+                        {num((cuts.reduce((sum, c) => sum + (c.width * c.height), 0) / (((activeMaterial?.width || 1) * (activeMaterial?.height || 1)) || 1)) * 100)}%
+                      </span>
                     </div>
                   </div>
 
