@@ -19,6 +19,7 @@ import { Route as AuthenticatedMaterialsRouteImport } from './routes/_authentica
 import { Route as AuthenticatedProductionRouteImport } from './routes/_authenticated.production'
 import { Route as AuthenticatedProductsRouteImport } from './routes/_authenticated.products'
 import { Route as AuthenticatedPromotionsRouteImport } from './routes/_authenticated.promotions'
+import { Route as AuthenticatedSalesRouteImport } from './routes/_authenticated.sales'
 import { Route as AuthenticatedTransactionsRouteImport } from './routes/_authenticated.transactions'
 
 const IndexRoute = IndexRouteImport.update({
@@ -70,6 +71,11 @@ const AuthenticatedPromotionsRoute = AuthenticatedPromotionsRouteImport.update({
   path: '/promotions',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedSalesRoute = AuthenticatedSalesRouteImport.update({
+  id: '/sales',
+  path: '/sales',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 const AuthenticatedTransactionsRoute =
   AuthenticatedTransactionsRouteImport.update({
     id: '/transactions',
@@ -87,6 +93,7 @@ export interface FileRoutesByFullPath {
   '/production': typeof AuthenticatedProductionRoute
   '/products': typeof AuthenticatedProductsRoute
   '/promotions': typeof AuthenticatedPromotionsRoute
+  '/sales': typeof AuthenticatedSalesRoute
   '/transactions': typeof AuthenticatedTransactionsRoute
 }
 export interface FileRoutesByTo {
@@ -99,6 +106,7 @@ export interface FileRoutesByTo {
   '/production': typeof AuthenticatedProductionRoute
   '/products': typeof AuthenticatedProductsRoute
   '/promotions': typeof AuthenticatedPromotionsRoute
+  '/sales': typeof AuthenticatedSalesRoute
   '/transactions': typeof AuthenticatedTransactionsRoute
 }
 export interface FileRoutesById {
@@ -113,6 +121,7 @@ export interface FileRoutesById {
   '/_authenticated/production': typeof AuthenticatedProductionRoute
   '/_authenticated/products': typeof AuthenticatedProductsRoute
   '/_authenticated/promotions': typeof AuthenticatedPromotionsRoute
+  '/_authenticated/sales': typeof AuthenticatedSalesRoute
   '/_authenticated/transactions': typeof AuthenticatedTransactionsRoute
 }
 export interface FileRouteTypes {
@@ -127,6 +136,7 @@ export interface FileRouteTypes {
     | '/production'
     | '/products'
     | '/promotions'
+    | '/sales'
     | '/transactions'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -139,6 +149,7 @@ export interface FileRouteTypes {
     | '/production'
     | '/products'
     | '/promotions'
+    | '/sales'
     | '/transactions'
   id:
     | '__root__'
@@ -152,6 +163,7 @@ export interface FileRouteTypes {
     | '/_authenticated/production'
     | '/_authenticated/products'
     | '/_authenticated/promotions'
+    | '/_authenticated/sales'
     | '/_authenticated/transactions'
   fileRoutesById: FileRoutesById
 }
@@ -233,6 +245,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPromotionsRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/sales': {
+      id: '/_authenticated/sales'
+      path: '/sales'
+      fullPath: '/sales'
+      preLoaderRoute: typeof AuthenticatedSalesRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/transactions': {
       id: '/_authenticated/transactions'
       path: '/transactions'
@@ -251,6 +270,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedProductionRoute: typeof AuthenticatedProductionRoute
   AuthenticatedProductsRoute: typeof AuthenticatedProductsRoute
   AuthenticatedPromotionsRoute: typeof AuthenticatedPromotionsRoute
+  AuthenticatedSalesRoute: typeof AuthenticatedSalesRoute
   AuthenticatedTransactionsRoute: typeof AuthenticatedTransactionsRoute
 }
 
@@ -262,6 +282,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedProductionRoute: AuthenticatedProductionRoute,
   AuthenticatedProductsRoute: AuthenticatedProductsRoute,
   AuthenticatedPromotionsRoute: AuthenticatedPromotionsRoute,
+  AuthenticatedSalesRoute: AuthenticatedSalesRoute,
   AuthenticatedTransactionsRoute: AuthenticatedTransactionsRoute,
 }
 
