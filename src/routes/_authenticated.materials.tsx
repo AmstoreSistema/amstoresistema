@@ -78,8 +78,18 @@ type Material = {
   specification: string | null;
 };
 
+type MaterialVariation = {
+  id: string;
+  material_id: string;
+  name: string;
+  specification: string | null;
+  current_stock: number;
+  cost_price: number;
+  notes: string | null;
+};
 
 function MaterialsPage() {
+
   const { data: materials = [], isLoading } = useRows<Material>("materials", { order: { column: "name", ascending: true } });
   const { data: categories = [] } = useRows<{id: string, name: string}>("material_categories", { order: { column: "name", ascending: true } });
   const { data: suppliers = [] } = useRows<{id: string, name: string}>("suppliers", { order: { column: "name", ascending: true } });
@@ -98,6 +108,20 @@ function MaterialsPage() {
   const [form, setForm] = useState<Partial<Material>>({});
   const [supplierDialogOpen, setSupplierDialogOpen] = useState(false);
   const [newSupplierName, setNewSupplierName] = useState("");
+
+  // Variations states
+  const [variationsOpen, setVariationsOpen] = useState(false);
+  const [activeMaterial, setActiveMaterial] = useState<Material | null>(null);
+  const { data: variations = [] } = useRows<MaterialVariation>("material_variations", { 
+    filters: activeMaterial ? [{ column: "material_id", value: activeMaterial.id }] : undefined 
+  });
+  const saveVariation = useSaveRow("material_variations", "Variação");
+  const removeVariation = useDeleteRow("material_variations", "Variação");
+  const [variationForm, setVariationForm] = useState<Partial<MaterialVariation>>({
+    current_stock: 0,
+    cost_price: 0
+  });
+
 
   // New states for Config Modal
   const [newConfigValue, setNewConfigValue] = useState("");
