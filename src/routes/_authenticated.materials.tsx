@@ -1142,7 +1142,7 @@ function MaterialsPage() {
                       <span className="text-muted-foreground">Custo por cm²:</span>
                       <span className="font-bold bg-gray-50 px-2 py-0.5 rounded text-[10px]">
                         {activeMaterial?.cost_price && activeMaterial?.width && activeMaterial?.height
-                          ? brl(activeMaterial.cost_price / (activeMaterial.width * 100 * activeMaterial.height * 100))
+                          ? `R$ ${(activeMaterial.cost_price / (activeMaterial.width * 100 * activeMaterial.height * 100)).toFixed(6)}`
                           : brl(0)}
                       </span>
                     </div>
@@ -1181,20 +1181,49 @@ function MaterialsPage() {
                     <div className="text-center p-2 rounded-xl border border-success/20 bg-success/5">
                       <p className="text-[8px] text-success font-bold uppercase">Disponível</p>
                       <p className="text-xs font-bold text-success">{cuts.filter(c => c.status === 'disponivel').length}</p>
+                      <p className="text-[8px] text-success font-medium">
+                        {brl(cuts.filter(c => c.status === 'disponivel').reduce((sum, c) => {
+                          const costPerCm2 = (activeMaterial?.cost_price || 0) / ((activeMaterial?.width || 0) * 100 * (activeMaterial?.height || 0) * 100 || 1);
+                          return sum + (c.width * c.height * costPerCm2);
+                        }, 0))}
+                      </p>
                     </div>
                     <div className="text-center p-2 rounded-xl border border-blue-200 bg-blue-50">
                       <p className="text-[8px] text-blue-600 font-bold uppercase">Utilizado</p>
                       <p className="text-xs font-bold text-blue-600">{cuts.filter(c => c.status === 'utilizado').length}</p>
+                      <p className="text-[8px] text-blue-600 font-medium">
+                        {brl(cuts.filter(c => c.status === 'utilizado').reduce((sum, c) => {
+                          const costPerCm2 = (activeMaterial?.cost_price || 0) / ((activeMaterial?.width || 0) * 100 * (activeMaterial?.height || 0) * 100 || 1);
+                          return sum + (c.width * c.height * costPerCm2);
+                        }, 0))}
+                      </p>
                     </div>
                     <div className="text-center p-2 rounded-xl border border-orange-200 bg-orange-50">
                       <p className="text-[8px] text-orange-500 font-bold uppercase">Reservado</p>
                       <p className="text-xs font-bold text-orange-500">{cuts.filter(c => c.status === 'reservado').length}</p>
+                      <p className="text-[8px] text-orange-500 font-medium">
+                        {brl(cuts.filter(c => c.status === 'reservado').reduce((sum, c) => {
+                          const costPerCm2 = (activeMaterial?.cost_price || 0) / ((activeMaterial?.width || 0) * 100 * (activeMaterial?.height || 0) * 100 || 1);
+                          return sum + (c.width * c.height * costPerCm2);
+                        }, 0))}
+                      </p>
                     </div>
                   </div>
 
-                  <div className="mt-6 flex justify-between items-center bg-gray-50 p-3 rounded-2xl border border-dashed border-gray-200">
-                    <span className="text-[10px] font-bold text-muted-foreground uppercase">Custo Total Peça:</span>
-                    <span className="text-base font-bold text-success">{brl(activeMaterial?.cost_price || 0)}</span>
+                  <div className="mt-6 space-y-2">
+                    <div className="flex justify-between items-center bg-gray-50 p-3 rounded-2xl border border-dashed border-gray-200">
+                      <span className="text-[10px] font-bold text-muted-foreground uppercase">Custo dos Cortes:</span>
+                      <span className="text-base font-bold text-primary">
+                        {brl(cuts.reduce((sum, c) => {
+                          const costPerCm2 = (activeMaterial?.cost_price || 0) / ((activeMaterial?.width || 0) * 100 * (activeMaterial?.height || 0) * 100 || 1);
+                          return sum + (c.width * c.height * costPerCm2);
+                        }, 0))}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center bg-gray-50 p-3 rounded-2xl border border-dashed border-gray-200">
+                      <span className="text-[10px] font-bold text-muted-foreground uppercase">Custo Total Peça:</span>
+                      <span className="text-base font-bold text-success">{brl(activeMaterial?.cost_price || 0)}</span>
+                    </div>
                   </div>
                 </div>
 
