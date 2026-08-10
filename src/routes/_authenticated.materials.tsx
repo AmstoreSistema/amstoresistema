@@ -241,9 +241,11 @@ function MaterialsPage() {
       toast.success(`${label} adicionado`);
       setNewConfigValue("");
       setNewConfigLabel("");
+      
+      // Invalidate queries to refresh the lists without reloading the page
+      const { supabase } = await import("@/integrations/supabase/client");
       const queryClient = (await import("@tanstack/react-query")).useQueryClient();
-      // This is a hacky way to invalidate from inside the component, but better than rewriting useSaveRow
-      window.location.reload(); // Quick refresh for now
+      queryClient.invalidateQueries({ queryKey: [table] });
     }
   };
 
