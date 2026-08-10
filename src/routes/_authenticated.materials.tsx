@@ -324,7 +324,7 @@ function MaterialsPage() {
       ) : (
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {filtered.map(m => (
-            <Card key={m.id} className="group overflow-hidden rounded-3xl border-border/50 bg-card transition-all hover:shadow-xl hover:shadow-gold/5">
+            <Card key={m.id} className="overflow-hidden rounded-3xl border-border/50 bg-card transition-all hover:shadow-xl hover:shadow-gold/5">
               <div className="relative aspect-[4/3] bg-muted/30">
                 {m.image_url ? (
                   <img src={m.image_url} alt={m.name} className="h-full w-full object-cover" />
