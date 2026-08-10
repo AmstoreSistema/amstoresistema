@@ -71,7 +71,7 @@ function SalesPage() {
     const todaySales = data.filter(s => {
       const createdAt = s.created_at;
       const dateStr = typeof createdAt === 'string' ? createdAt : "";
-      return dateStr.startsWith(today);
+      return dateStr.slice(0, 10) === today;
     });
     const fiados = data.filter(s => !!s.is_debt && (s.status ? String(s.status) : "") !== "paid");
     
