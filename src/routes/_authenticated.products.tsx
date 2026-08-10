@@ -60,6 +60,8 @@ type Product = {
   active: boolean;
   image_url: string | null;
   production_time_hours: number;
+  color?: string;
+  description?: string;
 };
 
 type Material = { 
@@ -352,62 +354,61 @@ function ProductsPage() {
       )}
 
       <Dialog open={formOpen} onOpenChange={setFormOpen}>
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="sm:max-w-xl">
           <DialogHeader>
             <DialogTitle>{editing ? "Editar Produto" : "Novo Produto"}</DialogTitle>
-            <DialogDescription>Dados básicos do produto e preços.</DialogDescription>
+            <DialogDescription>Ficha Técnica Integrada do produto.</DialogDescription>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <Label>Nome do produto</Label>
-              <Input 
-                value={form.name || ""} 
-                onChange={e => setForm({ ...form, name: e.target.value })} 
-                placeholder="Ex: Bolsa de Luxo Eclipse Marrom"
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
+          <div className="grid gap-4 py-4 max-h-[70vh] overflow-auto px-1">
+            <div className="space-y-4">
+              <h4 className="font-semibold text-sm">Informações Básicas</h4>
               <div className="grid gap-2">
-                <Label>Código / SKU</Label>
-                <Input value={form.sku || ""} onChange={e => setForm({ ...form, sku: e.target.value })} />
+                <Label>Nome do produto</Label>
+                <Input value={form.name || ""} onChange={e => setForm({ ...form, name: e.target.value })} />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label>Categoria</Label>
+                  <Input value={form.category || ""} onChange={e => setForm({ ...form, category: e.target.value })} />
+                </div>
+                <div className="grid gap-2">
+                  <Label>Cor</Label>
+                  <Input value={form.color || ""} onChange={e => setForm({ ...form, color: e.target.value })} />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label>Código / SKU</Label>
+                  <Input value={form.sku || ""} onChange={e => setForm({ ...form, sku: e.target.value })} />
+                </div>
+                <div className="grid gap-2">
+                  <Label>Tempo Prod. (h)</Label>
+                  <Input type="number" value={form.production_time_hours || 0} onChange={e => setForm({ ...form, production_time_hours: Number(e.target.value) })} />
+                </div>
               </div>
               <div className="grid gap-2">
-                <Label>Categoria</Label>
-                <Input value={form.category || ""} onChange={e => setForm({ ...form, category: e.target.value })} />
-              </div>
-            </div>
-            <div className="grid grid-cols-3 gap-4">
-              <div className="grid gap-2">
-                <Label>Preço Varejo</Label>
-                <Input type="number" step="0.01" value={form.sale_price || 0} onChange={e => setForm({ ...form, sale_price: Number(e.target.value) })} />
-              </div>
-              <div className="grid gap-2">
-                <Label>Preço Atacado</Label>
-                <Input type="number" step="0.01" value={form.wholesale_price || 0} onChange={e => setForm({ ...form, wholesale_price: Number(e.target.value) })} />
-              </div>
-              <div className="grid gap-2">
-                <Label>Tempo Prod. (h)</Label>
-                <Input type="number" value={form.production_time_hours || 0} onChange={e => setForm({ ...form, production_time_hours: Number(e.target.value) })} />
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="grid gap-2">
-                <Label>Estoque Atual</Label>
-                <Input type="number" value={form.current_stock || 0} onChange={e => setForm({ ...form, current_stock: Number(e.target.value) })} />
-              </div>
-              <div className="grid gap-2">
-                <Label>Estoque Mínimo</Label>
-                <Input type="number" value={form.min_stock || 0} onChange={e => setForm({ ...form, min_stock: Number(e.target.value) })} />
+                <Label>Descrição</Label>
+                <Input value={form.description || ""} onChange={e => setForm({ ...form, description: e.target.value })} />
               </div>
             </div>
-            <div className="grid gap-2">
-              <Label>URL da Imagem</Label>
-              <Input value={form.image_url || ""} onChange={e => setForm({ ...form, image_url: e.target.value })} placeholder="https://..." />
+            
+            <div className="space-y-4 pt-4 border-t">
+              <h4 className="font-semibold text-sm">Preços e Margens</h4>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label>Preço Varejo</Label>
+                  <Input type="number" step="0.01" value={form.sale_price || 0} onChange={e => setForm({ ...form, sale_price: Number(e.target.value) })} />
+                </div>
+                <div className="grid gap-2">
+                  <Label>Preço Atacado</Label>
+                  <Input type="number" step="0.01" value={form.wholesale_price || 0} onChange={e => setForm({ ...form, wholesale_price: Number(e.target.value) })} />
+                </div>
+              </div>
             </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setFormOpen(false)}>Cancelar</Button>
-            <Button onClick={submit} disabled={save.isPending}>Salvar</Button>
+            <Button onClick={submit} disabled={save.isPending}>Salvar Ficha Técnica</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
