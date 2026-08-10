@@ -192,6 +192,24 @@ export type Database = {
           },
         ]
       }
+      material_categories: {
+        Row: {
+          created_at: string | null
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
       materials: {
         Row: {
           color: string | null
@@ -549,6 +567,27 @@ export type Database = {
           },
         ]
       }
+      suppliers: {
+        Row: {
+          contact: string | null
+          created_at: string | null
+          id: string
+          name: string
+        }
+        Insert: {
+          contact?: string | null
+          created_at?: string | null
+          id?: string
+          name: string
+        }
+        Update: {
+          contact?: string | null
+          created_at?: string | null
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
       transactions: {
         Row: {
           amount: number
@@ -583,6 +622,27 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      units_of_measure: {
+        Row: {
+          abbreviation: string
+          created_at: string | null
+          id: string
+          name: string
+        }
+        Insert: {
+          abbreviation: string
+          created_at?: string | null
+          id?: string
+          name: string
+        }
+        Update: {
+          abbreviation?: string
+          created_at?: string | null
+          id?: string
+          name?: string
+        }
+        Relationships: []
       }
     }
     Views: {
