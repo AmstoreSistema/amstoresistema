@@ -236,6 +236,55 @@ function MaterialsPage() {
     }
   };
 
+  const handleOptimize = async () => {
+    if (!activeMaterial || cuts.length === 0) return;
+
+    const canvasWidth = (activeMaterial.width || 0) * 100;
+    const canvasHeight = (activeMaterial.height || 0) * 100;
+
+    // Simple shelf-based packing algorithm for rectangle optimization
+    const sortedCuts = [...cuts].sort((a, b) => b.height - a.height);
+    
+    let currentX = 0;
+    let currentY = 0;
+    let maxHeightInRow = 0;
+    const optimizedCuts = [];
+
+    for (const cut of sortedCuts) {
+      if (currentX + cut.width > canvasWidth) {
+        currentX = 0;
+        currentY += maxHeightInRow;
+        maxHeightInRow = 0;
+      }
+
+      if (currentY + cut.height > canvasHeight) {
+        toast.error("Alguns cortes não cabem na peça!");
+        break;
+      }
+
+      optimizedCuts.push({
+        ...cut,
+        x: currentX,
+        y: currentY
+      });
+
+      currentX += cut.width;
+      maxHeightInRow = Math.max(maxHeightInRow, cut.height);
+    }
+
+    const { supabase } = await import("@/integrations/supabase/client");
+    
+    for (const cut of optimizedCuts) {
+      await supabase.from("material_cuts").update({ 
+        x: cut.x, 
+        y: cut.y 
+      }).eq("id", cut.id);
+    }
+
+    toast.success("Otimização concluída!");
+    refetchCuts();
+  };
+
   const handleAddConfig = async () => {
     if (!newConfigValue.trim()) return;
     
