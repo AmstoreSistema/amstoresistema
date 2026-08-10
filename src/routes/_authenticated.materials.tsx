@@ -124,11 +124,10 @@ function MaterialsPage() {
   });
 
   // Cuts states
-  // Cuts states
   const [cutsOpen, setCutsOpen] = useState(false);
   const [newCutForm, setNewCutForm] = useState({ name: "", width: 0, height: 0 });
   const [isAddingCut, setIsAddingCut] = useState(false);
-  const { data: cuts = [] } = useRows<{id: string, name: string, width: number, height: number, status: string}>("material_cuts", {
+  const { data: cuts = [], refetch: refetchCuts } = useRows<{id: string, name: string, width: number, height: number, status: string, x?: number, y?: number}>("material_cuts", {
     filters: activeMaterial ? [{ column: "material_id", value: activeMaterial.id }] : undefined
   });
   const saveCut = useSaveRow("material_cuts", "Corte");
