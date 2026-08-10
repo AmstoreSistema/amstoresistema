@@ -108,6 +108,9 @@ function ProductsPage() {
   const save = useSaveRow("products", "produto");
   const remove = useDeleteRow("products", "produto");
 
+  const { data: allVariations = [] } = useRows<MaterialVariation>("material_variations");
+  const { data: allCuts = [] } = useRows<MaterialCut>("material_cuts");
+
   const [term, setTerm] = useState("");
   const [activeCategory, setActiveCategory] = useState("Todos");
   const [formOpen, setFormOpen] = useState(false);
