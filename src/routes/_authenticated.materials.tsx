@@ -1157,9 +1157,10 @@ function MaterialsPage() {
                       </div>
                       <div className="grid grid-cols-2 gap-2">
                         <div className="space-y-1">
-                          <Label className="text-[10px] font-bold uppercase text-muted-foreground">Largura (cm)</Label>
+                          <Label className="text-[10px] font-bold uppercase text-muted-foreground">Largura (m)</Label>
                           <Input 
                             type="number"
+                            step="0.01"
                             placeholder="0" 
                             value={newCutForm.width || ""}
                             onChange={e => setNewCutForm({...newCutForm, width: Number(e.target.value)})}
@@ -1167,9 +1168,10 @@ function MaterialsPage() {
                           />
                         </div>
                         <div className="space-y-1">
-                          <Label className="text-[10px] font-bold uppercase text-muted-foreground">Altura (cm)</Label>
+                          <Label className="text-[10px] font-bold uppercase text-muted-foreground">Altura (m)</Label>
                           <Input 
                             type="number"
+                            step="0.01"
                             placeholder="0" 
                             value={newCutForm.height || ""}
                             onChange={e => setNewCutForm({...newCutForm, height: Number(e.target.value)})}
