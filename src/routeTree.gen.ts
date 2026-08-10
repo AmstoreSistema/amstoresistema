@@ -20,6 +20,7 @@ import { Route as AuthenticatedMaterialsRouteImport } from './routes/_authentica
 import { Route as AuthenticatedProductionRouteImport } from './routes/_authenticated.production'
 import { Route as AuthenticatedProductsRouteImport } from './routes/_authenticated.products'
 import { Route as AuthenticatedPromotionsRouteImport } from './routes/_authenticated.promotions'
+import { Route as AuthenticatedPurchasesRouteImport } from './routes/_authenticated.purchases'
 import { Route as AuthenticatedSalesRouteImport } from './routes/_authenticated.sales'
 import { Route as AuthenticatedStockRouteImport } from './routes/_authenticated.stock'
 import { Route as AuthenticatedTransactionsRouteImport } from './routes/_authenticated.transactions'
@@ -78,6 +79,11 @@ const AuthenticatedPromotionsRoute = AuthenticatedPromotionsRouteImport.update({
   path: '/promotions',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedPurchasesRoute = AuthenticatedPurchasesRouteImport.update({
+  id: '/purchases',
+  path: '/purchases',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 const AuthenticatedSalesRoute = AuthenticatedSalesRouteImport.update({
   id: '/sales',
   path: '/sales',
@@ -106,6 +112,7 @@ export interface FileRoutesByFullPath {
   '/production': typeof AuthenticatedProductionRoute
   '/products': typeof AuthenticatedProductsRoute
   '/promotions': typeof AuthenticatedPromotionsRoute
+  '/purchases': typeof AuthenticatedPurchasesRoute
   '/sales': typeof AuthenticatedSalesRoute
   '/stock': typeof AuthenticatedStockRoute
   '/transactions': typeof AuthenticatedTransactionsRoute
@@ -121,6 +128,7 @@ export interface FileRoutesByTo {
   '/production': typeof AuthenticatedProductionRoute
   '/products': typeof AuthenticatedProductsRoute
   '/promotions': typeof AuthenticatedPromotionsRoute
+  '/purchases': typeof AuthenticatedPurchasesRoute
   '/sales': typeof AuthenticatedSalesRoute
   '/stock': typeof AuthenticatedStockRoute
   '/transactions': typeof AuthenticatedTransactionsRoute
@@ -138,6 +146,7 @@ export interface FileRoutesById {
   '/_authenticated/production': typeof AuthenticatedProductionRoute
   '/_authenticated/products': typeof AuthenticatedProductsRoute
   '/_authenticated/promotions': typeof AuthenticatedPromotionsRoute
+  '/_authenticated/purchases': typeof AuthenticatedPurchasesRoute
   '/_authenticated/sales': typeof AuthenticatedSalesRoute
   '/_authenticated/stock': typeof AuthenticatedStockRoute
   '/_authenticated/transactions': typeof AuthenticatedTransactionsRoute
@@ -155,6 +164,7 @@ export interface FileRouteTypes {
     | '/production'
     | '/products'
     | '/promotions'
+    | '/purchases'
     | '/sales'
     | '/stock'
     | '/transactions'
@@ -170,6 +180,7 @@ export interface FileRouteTypes {
     | '/production'
     | '/products'
     | '/promotions'
+    | '/purchases'
     | '/sales'
     | '/stock'
     | '/transactions'
@@ -186,6 +197,7 @@ export interface FileRouteTypes {
     | '/_authenticated/production'
     | '/_authenticated/products'
     | '/_authenticated/promotions'
+    | '/_authenticated/purchases'
     | '/_authenticated/sales'
     | '/_authenticated/stock'
     | '/_authenticated/transactions'
@@ -276,6 +288,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPromotionsRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/purchases': {
+      id: '/_authenticated/purchases'
+      path: '/purchases'
+      fullPath: '/purchases'
+      preLoaderRoute: typeof AuthenticatedPurchasesRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/sales': {
       id: '/_authenticated/sales'
       path: '/sales'
@@ -309,6 +328,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedProductionRoute: typeof AuthenticatedProductionRoute
   AuthenticatedProductsRoute: typeof AuthenticatedProductsRoute
   AuthenticatedPromotionsRoute: typeof AuthenticatedPromotionsRoute
+  AuthenticatedPurchasesRoute: typeof AuthenticatedPurchasesRoute
   AuthenticatedSalesRoute: typeof AuthenticatedSalesRoute
   AuthenticatedStockRoute: typeof AuthenticatedStockRoute
   AuthenticatedTransactionsRoute: typeof AuthenticatedTransactionsRoute
@@ -323,6 +343,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedProductionRoute: AuthenticatedProductionRoute,
   AuthenticatedProductsRoute: AuthenticatedProductsRoute,
   AuthenticatedPromotionsRoute: AuthenticatedPromotionsRoute,
+  AuthenticatedPurchasesRoute: AuthenticatedPurchasesRoute,
   AuthenticatedSalesRoute: AuthenticatedSalesRoute,
   AuthenticatedStockRoute: AuthenticatedStockRoute,
   AuthenticatedTransactionsRoute: AuthenticatedTransactionsRoute,
@@ -340,3 +361,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}

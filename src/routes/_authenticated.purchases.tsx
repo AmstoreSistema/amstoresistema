@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Truck, ShoppingCart, Plus, CheckCircle2 } from "lucide-react";
+import { Truck, ShoppingCart, Plus, CheckCircle2, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
