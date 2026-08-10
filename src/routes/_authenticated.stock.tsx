@@ -5,14 +5,15 @@ import {
   Search,
   Filter,
   Plus,
-  ArrowRight,
   History,
   AlertTriangle,
-  Boxes,
   Barcode,
   Calendar,
   Pencil,
-  Settings2
+  Settings2,
+  CircleDollarSign,
+  TrendingUp,
+  DollarSign
 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -102,25 +103,27 @@ function StockPage() {
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       <PageHeader 
-        title="Controle de Estoque" 
-        description="Gestão de saldos, localizações e ajustes"
+        title="Estoque" 
+        description="Produtos acabados prontos para venda"
         icon={WarehouseIcon}
         actions={
           <div className="flex gap-2">
              <Button variant="outline" className="gap-2">
                 <History className="size-4" /> Histórico
              </Button>
-             <Button className="gap-2">
-                <Plus className="size-4" /> Produto Direto
+             <Button onClick={() => window.location.href = "/production"} className="gap-2 bg-gradient-gold border-none shadow-gold font-bold">
+                <Plus className="size-4" /> Nova Produção
              </Button>
           </div>
         }
       />
 
-      <div className="grid gap-4 sm:grid-cols-3">
-        <StatCard title="Itens em Estoque" value={stats.total} icon={Package} tone="dark" />
-        <StatCard title="Abaixo do Mínimo" value={stats.low} icon={AlertTriangle} tone="destructive" />
-        <StatCard title="Investimento" value={brl(stats.totalValue)} icon={CircleDollarSign} tone="gold" />
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+        <StatCard title="Total de Itens" value={stats.total} icon={Package} tone="dark" sub="0 produto(s)" />
+        <StatCard title="Estoque baixo" value={stats.low} icon={AlertTriangle} tone="destructive" />
+        <StatCard title="Custo Total" value={brl(0)} icon={CircleDollarSign} tone="destructive" />
+        <StatCard title="Valor Varejo" value={brl(0)} icon={TrendingUp} tone="success" />
+        <StatCard title="Valor Atacado" value={brl(0)} icon={DollarSign} tone="gold" />
       </div>
 
       <div className="flex flex-col gap-4">
@@ -292,26 +295,6 @@ function WarehouseIcon(props: any) {
    )
 }
 
-function CircleDollarSign(props: any) {
-   return (
-      <svg
-        {...props}
-        xmlns="http://www.w3.org/2000/svg"
-        width="24"
-        height="24"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        <circle cx="12" cy="12" r="10" />
-        <path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8" />
-        <path d="M12 18V6" />
-      </svg>
-   )
-}
 
 function cn(...inputs: any[]) {
   return inputs.filter(Boolean).join(" ");

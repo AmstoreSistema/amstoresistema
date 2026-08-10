@@ -103,7 +103,7 @@ function SalesPage() {
       <div className="grid gap-4 sm:grid-cols-3">
         <StatCard title="Vendas Hoje" value={stats.countToday} icon={ShoppingCart} tone="dark" />
         <StatCard title="Faturamento Hoje" value={brl(stats.totalToday)} icon={TrendingUpIcon} tone="gold" />
-        <StatCard title="Fiados em Aberto" value={stats.pendingFiado} icon={AlertTriangleIcon} tone="destructive" />
+        <StatCard title="Fiados em Aberto" value={stats.pendingFiado} icon={AlertTriangleIcon} tone="warning" />
       </div>
 
       <div className="flex gap-2">

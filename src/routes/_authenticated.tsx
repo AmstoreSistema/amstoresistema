@@ -39,7 +39,7 @@ function AuthenticatedLayout() {
             <SidebarTrigger />
             <div className="hidden items-center gap-2 rounded-lg border border-border bg-background px-3 py-1.5 text-sm text-muted-foreground md:flex">
               <Search className="size-4" />
-              <span className="text-xs">Amstore Gestão</span>
+              <span className="text-xs font-bold uppercase tracking-widest text-gold/80">Amstore BAGSHOES</span>
             </div>
             <div className="flex-1" />
             <div className="hidden text-right sm:block">

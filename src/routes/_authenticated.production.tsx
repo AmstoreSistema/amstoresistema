@@ -49,7 +49,7 @@ export const Route = createFileRoute("/_authenticated/production")({
   head: () => ({
     meta: [
       { title: "Produção — Amstore Gestão" },
-      { name: "description", content: "Gerencie ordens de produção e estoque." },
+      { name: "description", content: "Gerencie ordens de produção e estoque de materiais." },
     ],
   }),
   component: ProductionPage,
@@ -166,11 +166,11 @@ function ProductionPage() {
     <div className="space-y-6 animate-in fade-in duration-500">
       <PageHeader 
         title="Produção" 
-        description="Gerencie ordens de produção e fluxo de materiais"
+        description="Gerência de produção"
         icon={Package}
         actions={
           <Button onClick={() => setNewOrderOpen(true)} className="gap-2 bg-gradient-gold border-none shadow-gold font-bold">
-            <Plus className="size-4" /> Nova Produção
+            <Plus className="size-4" /> Nova Ordem
           </Button>
         }
       />
