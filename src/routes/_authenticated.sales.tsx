@@ -81,12 +81,12 @@ function SalesPage() {
   const stats = useMemo(() => {
     const today = new Date().toISOString().split('T')[0];
     const todaySales = sales.filter(s => {
-      const dateStr = s.created_at ? String(s.created_at) : "";
+      const dateStr = s.created_at ? (s.created_at as string) : "";
       return dateStr.startsWith(today);
     });
     const fiados = sales.filter(s => {
       const isDebt = !!s.is_debt;
-      const status = s.status ? String(s.status) : "";
+      const status = s.status ? (s.status as string) : "";
       return isDebt && status !== "paid";
     });
     return {
@@ -97,7 +97,8 @@ function SalesPage() {
   }, [sales]);
 
   const getStatusBadge = (s: Sale) => {
-    if (s.is_debt && s.status !== "paid") return <Badge className="bg-destructive/10 text-destructive border-none">Pendente (Fiado)</Badge>;
+    const status = s.status ? (s.status as string) : "";
+    if (s.is_debt && status !== "paid") return <Badge className="bg-destructive/10 text-destructive border-none">Pendente (Fiado)</Badge>;
     return <Badge className="bg-success/10 text-success border-none">Pago</Badge>;
   };
 
