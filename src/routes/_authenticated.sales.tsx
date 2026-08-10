@@ -66,7 +66,10 @@ function SalesPage() {
 
   const stats = useMemo(() => {
     const today = new Date().toISOString().split('T')[0];
-    const todaySales = (sales as any[]).filter(s => String((s.created_at as string) || "").startsWith(today));
+    const todaySales = (sales as any[]).filter(s => {
+      const dateStr = s.created_at ? String(s.created_at) : "";
+      return dateStr.startsWith(today);
+    });
     const fiados = (sales as any[]).filter(s => !!s.is_debt && String(s.status || "") !== "paid");
     
     return {
