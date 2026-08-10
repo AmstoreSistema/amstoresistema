@@ -1,80 +1,198 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { 
+  AlertTriangle, 
+  ArrowUpRight, 
+  Boxes, 
+  CheckCircle2, 
+  Factory, 
+  Package, 
+  ShoppingCart, 
+  TrendingUp 
+} from "lucide-react";
+import { useMemo } from "react";
+
+import { StatCard } from "@/components/stat-card";
+import { useRows } from "@/lib/data";
+import { brl } from "@/lib/format";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
+  head: () => ({
+    meta: [
+      { title: "Painel de Controle — Amstore Gestão" },
+      { name: "description", content: "Visão geral da produção, estoque de materiais e vendas da Amstore." },
+    ],
+  }),
   component: Dashboard,
 });
 
 function Dashboard() {
+  const { data: materials = [] } = useRows("materials");
+  const { data: products = [] } = useRows("products");
+  const { data: orders = [] } = useRows("production_orders");
+  const { data: sales = [] } = useRows("sales");
+
+  const criticalMaterials = useMemo(
+    () => materials.filter((m: any) => Number(m.current_stock) <= Number(m.min_stock)).length,
+    [materials]
+  );
+
+  const activeOrders = useMemo(
+    () => orders.filter((o: any) => o.status === "pendente" || o.status === "em_producao").length,
+    [orders]
+  );
+
+  const lowStockProducts = useMemo(
+    () => products.filter((p: any) => Number(p.current_stock) <= Number(p.min_stock)).length,
+    [products]
+  );
+
+  const today = new Date().toDateString();
+  const salesToday = useMemo(
+    () => sales.filter((s: any) => s.created_at && new Date(s.created_at).toDateString() === today),
+    [sales, today]
+  );
+
+  const totalRevenueToday = useMemo(
+    () => salesToday.reduce((sum, s: any) => sum + Number(s.total_amount), 0),
+    [salesToday]
+  );
+
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-        <p className="text-muted-foreground">Visão geral da sua produção e materiais.</p>
+    <div className="space-y-8 animate-in fade-in duration-500">
+      <div className="flex flex-col gap-2">
+        <h1 className="text-3xl font-display font-bold tracking-tight bg-gradient-gold bg-clip-text text-transparent">
+          Painel de Controle
+        </h1>
+        <p className="text-muted-foreground">Bem-vindo à Amstore Gestão. Confira os números de hoje.</p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <StatsCard title="Total de Materiais" value="90" sub="1 crítico" icon="📦" color="bg-blue-500" />
-        <StatsCard title="Ordens Ativas" value="0" sub="De um total de 21" icon="🏭" color="bg-emerald-500" />
-        <StatsCard title="Produtos em Estoque" value="105" sub="84 com estoque baixo" icon="📋" color="bg-violet-500" />
-        <StatsCard title="Vendas Hoje" value="1" sub="Vendas realizadas hoje" icon="💰" color="bg-orange-500" />
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <StatCard 
+          title="Total de Materiais" 
+          value={materials.length} 
+          sub={`${criticalMaterials} em nível crítico`} 
+          icon={Boxes} 
+          tone="dark" 
+        />
+        <StatCard 
+          title="Ordens Ativas" 
+          value={activeOrders} 
+          sub={`De um total de ${orders.length}`} 
+          icon={Factory} 
+          tone="gold" 
+        />
+        <StatCard 
+          title="Produtos em Estoque" 
+          value={products.reduce((s, p: any) => s + Number(p.current_stock), 0)} 
+          sub={`${lowStockProducts} com estoque baixo`} 
+          icon={Package} 
+          tone="dark" 
+        />
+        <StatCard 
+          title="Vendas Hoje" 
+          value={salesToday.length} 
+          sub={brl(totalRevenueToday)} 
+          icon={ShoppingCart} 
+          tone="success" 
+        />
       </div>
 
       <div className="grid gap-4 md:grid-cols-7">
-        <div className="col-span-4 bg-card rounded-xl border p-6 shadow-sm">
-          <h3 className="text-sm font-semibold text-muted-foreground mb-4 flex items-center">
-            <span className="mr-2">📊</span> Materiais por Tipo
-          </h3>
-          <div className="h-[250px] flex items-end justify-between space-x-2 pt-4">
-            <Bar height="60%" label="Almoxarifado" />
-            <Bar height="90%" label="Couro" />
-            <Bar height="75%" label="Ferragem" />
-            <Bar height="15%" label="Outros" />
-            <Bar height="5%" label="Forros" />
-            <Bar height="2%" label="Cola" />
-            <Bar height="30%" label="Linha" />
+        <div className="col-span-4 rounded-3xl border border-border bg-card/50 p-8 shadow-sm backdrop-blur-sm">
+          <div className="mb-8 flex items-center justify-between">
+            <div className="space-y-1">
+              <h3 className="font-display text-lg font-bold">Produção Recente</h3>
+              <p className="text-xs text-muted-foreground">Status das últimas ordens de produção.</p>
+            </div>
+            <TrendingUp className="size-5 text-gold" />
+          </div>
+          
+          <div className="space-y-4">
+            {orders.slice(0, 5).map((order: any) => (
+              <div key={order.id} className="flex items-center justify-between rounded-2xl border border-border/50 bg-background/50 p-4 transition-colors hover:bg-background">
+                <div className="flex items-center gap-4">
+                  <div className="flex size-10 items-center justify-center rounded-xl bg-gold/10 text-gold">
+                    <Factory className="size-5" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold">{products.find((p: any) => p.id === order.product_id)?.name || "Produto"}</p>
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-widest">{order.status.replace('_', ' ')}</p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <p className="text-sm font-bold">{order.quantity} un</p>
+                  <p className="text-[10px] text-muted-foreground">{new Date(order.created_at).toLocaleDateString('pt-BR')}</p>
+                </div>
+              </div>
+            ))}
+            {orders.length === 0 && (
+              <div className="flex flex-col items-center justify-center py-12 text-center text-muted-foreground">
+                <Factory className="mb-2 size-8 opacity-20" />
+                <p className="text-sm italic">Nenhuma ordem recente encontrada.</p>
+              </div>
+            )}
           </div>
         </div>
-        <div className="col-span-3 bg-card rounded-xl border p-6 shadow-sm flex flex-col items-center justify-center">
-          <h3 className="text-sm font-semibold text-muted-foreground mb-6 self-start flex items-center">
-            <span className="mr-2">📈</span> Status das Produções
-          </h3>
-          <div className="relative w-48 h-48 rounded-full bg-emerald-500 flex items-center justify-center text-white font-bold text-xs">
-            Concluída 100%
+
+        <div className="col-span-3 rounded-3xl border border-border bg-card/50 p-8 shadow-sm backdrop-blur-sm">
+          <div className="mb-8 flex items-center justify-between">
+            <div className="space-y-1">
+              <h3 className="font-display text-lg font-bold">Alertas de Estoque</h3>
+              <p className="text-xs text-muted-foreground">Materiais abaixo do estoque mínimo.</p>
+            </div>
+            <AlertTriangle className="size-5 text-destructive" />
+          </div>
+
+          <div className="space-y-4">
+            {materials
+              .filter((m: any) => Number(m.current_stock) <= Number(m.min_stock))
+              .slice(0, 6)
+              .map((material: any) => (
+                <div key={material.id} className="flex items-center justify-between rounded-2xl border border-border/50 bg-background/50 p-4 transition-colors hover:bg-background">
+                  <div className="flex items-center gap-3">
+                    <div className="flex size-8 items-center justify-center rounded-lg bg-destructive/10 text-destructive">
+                      <AlertTriangle className="size-4" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium">{material.name}</p>
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{material.type}</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-bold text-destructive">{material.current_stock} {material.unit}</p>
+                    <p className="text-[10px] text-muted-foreground">mín: {material.min_stock}</p>
+                  </div>
+                </div>
+              ))}
+            {criticalMaterials === 0 && (
+              <div className="flex flex-col items-center justify-center py-12 text-center text-muted-foreground">
+                <CheckCircle2 className="mb-2 size-8 text-success opacity-20" />
+                <p className="text-sm italic">Tudo em ordem com o estoque.</p>
+              </div>
+            )}
           </div>
         </div>
       </div>
-    </div>
-  );
-}
 
-function StatsCard({ title, value, sub, icon, color }: { title: string, value: string, sub: string, icon: string, color: string }) {
-  return (
-    <div className="bg-card rounded-xl border p-6 shadow-sm hover:shadow-md transition-shadow">
-      <div className="flex items-center justify-between mb-4">
-        <div className={`w-10 h-10 rounded-xl ${color} flex items-center justify-center text-xl text-white shadow-lg shadow-${color.split('-')[1]}-200`}>
-          {icon}
+      <div className="rounded-3xl border border-border bg-gradient-to-br from-gold/5 via-transparent to-transparent p-8">
+        <div className="flex flex-col items-center justify-between gap-4 md:flex-row">
+          <div className="space-y-2">
+            <h2 className="font-display text-2xl font-bold">Gestão Integrada Amstore</h2>
+            <p className="max-w-md text-sm text-muted-foreground">
+              O sistema sincroniza automaticamente a produção com a baixa de matéria-prima e o lançamento de vendas no financeiro.
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 rounded-full border border-gold/20 bg-gold/5 px-4 py-2 text-xs font-semibold text-gold">
+              <div className="size-2 animate-pulse rounded-full bg-gold" />
+              SISTEMA ATIVO
+            </div>
+            <div className="flex size-10 items-center justify-center rounded-full border border-border bg-card">
+              <ArrowUpRight className="size-4" />
+            </div>
+          </div>
         </div>
-        <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest">Ver</span>
       </div>
-      <div className="space-y-1">
-        <h4 className="text-xs font-medium text-muted-foreground">{title}</h4>
-        <div className="text-2xl font-bold">{value}</div>
-        <p className="text-[10px] text-muted-foreground">{sub}</p>
-      </div>
-    </div>
-  );
-}
-
-function Bar({ height, label }: { height: string, label: string }) {
-  return (
-    <div className="flex-1 flex flex-col items-center group">
-      <div className="w-full bg-blue-100 rounded-t-md relative flex items-end h-full">
-        <div 
-          className="w-full bg-gradient-to-t from-blue-600 to-blue-400 rounded-t-md transition-all duration-500 ease-in-out group-hover:brightness-110"
-          style={{ height }}
-        />
-      </div>
-      <span className="text-[9px] mt-2 text-muted-foreground font-medium truncate w-full text-center">{label}</span>
     </div>
   );
 }
