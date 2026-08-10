@@ -169,7 +169,7 @@ function ProductionPage() {
         description="Gerencie ordens de produção e fluxo de materiais"
         icon={Package}
         actions={
-          <Button onClick={() => setNewOrderOpen(true)} className="gap-2">
+          <Button onClick={() => setNewOrderOpen(true)} className="gap-2 bg-gradient-gold border-none shadow-gold font-bold">
             <Plus className="size-4" /> Nova Produção
           </Button>
         }

@@ -132,7 +132,7 @@ function CatalogPage() {
                 <div className="flex items-end justify-between mt-6">
                    <div className="space-y-1">
                       <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest">Estoque</p>
-                      <p className={cn("text-sm font-bold", p.current_stock > 0 ? "text-success" : "text-destructive")}>
+                      <p className={(p.current_stock > 0 ? "text-success" : "text-destructive") + " text-sm font-bold"}>
                          {p.current_stock} un disponíveis
                       </p>
                    </div>
@@ -164,6 +164,3 @@ function CatalogPage() {
   );
 }
 
-function cn(...inputs: any[]) {
-  return inputs.filter(Boolean).join(" ");
-}
