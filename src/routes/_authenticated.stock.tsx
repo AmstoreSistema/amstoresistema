@@ -202,7 +202,7 @@ function StockPage() {
                 <div className="space-y-1.5 text-xs">
                   <div className="flex justify-between font-medium">
                     <span className="text-muted-foreground">Entrada:</span>
-                    <span>{dateBR(p.updated_at || p.created_at)}</span>
+                    <span>{dateBR(p.updated_at)}</span>
                   </div>
                   <div className="flex justify-between font-medium">
                     <span className="text-muted-foreground">Local:</span>
