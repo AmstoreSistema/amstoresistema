@@ -1085,10 +1085,10 @@ function MaterialsPage() {
             </div>
 
             {/* Sidebar Stats Area */}
-            <div className="border-l bg-white flex flex-col h-full overflow-hidden">
-              <div className="flex-1 overflow-y-auto p-5 space-y-6 scrollbar-thin">
+            <div className="border-l bg-white flex flex-col h-full overflow-hidden shadow-[0_-8px_30px_rgb(0,0,0,0.04)]">
+              <div className="flex-1 overflow-y-auto p-6 space-y-8 scrollbar-thin">
                 <div>
-                  <h3 className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-4 border-b pb-2">Resumo de Área & Custos</h3>
+                  <h3 className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-6 border-b pb-3">Resumo de Área & Custos</h3>
                   <div className="space-y-3">
                     <div className="flex justify-between items-center text-xs">
                       <span className="text-muted-foreground">Custo por cm²:</span>
