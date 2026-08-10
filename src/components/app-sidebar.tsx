@@ -53,7 +53,7 @@ const groups: { label: string; items: Item[] }[] = [
       { title: "Produção", url: "/production", icon: Factory },
       { title: "Estoque", url: "/stock", icon: Warehouse },
       { title: "Etiquetas", url: "/labels", icon: Tags },
-      { title: "Relatórios", url: "/reports", icon: FileBarChart },
+      { title: "Relatórios", url: "/reports", icon: PieChart },
     ],
   },
   {
@@ -73,7 +73,7 @@ const groups: { label: string; items: Item[] }[] = [
       { title: "Fiado", url: "/credit", icon: HandCoins },
       { title: "Transações", url: "/transactions", icon: ArrowLeftRight },
       { title: "Contas", url: "/accounts", icon: Landmark },
-      { title: "Relatórios da Loja", url: "/reports", icon: PieChart },
+      { title: "Relatórios", url: "/reports", icon: PieChart },
       { title: "Catálogo", url: "/catalog", icon: BookMarked },
       { title: "Promoções", url: "/promotions", icon: BadgePercent },
     ],

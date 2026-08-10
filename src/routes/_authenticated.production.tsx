@@ -49,7 +49,7 @@ export const Route = createFileRoute("/_authenticated/production")({
   head: () => ({
     meta: [
       { title: "Produção — Amstore Gestão" },
-      { name: "description", content: "Gerencie ordens de produção e estoque." },
+      { name: "description", content: "Gerencie ordens de produção e estoque de materiais." },
     ],
   }),
   component: ProductionPage,

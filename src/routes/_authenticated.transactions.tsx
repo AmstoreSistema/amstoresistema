@@ -95,8 +95,8 @@ function TransactionsPage() {
             <Button variant="outline" className="gap-2 rounded-xl">
               <Download className="size-4" /> Exportar
             </Button>
-            <Button className="gap-2 bg-gradient-gold border-none shadow-gold font-bold">
-              <Plus className="size-4" /> Novo Lançamento
+            <Button onClick={() => window.location.href = "/sales"} className="gap-2 bg-gradient-gold border-none shadow-gold font-bold">
+              <Plus className="size-4" /> Nova Venda
             </Button>
           </div>
         }
