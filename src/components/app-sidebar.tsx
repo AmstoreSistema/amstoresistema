@@ -78,6 +78,7 @@ const menuGroups: { label: string; items: Item[] }[] = [
     items: [
       {
         title: "Sistema",
+        url: "#sistema",
         icon: ShieldCheck,
         items: [
           { title: "Auditoria", url: "/audit", icon: ShieldCheck },
@@ -92,6 +93,7 @@ const menuGroups: { label: string; items: Item[] }[] = [
     items: [
       {
         title: "Loja",
+        url: "#loja",
         icon: Store,
         items: [
           { title: "Painel de controle", url: "/store", icon: Store },
@@ -151,7 +153,7 @@ export function AppSidebar() {
   const pathname = useRouterState({ select: (r) => r.location.pathname });
 
   return (
-    <Sidebar collapsible="icon" className="border-sidebar-border">
+    <Sidebar collapsible="icon" className="border-sidebar-border scrollbar-hide [&_[data-sidebar=sidebar]]:scrollbar-hide">
       <SidebarHeader className="border-b border-sidebar-border">
         <div className="flex items-center gap-3 px-1 py-2">
           <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-gradient-gold text-sidebar-primary-foreground shadow-gold">
@@ -170,7 +172,7 @@ export function AppSidebar() {
         </div>
       </SidebarHeader>
 
-      <SidebarContent className="no-scrollbar gap-0 overflow-y-auto">
+      <SidebarContent className="scrollbar-hide gap-0 overflow-y-auto overflow-x-hidden">
         {menuGroups.map((group) => (
           <SidebarGroup key={group.label} className="py-2">
             <SidebarGroupLabel className="px-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-sidebar-foreground/45">
@@ -179,8 +181,11 @@ export function AppSidebar() {
             <SidebarGroupContent>
               <SidebarMenu className="gap-0.5 px-2">
                 {group.items.map((item) => {
-                  if (item.items) {
-                    const isAnyActive = item.items.some(
+                  const hasSubItems = item.items && item.items.length > 0;
+                  const isCollapsibleHeader = hasSubItems && item.url?.startsWith('#');
+                  
+                  if (hasSubItems) {
+                    const isAnyActive = item.items!.some(
                       (sub) => pathname === sub.url
                     );
                     return (
@@ -192,15 +197,17 @@ export function AppSidebar() {
                       >
                         <SidebarMenuItem>
                           <CollapsibleTrigger asChild>
-                            <SidebarMenuButton tooltip={item.title}>
-                              <item.icon className="size-4 text-sidebar-foreground/60 transition-colors group-hover/nav:text-sidebar-primary" />
-                              <span>{item.title}</span>
-                              <ChevronRight className="ml-auto size-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+                            <SidebarMenuButton tooltip={item.title} className="w-full justify-between">
+                              <div className="flex items-center gap-2">
+                                <item.icon className="size-4 text-sidebar-foreground/60 transition-colors group-hover/nav:text-sidebar-primary" />
+                                <span>{item.title}</span>
+                              </div>
+                              <ChevronRight className="size-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
                             </SidebarMenuButton>
                           </CollapsibleTrigger>
                           <CollapsibleContent>
-                            <SidebarMenuSub>
-                              {item.items.map((subItem) => (
+                            <SidebarMenuSub className="ml-4 border-l border-sidebar-border/50 pl-2">
+                              {item.items!.map((subItem) => (
                                 <SidebarMenuSubItem key={subItem.url}>
                                   <SidebarMenuSubButton
                                     asChild
@@ -208,9 +215,9 @@ export function AppSidebar() {
                                   >
                                     <Link to={subItem.url}>
                                       {subItem.icon && (
-                                        <subItem.icon className="size-4" />
+                                        <subItem.icon className="size-3.5" />
                                       )}
-                                      <span>{subItem.title}</span>
+                                      <span className="text-xs">{subItem.title}</span>
                                     </Link>
                                   </SidebarMenuSubButton>
                                 </SidebarMenuSubItem>
