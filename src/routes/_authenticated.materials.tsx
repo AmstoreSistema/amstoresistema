@@ -726,10 +726,10 @@ function MaterialsPage() {
                       <span className="text-xs font-semibold text-blue-600 uppercase tracking-wider">Área Total da Peça:</span>
                       <div className="flex items-baseline gap-2">
                         <span className="text-3xl font-bold text-blue-900">
-                          {num(Number(form.width) * Number(form.height))} cm²
+                          {num(Number(form.width) * Number(form.height))} m²
                         </span>
                         <span className="text-sm text-blue-600/70">
-                          ({form.width}cm × {form.height}cm)
+                          ({form.width}m × {form.height}m)
                         </span>
                       </div>
                       <div className="mt-2 flex items-center gap-2 text-xs text-blue-700 font-medium bg-blue-100/50 w-fit px-3 py-1 rounded-full">
