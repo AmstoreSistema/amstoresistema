@@ -1153,10 +1153,10 @@ function MaterialsPage() {
                 <div className="space-y-4">
                   {!isAddingCut ? (
                     <Button 
-                      className="w-full bg-blue-600 hover:bg-blue-700 h-11 rounded-xl gap-2 shadow-lg shadow-blue-100"
+                      className="w-full bg-blue-600 hover:bg-blue-700 h-10 rounded-xl gap-2 shadow-lg shadow-blue-100 text-xs font-bold"
                       onClick={() => setIsAddingCut(true)}
                     >
-                      <Plus className="size-4" /> Realizar Novo Corte
+                      <Plus className="size-3.5" /> Novo Corte
                     </Button>
                   ) : (
                     <div className="p-4 border rounded-2xl bg-blue-50/50 space-y-3 animate-in fade-in slide-in-from-top-2">
