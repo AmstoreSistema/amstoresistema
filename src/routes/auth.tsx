@@ -1,5 +1,4 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { lovable } from "@/integrations/lovable";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,12 +23,6 @@ function AuthPage() {
       alert(error.message);
     }
     setLoading(false);
-  };
-
-  const handleGoogleSignIn = async () => {
-    await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: window.location.origin,
-    });
   };
 
   return (
@@ -71,42 +64,6 @@ function AuthPage() {
               {loading ? "Entrando..." : "Entrar"}
             </Button>
           </form>
-          
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t" />
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-card px-2 text-muted-foreground">Ou continue com</span>
-            </div>
-          </div>
-
-          <Button variant="outline" className="w-full py-6" onClick={handleGoogleSignIn}>
-            <img src="https://www.google.com/favicon.ico" alt="Google" className="w-4 h-4 mr-2" />
-            Google
-          </Button>
-
-          <div className="mt-6 p-4 bg-muted rounded-lg text-xs text-muted-foreground space-y-2 border border-border/50">
-            <p className="font-semibold text-foreground/80 flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-              Acesso Restrito
-            </p>
-            <p>
-              O sistema terá apenas 2 usuários administradores e não pode ser feito cadastro.
-            </p>
-            <div className="pt-1 space-y-1">
-              <p>
-                <span className="font-medium text-foreground/70">Emails:</span> 
-                <br />
-                amstorebagshoes@gmail.com
-                <br />
-                matosmonica000@gmail.com
-              </p>
-              <p>
-                <span className="font-medium text-foreground/70">Senha:</span> amstore2021
-              </p>
-            </div>
-          </div>
         </CardContent>
       </Card>
     </div>
