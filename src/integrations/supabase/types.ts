@@ -363,29 +363,88 @@ export type Database = {
       }
       product_materials: {
         Row: {
+          allows_scrap: boolean
+          created_at: string
           id: string
+          material_cut_id: string | null
           material_id: string | null
+          material_name: string | null
+          material_type: string | null
+          material_variation_id: string | null
+          notes: string | null
           product_id: string | null
           quantity: number
+          stage: string | null
+          total_cost: number
+          unit: string | null
+          unit_cost: number
+          updated_at: string
+          validated: boolean
+          validated_at: string | null
+          variation_name: string | null
         }
         Insert: {
+          allows_scrap?: boolean
+          created_at?: string
           id?: string
+          material_cut_id?: string | null
           material_id?: string | null
+          material_name?: string | null
+          material_type?: string | null
+          material_variation_id?: string | null
+          notes?: string | null
           product_id?: string | null
           quantity: number
+          stage?: string | null
+          total_cost?: number
+          unit?: string | null
+          unit_cost?: number
+          updated_at?: string
+          validated?: boolean
+          validated_at?: string | null
+          variation_name?: string | null
         }
         Update: {
+          allows_scrap?: boolean
+          created_at?: string
           id?: string
+          material_cut_id?: string | null
           material_id?: string | null
+          material_name?: string | null
+          material_type?: string | null
+          material_variation_id?: string | null
+          notes?: string | null
           product_id?: string | null
           quantity?: number
+          stage?: string | null
+          total_cost?: number
+          unit?: string | null
+          unit_cost?: number
+          updated_at?: string
+          validated?: boolean
+          validated_at?: string | null
+          variation_name?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "product_materials_material_cut_id_fkey"
+            columns: ["material_cut_id"]
+            isOneToOne: false
+            referencedRelation: "material_cuts"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "product_materials_material_id_fkey"
             columns: ["material_id"]
             isOneToOne: false
             referencedRelation: "materials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_materials_material_variation_id_fkey"
+            columns: ["material_variation_id"]
+            isOneToOne: false
+            referencedRelation: "material_variations"
             referencedColumns: ["id"]
           },
           {
@@ -445,49 +504,67 @@ export type Database = {
         Row: {
           active: boolean
           category: string
+          color: string | null
           cost_price: number
           created_at: string | null
           current_stock: number | null
+          description: string | null
           id: string
           image_url: string | null
+          labor_cost: number
           min_stock: number
           name: string
+          overhead_cost: number
           production_time_hours: number | null
+          retail_margin: number
           sale_price: number | null
           sku: string | null
           updated_at: string | null
+          wholesale_margin: number
           wholesale_price: number | null
         }
         Insert: {
           active?: boolean
           category?: string
+          color?: string | null
           cost_price?: number
           created_at?: string | null
           current_stock?: number | null
+          description?: string | null
           id?: string
           image_url?: string | null
+          labor_cost?: number
           min_stock?: number
           name: string
+          overhead_cost?: number
           production_time_hours?: number | null
+          retail_margin?: number
           sale_price?: number | null
           sku?: string | null
           updated_at?: string | null
+          wholesale_margin?: number
           wholesale_price?: number | null
         }
         Update: {
           active?: boolean
           category?: string
+          color?: string | null
           cost_price?: number
           created_at?: string | null
           current_stock?: number | null
+          description?: string | null
           id?: string
           image_url?: string | null
+          labor_cost?: number
           min_stock?: number
           name?: string
+          overhead_cost?: number
           production_time_hours?: number | null
+          retail_margin?: number
           sale_price?: number | null
           sku?: string | null
           updated_at?: string | null
+          wholesale_margin?: number
           wholesale_price?: number | null
         }
         Relationships: []
