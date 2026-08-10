@@ -1008,8 +1008,8 @@ function MaterialsPage() {
 
       {/* Modal de Cortes (Leather/Structure/Lining) */}
       <Dialog open={cutsOpen} onOpenChange={setCutsOpen}>
-        <DialogContent className="max-h-[90vh] w-[95vw] sm:max-w-[1200px] rounded-3xl p-0 border-none bg-white overflow-hidden flex flex-col">
-          <div className="flex items-center justify-between border-b px-6 py-4 sticky top-0 bg-white z-20">
+        <DialogContent className="max-h-[95vh] w-[98vw] sm:max-w-[1400px] rounded-3xl p-0 border-none bg-white overflow-hidden flex flex-col">
+          <div className="flex items-center justify-between border-b px-8 py-5 sticky top-0 bg-white z-20">
             <div className="flex items-center gap-3">
               <div className="flex items-center justify-center size-10 rounded-xl bg-blue-50 text-blue-600">
                 <Layers className="size-5" />
@@ -1030,10 +1030,10 @@ function MaterialsPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-[1fr,360px] overflow-hidden flex-1">
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr,400px] overflow-hidden flex-1">
             {/* Canvas Area */}
-            <div className="p-4 bg-gray-50/50 flex flex-col items-center justify-center min-h-[400px] relative overflow-auto border-b lg:border-b-0">
-              <div className="absolute top-4 left-6 flex flex-col sm:flex-row gap-x-6 gap-y-2 text-[10px] font-bold uppercase tracking-tight text-muted-foreground/60">
+            <div className="p-8 bg-gray-50/50 flex flex-col items-center justify-center min-h-[500px] relative overflow-auto border-b lg:border-b-0">
+              <div className="absolute top-6 left-8 flex flex-col sm:flex-row gap-x-8 gap-y-2 text-[11px] font-bold uppercase tracking-tight text-muted-foreground/60">
                 <div className="flex items-center gap-1.5"><PlusCircle className="size-3 text-blue-500" /> Arrastar: Mover</div>
                 <div className="flex items-center gap-1.5"><div className="size-2 rounded-full bg-blue-500" /> Handle: Rotacionar</div>
                 <div className="flex items-center gap-1.5"><span className="text-blue-500">Ctrl+Click</span>: Seleção</div>
@@ -1043,25 +1043,25 @@ function MaterialsPage() {
               <div 
                 className="relative bg-white shadow-2xl border-2 border-orange-200/50"
                 style={{ 
-                  width: `${(activeMaterial?.width || 100) * 200}px`, 
-                  height: `${(activeMaterial?.height || 100) * 200}px`,
+                  width: `${(activeMaterial?.width || 1) * 350}px`, 
+                  height: `${(activeMaterial?.height || 1) * 350}px`,
                   backgroundImage: 'radial-gradient(#fed7aa 0.5px, transparent 0.5px)',
-                  backgroundSize: '10px 10px'
+                  backgroundSize: '20px 20px'
                 }}
               >
-                <div className="absolute -top-6 left-1/2 -translate-x-1/2 text-[10px] font-bold text-orange-400">{(activeMaterial?.width || 0) * 100} cm</div>
-                <div className="absolute -left-10 top-1/2 -translate-y-1/2 -rotate-90 text-[10px] font-bold text-orange-400">{(activeMaterial?.height || 0) * 100} cm</div>
+                <div className="absolute -top-8 left-1/2 -translate-x-1/2 text-xs font-bold text-orange-400">{(activeMaterial?.width || 0) * 100} cm</div>
+                <div className="absolute -left-12 top-1/2 -translate-y-1/2 -rotate-90 text-xs font-bold text-orange-400">{(activeMaterial?.height || 0) * 100} cm</div>
                 
                 {/* Render mock/real cuts */}
                 {cuts.map((cut, idx) => (
                   <div 
                     key={cut.id}
-                    className="absolute border-2 border-blue-600 bg-blue-500/20 flex items-center justify-center p-1 text-[8px] font-bold text-blue-900 leading-tight text-center overflow-hidden"
+                    className="absolute border-2 border-blue-600 bg-blue-500/20 flex items-center justify-center p-2 text-[9px] font-bold text-blue-900 leading-tight text-center overflow-hidden"
                     style={{
-                      width: `${cut.width * 2}px`,
-                      height: `${cut.height * 2}px`,
-                      left: `${(idx % 10) * 30}px`,
-                      top: `${Math.floor(idx / 10) * 30}px`
+                      width: `${(cut.width / 100) * 350}px`,
+                      height: `${(cut.height / 100) * 350}px`,
+                      left: `${(idx % 10) * 40}px`,
+                      top: `${Math.floor(idx / 10) * 40}px`
                     }}
                   >
                     <span className="truncate">{cut.name}</span>
@@ -1069,26 +1069,26 @@ function MaterialsPage() {
                 ))}
               </div>
 
-              <div className="mt-4 flex items-center gap-6 p-2 bg-white rounded-xl shadow-sm border">
-                <div className="flex items-center gap-2">
-                  <Label className="text-[10px] uppercase font-bold text-muted-foreground">Zoom</Label>
-                  <Input type="range" className="w-24 accent-blue-600" />
-                  <span className="text-xs font-bold text-muted-foreground">100%</span>
+              <div className="mt-8 flex items-center gap-8 p-3 bg-white rounded-2xl shadow-sm border">
+                <div className="flex items-center gap-3">
+                  <Label className="text-[11px] uppercase font-bold text-muted-foreground">Zoom</Label>
+                  <Input type="range" className="w-32 accent-blue-600" defaultValue={100} />
+                  <span className="text-xs font-bold text-muted-foreground w-10">100%</span>
                 </div>
-                <div className="h-4 w-px bg-border" />
-                <div className="flex items-center gap-2">
-                  <Label className="text-[10px] uppercase font-bold text-muted-foreground">Grid</Label>
-                  <Input type="range" className="w-24 accent-blue-600" />
-                  <span className="text-xs font-bold text-muted-foreground">5cm</span>
+                <div className="h-6 w-px bg-border" />
+                <div className="flex items-center gap-3">
+                  <Label className="text-[11px] uppercase font-bold text-muted-foreground">Grid</Label>
+                  <Input type="range" className="w-32 accent-blue-600" defaultValue={5} />
+                  <span className="text-xs font-bold text-muted-foreground w-10">5cm</span>
                 </div>
               </div>
             </div>
 
             {/* Sidebar Stats Area */}
-            <div className="border-l bg-white flex flex-col h-full overflow-hidden">
-              <div className="flex-1 overflow-y-auto p-5 space-y-6 scrollbar-thin">
+            <div className="border-l bg-white flex flex-col h-full overflow-hidden shadow-[0_-8px_30px_rgb(0,0,0,0.04)]">
+              <div className="flex-1 overflow-y-auto p-6 space-y-8 scrollbar-thin">
                 <div>
-                  <h3 className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-4 border-b pb-2">Resumo de Área & Custos</h3>
+                  <h3 className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-6 border-b pb-3">Resumo de Área & Custos</h3>
                   <div className="space-y-3">
                     <div className="flex justify-between items-center text-xs">
                       <span className="text-muted-foreground">Custo por cm²:</span>
