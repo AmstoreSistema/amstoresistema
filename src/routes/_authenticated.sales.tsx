@@ -84,10 +84,15 @@ function SalesPage() {
       const dateStr = s.created_at ? String(s.created_at) : "";
       return dateStr.startsWith(today);
     });
+    const fiados = sales.filter(s => {
+      const isDebt = !!s.is_debt;
+      const status = s.status ? String(s.status) : "";
+      return isDebt && status !== "paid";
+    });
     return {
       countToday: todaySales.length,
       totalToday: todaySales.reduce((sum, s) => sum + Number(s.total_amount), 0),
-      pendingFiado: sales.filter(s => !!s.is_debt && String(s.status || "") !== "paid").length,
+      pendingFiado: fiados.length,
     };
   }, [sales]);
 
