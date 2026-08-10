@@ -12,7 +12,8 @@ import {
   Layers,
   Upload,
   RefreshCw,
-  X
+  X,
+  PlusCircle
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -22,6 +23,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
 import {
   Dialog,
   DialogContent,
@@ -72,18 +75,32 @@ type Material = {
   specification: string | null;
 };
 
+
 function MaterialsPage() {
   const { data: materials = [], isLoading } = useRows<Material>("materials", { order: { column: "name", ascending: true } });
+  const { data: categories = [] } = useRows<{id: string, name: string}>("material_categories", { order: { column: "name", ascending: true } });
+  const { data: suppliers = [] } = useRows<{id: string, name: string}>("suppliers", { order: { column: "name", ascending: true } });
+  const { data: units = [] } = useRows<{id: string, name: string, abbreviation: string}>("units_of_measure", { order: { column: "name", ascending: true } });
+
   const save = useSaveRow("materials", "material");
   const remove = useDeleteRow("materials", "material");
+  const saveConfig = useSaveRow("", ""); // Will be used dynamically
+  const removeConfig = useDeleteRow("", ""); // Will be used dynamically
 
   const [term, setTerm] = useState("");
   const [activeType, setActiveType] = useState("Todos");
   const [formOpen, setFormOpen] = useState(false);
+  const [configOpen, setConfigOpen] = useState(false);
   const [editing, setEditing] = useState<Material | null>(null);
   const [form, setForm] = useState<Partial<Material>>({});
   const [supplierDialogOpen, setSupplierDialogOpen] = useState(false);
   const [newSupplierName, setNewSupplierName] = useState("");
+
+  // New states for Config Modal
+  const [newConfigValue, setNewConfigValue] = useState("");
+  const [newConfigLabel, setNewConfigLabel] = useState("");
+  const [activeConfigTab, setActiveConfigTab] = useState("categories");
+
 
 
   const filtered = useMemo(() => {
@@ -135,6 +152,57 @@ function MaterialsPage() {
     toast.success("Fornecedor adicionado");
   };
 
+  const handleAddConfig = async () => {
+    if (!newConfigValue.trim()) return;
+    
+    let table = "";
+    let values = {};
+    let label = "";
+
+    if (activeConfigTab === "categories") {
+      table = "material_categories";
+      values = { name: newConfigValue };
+      label = "Categoria";
+    } else if (activeConfigTab === "suppliers") {
+      table = "suppliers";
+      values = { name: newConfigValue };
+      label = "Fornecedor";
+    } else if (activeConfigTab === "units") {
+      table = "units_of_measure";
+      values = { name: newConfigLabel, abbreviation: newConfigValue };
+      label = "Unidade de Medida";
+    }
+
+    const { supabase } = await import("@/integrations/supabase/client");
+    const { error } = await supabase.from(table as any).insert(values);
+    
+    if (error) {
+      toast.error(error.message);
+    } else {
+      toast.success(`${label} adicionado`);
+      setNewConfigValue("");
+      setNewConfigLabel("");
+      const queryClient = (await import("@tanstack/react-query")).useQueryClient();
+      // This is a hacky way to invalidate from inside the component, but better than rewriting useSaveRow
+      window.location.reload(); // Quick refresh for now
+    }
+  };
+
+  const handleDeleteConfig = async (id: string) => {
+    let table = activeConfigTab === "categories" ? "material_categories" : 
+                activeConfigTab === "suppliers" ? "suppliers" : "units_of_measure";
+    
+    const { supabase } = await import("@/integrations/supabase/client");
+    const { error } = await supabase.from(table as any).delete().eq("id", id);
+    
+    if (error) {
+      toast.error(error.message);
+    } else {
+      toast.success("Excluído com sucesso");
+      window.location.reload();
+    }
+  };
+
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       <PageHeader 
@@ -143,13 +211,16 @@ function MaterialsPage() {
         icon={Boxes}
         actions={
           <div className="flex gap-2">
-            <Button variant="outline" size="icon"><Settings2 className="size-4" /></Button>
+            <Button variant="outline" size="icon" onClick={() => setConfigOpen(true)}>
+              <Settings2 className="size-4" />
+            </Button>
             <Button onClick={openNew} className="gap-2">
               <Plus className="size-4" /> Novo Material
             </Button>
           </div>
         }
       />
+
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard title="Total de Materiais" value={stats.total} icon={Boxes} tone="dark" sub="couros e outros" />
@@ -160,7 +231,7 @@ function MaterialsPage() {
 
       <div className="flex flex-col gap-4">
         <div className="flex flex-wrap gap-2">
-          {["Todos", ...MATERIAL_TYPES].map(t => (
+          {["Todos", ...categories.map(c => c.name)].map(t => (
             <Button 
               key={t}
               variant={activeType === t ? "default" : "outline"}
@@ -357,10 +428,11 @@ function MaterialsPage() {
                       <SelectValue placeholder="Selecione a categoria" />
                     </SelectTrigger>
                     <SelectContent>
-                      {MATERIAL_TYPES.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                      {categories.map(c => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 </div>
+
 
                 {/* Fornecedor */}
                 <div className="space-y-2">
@@ -371,13 +443,13 @@ function MaterialsPage() {
                         <SelectValue placeholder="Selecione o fornecedor" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="Fornecedor A">Fornecedor A</SelectItem>
-                        <SelectItem value="Fornecedor B">Fornecedor B</SelectItem>
-                        {form.supplier && !["Fornecedor A", "Fornecedor B"].includes(form.supplier) && (
+                        {suppliers.map(s => <SelectItem key={s.id} value={s.name}>{s.name}</SelectItem>)}
+                        {form.supplier && !suppliers.some(s => s.name === form.supplier) && (
                           <SelectItem value={form.supplier}>{form.supplier}</SelectItem>
                         )}
                       </SelectContent>
                     </Select>
+
                     <Button 
                       variant="outline" 
                       size="icon" 
@@ -429,11 +501,9 @@ function MaterialsPage() {
                           <SelectValue placeholder="Selecione" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="un">Unidade</SelectItem>
-                          <SelectItem value="par">Par</SelectItem>
-                          <SelectItem value="kit">Kit</SelectItem>
-                          <SelectItem value="m">Metro</SelectItem>
+                          {units.map(u => <SelectItem key={u.id} value={u.abbreviation}>{u.name} ({u.abbreviation})</SelectItem>)}
                         </SelectContent>
+
                       </Select>
                     </div>
 
@@ -588,6 +658,118 @@ function MaterialsPage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Modal de Configurações */}
+      <Dialog open={configOpen} onOpenChange={setConfigOpen}>
+        <DialogContent className="max-h-[95vh] w-[95vw] overflow-y-auto sm:max-w-4xl rounded-3xl p-0 border-none bg-white">
+          <div className="flex items-center justify-between border-b px-6 py-4 sticky top-0 bg-white z-10">
+            <div className="flex items-center gap-2">
+              <Settings2 className="size-5 text-muted-foreground" />
+              <h2 className="text-lg font-semibold">Configurações de Materiais</h2>
+            </div>
+            <Button variant="ghost" size="icon" onClick={() => setConfigOpen(false)} className="rounded-full">
+              <X className="size-4" />
+            </Button>
+          </div>
+
+          <div className="p-6">
+            <Tabs defaultValue="categories" onValueChange={setActiveConfigTab}>
+              <TabsList className="grid w-full grid-cols-3 rounded-xl bg-muted/50 p-1 mb-6">
+                <TabsTrigger value="categories" className="rounded-lg">Categorias</TabsTrigger>
+                <TabsTrigger value="suppliers" className="rounded-lg">Fornecedores</TabsTrigger>
+                <TabsTrigger value="units" className="rounded-lg">Unidades de Medida</TabsTrigger>
+              </TabsList>
+
+              {/* Input section based on tab */}
+              <div className="flex gap-4 mb-8 items-end">
+                {activeConfigTab === "units" ? (
+                  <>
+                    <div className="flex-1 space-y-1.5">
+                      <Label className="text-xs font-bold text-muted-foreground">Valor (ex: cm)</Label>
+                      <Input 
+                        placeholder="cm" 
+                        value={newConfigValue} 
+                        onChange={e => setNewConfigValue(e.target.value)} 
+                        className="h-10 rounded-xl"
+                      />
+                    </div>
+                    <div className="flex-[2] space-y-1.5">
+                      <Label className="text-xs font-bold text-muted-foreground">Label (ex: Centímetro (cm))</Label>
+                      <Input 
+                        placeholder="Centímetro (cm)" 
+                        value={newConfigLabel} 
+                        onChange={e => setNewConfigLabel(e.target.value)} 
+                        className="h-10 rounded-xl"
+                      />
+                    </div>
+                  </>
+                ) : (
+                  <div className="flex-1 space-y-1.5">
+                    <Label className="text-xs font-bold text-muted-foreground">
+                      {activeConfigTab === "categories" ? "Nova Categoria" : "Novo Fornecedor"}
+                    </Label>
+                    <Input 
+                      placeholder={activeConfigTab === "categories" ? "Ex: Verniz" : "Ex: Fornecedor C"} 
+                      value={newConfigValue} 
+                      onChange={e => setNewConfigValue(e.target.value)} 
+                      className="h-10 rounded-xl"
+                    />
+                  </div>
+                )}
+                <Button onClick={handleAddConfig} className="bg-blue-600 hover:bg-blue-700 h-10 w-10 p-0 rounded-xl">
+                  <Plus className="size-5" />
+                </Button>
+              </div>
+
+              <div className="space-y-1 border rounded-2xl overflow-hidden bg-gray-50/30">
+                <TabsContent value="categories" className="m-0">
+                  {categories.map(c => (
+                    <div key={c.id} className="flex items-center justify-between px-4 py-3 bg-white border-b last:border-0">
+                      <span className="font-medium">{c.name}</span>
+                      <Button variant="ghost" size="icon" onClick={() => handleDeleteConfig(c.id)} className="text-destructive h-8 w-8">
+                        <Trash2 className="size-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </TabsContent>
+                <TabsContent value="suppliers" className="m-0">
+                  {suppliers.map(s => (
+                    <div key={s.id} className="flex items-center justify-between px-4 py-3 bg-white border-b last:border-0">
+                      <span className="font-medium">{s.name}</span>
+                      <Button variant="ghost" size="icon" onClick={() => handleDeleteConfig(s.id)} className="text-destructive h-8 w-8">
+                        <Trash2 className="size-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </TabsContent>
+                <TabsContent value="units" className="m-0">
+                  {units.map(u => (
+                    <div key={u.id} className="flex items-center justify-between px-4 py-3 bg-white border-b last:border-0">
+                      <div className="flex flex-col">
+                        <span className="font-medium">{u.name} ({u.abbreviation})</span>
+                        <span className="text-[10px] text-muted-foreground">{u.abbreviation}</span>
+                      </div>
+                      <Button variant="ghost" size="icon" onClick={() => handleDeleteConfig(u.id)} className="text-destructive h-8 w-8">
+                        <Trash2 className="size-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </TabsContent>
+              </div>
+            </Tabs>
+          </div>
+
+          <div className="flex items-center justify-end gap-3 border-t px-6 py-4 bg-gray-50/50 rounded-b-3xl sticky bottom-0">
+            <Button variant="outline" onClick={() => setConfigOpen(false)} className="h-10 rounded-xl px-6">
+              Cancelar
+            </Button>
+            <Button onClick={() => setConfigOpen(false)} className="h-10 rounded-xl px-6 bg-blue-600 hover:bg-blue-700 gap-2">
+              Salvar Configurações
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
+
