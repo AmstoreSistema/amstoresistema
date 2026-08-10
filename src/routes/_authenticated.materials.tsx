@@ -1080,7 +1080,7 @@ function MaterialsPage() {
                 <div className="flex items-center gap-2">
                   <Label className="text-[10px] uppercase font-bold text-muted-foreground">Grid</Label>
                   <Input type="range" className="w-24 accent-blue-600" />
-                  <span className="text-xs font-bold text-muted-foreground">0.05m</span>
+                  <span className="text-xs font-bold text-muted-foreground">5cm</span>
                 </div>
               </div>
             </div>
