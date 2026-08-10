@@ -203,12 +203,23 @@ function MaterialsPage() {
   };
 
 
-  const handleAddSupplier = () => {
+  const handleAddSupplier = async () => {
     if (!newSupplierName.trim()) return;
-    setForm({ ...form, supplier: newSupplierName });
-    setNewSupplierName("");
-    setSupplierDialogOpen(false);
-    toast.success("Fornecedor adicionado");
+    
+    const { supabase } = await import("@/integrations/supabase/client");
+    const { error } = await supabase.from("suppliers").insert({ name: newSupplierName });
+    
+    if (error) {
+      toast.error(error.message);
+    } else {
+      setForm({ ...form, supplier: newSupplierName });
+      setNewSupplierName("");
+      setSupplierDialogOpen(false);
+      toast.success("Fornecedor adicionado");
+      
+      const queryClient = (await import("@tanstack/react-query")).useQueryClient();
+      queryClient.invalidateQueries({ queryKey: ["suppliers"] });
+    }
   };
 
   const handleAddConfig = async () => {
@@ -241,9 +252,11 @@ function MaterialsPage() {
       toast.success(`${label} adicionado`);
       setNewConfigValue("");
       setNewConfigLabel("");
+      
+      // Invalidate queries to refresh the lists without reloading the page
+      const { supabase } = await import("@/integrations/supabase/client");
       const queryClient = (await import("@tanstack/react-query")).useQueryClient();
-      // This is a hacky way to invalidate from inside the component, but better than rewriting useSaveRow
-      window.location.reload(); // Quick refresh for now
+      queryClient.invalidateQueries({ queryKey: [table] });
     }
   };
 
@@ -258,7 +271,8 @@ function MaterialsPage() {
       toast.error(error.message);
     } else {
       toast.success("Excluído com sucesso");
-      window.location.reload();
+      const queryClient = (await import("@tanstack/react-query")).useQueryClient();
+      queryClient.invalidateQueries({ queryKey: [table] });
     }
   };
 
@@ -321,7 +335,7 @@ function MaterialsPage() {
       ) : (
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {filtered.map(m => (
-            <Card key={m.id} className="group overflow-hidden rounded-3xl border-border/50 bg-card transition-all hover:shadow-xl hover:shadow-gold/5">
+            <Card key={m.id} className="overflow-hidden rounded-3xl border-border/50 bg-card transition-all hover:shadow-xl hover:shadow-gold/5">
               <div className="relative aspect-[4/3] bg-muted/30">
                 {m.image_url ? (
                   <img src={m.image_url} alt={m.name} className="h-full w-full object-cover" />
