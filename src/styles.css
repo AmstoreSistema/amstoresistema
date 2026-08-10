@@ -198,3 +198,7 @@
 @utility shadow-gold {
   box-shadow: var(--shadow-gold);
 }
+
+#lovable-badge {
+  display: none !important;
+}
