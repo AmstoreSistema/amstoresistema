@@ -19,23 +19,16 @@ function AuthPage() {
     e.preventDefault();
     setLoading(true);
     try {
-      console.log("Tentando login para:", email);
       const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       
       if (error) {
-        console.error("Erro no login:", error);
         alert(`Erro ao acessar: ${error.message}`);
       } else if (data.session) {
-        console.log("Login realizado com sucesso!");
-        // O TanStack Router deve detectar a mudança de sessão se estivermos usando observers,
-        // mas forçamos o redirecionamento para garantir.
+        // Successful login, TanStack Router will handle the session change via beforeLoad gates
+        // and index.tsx redirect to dashboard.
         window.location.href = "/dashboard";
-      } else {
-        console.warn("Login sem sessão retornada");
-        alert("Erro inesperado: Sessão não iniciada.");
       }
     } catch (err) {
-      console.error("Erro fatal no login:", err);
       alert("Ocorreu um erro ao processar o login.");
     } finally {
       setLoading(false);
