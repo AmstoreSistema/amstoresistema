@@ -1317,7 +1317,7 @@ function MaterialsPage() {
                             </Button>
                           </div>
                           <div className="flex justify-between items-center gap-2">
-                            <span className="text-[10px] font-bold text-success">
+                            <span className="text-[11px] font-bold text-success bg-success/10 px-2 py-0.5 rounded-md">
                               {brl(activeMaterial?.cost_price && activeMaterial?.width && activeMaterial?.height 
                                 ? (activeMaterial.cost_price / (activeMaterial.width * 100 * activeMaterial.height * 100)) * (cut.width * cut.height) 
                                 : 0)}
