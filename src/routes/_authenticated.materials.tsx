@@ -1103,7 +1103,7 @@ function MaterialsPage() {
                     </div>
                     <div className="flex justify-between text-xs text-success">
                       <span className="">Área Disponível:</span>
-                      <span className="font-bold">{(activeMaterial?.width || 0) * (activeMaterial?.height || 0)} cm²</span>
+                      <span className="font-bold">{num(((activeMaterial?.width || 0) * (activeMaterial?.height || 0)) - cuts.reduce((sum, c) => sum + (c.width * c.height), 0))} cm²</span>
                     </div>
                     <div className="flex justify-between text-xs">
                       <span className="text-muted-foreground">Aproveitamento:</span>
