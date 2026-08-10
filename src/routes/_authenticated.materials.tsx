@@ -1055,15 +1055,15 @@ function MaterialsPage() {
                 {cuts.map((cut, idx) => (
                   <div 
                     key={cut.id}
-                    className="absolute border-2 border-blue-600 bg-blue-500/20 flex items-center justify-center p-1 text-[8px] font-bold text-blue-900 leading-tight text-center"
+                    className="absolute border-2 border-blue-600 bg-blue-500/20 flex items-center justify-center p-1 text-[8px] font-bold text-blue-900 leading-tight text-center overflow-hidden"
                     style={{
                       width: `${cut.width * 4}px`,
                       height: `${cut.height * 4}px`,
-                      left: `${idx * 20}px`,
-                      top: `${idx * 20}px`
+                      left: `${(idx % 10) * 30}px`,
+                      top: `${Math.floor(idx / 10) * 30}px`
                     }}
                   >
-                    {cut.name}<br/>{cut.width}x{cut.height}cm
+                    <span className="truncate">{cut.name}</span>
                   </div>
                 ))}
               </div>
