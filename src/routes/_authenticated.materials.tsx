@@ -1027,11 +1027,12 @@ function MaterialsPage() {
 
           <div className="flex flex-col lg:flex-row overflow-hidden flex-1">
             {/* Canvas Area */}
-            <div className="flex-1 p-8 bg-gray-50/50 flex flex-col items-center justify-center min-h-[500px] relative overflow-auto border-b lg:border-b-0">
-              <div className="absolute top-6 left-8 flex flex-col sm:flex-row gap-x-8 gap-y-2 text-[11px] font-bold uppercase tracking-tight text-muted-foreground/60">
-                <div className="flex items-center gap-1.5"><PlusCircle className="size-3 text-blue-500" /> Arrastar: Mover</div>
-                <div className="flex items-center gap-1.5"><div className="size-2 rounded-full bg-blue-500" /> Handle: Rotacionar</div>
-                <div className="flex items-center gap-1.5"><span className="text-blue-500">Ctrl+Click</span>: Seleção</div>
+            <div className="flex-1 p-8 bg-gray-50/50 flex flex-col items-center justify-center min-h-[500px] relative overflow-auto border-b lg:border-b-0 pt-16">
+              <div className="absolute top-6 left-8 flex flex-wrap gap-x-6 gap-y-2 text-[10px] font-bold uppercase tracking-tight text-muted-foreground/60 z-10 bg-white/50 backdrop-blur-sm p-2 rounded-lg border border-white/50">
+                <div className="flex items-center gap-1.5"><div className="size-3 flex items-center justify-center bg-blue-100 rounded text-blue-600 font-bold">?</div> Dicas:</div>
+                <div className="flex items-center gap-1.5"><PlusCircle className="size-3 text-blue-500" /> Arrastar para Mover</div>
+                <div className="flex items-center gap-1.5"><div className="size-2 rounded-full bg-blue-500" /> Alça para Rotacionar</div>
+                <div className="flex items-center gap-1.5"><span className="text-blue-500">Ctrl+Click</span>: Selecionar</div>
               </div>
 
               {/* The Material Canvas */}
