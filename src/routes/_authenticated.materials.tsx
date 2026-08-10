@@ -1183,7 +1183,7 @@ function MaterialsPage() {
                       {newCutForm.width > 0 && newCutForm.height > 0 && activeMaterial && (
                         <div className="bg-white p-3 rounded-lg border border-blue-100 flex justify-between items-center">
                           <div className="flex flex-col">
-                            <span className="text-[10px] font-bold text-muted-foreground uppercase">Custo Proporcional</span>
+                            <span className="text-[10px] font-bold text-muted-foreground uppercase">Custo Proporcional do Corte</span>
                             <span className="text-sm font-bold text-success">
                               {brl((activeMaterial.cost_price / ((activeMaterial.width || 1) * (activeMaterial.height || 1))) * (newCutForm.width * newCutForm.height))}
                             </span>
