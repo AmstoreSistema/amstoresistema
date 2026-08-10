@@ -87,7 +87,7 @@ function PurchasesPage() {
           total_amount: total,
           supplier_name: supplier || "Fornecedor não informado",
           status: "recebido",
-        })
+        } as any)
         .select()
         .single();
 
