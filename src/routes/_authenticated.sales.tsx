@@ -87,7 +87,7 @@ function SalesPage() {
     return {
       countToday: todaySales.length,
       totalToday: todaySales.reduce((sum, s) => sum + Number(s.total_amount), 0),
-      pendingFiado: sales.filter(s => s.is_debt && (s.status || "") !== "paid").length,
+      pendingFiado: sales.filter(s => !!s.is_debt && String(s.status || "") !== "paid").length,
     };
   }, [sales]);
 
