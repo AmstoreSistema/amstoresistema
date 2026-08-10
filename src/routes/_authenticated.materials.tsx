@@ -1008,7 +1008,7 @@ function MaterialsPage() {
 
       {/* Modal de Cortes (Leather/Structure/Lining) */}
       <Dialog open={cutsOpen} onOpenChange={setCutsOpen}>
-        <DialogContent className="max-h-[95vh] w-[95vw] overflow-y-auto sm:max-w-[1400px] rounded-3xl p-0 border-none bg-white">
+        <DialogContent className="max-h-[90vh] w-[95vw] sm:max-w-[1200px] rounded-3xl p-0 border-none bg-white overflow-hidden flex flex-col">
           <div className="flex items-center justify-between border-b px-6 py-4 sticky top-0 bg-white z-20">
             <div className="flex items-center gap-3">
               <div className="flex items-center justify-center size-10 rounded-xl bg-blue-50 text-blue-600">
@@ -1030,9 +1030,9 @@ function MaterialsPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-[1fr,350px] overflow-hidden">
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr,320px] overflow-hidden flex-1">
             {/* Canvas Area */}
-            <div className="p-8 bg-gray-50/30 flex flex-col items-center justify-center min-h-[600px] relative">
+            <div className="p-4 bg-gray-50/30 flex flex-col items-center justify-center min-h-[400px] relative overflow-auto">
               <div className="absolute top-4 left-6 flex gap-4 text-[10px] font-bold uppercase tracking-tighter text-muted-foreground">
                 <div className="flex items-center gap-1.5"><PlusCircle className="size-3 text-blue-500" /> Arrastar: Mover cortes</div>
                 <div className="flex items-center gap-1.5"><div className="size-2 rounded-full bg-blue-500" /> Handle azul: Rotacionar</div>
@@ -1044,8 +1044,8 @@ function MaterialsPage() {
               <div 
                 className="relative bg-white shadow-2xl border-2 border-orange-200/50"
                 style={{ 
-                  width: `${(activeMaterial?.width || 100) * 400}px`, 
-                  height: `${(activeMaterial?.height || 100) * 400}px`,
+                  width: `${(activeMaterial?.width || 100) * 300}px`, 
+                  height: `${(activeMaterial?.height || 100) * 300}px`,
                   backgroundImage: 'radial-gradient(#fed7aa 0.5px, transparent 0.5px)',
                   backgroundSize: '10px 10px'
                 }}
@@ -1059,8 +1059,8 @@ function MaterialsPage() {
                     key={cut.id}
                     className="absolute border-2 border-blue-600 bg-blue-500/20 flex items-center justify-center p-1 text-[8px] font-bold text-blue-900 leading-tight text-center overflow-hidden"
                     style={{
-                      width: `${cut.width * 4}px`,
-                      height: `${cut.height * 4}px`,
+                      width: `${cut.width * 3}px`,
+                      height: `${cut.height * 3}px`,
                       left: `${(idx % 10) * 30}px`,
                       top: `${Math.floor(idx / 10) * 30}px`
                     }}
@@ -1070,7 +1070,7 @@ function MaterialsPage() {
                 ))}
               </div>
 
-              <div className="mt-8 flex items-center gap-6 p-3 bg-white rounded-2xl shadow-sm border">
+              <div className="mt-4 flex items-center gap-6 p-2 bg-white rounded-xl shadow-sm border">
                 <div className="flex items-center gap-2">
                   <Label className="text-[10px] uppercase font-bold text-muted-foreground">Zoom</Label>
                   <Input type="range" className="w-24 accent-blue-600" />
@@ -1087,7 +1087,7 @@ function MaterialsPage() {
 
             {/* Sidebar Stats Area */}
             <div className="border-l bg-white flex flex-col h-full overflow-y-auto">
-              <div className="p-6 space-y-6">
+              <div className="p-5 space-y-5">
                 <div>
                   <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-4">Estatísticas</h3>
                   <div className="space-y-3">
@@ -1121,17 +1121,17 @@ function MaterialsPage() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-3 gap-2 mt-4 bg-gray-50 p-1 rounded-xl">
-                    <div className="text-center p-2 rounded-lg bg-white shadow-sm">
-                      <p className="text-[10px] text-muted-foreground uppercase font-bold">Disponível</p>
+                  <div className="grid grid-cols-3 gap-2 mt-4">
+                    <div className="text-center p-2 rounded-xl border border-success/20 bg-success/5">
+                      <p className="text-[9px] text-success font-bold uppercase">Disponível</p>
                       <p className="text-sm font-bold text-success">{cuts.filter(c => c.status === 'disponivel').length}</p>
                     </div>
-                    <div className="text-center p-2">
-                      <p className="text-[10px] text-muted-foreground uppercase font-bold">Utilizado</p>
+                    <div className="text-center p-2 rounded-xl border border-blue-200 bg-blue-50">
+                      <p className="text-[9px] text-blue-600 font-bold uppercase">Utilizado</p>
                       <p className="text-sm font-bold text-blue-600">{cuts.filter(c => c.status === 'utilizado').length}</p>
                     </div>
-                    <div className="text-center p-2">
-                      <p className="text-[10px] text-muted-foreground uppercase font-bold">Reservado</p>
+                    <div className="text-center p-2 rounded-xl border border-orange-200 bg-orange-50">
+                      <p className="text-[9px] text-orange-500 font-bold uppercase">Reservado</p>
                       <p className="text-sm font-bold text-orange-500">{cuts.filter(c => c.status === 'reservado').length}</p>
                     </div>
                   </div>
