@@ -80,13 +80,13 @@ function SalesPage() {
 
   const stats = useMemo(() => {
     const today = new Date().toISOString().split('T')[0];
-    const todaySales = sales.filter(s => {
-      const dateStr = s.created_at ? (s.created_at as string) : "";
+    const todaySales = (sales as any[]).filter(s => {
+      const dateStr = s.created_at ? String(s.created_at) : "";
       return dateStr.startsWith(today);
     });
-    const fiados = sales.filter(s => {
+    const fiados = (sales as any[]).filter(s => {
       const isDebt = !!s.is_debt;
-      const status = s.status ? (s.status as string) : "";
+      const status = s.status ? String(s.status) : "";
       return isDebt && status !== "paid";
     });
     return {
