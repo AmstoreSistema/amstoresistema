@@ -17,18 +17,20 @@ export type Column<T> = {
   render: (row: T) => ReactNode;
 };
 
-export function DataTable<T extends { id: string }>({
+export function DataTable<T>({
   rows,
   columns,
   loading,
   empty = "Nenhum registro encontrado.",
   onRowClick,
+  rowKey,
 }: {
   rows: T[];
   columns: Column<T>[];
   loading?: boolean | undefined;
   empty?: string | undefined;
   onRowClick?: ((row: T) => void) | undefined;
+  rowKey?: ((row: T) => string) | undefined;
 }) {
   return (
     <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-elegant">
@@ -66,9 +68,9 @@ export function DataTable<T extends { id: string }>({
               </TableCell>
             </TableRow>
           ) : (
-            rows.map((row) => (
+            rows.map((row, index) => (
               <TableRow
-                key={row.id}
+                key={rowKey ? rowKey(row) : (row as { id?: string }).id ?? index}
                 className={onRowClick ? "cursor-pointer" : undefined}
                 onClick={onRowClick ? () => onRowClick(row) : undefined}
               >
