@@ -198,8 +198,10 @@ export type Database = {
           created_at: string | null
           current_stock: number | null
           id: string
+          image_url: string | null
           min_stock: number
           name: string
+          sku: string | null
           supplier: string | null
           type: string
           unit: string
@@ -210,8 +212,10 @@ export type Database = {
           created_at?: string | null
           current_stock?: number | null
           id?: string
+          image_url?: string | null
           min_stock?: number
           name: string
+          sku?: string | null
           supplier?: string | null
           type?: string
           unit: string
@@ -222,8 +226,10 @@ export type Database = {
           created_at?: string | null
           current_stock?: number | null
           id?: string
+          image_url?: string | null
           min_stock?: number
           name?: string
+          sku?: string | null
           supplier?: string | null
           type?: string
           unit?: string
@@ -272,6 +278,8 @@ export type Database = {
           completed_at: string | null
           created_at: string | null
           id: string
+          notes: string | null
+          priority: string | null
           product_id: string | null
           quantity: number
           started_at: string | null
@@ -281,6 +289,8 @@ export type Database = {
           completed_at?: string | null
           created_at?: string | null
           id?: string
+          notes?: string | null
+          priority?: string | null
           product_id?: string | null
           quantity: number
           started_at?: string | null
@@ -290,6 +300,8 @@ export type Database = {
           completed_at?: string | null
           created_at?: string | null
           id?: string
+          notes?: string | null
+          priority?: string | null
           product_id?: string | null
           quantity?: number
           started_at?: string | null
@@ -316,9 +328,11 @@ export type Database = {
           image_url: string | null
           min_stock: number
           name: string
+          production_time_hours: number | null
           sale_price: number | null
           sku: string | null
           updated_at: string | null
+          wholesale_price: number | null
         }
         Insert: {
           active?: boolean
@@ -330,9 +344,11 @@ export type Database = {
           image_url?: string | null
           min_stock?: number
           name: string
+          production_time_hours?: number | null
           sale_price?: number | null
           sku?: string | null
           updated_at?: string | null
+          wholesale_price?: number | null
         }
         Update: {
           active?: boolean
@@ -344,9 +360,11 @@ export type Database = {
           image_url?: string | null
           min_stock?: number
           name?: string
+          production_time_hours?: number | null
           sale_price?: number | null
           sku?: string | null
           updated_at?: string | null
+          wholesale_price?: number | null
         }
         Relationships: []
       }

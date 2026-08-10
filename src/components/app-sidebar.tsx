@@ -73,7 +73,7 @@ const groups: { label: string; items: Item[] }[] = [
       { title: "Fiado", url: "/credit", icon: HandCoins },
       { title: "Transações", url: "/transactions", icon: ArrowLeftRight },
       { title: "Contas", url: "/accounts", icon: Landmark },
-      { title: "Relatórios da Loja", url: "/store-reports", icon: PieChart },
+      { title: "Relatórios da Loja", url: "/reports", icon: PieChart },
       { title: "Catálogo", url: "/catalog", icon: BookMarked },
       { title: "Promoções", url: "/promotions", icon: BadgePercent },
     ],

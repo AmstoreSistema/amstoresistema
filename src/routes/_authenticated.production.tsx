@@ -1,16 +1,25 @@
-import { useMemo, useState } from "react";
+import { useState, useMemo } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { useQueryClient } from "@tanstack/react-query";
-import { CheckCircle2, Factory, Play, Plus, Trash2, XCircle } from "lucide-react";
+import { 
+  Play, 
+  CheckCircle2, 
+  Clock, 
+  Plus, 
+  Search,
+  MoreVertical,
+  Package,
+  Calendar
+} from "lucide-react";
 import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
 
 import { PageHeader } from "@/components/page-header";
 import { StatCard } from "@/components/stat-card";
-import { DataTable } from "@/components/data-table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -26,336 +35,312 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { supabase } from "@/integrations/supabase/client";
-import { logAudit, useRows } from "@/lib/data";
-import { brl, dateTimeBR, num } from "@/lib/format";
+import { useRows, logAudit } from "@/lib/data";
+import { dateBR, num } from "@/lib/format";
 
 export const Route = createFileRoute("/_authenticated/production")({
   head: () => ({
     meta: [
       { title: "Produção — Amstore Gestão" },
-      { name: "description", content: "Crie ordens de produção, inicie a fabricação e conclua dando baixa automática na matéria-prima." },
-      { property: "og:title", content: "Produção — Amstore Gestão" },
-      { property: "og:description", content: "Ordens de produção com baixa de materiais e entrada automática em estoque." },
+      { name: "description", content: "Gerencie ordens de produção e estoque." },
     ],
   }),
   component: ProductionPage,
 });
 
-type Product = { id: string; name: string; sku: string | null; current_stock: number | null };
-type Material = { id: string; name: string; unit: string; current_stock: number | null; cost_price: number | null };
-type Composition = { id: string; product_id: string | null; material_id: string | null; quantity: number };
-type Order = {
+type ProductionOrder = {
   id: string;
-  product_id: string | null;
+  product_id: string;
   quantity: number;
-  status: string | null;
-  created_at: string | null;
+  status: "pending" | "ongoing" | "completed" | "cancelled";
   started_at: string | null;
   completed_at: string | null;
+  created_at: string;
+  priority: "Baixa" | "Normal" | "Alta" | "Urgente";
+  notes: string | null;
 };
 
-const STATUS_LABEL: Record<string, string> = {
-  pendente: "Pendente",
-  em_producao: "Em produção",
-  concluido: "Concluído",
-  cancelado: "Cancelado",
-};
-
-function statusClass(status: string) {
-  if (status === "concluido") return "bg-success/12 text-success hover:bg-success/12";
-  if (status === "em_producao") return "bg-gold/15 text-gold hover:bg-gold/15";
-  if (status === "cancelado") return "bg-destructive/12 text-destructive hover:bg-destructive/12";
-  return "bg-muted text-muted-foreground hover:bg-muted";
-}
+type Product = { id: string; name: string; category: string; image_url: string | null };
 
 function ProductionPage() {
   const qc = useQueryClient();
-  const { data: orders = [], isLoading } = useRows<Order>("production_orders", { order: { column: "created_at", ascending: false } });
-  const { data: products = [] } = useRows<Product>("products", { order: { column: "name", ascending: true } });
-  const { data: materials = [] } = useRows<Material>("materials");
-  const { data: compositions = [] } = useRows<Composition>("product_materials");
+  const { data: orders = [], isLoading } = useRows<ProductionOrder>("production_orders", { 
+    order: { column: "created_at", ascending: false } 
+  });
+  const { data: products = [] } = useRows<Product>("products");
 
-  const [open, setOpen] = useState(false);
-  const [productId, setProductId] = useState("");
-  const [quantity, setQuantity] = useState("1");
-  const [busy, setBusy] = useState<string | null>(null);
+  const [term, setTerm] = useState("");
+  const [activeStatus, setActiveStatus] = useState("Todos");
+  const [newOrderOpen, setNewOrderOpen] = useState(false);
+  const [newOrder, setNewOrder] = useState({ product_id: "", quantity: 1, priority: "Normal" as const });
 
-  const productById = useMemo(() => new Map(products.map((p) => [p.id, p])), [products]);
-  const materialById = useMemo(() => new Map(materials.map((m) => [m.id, m])), [materials]);
+  const productById = useMemo(() => new Map(products.map(p => [p.id, p])), [products]);
 
-  const bomFor = (pid: string) => compositions.filter((c) => c.product_id === pid);
+  const filtered = useMemo(() => {
+    return orders.filter(o => {
+      const productName = productById.get(o.product_id)?.name || "";
+      const matchesTerm = productName.toLowerCase().includes(term.toLowerCase());
+      const matchesStatus = activeStatus === "Todos" || 
+        (activeStatus === "Ativas" && ["pending", "ongoing"].includes(o.status)) ||
+        (activeStatus === "Concluídas" && o.status === "completed");
+      return matchesTerm && matchesStatus;
+    });
+  }, [orders, term, activeStatus, productById]);
 
-  const previewBom = productId ? bomFor(productId) : [];
-  const previewQty = Number(quantity || 0);
+  const stats = useMemo(() => {
+    return {
+      pending: orders.filter(o => o.status === "pending").length,
+      ongoing: orders.filter(o => o.status === "ongoing").length,
+      completedToday: orders.filter(o => o.status === "completed" && (o.completed_at || "").split('T')[0] === new Date().toISOString().split('T')[0]).length,
+    };
+  }, [orders]);
 
   const createOrder = async () => {
-    if (!productId) {
-      toast.error("Escolha o produto que deseja produzir");
-      return;
-    }
-    if (previewQty <= 0) {
-      toast.error("Informe uma quantidade válida");
+    if (!newOrder.product_id) {
+      toast.error("Selecione um produto");
       return;
     }
     const { error } = await supabase.from("production_orders").insert({
-      product_id: productId,
-      quantity: previewQty,
-      status: "pendente",
+      ...newOrder,
+      status: "pending"
     });
     if (error) {
       toast.error(error.message);
       return;
     }
-    await logAudit("criar", "production_orders", `Ordem de produção criada: ${productById.get(productId)?.name} x${previewQty}`);
-    toast.success("Ordem de produção criada");
-    setOpen(false);
-    setProductId("");
-    setQuantity("1");
+    
+    const productName = productById.get(newOrder.product_id)?.name || "Desconhecido";
+    await logAudit("producao", "production_orders", `Nova ordem de produção criada para ${productName}`, newOrder.product_id || "");
+    setNewOrderOpen(false);
     qc.invalidateQueries();
+    toast.success("Ordem de produção criada!");
   };
 
-  const startOrder = async (order: Order) => {
-    if (!order.product_id) return;
-    const bom = bomFor(order.product_id);
-    if (bom.length === 0) {
-      toast.error("Defina a composição de materiais do produto antes de produzir");
-      return;
-    }
-    const missing = bom.filter((c) => {
-      const m = c.material_id ? materialById.get(c.material_id) : undefined;
-      return !m || Number(m.current_stock ?? 0) < Number(c.quantity) * Number(order.quantity);
-    });
-    if (missing.length > 0) {
-      const names = missing.map((c) => (c.material_id ? materialById.get(c.material_id)?.name : "material")).join(", ");
-      toast.error(`Matéria-prima insuficiente: ${names}`);
-      return;
-    }
-    setBusy(order.id);
-    const { error } = await supabase
-      .from("production_orders")
-      .update({ status: "em_producao", started_at: new Date().toISOString() })
-      .eq("id", order.id);
-    setBusy(null);
+  const updateStatus = async (order: ProductionOrder, newStatus: ProductionOrder["status"]) => {
+    const updates: Partial<ProductionOrder> = { status: newStatus };
+    if (newStatus === "ongoing") updates.started_at = new Date().toISOString();
+    if (newStatus === "completed") updates.completed_at = new Date().toISOString();
+
+    const { error } = await supabase.from("production_orders").update(updates).eq("id", order.id);
     if (error) {
       toast.error(error.message);
       return;
     }
-    await logAudit("iniciar", "production_orders", `Produção iniciada: ${productById.get(order.product_id)?.name}`, order.id);
-    toast.success("Produção iniciada");
+
+    if (newStatus === "completed") {
+      toast.info("Processando baixa de materiais e entrada de estoque...");
+    }
+
+    await logAudit("producao", "production_orders", `Status da ordem ${order.id} alterado para ${newStatus}`);
     qc.invalidateQueries();
+    toast.success(`Ordem atualizada para ${newStatus}`);
   };
 
-  const completeOrder = async (order: Order) => {
-    if (!order.product_id) return;
-    const bom = bomFor(order.product_id);
-    setBusy(order.id);
-    try {
-      for (const item of bom) {
-        if (!item.material_id) continue;
-        const material = materialById.get(item.material_id);
-        if (!material) continue;
-        const consumed = Number(item.quantity) * Number(order.quantity);
-        const next = Number(material.current_stock ?? 0) - consumed;
-        const { error } = await supabase
-          .from("materials")
-          .update({ current_stock: next < 0 ? 0 : next })
-          .eq("id", item.material_id);
-        if (error) throw error;
-      }
-
-      const product = productById.get(order.product_id);
-      const unitCost = bom.reduce(
-        (s, c) => s + Number(c.quantity) * Number((c.material_id ? materialById.get(c.material_id)?.cost_price : 0) ?? 0),
-        0,
-      );
-      const { error: prodError } = await supabase
-        .from("products")
-        .update({
-          current_stock: Number(product?.current_stock ?? 0) + Number(order.quantity),
-          cost_price: unitCost,
-        })
-        .eq("id", order.product_id);
-      if (prodError) throw prodError;
-
-      const { error: orderError } = await supabase
-        .from("production_orders")
-        .update({ status: "concluido", completed_at: new Date().toISOString() })
-        .eq("id", order.id);
-      if (orderError) throw orderError;
-
-      await logAudit(
-        "concluir",
-        "production_orders",
-        `Produção concluída: ${product?.name} x${order.quantity} — materiais baixados e estoque atualizado`,
-        order.id,
-      );
-      toast.success("Produção concluída, materiais baixados e produto lançado em estoque");
-      qc.invalidateQueries();
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Erro ao concluir a produção");
-    } finally {
-      setBusy(null);
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case "pending": return <Badge variant="outline" className="border-gold/50 text-gold bg-gold/5">Pendente</Badge>;
+      case "ongoing": return <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20">Em Produção</Badge>;
+      case "completed": return <Badge variant="outline" className="border-success/50 text-success bg-success/5">Concluído</Badge>;
+      default: return <Badge variant="outline">{status}</Badge>;
     }
   };
 
-  const cancelOrder = async (order: Order) => {
-    const { error } = await supabase.from("production_orders").update({ status: "cancelado" }).eq("id", order.id);
-    if (error) {
-      toast.error(error.message);
-      return;
-    }
-    toast.success("Ordem cancelada");
-    qc.invalidateQueries();
+  const getPriorityBadge = (p: string) => {
+    const colors: Record<string, string> = {
+      "Baixa": "bg-slate-100 text-slate-600",
+      "Normal": "bg-blue-100 text-blue-600",
+      "Alta": "bg-orange-100 text-orange-600",
+      "Urgente": "bg-red-100 text-red-600",
+    };
+    return <Badge className={`border-none ${colors[p] || colors['Normal']}`}>{p}</Badge>;
   };
-
-  const deleteOrder = async (order: Order) => {
-    const { error } = await supabase.from("production_orders").delete().eq("id", order.id);
-    if (error) {
-      toast.error(error.message);
-      return;
-    }
-    toast.success("Ordem removida");
-    qc.invalidateQueries();
-  };
-
-  const active = orders.filter((o) => o.status === "pendente" || o.status === "em_producao").length;
-  const done = orders.filter((o) => o.status === "concluido");
-  const producedUnits = done.reduce((s, o) => s + Number(o.quantity), 0);
 
   return (
-    <div className="space-y-6">
-      <PageHeader
-        title="Produção"
-        description="Escolha o produto, inicie a produção e conclua para dar baixa na matéria-prima."
-        icon={Factory}
+    <div className="space-y-6 animate-in fade-in duration-500">
+      <PageHeader 
+        title="Produção" 
+        description="Gerencie ordens de produção e fluxo de materiais"
+        icon={Package}
         actions={
-          <Button onClick={() => setOpen(true)} className="gap-2">
-            <Plus className="size-4" /> Nova ordem
+          <Button onClick={() => setNewOrderOpen(true)} className="gap-2">
+            <Plus className="size-4" /> Nova Produção
           </Button>
         }
       />
 
       <div className="grid gap-4 sm:grid-cols-3">
-        <StatCard title="Ordens ativas" value={active} icon={Factory} tone="gold" />
-        <StatCard title="Ordens concluídas" value={done.length} icon={CheckCircle2} tone="success" />
-        <StatCard title="Peças produzidas" value={producedUnits} icon={Factory} tone="dark" />
+        <StatCard title="Ordens Pendentes" value={stats.pending} icon={Clock} tone="gold" />
+        <StatCard title="Em Execução" value={stats.ongoing} icon={Play} tone="gold" />
+        <StatCard title="Concluídas Hoje" value={stats.completedToday} icon={CheckCircle2} tone="success" />
       </div>
 
-      <DataTable
-        rows={orders}
-        loading={isLoading}
-        empty="Nenhuma ordem de produção ainda."
-        columns={[
-          { key: "product", header: "Produto", render: (o) => (
-            <div>
-              <p className="font-medium">{o.product_id ? productById.get(o.product_id)?.name ?? "—" : "—"}</p>
-              <p className="text-xs text-muted-foreground">Criada em {dateTimeBR(o.created_at)}</p>
-            </div>
-          ) },
-          { key: "qty", header: "Quantidade", render: (o) => <span className="tabular-nums">{num(o.quantity, 0)}</span> },
-          { key: "status", header: "Status", render: (o) => (
-            <Badge className={statusClass(o.status ?? "pendente")}>{STATUS_LABEL[o.status ?? "pendente"]}</Badge>
-          ) },
-          { key: "materials", header: "Materiais", render: (o) => {
-            if (!o.product_id) return "—";
-            const bom = bomFor(o.product_id);
-            const cost = bom.reduce(
-              (s, c) => s + Number(c.quantity) * Number((c.material_id ? materialById.get(c.material_id)?.cost_price : 0) ?? 0),
-              0,
-            );
-            return (
-              <span className="text-xs text-muted-foreground">
-                {bom.length} itens · {brl(cost * Number(o.quantity))}
-              </span>
-            );
-          } },
-          { key: "actions", header: "", className: "text-right", render: (o) => (
-            <div className="flex justify-end gap-1">
-              {o.status === "pendente" && (
-                <Button size="sm" variant="outline" className="gap-1" disabled={busy === o.id} onClick={() => startOrder(o)}>
-                  <Play className="size-3.5" /> Iniciar produção
-                </Button>
-              )}
-              {o.status === "em_producao" && (
-                <Button size="sm" className="gap-1" disabled={busy === o.id} onClick={() => completeOrder(o)}>
-                  <CheckCircle2 className="size-3.5" /> Concluir
-                </Button>
-              )}
-              {(o.status === "pendente" || o.status === "em_producao") && (
-                <Button size="icon" variant="ghost" title="Cancelar" onClick={() => cancelOrder(o)}>
-                  <XCircle className="size-4" />
-                </Button>
-              )}
-              {(o.status === "concluido" || o.status === "cancelado") && (
-                <Button size="icon" variant="ghost" className="text-destructive" onClick={() => deleteOrder(o)}>
-                  <Trash2 className="size-4" />
-                </Button>
-              )}
-            </div>
-          ) },
-        ]}
-      />
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex gap-2">
+          {["Todos", "Ativas", "Concluídas"].map(s => (
+            <Button 
+              key={s} 
+              variant={activeStatus === s ? "default" : "outline"} 
+              size="sm"
+              onClick={() => setActiveStatus(s)}
+              className="rounded-full px-4"
+            >
+              {s}
+            </Button>
+          ))}
+        </div>
+        <div className="relative w-full sm:max-w-xs">
+          <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Input 
+            placeholder="Buscar ordem..." 
+            className="pl-10"
+            value={term}
+            onChange={e => setTerm(e.target.value)}
+          />
+        </div>
+      </div>
 
-      <Dialog open={open} onOpenChange={setOpen}>
+      {isLoading ? (
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {[1, 2, 3].map(i => <div key={i} className="h-48 animate-pulse rounded-3xl bg-card" />)}
+        </div>
+      ) : (
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {filtered.map(order => {
+            const product = productById.get(order.product_id);
+            return (
+              <Card key={order.id} className="overflow-hidden rounded-3xl border-border/50 bg-card transition-all hover:shadow-lg">
+                <CardContent className="p-0">
+                  <div className="flex p-5 gap-4">
+                    <div className="size-16 rounded-2xl bg-muted overflow-hidden flex-shrink-0">
+                      {product?.image_url ? (
+                        <img src={product.image_url} alt={product.name} className="h-full w-full object-cover" />
+                      ) : (
+                        <div className="flex h-full w-full items-center justify-center text-muted-foreground/30">
+                          <Package className="size-8" />
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex justify-between items-start">
+                        <h3 className="font-bold truncate text-lg">{product?.name || "Produto excluído"}</h3>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 -mr-2">
+                              <MoreVertical className="size-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            {order.status === "pending" && (
+                              <DropdownMenuItem onClick={() => updateStatus(order, "ongoing")}>
+                                <Play className="mr-2 size-4" /> Iniciar Produção
+                              </DropdownMenuItem>
+                            )}
+                            {order.status === "ongoing" && (
+                              <DropdownMenuItem onClick={() => updateStatus(order, "completed")}>
+                                <CheckCircle2 className="mr-2 size-4 text-success" /> Concluir Produção
+                              </DropdownMenuItem>
+                            )}
+                            {order.status !== "completed" && (
+                              <DropdownMenuItem className="text-destructive">
+                                Cancelar Ordem
+                              </DropdownMenuItem>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                      <p className="text-xs text-muted-foreground uppercase tracking-widest">{product?.category}</p>
+                    </div>
+                  </div>
+
+                  <div className="px-5 pb-5 space-y-4">
+                    <div className="flex justify-between items-center text-sm">
+                      <div className="flex items-center gap-2">
+                        <span className="text-muted-foreground">Qtd:</span>
+                        <span className="font-bold">{num(order.quantity, 0)} un</span>
+                      </div>
+                      {getPriorityBadge(order.priority)}
+                    </div>
+
+                    <div className="space-y-2 rounded-2xl bg-muted/30 p-3 text-[11px]">
+                      <div className="flex justify-between items-center">
+                        <div className="flex items-center gap-1.5 text-muted-foreground">
+                          <Calendar className="size-3" /> Criada em:
+                        </div>
+                        <span className="font-medium">{dateBR(order.created_at)}</span>
+                      </div>
+                      {order.started_at && (
+                        <div className="flex justify-between items-center">
+                          <div className="flex items-center gap-1.5 text-muted-foreground">
+                            <Clock className="size-3" /> Iniciada:
+                          </div>
+                          <span className="font-medium">{dateBR(order.started_at)}</span>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      {getStatusBadge(order.status)}
+                      <Button variant="ghost" size="sm" className="text-[10px] uppercase font-bold tracking-widest h-7">
+                        Ver Detalhes
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      )}
+
+      <Dialog open={newOrderOpen} onOpenChange={setNewOrderOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Nova ordem de produção</DialogTitle>
-            <DialogDescription>
-              Ao concluir a ordem, a matéria-prima é baixada e o produto entra no estoque.
-            </DialogDescription>
+            <DialogTitle>Nova Ordem de Produção</DialogTitle>
+            <DialogDescription>Inicie a produção de um produto do catálogo.</DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label className="mb-1.5 block text-xs">Produto a produzir</Label>
-              <Select value={productId} onValueChange={setProductId}>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label>Produto</Label>
+              <Select value={newOrder.product_id} onValueChange={v => setNewOrder({ ...newOrder, product_id: v })}>
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione o produto" />
                 </SelectTrigger>
                 <SelectContent>
-                  {products.map((p) => (
-                    <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
-                  ))}
+                  {products.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
-            <div>
-              <Label className="mb-1.5 block text-xs">Quantidade</Label>
-              <Input type="number" min="1" value={quantity} onChange={(e) => setQuantity(e.target.value)} />
-            </div>
-
-            {productId && (
-              <div className="rounded-xl border border-border bg-muted/40 p-3">
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  Matéria-prima necessária
-                </p>
-                {previewBom.length === 0 ? (
-                  <p className="text-sm text-warning-foreground">
-                    Este produto ainda não tem composição. Cadastre em Produtos › Composição.
-                  </p>
-                ) : (
-                  <ul className="space-y-1 text-sm">
-                    {previewBom.map((c) => {
-                      const m = c.material_id ? materialById.get(c.material_id) : undefined;
-                      const need = Number(c.quantity) * previewQty;
-                      const enough = Number(m?.current_stock ?? 0) >= need;
-                      return (
-                        <li key={c.id} className="flex items-center justify-between gap-2">
-                          <span>{m?.name ?? "—"}</span>
-                          <span className={`tabular-nums ${enough ? "text-muted-foreground" : "text-destructive"}`}>
-                            {num(need)} {m?.unit} (tem {num(m?.current_stock ?? 0)})
-                          </span>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                )}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label>Quantidade</Label>
+                <Input type="number" min="1" value={newOrder.quantity} onChange={e => setNewOrder({ ...newOrder, quantity: Number(e.target.value) })} />
               </div>
-            )}
+              <div className="grid gap-2">
+                <Label>Prioridade</Label>
+                <Select value={newOrder.priority} onValueChange={(v: any) => setNewOrder({ ...newOrder, priority: v })}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Baixa">Baixa</SelectItem>
+                    <SelectItem value="Normal">Normal</SelectItem>
+                    <SelectItem value="Alta">Alta</SelectItem>
+                    <SelectItem value="Urgente">Urgente</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
-            <Button onClick={createOrder}>Criar ordem</Button>
+            <Button variant="outline" onClick={() => setNewOrderOpen(false)}>Cancelar</Button>
+            <Button onClick={createOrder}>Criar Ordem</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
