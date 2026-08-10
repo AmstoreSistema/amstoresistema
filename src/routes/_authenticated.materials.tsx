@@ -682,9 +682,10 @@ function MaterialsPage() {
                       {["Couro", "Estrutura", "Forro", "Tecido"].includes(form.type || "") && (
                         <>
                           <div className="space-y-2">
-                            <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Largura (cm) *</Label>
+                            <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Largura (m) *</Label>
                             <Input 
                               type="number"
+                              step="0.01"
                               value={form.width || ""} 
                               onChange={e => setForm({ ...form, width: Number(e.target.value) })}
                               className="h-11 rounded-xl"
@@ -692,9 +693,10 @@ function MaterialsPage() {
                           </div>
 
                           <div className="space-y-2">
-                            <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Altura (cm) *</Label>
+                            <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Altura (m) *</Label>
                             <Input 
                               type="number"
+                              step="0.01"
                               value={form.height || ""} 
                               onChange={e => setForm({ ...form, height: Number(e.target.value) })}
                               className="h-11 rounded-xl"
