@@ -1044,14 +1044,14 @@ function MaterialsPage() {
               <div 
                 className="relative bg-white shadow-2xl border-2 border-orange-200/50"
                 style={{ 
-                  width: `${(activeMaterial?.width || 100) * 4}px`, 
-                  height: `${(activeMaterial?.height || 100) * 4}px`,
+                  width: `${(activeMaterial?.width || 100) * 400}px`, 
+                  height: `${(activeMaterial?.height || 100) * 400}px`,
                   backgroundImage: 'radial-gradient(#fed7aa 0.5px, transparent 0.5px)',
                   backgroundSize: '10px 10px'
                 }}
               >
-                <div className="absolute -top-6 left-1/2 -translate-x-1/2 text-[10px] font-bold text-orange-400">{activeMaterial?.width} m</div>
-                <div className="absolute -left-10 top-1/2 -translate-y-1/2 -rotate-90 text-[10px] font-bold text-orange-400">{activeMaterial?.height} m</div>
+                <div className="absolute -top-6 left-1/2 -translate-x-1/2 text-[10px] font-bold text-orange-400">{(activeMaterial?.width || 0) * 100} cm</div>
+                <div className="absolute -left-10 top-1/2 -translate-y-1/2 -rotate-90 text-[10px] font-bold text-orange-400">{(activeMaterial?.height || 0) * 100} cm</div>
                 
                 {/* Render mock/real cuts */}
                 {cuts.map((cut, idx) => (
