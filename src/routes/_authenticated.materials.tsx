@@ -1081,15 +1081,15 @@ function MaterialsPage() {
 
             {/* Sidebar Stats Area */}
             <div className="w-full lg:w-[400px] border-l bg-white flex flex-col h-full overflow-hidden shadow-[0_-8px_30px_rgb(0,0,0,0.04)]">
-              <div className="flex-1 overflow-y-auto p-6 space-y-8 scrollbar-thin">
+              <div className="flex-1 overflow-y-auto p-6 space-y-8 scrollbar-thin max-h-[calc(95vh-80px)]">
                 <div>
                   <h3 className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-6 border-b pb-3">Resumo de Área & Custos</h3>
                   <div className="space-y-3">
                     <div className="flex justify-between items-center text-xs">
                       <span className="text-muted-foreground">Custo por cm²:</span>
                       <span className="font-bold bg-gray-50 px-2 py-0.5 rounded text-[10px]">
-                        {activeMaterial?.cost_price 
-                          ? brl(activeMaterial.cost_price / ((activeMaterial.width || 0) * 100 * (activeMaterial.height || 0) * 100)) 
+                        {activeMaterial?.cost_price && activeMaterial?.width && activeMaterial?.height
+                          ? brl(activeMaterial.cost_price / (activeMaterial.width * 100 * activeMaterial.height * 100))
                           : brl(0)}
                       </span>
                     </div>
@@ -1189,12 +1189,12 @@ function MaterialsPage() {
                         </div>
                       </div>
 
-                      {newCutForm.width > 0 && newCutForm.height > 0 && activeMaterial && (
+                      {newCutForm.width > 0 && newCutForm.height > 0 && activeMaterial && activeMaterial.width && activeMaterial.height && (
                         <div className="bg-white p-3 rounded-lg border border-blue-100 flex justify-between items-center">
                           <div className="flex flex-col">
                             <span className="text-[10px] font-bold text-muted-foreground uppercase">Custo Proporcional do Corte</span>
                             <span className="text-sm font-bold text-success">
-                              {brl(Number(((activeMaterial.cost_price / ((activeMaterial.width || 0) * 100 * (activeMaterial.height || 0) * 100)) * (newCutForm.width * newCutForm.height)).toFixed(2)))}
+                              {brl((activeMaterial.cost_price / (activeMaterial.width * 100 * activeMaterial.height * 100)) * (newCutForm.width * newCutForm.height))}
                             </span>
                           </div>
                           <span className="text-[10px] font-medium text-blue-600">
@@ -1264,7 +1264,11 @@ function MaterialsPage() {
                             </Button>
                           </div>
                           <div className="flex justify-between items-center gap-2">
-                            <span className="text-[10px] font-bold text-success">{brl(activeMaterial?.cost_price ? (activeMaterial.cost_price / ((activeMaterial.width || 0) * 100 * (activeMaterial.height || 0) * 100)) * (cut.width * cut.height) : 0)}</span>
+                            <span className="text-[10px] font-bold text-success">
+                              {brl(activeMaterial?.cost_price && activeMaterial?.width && activeMaterial?.height 
+                                ? (activeMaterial.cost_price / (activeMaterial.width * 100 * activeMaterial.height * 100)) * (cut.width * cut.height) 
+                                : 0)}
+                            </span>
                             <Select defaultValue={cut.status}>
                               <SelectTrigger className="h-6 w-24 text-[9px] uppercase font-bold rounded-lg border-gray-100 bg-gray-50/50">
                                 <SelectValue />
