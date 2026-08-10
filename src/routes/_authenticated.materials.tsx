@@ -1131,7 +1131,7 @@ function MaterialsPage() {
                   </div>
 
                   <div className="mt-4 flex justify-between items-center border-t pt-4">
-                    <span className="text-xs font-bold text-muted-foreground uppercase">Custo Total:</span>
+                    <span className="text-xs font-bold text-muted-foreground uppercase">Custo Total da Peça:</span>
                     <span className="text-lg font-bold text-success">{brl(activeMaterial?.cost_price || 0)}</span>
                   </div>
                 </div>
