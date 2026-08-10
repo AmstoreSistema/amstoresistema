@@ -171,6 +171,38 @@ function MaterialsPage() {
     });
   };
 
+  const handleAddVariation = () => {
+    if (!variationForm.name || !activeMaterial) {
+      toast.error("Nome/Cor da variação é obrigatório");
+      return;
+    }
+    saveVariation.mutate({
+      values: {
+        ...variationForm,
+        material_id: activeMaterial.id
+      }
+    }, {
+      onSuccess: () => {
+        setVariationForm({
+          current_stock: 0,
+          cost_price: activeMaterial.cost_price,
+          name: ""
+        });
+      }
+    });
+  };
+
+  const openVariations = (m: Material) => {
+    setActiveMaterial(m);
+    setVariationForm({
+      current_stock: 0,
+      cost_price: m.cost_price,
+      name: ""
+    });
+    setVariationsOpen(true);
+  };
+
+
   const handleAddSupplier = () => {
     if (!newSupplierName.trim()) return;
     setForm({ ...form, supplier: newSupplierName });
@@ -330,14 +362,18 @@ function MaterialsPage() {
                   </div>
                 </div>
 
-                <div className="mt-4 flex gap-2 border-t border-border/50 pt-4 opacity-0 transition-opacity group-hover:opacity-100">
-                  <Button variant="outline" size="sm" className="h-8 flex-1 gap-1" onClick={() => openEdit(m)}>
+                <div className="mt-4 grid grid-cols-2 gap-2 border-t border-border/50 pt-4 opacity-0 transition-opacity group-hover:opacity-100">
+                  <Button variant="outline" size="sm" className="h-8 gap-1" onClick={() => openVariations(m)}>
+                    <Palette className="size-3" /> Variações
+                  </Button>
+                  <Button variant="outline" size="sm" className="h-8 gap-1" onClick={() => openEdit(m)}>
                     <Pencil className="size-3" /> Editar
                   </Button>
-                  <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => remove.mutate(m.id)}>
-                    <Trash2 className="size-3" />
+                  <Button variant="outline" size="sm" className="h-8 col-span-2 gap-1 text-destructive hover:bg-destructive/5" onClick={() => remove.mutate(m.id)}>
+                    <Trash2 className="size-3" /> Excluir Material
                   </Button>
                 </div>
+
               </CardContent>
             </Card>
           ))}
@@ -796,7 +832,134 @@ function MaterialsPage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Modal de Variações */}
+      <Dialog open={variationsOpen} onOpenChange={setVariationsOpen}>
+        <DialogContent className="max-h-[95vh] w-[95vw] overflow-y-auto sm:max-w-5xl rounded-3xl p-0 border-none bg-white">
+          <div className="flex items-center justify-between border-b px-6 py-4 sticky top-0 bg-white z-10">
+            <div>
+              <h2 className="text-lg font-semibold">Variações - {activeMaterial?.name}</h2>
+              <p className="text-xs text-muted-foreground">Gerencie diferentes cores, tamanhos e preços</p>
+            </div>
+            <Button variant="ghost" size="icon" onClick={() => setVariationsOpen(false)} className="rounded-full">
+              <X className="size-4" />
+            </Button>
+          </div>
+
+          <div className="p-6">
+            <div className="rounded-2xl border border-blue-100 bg-blue-50/30 p-6 mb-8">
+              <h3 className="text-sm font-bold text-blue-900 mb-4">Adicionar Nova Variação</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-bold text-muted-foreground">Cor/Nome da Variação *</Label>
+                  <Input 
+                    placeholder="Ex: Preto, Marrom Claro" 
+                    value={variationForm.name || ""} 
+                    onChange={e => setVariationForm({ ...variationForm, name: e.target.value })}
+                    className="h-10 rounded-xl bg-white"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-bold text-muted-foreground">Especificação (ex: 1.0/1.0/2.0, 4x1, 5cm, Nº 8)</Label>
+                  <Input 
+                    placeholder="Ex: 1.0/1.0/2.0 ou 4x1, 5cm" 
+                    value={variationForm.specification || ""} 
+                    onChange={e => setVariationForm({ ...variationForm, specification: e.target.value })}
+                    className="h-10 rounded-xl bg-white"
+                  />
+                  <p className="text-[10px] text-muted-foreground flex items-center gap-1">
+                    <Info className="size-3 text-gold" /> Use para numeração, medidas em mm, ou dimensões específicas
+                  </p>
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-bold text-muted-foreground">Quantidade em Estoque</Label>
+                  <Input 
+                    type="number"
+                    value={variationForm.current_stock ?? 0} 
+                    onChange={e => setVariationForm({ ...variationForm, current_stock: Number(e.target.value) })}
+                    className="h-10 rounded-xl bg-white"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-bold text-muted-foreground">Preço Unitário (R$)</Label>
+                  <Input 
+                    type="number"
+                    step="0.01"
+                    value={variationForm.cost_price ?? 0} 
+                    onChange={e => setVariationForm({ ...variationForm, cost_price: Number(e.target.value) })}
+                    className="h-10 rounded-xl bg-white"
+                  />
+                </div>
+                <div className="col-span-full space-y-1.5">
+                  <Label className="text-xs font-bold text-muted-foreground">Observações</Label>
+                  <Input 
+                    placeholder="Informações adicionais" 
+                    value={variationForm.notes || ""} 
+                    onChange={e => setVariationForm({ ...variationForm, notes: e.target.value })}
+                    className="h-10 rounded-xl bg-white"
+                  />
+                </div>
+              </div>
+              <Button 
+                onClick={handleAddVariation} 
+                disabled={saveVariation.isPending}
+                className="w-full mt-6 bg-blue-600 hover:bg-blue-700 text-white h-10 rounded-xl gap-2"
+              >
+                <Plus className="size-4" /> Adicionar Variação
+              </Button>
+            </div>
+
+            <div className="space-y-4">
+              <h3 className="font-bold text-sm">Variações Cadastradas ({variations.length})</h3>
+              
+              {variations.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-12 text-muted-foreground border-2 border-dashed rounded-3xl">
+                  <Palette className="size-12 mb-2 opacity-20" />
+                  <p className="text-sm">Nenhuma variação cadastrada ainda</p>
+                  <p className="text-xs">Adicione variações acima</p>
+                  <p className="text-[10px] mt-4 text-gold">💡 Se salvar sem variações, o material voltará ao modo unitário</p>
+                </div>
+              ) : (
+                <div className="grid gap-3">
+                  {variations.map(v => (
+                    <div key={v.id} className="flex items-center justify-between p-4 bg-white border rounded-2xl hover:shadow-md transition-shadow">
+                      <div className="grid grid-cols-4 flex-1 gap-4">
+                        <div>
+                          <p className="text-[10px] uppercase font-bold text-muted-foreground">Cor/Nome</p>
+                          <p className="font-medium">{v.name}</p>
+                        </div>
+                        <div>
+                          <p className="text-[10px] uppercase font-bold text-muted-foreground">Especificação</p>
+                          <p className="font-medium text-muted-foreground">{v.specification || "—"}</p>
+                        </div>
+                        <div>
+                          <p className="text-[10px] uppercase font-bold text-muted-foreground">Estoque</p>
+                          <p className="font-bold text-success">{num(v.current_stock)}</p>
+                        </div>
+                        <div>
+                          <p className="text-[10px] uppercase font-bold text-muted-foreground">Preço</p>
+                          <p className="font-bold text-primary">{brl(v.cost_price)}</p>
+                        </div>
+                      </div>
+                      <Button variant="ghost" size="icon" onClick={() => removeVariation.mutate(v.id)} className="text-destructive">
+                        <Trash2 className="size-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="flex items-center justify-end gap-3 border-t px-6 py-4 bg-gray-50/50 rounded-b-3xl">
+            <Button variant="outline" onClick={() => setVariationsOpen(false)} className="h-10 rounded-xl px-6">
+              Fechar
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
+
 
