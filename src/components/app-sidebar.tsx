@@ -184,7 +184,7 @@ export function AppSidebar() {
                   const hasSubItems = item.items && item.items.length > 0;
                   const isCollapsibleHeader = hasSubItems && item.url?.startsWith('#');
                   
-                  if (isCollapsibleHeader) {
+                  if (hasSubItems) {
                     const isAnyActive = item.items!.some(
                       (sub) => pathname === sub.url
                     );
