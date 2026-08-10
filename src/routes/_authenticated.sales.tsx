@@ -80,7 +80,10 @@ function SalesPage() {
 
   const stats = useMemo(() => {
     const today = new Date().toISOString().split('T')[0];
-    const todaySales = sales.filter(s => String(s.created_at || "").startsWith(today));
+    const todaySales = sales.filter(s => {
+      const dateStr = s.created_at ? String(s.created_at) : "";
+      return dateStr.startsWith(today);
+    });
     return {
       countToday: todaySales.length,
       totalToday: todaySales.reduce((sum, s) => sum + Number(s.total_amount), 0),
