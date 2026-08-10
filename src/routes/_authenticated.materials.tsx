@@ -124,11 +124,10 @@ function MaterialsPage() {
   });
 
   // Cuts states
-  // Cuts states
   const [cutsOpen, setCutsOpen] = useState(false);
   const [newCutForm, setNewCutForm] = useState({ name: "", width: 0, height: 0 });
   const [isAddingCut, setIsAddingCut] = useState(false);
-  const { data: cuts = [] } = useRows<{id: string, name: string, width: number, height: number, status: string}>("material_cuts", {
+  const { data: cuts = [], refetch: refetchCuts } = useRows<{id: string, name: string, width: number, height: number, status: string, x?: number, y?: number}>("material_cuts", {
     filters: activeMaterial ? [{ column: "material_id", value: activeMaterial.id }] : undefined
   });
   const saveCut = useSaveRow("material_cuts", "Corte");
@@ -235,6 +234,55 @@ function MaterialsPage() {
       const queryClient = (await import("@tanstack/react-query")).useQueryClient();
       queryClient.invalidateQueries({ queryKey: ["suppliers"] });
     }
+  };
+
+  const handleOptimize = async () => {
+    if (!activeMaterial || cuts.length === 0) return;
+
+    const canvasWidth = (activeMaterial.width || 0) * 100;
+    const canvasHeight = (activeMaterial.height || 0) * 100;
+
+    // Simple shelf-based packing algorithm for rectangle optimization
+    const sortedCuts = [...cuts].sort((a, b) => b.height - a.height);
+    
+    let currentX = 0;
+    let currentY = 0;
+    let maxHeightInRow = 0;
+    const optimizedCuts = [];
+
+    for (const cut of sortedCuts) {
+      if (currentX + cut.width > canvasWidth) {
+        currentX = 0;
+        currentY += maxHeightInRow;
+        maxHeightInRow = 0;
+      }
+
+      if (currentY + cut.height > canvasHeight) {
+        toast.error("Alguns cortes não cabem na peça!");
+        break;
+      }
+
+      optimizedCuts.push({
+        ...cut,
+        x: currentX,
+        y: currentY
+      });
+
+      currentX += cut.width;
+      maxHeightInRow = Math.max(maxHeightInRow, cut.height);
+    }
+
+    const { supabase } = await import("@/integrations/supabase/client");
+    
+    for (const cut of optimizedCuts) {
+      await supabase.from("material_cuts").update({ 
+        x: cut.x, 
+        y: cut.y 
+      }).eq("id", cut.id);
+    }
+
+    toast.success("Otimização concluída!");
+    refetchCuts();
   };
 
   const handleAddConfig = async () => {
@@ -1004,18 +1052,18 @@ function MaterialsPage() {
       {/* Modal de Cortes (Leather/Structure/Lining) */}
       <Dialog open={cutsOpen} onOpenChange={setCutsOpen}>
         <DialogContent className="max-h-[95vh] w-[98vw] sm:max-w-[1400px] rounded-3xl p-0 border-none bg-white overflow-hidden flex flex-col">
-          <div className="flex items-center justify-between border-b px-8 py-5 sticky top-0 bg-white z-20">
+          <div className="flex items-center justify-between border-b px-6 py-3 sticky top-0 bg-white z-20">
             <div className="flex items-center gap-3">
-              <div className="flex items-center justify-center size-10 rounded-xl bg-blue-50 text-blue-600">
-                <Layers className="size-5" />
+              <div className="flex items-center justify-center size-8 rounded-lg bg-blue-50 text-blue-600">
+                <Layers className="size-4" />
               </div>
               <div>
-                <h2 className="text-lg font-semibold">{activeMaterial?.name}</h2>
-                <p className="text-[10px] uppercase tracking-widest text-muted-foreground">SKU: {activeMaterial?.sku || "—"}</p>
+                <h2 className="text-base font-semibold">{activeMaterial?.name}</h2>
+                <p className="text-[9px] uppercase tracking-widest text-muted-foreground">SKU: {activeMaterial?.sku || "—"}</p>
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <Button variant="outline" className="gap-2 text-pink-500 border-pink-100 hover:bg-pink-50">
+              <Button variant="outline" className="gap-2 text-pink-500 border-pink-100 hover:bg-pink-50" onClick={handleOptimize}>
                 <div className="size-2 rounded-full bg-pink-500 animate-pulse" />
                 Otimizar
               </Button>
@@ -1027,13 +1075,8 @@ function MaterialsPage() {
 
           <div className="flex flex-col lg:flex-row overflow-hidden flex-1">
             {/* Canvas Area */}
-            <div className="flex-1 p-8 bg-gray-50/50 flex flex-col items-center justify-center min-h-[500px] relative overflow-auto border-b lg:border-b-0 pt-16">
-              <div className="absolute top-6 left-8 flex flex-wrap gap-x-6 gap-y-2 text-[10px] font-bold uppercase tracking-tight text-muted-foreground/60 z-10 bg-white/50 backdrop-blur-sm p-2 rounded-lg border border-white/50">
-                <div className="flex items-center gap-1.5"><div className="size-3 flex items-center justify-center bg-blue-100 rounded text-blue-600 font-bold">?</div> Dicas:</div>
-                <div className="flex items-center gap-1.5"><PlusCircle className="size-3 text-blue-500" /> Arrastar para Mover</div>
-                <div className="flex items-center gap-1.5"><div className="size-2 rounded-full bg-blue-500" /> Alça para Rotacionar</div>
-                <div className="flex items-center gap-1.5"><span className="text-blue-500">Ctrl+Click</span>: Selecionar</div>
-              </div>
+            <div className="flex-1 p-8 bg-gray-50/50 flex flex-col items-center justify-center min-h-[500px] relative overflow-auto border-b lg:border-b-0 pt-8">
+              {/* Material Canvas will be here */}
 
               {/* The Material Canvas */}
               <div 
@@ -1048,16 +1091,16 @@ function MaterialsPage() {
                 <div className="absolute -top-8 left-1/2 -translate-x-1/2 text-xs font-bold text-orange-400">{(activeMaterial?.width || 0) * 100} cm</div>
                 <div className="absolute -left-12 top-1/2 -translate-y-1/2 -rotate-90 text-xs font-bold text-orange-400">{(activeMaterial?.height || 0) * 100} cm</div>
                 
-                {/* Render mock/real cuts */}
-                {cuts.map((cut, idx) => (
+                {/* Render real cuts with optimization support */}
+                {cuts.map((cut) => (
                   <div 
                     key={cut.id}
-                    className="absolute border-2 border-blue-600 bg-blue-500/20 flex items-center justify-center p-2 text-[9px] font-bold text-blue-900 leading-tight text-center overflow-hidden"
+                    className="absolute border-2 border-blue-600 bg-blue-500/20 flex items-center justify-center p-2 text-[9px] font-bold text-blue-900 leading-tight text-center overflow-hidden transition-all duration-300"
                     style={{
                       width: `${(cut.width / 100) * 350}px`,
                       height: `${(cut.height / 100) * 350}px`,
-                      left: `${(idx % 10) * 40}px`,
-                      top: `${Math.floor(idx / 10) * 40}px`
+                      left: `${((cut.x || 0) / 100) * 350}px`,
+                      top: `${((cut.y || 0) / 100) * 350}px`
                     }}
                   >
                     <span className="truncate">{cut.name}</span>
@@ -1065,17 +1108,26 @@ function MaterialsPage() {
                 ))}
               </div>
 
-              <div className="mt-8 flex items-center gap-8 p-3 bg-white rounded-2xl shadow-sm border">
-                <div className="flex items-center gap-3">
-                  <Label className="text-[11px] uppercase font-bold text-muted-foreground">Zoom</Label>
-                  <Input type="range" className="w-32 accent-blue-600" defaultValue={100} />
-                  <span className="text-xs font-bold text-muted-foreground w-10">100%</span>
+              <div className="mt-8 flex flex-col gap-4 w-full max-w-2xl">
+                <div className="flex items-center gap-8 p-3 bg-white rounded-2xl shadow-sm border justify-center">
+                  <div className="flex items-center gap-3">
+                    <Label className="text-[11px] uppercase font-bold text-muted-foreground">Zoom</Label>
+                    <Input type="range" className="w-32 accent-blue-600" defaultValue={100} />
+                    <span className="text-xs font-bold text-muted-foreground w-10">100%</span>
+                  </div>
+                  <div className="h-6 w-px bg-border" />
+                  <div className="flex items-center gap-3">
+                    <Label className="text-[11px] uppercase font-bold text-muted-foreground">Grid</Label>
+                    <Input type="range" className="w-32 accent-blue-600" defaultValue={5} />
+                    <span className="text-xs font-bold text-muted-foreground w-10">5cm</span>
+                  </div>
                 </div>
-                <div className="h-6 w-px bg-border" />
-                <div className="flex items-center gap-3">
-                  <Label className="text-[11px] uppercase font-bold text-muted-foreground">Grid</Label>
-                  <Input type="range" className="w-32 accent-blue-600" defaultValue={5} />
-                  <span className="text-xs font-bold text-muted-foreground w-10">5cm</span>
+
+                <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-[10px] font-bold uppercase tracking-tight text-muted-foreground/60 py-2">
+                  <div className="flex items-center gap-1.5"><div className="size-3 flex items-center justify-center bg-blue-100 rounded text-blue-600 font-bold">?</div> Dicas:</div>
+                  <div className="flex items-center gap-1.5"><PlusCircle className="size-3 text-blue-500" /> Arrastar para Mover</div>
+                  <div className="flex items-center gap-1.5"><div className="size-2 rounded-full bg-blue-500" /> Alça para Rotacionar</div>
+                  <div className="flex items-center gap-1.5"><span className="text-blue-500">Ctrl+Click</span>: Selecionar</div>
                 </div>
               </div>
             </div>
@@ -1265,7 +1317,7 @@ function MaterialsPage() {
                             </Button>
                           </div>
                           <div className="flex justify-between items-center gap-2">
-                            <span className="text-[10px] font-bold text-success">
+                            <span className="text-[11px] font-bold text-success bg-success/10 px-2 py-0.5 rounded-md">
                               {brl(activeMaterial?.cost_price && activeMaterial?.width && activeMaterial?.height 
                                 ? (activeMaterial.cost_price / (activeMaterial.width * 100 * activeMaterial.height * 100)) * (cut.width * cut.height) 
                                 : 0)}
