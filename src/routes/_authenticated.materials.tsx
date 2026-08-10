@@ -1189,7 +1189,7 @@ function MaterialsPage() {
                             </span>
                           </div>
                           <span className="text-[10px] font-medium text-blue-600">
-                            {num(newCutForm.width * newCutForm.height)} cm²
+                            {num(newCutForm.width * newCutForm.height)} m²
                           </span>
                         </div>
                       )}
