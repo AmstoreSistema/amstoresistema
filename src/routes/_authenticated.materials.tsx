@@ -1257,7 +1257,7 @@ function MaterialsPage() {
                           </div>
                         </div>
                         <div className="flex justify-between items-center">
-                          <span className="text-xs font-bold text-success">{brl(activeMaterial?.cost_price ? (activeMaterial.cost_price / ((activeMaterial.width || 1) * (activeMaterial.height || 1))) * (cut.width * cut.height) : 0)}</span>
+                          <span className="text-xs font-bold text-success">{brl(activeMaterial?.cost_price ? (activeMaterial.cost_price / ((activeMaterial.width || 0) * 100 * (activeMaterial.height || 0) * 100)) * (cut.width * cut.height) : 0)}</span>
                           <Select defaultValue={cut.status}>
                             <SelectTrigger className="h-7 w-28 text-[10px] uppercase font-bold rounded-lg border-none bg-white shadow-sm">
                               <SelectValue />
