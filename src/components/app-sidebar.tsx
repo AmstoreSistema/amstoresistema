@@ -6,9 +6,9 @@ import {
   BookMarked,
   BookOpen,
   Boxes,
+  ChevronRight,
   Coins,
   Factory,
-  FileBarChart,
   HandCoins,
   KanbanSquare,
   Landmark,
@@ -26,6 +26,7 @@ import {
   Users,
   Warehouse,
 } from "lucide-react";
+import * as React from "react";
 
 import {
   Sidebar,
@@ -38,12 +39,28 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
   useSidebar,
 } from "@/components/ui/sidebar";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import { cn } from "@/lib/utils";
 
-type Item = { title: string; url: string; icon: any; hint?: string };
+type SubItem = { title: string; url: string; icon?: any };
+type Item = {
+  title: string;
+  url?: string;
+  icon: any;
+  items?: SubItem[];
+  hint?: string;
+};
 
-const groups: { label: string; items: Item[] }[] = [
+const menuGroups: { label: string; items: Item[] }[] = [
   {
     label: "Menu principal",
     items: [
@@ -59,18 +76,30 @@ const groups: { label: string; items: Item[] }[] = [
   {
     label: "Sistema",
     items: [
-      { title: "Auditoria", url: "/audit", icon: ShieldCheck },
-      { title: "Métricas ao Vivo", url: "/live-metrics", icon: Activity },
-      { title: "Documentação IA", url: "/ai-docs", icon: BookOpen },
+      {
+        title: "Sistema",
+        icon: ShieldCheck,
+        items: [
+          { title: "Auditoria", url: "/audit", icon: ShieldCheck },
+          { title: "Métricas ao Vivo", url: "/live-metrics", icon: Activity },
+          { title: "Documentação IA", url: "/ai-docs", icon: BookOpen },
+        ],
+      },
     ],
   },
   {
     label: "Loja",
     items: [
-      { title: "Painel de controle", url: "/store", icon: Store },
-      { title: "Vendas", url: "/sales", icon: ShoppingCart },
-      { title: "Clientes", url: "/clients", icon: Users },
-      { title: "Fiado", url: "/credit", icon: HandCoins },
+      {
+        title: "Loja",
+        icon: Store,
+        items: [
+          { title: "Painel de controle", url: "/store", icon: Store },
+          { title: "Vendas", url: "/sales", icon: ShoppingCart },
+          { title: "Clientes", url: "/clients", icon: Users },
+          { title: "Fiado", url: "/credit", icon: HandCoins },
+        ],
+      },
       { title: "Transações", url: "/transactions", icon: ArrowLeftRight },
       { title: "Contas", url: "/accounts", icon: Landmark },
       { title: "Relatórios", url: "/reports", icon: PieChart },
@@ -88,10 +117,30 @@ const groups: { label: string; items: Item[] }[] = [
   {
     label: "Gestão",
     items: [
-      { title: "Cobrança WhatsApp", url: "/whatsapp-billing", icon: MessageCircle, hint: "Envie lembretes e mensagens" },
-      { title: "Promoção QR", url: "/qr-promo", icon: QrCode, hint: "Códigos QR promocionais" },
-      { title: "Cashback", url: "/cashback", icon: Coins, hint: "Programa de fidelidade" },
-      { title: "Configurações", url: "/settings", icon: Settings, hint: "Ajustes do sistema" },
+      {
+        title: "Cobrança WhatsApp",
+        url: "/whatsapp-billing",
+        icon: MessageCircle,
+        hint: "Envie lembretes e mensagens",
+      },
+      {
+        title: "Promoção QR",
+        url: "/qr-promo",
+        icon: QrCode,
+        hint: "Códigos QR promocionais",
+      },
+      {
+        title: "Cashback",
+        url: "/cashback",
+        icon: Coins,
+        hint: "Programa de fidelidade",
+      },
+      {
+        title: "Configurações",
+        url: "/settings",
+        icon: Settings,
+        hint: "Ajustes do sistema",
+      },
     ],
   },
 ];
@@ -121,26 +170,74 @@ export function AppSidebar() {
         </div>
       </SidebarHeader>
 
-      <SidebarContent className="gap-0">
-        {groups.map((group) => (
-          <SidebarGroup key={group.label}>
-            <SidebarGroupLabel className="text-[10px] font-semibold uppercase tracking-[0.18em] text-sidebar-foreground/45">
+      <SidebarContent className="no-scrollbar gap-0 overflow-y-auto">
+        {menuGroups.map((group) => (
+          <SidebarGroup key={group.label} className="py-2">
+            <SidebarGroupLabel className="px-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-sidebar-foreground/45">
               {group.label}
             </SidebarGroupLabel>
             <SidebarGroupContent>
-              <SidebarMenu>
+              <SidebarMenu className="gap-0.5 px-2">
                 {group.items.map((item) => {
+                  if (item.items) {
+                    const isAnyActive = item.items.some(
+                      (sub) => pathname === sub.url
+                    );
+                    return (
+                      <Collapsible
+                        key={item.title}
+                        asChild
+                        defaultOpen={isAnyActive}
+                        className="group/collapsible"
+                      >
+                        <SidebarMenuItem>
+                          <CollapsibleTrigger asChild>
+                            <SidebarMenuButton tooltip={item.title}>
+                              <item.icon className="size-4 text-sidebar-foreground/60 transition-colors group-hover/nav:text-sidebar-primary" />
+                              <span>{item.title}</span>
+                              <ChevronRight className="ml-auto size-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+                            </SidebarMenuButton>
+                          </CollapsibleTrigger>
+                          <CollapsibleContent>
+                            <SidebarMenuSub>
+                              {item.items.map((subItem) => (
+                                <SidebarMenuSubItem key={subItem.url}>
+                                  <SidebarMenuSubButton
+                                    asChild
+                                    isActive={pathname === subItem.url}
+                                  >
+                                    <Link to={subItem.url}>
+                                      {subItem.icon && (
+                                        <subItem.icon className="size-4" />
+                                      )}
+                                      <span>{subItem.title}</span>
+                                    </Link>
+                                  </SidebarMenuSubButton>
+                                </SidebarMenuSubItem>
+                              ))}
+                            </SidebarMenuSub>
+                          </CollapsibleContent>
+                        </SidebarMenuItem>
+                      </Collapsible>
+                    );
+                  }
+
                   const active = pathname === item.url;
                   return (
                     <SidebarMenuItem key={item.url}>
-                      <SidebarMenuButton asChild isActive={active} tooltip={item.title}>
-                        <Link to={item.url} className="group/nav">
+                      <SidebarMenuButton
+                        asChild
+                        isActive={active}
+                        tooltip={item.title}
+                      >
+                        <Link to={item.url!} className="group/nav">
                           <item.icon
-                            className={
+                            className={cn(
+                              "size-4 transition-colors",
                               active
-                                ? "size-4 text-sidebar-primary"
-                                : "size-4 text-sidebar-foreground/60 transition-colors group-hover/nav:text-sidebar-primary"
-                            }
+                                ? "text-sidebar-primary"
+                                : "text-sidebar-foreground/60 group-hover/nav:text-sidebar-primary"
+                            )}
                           />
                           <span className="truncate">{item.title}</span>
                         </Link>
