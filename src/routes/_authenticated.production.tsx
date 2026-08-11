@@ -44,6 +44,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useRows, logAudit } from "@/lib/data";
 import { dateBR, num } from "@/lib/format";
+import { processProductionCompletion } from "@/lib/production.functions";
 
 export const Route = createFileRoute("/_authenticated/production")({
   head: () => ({
@@ -124,18 +125,27 @@ function ProductionPage() {
   };
 
   const updateStatus = async (order: ProductionOrder, newStatus: ProductionOrder["status"]) => {
+    if (newStatus === "completed") {
+      try {
+        toast.loading("Processando baixa de materiais e entrada de estoque...", { id: "production-loading" });
+        await processProductionCompletion({ data: { orderId: order.id } });
+        toast.success(`Produção de ${order.quantity} unidade(s) concluída com sucesso!`, { id: "production-loading" });
+        qc.invalidateQueries();
+        await logAudit("producao", "production_orders", `Ordem ${order.id} concluída. Estoque atualizado.`);
+      } catch (error: any) {
+        console.error(error);
+        toast.error(error.message || "Erro ao concluir produção", { id: "production-loading" });
+      }
+      return;
+    }
+
     const updates: Partial<ProductionOrder> = { status: newStatus };
     if (newStatus === "ongoing") updates.started_at = new Date().toISOString();
-    if (newStatus === "completed") updates.completed_at = new Date().toISOString();
 
     const { error } = await supabase.from("production_orders").update(updates).eq("id", order.id);
     if (error) {
       toast.error(error.message);
       return;
-    }
-
-    if (newStatus === "completed") {
-      toast.info("Processando baixa de materiais e entrada de estoque...");
     }
 
     await logAudit("producao", "production_orders", `Status da ordem ${order.id} alterado para ${newStatus}`);
