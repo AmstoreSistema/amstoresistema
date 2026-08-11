@@ -13,7 +13,6 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedAccountsRouteImport } from './routes/_authenticated.accounts'
-import { Route as AuthenticatedAiDocsRouteImport } from './routes/_authenticated.ai-docs'
 import { Route as AuthenticatedCatalogRouteImport } from './routes/_authenticated.catalog'
 import { Route as AuthenticatedClientsRouteImport } from './routes/_authenticated.clients'
 import { Route as AuthenticatedCreditRouteImport } from './routes/_authenticated.credit'
@@ -45,11 +44,6 @@ const AuthRoute = AuthRouteImport.update({
 const AuthenticatedAccountsRoute = AuthenticatedAccountsRouteImport.update({
   id: '/accounts',
   path: '/accounts',
-  getParentRoute: () => AuthenticatedRoute,
-} as any)
-const AuthenticatedAiDocsRoute = AuthenticatedAiDocsRouteImport.update({
-  id: '/ai-docs',
-  path: '/ai-docs',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
 const AuthenticatedCatalogRoute = AuthenticatedCatalogRouteImport.update({
@@ -123,7 +117,6 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/accounts': typeof AuthenticatedAccountsRoute
-  '/ai-docs': typeof AuthenticatedAiDocsRoute
   '/catalog': typeof AuthenticatedCatalogRoute
   '/clients': typeof AuthenticatedClientsRoute
   '/credit': typeof AuthenticatedCreditRoute
@@ -142,7 +135,6 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/accounts': typeof AuthenticatedAccountsRoute
-  '/ai-docs': typeof AuthenticatedAiDocsRoute
   '/catalog': typeof AuthenticatedCatalogRoute
   '/clients': typeof AuthenticatedClientsRoute
   '/credit': typeof AuthenticatedCreditRoute
@@ -163,7 +155,6 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteWithChildren
   '/auth': typeof AuthRoute
   '/_authenticated/accounts': typeof AuthenticatedAccountsRoute
-  '/_authenticated/ai-docs': typeof AuthenticatedAiDocsRoute
   '/_authenticated/catalog': typeof AuthenticatedCatalogRoute
   '/_authenticated/clients': typeof AuthenticatedClientsRoute
   '/_authenticated/credit': typeof AuthenticatedCreditRoute
@@ -184,7 +175,6 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/accounts'
-    | '/ai-docs'
     | '/catalog'
     | '/clients'
     | '/credit'
@@ -203,7 +193,6 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/accounts'
-    | '/ai-docs'
     | '/catalog'
     | '/clients'
     | '/credit'
@@ -223,7 +212,6 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/auth'
     | '/_authenticated/accounts'
-    | '/_authenticated/ai-docs'
     | '/_authenticated/catalog'
     | '/_authenticated/clients'
     | '/_authenticated/credit'
@@ -273,13 +261,6 @@ declare module '@tanstack/react-router' {
       path: '/accounts'
       fullPath: '/accounts'
       preLoaderRoute: typeof AuthenticatedAccountsRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/ai-docs': {
-      id: '/_authenticated/ai-docs'
-      path: '/ai-docs'
-      fullPath: '/ai-docs'
-      preLoaderRoute: typeof AuthenticatedAiDocsRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/catalog': {
@@ -378,7 +359,6 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedRouteChildren {
   AuthenticatedAccountsRoute: typeof AuthenticatedAccountsRoute
-  AuthenticatedAiDocsRoute: typeof AuthenticatedAiDocsRoute
   AuthenticatedCatalogRoute: typeof AuthenticatedCatalogRoute
   AuthenticatedClientsRoute: typeof AuthenticatedClientsRoute
   AuthenticatedCreditRoute: typeof AuthenticatedCreditRoute
@@ -396,7 +376,6 @@ interface AuthenticatedRouteChildren {
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedAccountsRoute: AuthenticatedAccountsRoute,
-  AuthenticatedAiDocsRoute: AuthenticatedAiDocsRoute,
   AuthenticatedCatalogRoute: AuthenticatedCatalogRoute,
   AuthenticatedClientsRoute: AuthenticatedClientsRoute,
   AuthenticatedCreditRoute: AuthenticatedCreditRoute,
@@ -424,13 +403,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
