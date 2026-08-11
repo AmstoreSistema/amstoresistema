@@ -59,14 +59,18 @@ export const Route = createFileRoute("/_authenticated/production")({
 
 type ProductionOrder = {
   id: string;
-  product_id: string;
+  product_id: string | null;
+  produto_nome: string | null;
+  codigo_ordem: string | null;
   quantity: number;
   status: "pending" | "ongoing" | "completed" | "cancelled";
   started_at: string | null;
   completed_at: string | null;
+  data_prevista: string | null;
   created_at: string;
   priority: "Baixa" | "Normal" | "Alta" | "Urgente";
   notes: string | null;
+  materiais_baixados: boolean;
 };
 
 type Product = { id: string; name: string; category: string; image_url: string | null };
