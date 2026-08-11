@@ -226,7 +226,12 @@ export const startProduction = createServerFn({ method: "POST" })
       .eq("id", orderId)
       .maybeSingle();
 
-    if (error || !order) throw new Error("Ordem não encontrada");
+    if (error) throw error;
+    if (!order) {
+      console.warn("StartProduction: Order not found", orderId);
+      return { success: true };
+    }
+
     if (order.status !== "pending") throw new Error("Apenas ordens pendentes podem ser iniciadas");
 
     const productId = order.product_id;

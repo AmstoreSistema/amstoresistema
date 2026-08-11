@@ -184,8 +184,10 @@ function ProductionPage() {
 
         qc.invalidateQueries();
       } catch (err: any) {
-        toast.error(err.message || "Erro ao iniciar", { id: "prod-action" });
+        toast.dismiss(loadingToast);
+        toast.error(err.message || "Erro ao iniciar");
       }
+
       return;
     }
 
@@ -210,8 +212,10 @@ function ProductionPage() {
         setDocumentOpen(true);
       } catch (error: any) {
         console.error(error);
-        toast.error(error.message || "Erro ao concluir produção", { id: "production-loading" });
+        toast.dismiss(loadingToast);
+        toast.error(error.message || "Erro ao concluir produção");
       }
+
       return;
     }
 
@@ -252,8 +256,10 @@ function ProductionPage() {
       setConfirmText("");
     } catch (error: any) {
       console.error(error);
-      toast.error(error.message || "Erro ao excluir ordem", { id: "delete-loading" });
+      toast.dismiss(loadingToast);
+      toast.error(error.message || "Erro ao excluir ordem");
     }
+
   };
 
   const openDocument = async (order: ProductionOrder) => {
