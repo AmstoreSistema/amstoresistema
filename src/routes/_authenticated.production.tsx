@@ -442,9 +442,16 @@ function ProductionPage() {
                             <CheckCircle2 className="size-3" /> Concluir
                           </Button>
                         )}
-                        <Button variant="ghost" size="sm" className="text-[10px] uppercase font-bold tracking-widest h-8 px-2">
-                          Ver Detalhes
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-8 w-8 text-gold hover:bg-gold/10"
+                          onClick={() => openDocument(order)}
+                          title="DANFE de Produção"
+                        >
+                          <FileText className="size-4" />
                         </Button>
+
                       </div>
                     </div>
                   </div>
