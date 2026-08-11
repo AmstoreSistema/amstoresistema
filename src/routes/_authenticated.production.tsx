@@ -136,7 +136,7 @@ function ProductionPage() {
     }
 
     const product = productById.get(newOrder.product_id);
-    const codigo_ordem = `OP-${Date.now()}`;
+    const codigo_ordem = nextCode || `OP-${Date.now()}`;
 
     const { error } = await supabase.from("production_orders").insert({
       product_id: newOrder.product_id,
@@ -508,7 +508,7 @@ function ProductionPage() {
               <div className="bg-gold/5 border border-gold/20 p-3 rounded-xl flex items-center justify-between">
                 <div>
                   <p className="text-[10px] uppercase font-bold text-gold tracking-widest">Código da Ordem Sugerido</p>
-                  <p className="font-mono text-sm font-bold">OP-{Date.now().toString().slice(-8)}</p>
+                  <p className="font-mono text-sm font-bold">{nextCode}</p>
                 </div>
                 <Badge variant="outline" className="border-gold/30 text-gold text-[10px]">AUTO-GERADO</Badge>
               </div>
