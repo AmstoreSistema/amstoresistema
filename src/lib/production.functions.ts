@@ -232,36 +232,55 @@ export const startProduction = createServerFn({ method: "POST" })
       return { success: true };
     }
 
-    if (order.status !== "pending") throw new Error("Apenas ordens pendentes podem ser iniciadas");
+    if (order.status !== "pending") {
+      console.warn("StartProduction: Order not pending", order.status);
+      return { success: true };
+    }
 
     const productId = order.product_id;
     const quantity = order.quantity;
 
     // A. Get composition
-    const { data: composition } = await supabase.from("product_materials").select("*").eq("product_id", productId as string);
+    const { data: composition, error: compError } = await supabase
+      .from("product_materials")
+      .select("*")
+      .eq("product_id", productId as string);
+    
+    if (compError) {
+      console.error("StartProduction: BOM error", compError);
+      throw compError;
+    }
 
     // B. Down stock materials
     for (const item of composition || []) {
       const neededQty = (item.quantity || 0) * quantity;
-      if (item.material_cut_id) {
-        const { error: cutError } = await supabase.from("material_cuts").update({ status: "utilizado" }).eq("id", item.material_cut_id);
-        if (cutError) throw cutError;
-      } else if (item.material_variation_id) {
-        const { data: v, error: vError } = await supabase.from("material_variations").select("current_stock").eq("id", item.material_variation_id).maybeSingle();
-        if (vError) throw vError;
-        if (v) {
-          const { error: updError } = await supabase.from("material_variations").update({ current_stock: (v.current_stock || 0) - neededQty }).eq("id", item.material_variation_id);
-          if (updError) throw updError;
+      
+      try {
+        if (item.material_cut_id) {
+          const { error: cutError } = await supabase.from("material_cuts").update({ status: "utilizado" }).eq("id", item.material_cut_id);
+          if (cutError) throw cutError;
+        } else if (item.material_variation_id) {
+          const { data: v, error: vError } = await supabase.from("material_variations").select("current_stock").eq("id", item.material_variation_id).maybeSingle();
+          if (vError) throw vError;
+          if (v) {
+            const { error: updError } = await supabase.from("material_variations").update({ current_stock: (v.current_stock || 0) - neededQty }).eq("id", item.material_variation_id);
+            if (updError) throw updError;
+          }
+        } else if (item.material_id) {
+          const { data: m, error: mError } = await supabase.from("materials").select("current_stock").eq("id", item.material_id).maybeSingle();
+          if (mError) throw mError;
+          if (m) {
+            const { error: updError } = await supabase.from("materials").update({ current_stock: (m.current_stock || 0) - neededQty }).eq("id", item.material_id);
+            if (updError) throw updError;
+          }
         }
-      } else if (item.material_id) {
-        const { data: m, error: mError } = await supabase.from("materials").select("current_stock").eq("id", item.material_id).maybeSingle();
-        if (mError) throw mError;
-        if (m) {
-          const { error: updError } = await supabase.from("materials").update({ current_stock: (m.current_stock || 0) - neededQty }).eq("id", item.material_id);
-          if (updError) throw updError;
-        }
+      } catch (materialErr) {
+        console.error("StartProduction: Material update error", item, materialErr);
+        // We continue with other materials or stop? For production, we should probably stop.
+        throw materialErr;
       }
     }
+
 
     // C. Update status
     console.log("StartProduction: Updating order status for ID:", orderId);
