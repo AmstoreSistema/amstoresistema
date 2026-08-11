@@ -458,34 +458,58 @@ export type Database = {
       }
       production_orders: {
         Row: {
+          codigo_ordem: string | null
           completed_at: string | null
           created_at: string | null
+          created_by_id: string | null
+          data_prevista: string | null
           id: string
+          is_sample: boolean | null
+          materiais_baixados: boolean | null
           notes: string | null
+          plano_corte_id: string | null
           priority: string | null
           product_id: string | null
+          produto_nome: string | null
+          qualidade_inspecionada: boolean | null
           quantity: number
           started_at: string | null
           status: string | null
         }
         Insert: {
+          codigo_ordem?: string | null
           completed_at?: string | null
           created_at?: string | null
+          created_by_id?: string | null
+          data_prevista?: string | null
           id?: string
+          is_sample?: boolean | null
+          materiais_baixados?: boolean | null
           notes?: string | null
+          plano_corte_id?: string | null
           priority?: string | null
           product_id?: string | null
+          produto_nome?: string | null
+          qualidade_inspecionada?: boolean | null
           quantity: number
           started_at?: string | null
           status?: string | null
         }
         Update: {
+          codigo_ordem?: string | null
           completed_at?: string | null
           created_at?: string | null
+          created_by_id?: string | null
+          data_prevista?: string | null
           id?: string
+          is_sample?: boolean | null
+          materiais_baixados?: boolean | null
           notes?: string | null
+          plano_corte_id?: string | null
           priority?: string | null
           product_id?: string | null
+          produto_nome?: string | null
+          qualidade_inspecionada?: boolean | null
           quantity?: number
           started_at?: string | null
           status?: string | null
@@ -728,6 +752,72 @@ export type Database = {
             columns: ["client_id"]
             isOneToOne: false
             referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stock_products: {
+        Row: {
+          categoria: string | null
+          created_at: string | null
+          data_entrada: string | null
+          id: string
+          localizacao: string | null
+          lote: string | null
+          numeracoes: Json | null
+          ordem_producao_id: string | null
+          preco_custo: number | null
+          preco_venda: number | null
+          produto_id: string | null
+          produto_nome: string
+          quantidade_disponivel: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          categoria?: string | null
+          created_at?: string | null
+          data_entrada?: string | null
+          id?: string
+          localizacao?: string | null
+          lote?: string | null
+          numeracoes?: Json | null
+          ordem_producao_id?: string | null
+          preco_custo?: number | null
+          preco_venda?: number | null
+          produto_id?: string | null
+          produto_nome: string
+          quantidade_disponivel?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          categoria?: string | null
+          created_at?: string | null
+          data_entrada?: string | null
+          id?: string
+          localizacao?: string | null
+          lote?: string | null
+          numeracoes?: Json | null
+          ordem_producao_id?: string | null
+          preco_custo?: number | null
+          preco_venda?: number | null
+          produto_id?: string | null
+          produto_nome?: string
+          quantidade_disponivel?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_products_ordem_producao_id_fkey"
+            columns: ["ordem_producao_id"]
+            isOneToOne: false
+            referencedRelation: "production_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_products_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "products"
             referencedColumns: ["id"]
           },
         ]
