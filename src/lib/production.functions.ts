@@ -203,7 +203,7 @@ export const startProduction = createServerFn({ method: "POST" })
     const quantity = order.quantity;
 
     // A. Get composition
-    const { data: composition } = await supabase.from("product_materials").select("*").eq("product_id", productId);
+    const { data: composition } = await supabase.from("product_materials").select("*").eq("product_id", productId as string);
 
     // B. Down stock materials
     for (const item of composition || []) {
