@@ -19,7 +19,6 @@ import { Route as AuthenticatedCreditRouteImport } from './routes/_authenticated
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated.dashboard'
 import { Route as AuthenticatedMaterialsRouteImport } from './routes/_authenticated.materials'
 import { Route as AuthenticatedProductionRouteImport } from './routes/_authenticated.production'
-import { Route as AuthenticatedProductionOrdersRouteImport } from './routes/_authenticated.production-orders'
 import { Route as AuthenticatedProductsRouteImport } from './routes/_authenticated.products'
 import { Route as AuthenticatedPromotionsRouteImport } from './routes/_authenticated.promotions'
 import { Route as AuthenticatedPurchasesRouteImport } from './routes/_authenticated.purchases'
@@ -77,12 +76,6 @@ const AuthenticatedProductionRoute = AuthenticatedProductionRouteImport.update({
   path: '/production',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
-const AuthenticatedProductionOrdersRoute =
-  AuthenticatedProductionOrdersRouteImport.update({
-    id: '/production-orders',
-    path: '/production-orders',
-    getParentRoute: () => AuthenticatedRoute,
-  } as any)
 const AuthenticatedProductsRoute = AuthenticatedProductsRouteImport.update({
   id: '/products',
   path: '/products',
@@ -130,7 +123,6 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/materials': typeof AuthenticatedMaterialsRoute
   '/production': typeof AuthenticatedProductionRoute
-  '/production-orders': typeof AuthenticatedProductionOrdersRoute
   '/products': typeof AuthenticatedProductsRoute
   '/promotions': typeof AuthenticatedPromotionsRoute
   '/purchases': typeof AuthenticatedPurchasesRoute
@@ -149,7 +141,6 @@ export interface FileRoutesByTo {
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/materials': typeof AuthenticatedMaterialsRoute
   '/production': typeof AuthenticatedProductionRoute
-  '/production-orders': typeof AuthenticatedProductionOrdersRoute
   '/products': typeof AuthenticatedProductsRoute
   '/promotions': typeof AuthenticatedPromotionsRoute
   '/purchases': typeof AuthenticatedPurchasesRoute
@@ -170,7 +161,6 @@ export interface FileRoutesById {
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/materials': typeof AuthenticatedMaterialsRoute
   '/_authenticated/production': typeof AuthenticatedProductionRoute
-  '/_authenticated/production-orders': typeof AuthenticatedProductionOrdersRoute
   '/_authenticated/products': typeof AuthenticatedProductsRoute
   '/_authenticated/promotions': typeof AuthenticatedPromotionsRoute
   '/_authenticated/purchases': typeof AuthenticatedPurchasesRoute
@@ -191,7 +181,6 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/materials'
     | '/production'
-    | '/production-orders'
     | '/products'
     | '/promotions'
     | '/purchases'
@@ -210,7 +199,6 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/materials'
     | '/production'
-    | '/production-orders'
     | '/products'
     | '/promotions'
     | '/purchases'
@@ -230,7 +218,6 @@ export interface FileRouteTypes {
     | '/_authenticated/dashboard'
     | '/_authenticated/materials'
     | '/_authenticated/production'
-    | '/_authenticated/production-orders'
     | '/_authenticated/products'
     | '/_authenticated/promotions'
     | '/_authenticated/purchases'
@@ -318,13 +305,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedProductionRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
-    '/_authenticated/production-orders': {
-      id: '/_authenticated/production-orders'
-      path: '/production-orders'
-      fullPath: '/production-orders'
-      preLoaderRoute: typeof AuthenticatedProductionOrdersRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
     '/_authenticated/products': {
       id: '/_authenticated/products'
       path: '/products'
@@ -385,7 +365,6 @@ interface AuthenticatedRouteChildren {
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedMaterialsRoute: typeof AuthenticatedMaterialsRoute
   AuthenticatedProductionRoute: typeof AuthenticatedProductionRoute
-  AuthenticatedProductionOrdersRoute: typeof AuthenticatedProductionOrdersRoute
   AuthenticatedProductsRoute: typeof AuthenticatedProductsRoute
   AuthenticatedPromotionsRoute: typeof AuthenticatedPromotionsRoute
   AuthenticatedPurchasesRoute: typeof AuthenticatedPurchasesRoute
@@ -403,7 +382,6 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedMaterialsRoute: AuthenticatedMaterialsRoute,
   AuthenticatedProductionRoute: AuthenticatedProductionRoute,
-  AuthenticatedProductionOrdersRoute: AuthenticatedProductionOrdersRoute,
   AuthenticatedProductsRoute: AuthenticatedProductsRoute,
   AuthenticatedPromotionsRoute: AuthenticatedPromotionsRoute,
   AuthenticatedPurchasesRoute: AuthenticatedPurchasesRoute,
