@@ -342,42 +342,16 @@ function ProductionPage() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => openDocument(order)}>
-                              <FileText className="mr-2 size-4 text-gold" /> Ver DANFE de Produção
+                            <DropdownMenuItem 
+                              className="text-destructive font-bold"
+                              onClick={() => {
+                                setOrderToDelete(order);
+                                setDeleteConfirmOpen(true);
+                              }}
+                            >
+                              <Trash2 className="mr-2 size-4" /> 
+                              {order.status === "completed" ? "Excluir (Estornar Estoque)" : "Cancelar/Excluir Ordem"}
                             </DropdownMenuItem>
-                            {order.status === "pending" && (
-
-                              <DropdownMenuItem onClick={() => updateStatus(order, "ongoing")}>
-                                <Play className="mr-2 size-4" /> Iniciar Produção
-                              </DropdownMenuItem>
-                            )}
-                            {order.status === "ongoing" && (
-                              <DropdownMenuItem onClick={() => updateStatus(order, "completed")}>
-                                <CheckCircle2 className="mr-2 size-4 text-success" /> Concluir Produção
-                              </DropdownMenuItem>
-                            )}
-                            {order.status !== "completed" && (
-                              <DropdownMenuItem 
-                                className="text-destructive"
-                                onClick={() => {
-                                  setOrderToDelete(order);
-                                  setDeleteConfirmOpen(true);
-                                }}
-                              >
-                                <Trash2 className="mr-2 size-4" /> Cancelar/Excluir Ordem
-                              </DropdownMenuItem>
-                            )}
-                            {order.status === "completed" && (
-                              <DropdownMenuItem 
-                                className="text-destructive font-bold"
-                                onClick={() => {
-                                  setOrderToDelete(order);
-                                  setDeleteConfirmOpen(true);
-                                }}
-                              >
-                                <Trash2 className="mr-2 size-4" /> Excluir (Estornar Estoque)
-                              </DropdownMenuItem>
-                            )}
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </div>
