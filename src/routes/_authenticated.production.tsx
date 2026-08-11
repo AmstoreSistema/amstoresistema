@@ -397,8 +397,10 @@ function ProductionPage() {
                     </div>
 
                     <div className="flex items-center justify-between gap-2">
-                      {getStatusBadge(order.status)}
-                      <div className="flex gap-1">
+                      <div className="flex items-center gap-2">
+                        {getStatusBadge(order.status)}
+                      </div>
+                      <div className="flex items-center gap-1">
                         {order.status === "pending" && (
                           <Button 
                             variant="outline" 
@@ -419,16 +421,29 @@ function ProductionPage() {
                             <CheckCircle2 className="size-3" /> Concluir
                           </Button>
                         )}
+                        {order.status === "completed" && (
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-8 w-8 text-gold hover:bg-gold/10"
+                            onClick={() => openDocument(order)}
+                            title="DANFE de Produção"
+                          >
+                            <FileText className="size-4" />
+                          </Button>
+                        )}
                         <Button 
                           variant="ghost" 
                           size="icon" 
-                          className="h-8 w-8 text-gold hover:bg-gold/10"
-                          onClick={() => openDocument(order)}
-                          title="DANFE de Produção"
+                          className="h-8 w-8 text-destructive hover:bg-destructive/10"
+                          onClick={() => {
+                            setOrderToDelete(order);
+                            setDeleteConfirmOpen(true);
+                          }}
+                          title={order.status === "completed" ? "Excluir (Estornar Estoque)" : "Cancelar/Excluir Ordem"}
                         >
-                          <FileText className="size-4" />
+                          <Trash2 className="size-4" />
                         </Button>
-
                       </div>
                     </div>
                   </div>
