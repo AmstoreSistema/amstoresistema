@@ -149,8 +149,8 @@ export const deleteProductionOrder = createServerFn({ method: "POST" })
     }
     
     if (!order) {
-      console.error("Order not found for ID:", orderId);
-      throw new Error("Ordem não encontrada");
+      console.warn("Order not found for ID:", orderId, "- It might have been already deleted.");
+      return { success: true };
     }
 
     const productId = order.product_id;
