@@ -187,6 +187,16 @@ function ProductionPage() {
         toast.success(`Produção de ${order.quantity} unidade(s) concluída com sucesso!`, { id: "production-loading" });
         qc.invalidateQueries();
         await logAudit("producao", "production_orders", `Ordem ${order.id} concluída. Estoque atualizado.`);
+        
+        // Abrir o DANFE automaticamente ao concluir
+        const { data: composition } = await supabase
+          .from("product_materials")
+          .select("*")
+          .eq("product_id", order.product_id);
+        
+        setSelectedOrderDoc({ ...order, status: 'completed', completed_at: new Date().toISOString() });
+        setOrderComposition(composition || []);
+        setDocumentOpen(true);
       } catch (error: any) {
         console.error(error);
         toast.error(error.message || "Erro ao concluir produção", { id: "production-loading" });
@@ -337,25 +347,6 @@ function ProductionPage() {
                             <span className="font-bold text-gold/80">#</span> {order.codigo_ordem}
                           </p>
                         </div>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8 -mr-2">
-                              <MoreVertical className="size-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem 
-                              className="text-destructive font-bold"
-                              onClick={() => {
-                                setOrderToDelete(order);
-                                setDeleteConfirmOpen(true);
-                              }}
-                            >
-                              <Trash2 className="mr-2 size-4" /> 
-                              {order.status === "completed" ? "Excluir (Estornar Estoque)" : "Cancelar/Excluir Ordem"}
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
                       </div>
                       <p className="text-xs text-muted-foreground uppercase tracking-widest">{product?.category}</p>
                     </div>
@@ -406,8 +397,10 @@ function ProductionPage() {
                     </div>
 
                     <div className="flex items-center justify-between gap-2">
-                      {getStatusBadge(order.status)}
-                      <div className="flex gap-1">
+                      <div className="flex items-center gap-2">
+                        {getStatusBadge(order.status)}
+                      </div>
+                      <div className="flex items-center gap-1">
                         {order.status === "pending" && (
                           <Button 
                             variant="outline" 
@@ -428,16 +421,29 @@ function ProductionPage() {
                             <CheckCircle2 className="size-3" /> Concluir
                           </Button>
                         )}
+                        {order.status === "completed" && (
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-8 w-8 text-gold hover:bg-gold/10"
+                            onClick={() => openDocument(order)}
+                            title="DANFE de Produção"
+                          >
+                            <FileText className="size-4" />
+                          </Button>
+                        )}
                         <Button 
                           variant="ghost" 
                           size="icon" 
-                          className="h-8 w-8 text-gold hover:bg-gold/10"
-                          onClick={() => openDocument(order)}
-                          title="DANFE de Produção"
+                          className="h-8 w-8 text-destructive hover:bg-destructive/10"
+                          onClick={() => {
+                            setOrderToDelete(order);
+                            setDeleteConfirmOpen(true);
+                          }}
+                          title={order.status === "completed" ? "Excluir (Estornar Estoque)" : "Cancelar/Excluir Ordem"}
                         >
-                          <FileText className="size-4" />
+                          <Trash2 className="size-4" />
                         </Button>
-
                       </div>
                     </div>
                   </div>
