@@ -157,12 +157,14 @@ export const deleteProductionOrder = createServerFn({ method: "POST" })
         if (item.material_cut_id) {
           await supabase.from("material_cuts").update({ status: "reservado" }).eq("id", item.material_cut_id);
         } else if (item.material_variation_id) {
-          const { data: variation } = await supabase.from("material_variations").select("current_stock").eq("id", item.material_variation_id).single();
+          const { data: variation, error: vError } = await supabase.from("material_variations").select("current_stock").eq("id", item.material_variation_id).maybeSingle();
+          if (vError) throw vError;
           if (variation) {
             await supabase.from("material_variations").update({ current_stock: (variation.current_stock || 0) + neededQty }).eq("id", item.material_variation_id);
           }
         } else if (item.material_id) {
-          const { data: material } = await supabase.from("materials").select("current_stock").eq("id", item.material_id).single();
+          const { data: material, error: mError } = await supabase.from("materials").select("current_stock").eq("id", item.material_id).maybeSingle();
+          if (mError) throw mError;
           if (material) {
             await supabase.from("materials").update({ current_stock: (material.current_stock || 0) + neededQty }).eq("id", item.material_id);
           }
@@ -211,10 +213,12 @@ export const startProduction = createServerFn({ method: "POST" })
       if (item.material_cut_id) {
         await supabase.from("material_cuts").update({ status: "utilizado" }).eq("id", item.material_cut_id);
       } else if (item.material_variation_id) {
-        const { data: v } = await supabase.from("material_variations").select("current_stock").eq("id", item.material_variation_id).single();
+        const { data: v, error: vError } = await supabase.from("material_variations").select("current_stock").eq("id", item.material_variation_id).maybeSingle();
+        if (vError) throw vError;
         if (v) await supabase.from("material_variations").update({ current_stock: (v.current_stock || 0) - neededQty }).eq("id", item.material_variation_id);
       } else if (item.material_id) {
-        const { data: m } = await supabase.from("materials").select("current_stock").eq("id", item.material_id).single();
+        const { data: m, error: mError } = await supabase.from("materials").select("current_stock").eq("id", item.material_id).maybeSingle();
+        if (mError) throw mError;
         if (m) await supabase.from("materials").update({ current_stock: (m.current_stock || 0) - neededQty }).eq("id", item.material_id);
       }
     }
@@ -246,10 +250,12 @@ export const cancelProduction = createServerFn({ method: "POST" })
         if (item.material_cut_id) {
           await supabase.from("material_cuts").update({ status: "reservado" }).eq("id", item.material_cut_id);
         } else if (item.material_variation_id) {
-          const { data: v } = await supabase.from("material_variations").select("current_stock").eq("id", item.material_variation_id).single();
+          const { data: v, error: vError } = await supabase.from("material_variations").select("current_stock").eq("id", item.material_variation_id).maybeSingle();
+          if (vError) throw vError;
           if (v) await supabase.from("material_variations").update({ current_stock: (v.current_stock || 0) + neededQty }).eq("id", item.material_variation_id);
         } else if (item.material_id) {
-          const { data: m } = await supabase.from("materials").select("current_stock").eq("id", item.material_id).single();
+          const { data: m, error: mError } = await supabase.from("materials").select("current_stock").eq("id", item.material_id).maybeSingle();
+          if (mError) throw mError;
           if (m) await supabase.from("materials").update({ current_stock: (m.current_stock || 0) + neededQty }).eq("id", item.material_id);
         }
       }
