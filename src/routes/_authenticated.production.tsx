@@ -285,7 +285,7 @@ function ProductionPage() {
       ) : (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {filtered.map(order => {
-            const product = productById.get(order.product_id);
+            const product = productById.get(order.product_id as string);
             return (
               <Card key={order.id} className="overflow-hidden rounded-3xl border-border/50 bg-card transition-all hover:shadow-lg">
                 <CardContent className="p-0">
