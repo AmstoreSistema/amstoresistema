@@ -181,7 +181,7 @@ function ProductionPage() {
       return;
     }
 
-    const updates: Partial<ProductionOrder> = { status: newStatus };
+    const updates: Partial<ProductionOrder> = { status: newStatus as any };
     if (newStatus === "ongoing") updates.started_at = new Date().toISOString();
 
     const { error } = await supabase.from("production_orders").update(updates).eq("id", order.id);
