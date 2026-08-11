@@ -51,32 +51,36 @@ export const processProductionCompletion = createServerFn({ method: "POST" })
         } 
         // Case B: It's a variation
         else if (item.material_variation_id) {
-          const { data: variation } = await supabase
+          const { data: variation, error: vError } = await supabase
             .from("material_variations")
             .select("current_stock")
             .eq("id", item.material_variation_id)
-            .single();
+            .maybeSingle();
           
+          if (vError) throw vError;
           if (variation) {
-            await supabase
+            const { error: updError } = await supabase
               .from("material_variations")
               .update({ current_stock: (variation.current_stock || 0) - neededQty })
               .eq("id", item.material_variation_id);
+            if (updError) throw updError;
           }
         }
         // Case C: Raw material stock
         else if (item.material_id) {
-          const { data: material } = await supabase
+          const { data: material, error: mError } = await supabase
             .from("materials")
             .select("current_stock")
             .eq("id", item.material_id)
-            .single();
+            .maybeSingle();
           
+          if (mError) throw mError;
           if (material) {
-            await supabase
+            const { error: updError } = await supabase
               .from("materials")
               .update({ current_stock: (material.current_stock || 0) - neededQty })
               .eq("id", item.material_id);
+            if (updError) throw updError;
           }
         }
       }
@@ -105,10 +109,12 @@ export const processProductionCompletion = createServerFn({ method: "POST" })
 
     // Update global product stock for backwards compatibility
     const currentProdStock = productData?.current_stock || 0;
-    await supabase
+    const { error: prodUpdError } = await supabase
       .from("products")
       .update({ current_stock: currentProdStock + quantity })
       .eq("id", productId);
+    
+    if (prodUpdError) throw prodUpdError;
 
     // 5. Finally mark order as completed
     const { error: finalError } = await supabase
@@ -155,16 +161,21 @@ export const deleteProductionOrder = createServerFn({ method: "POST" })
         const neededQty = (item.quantity || 0) * quantity;
 
         if (item.material_cut_id) {
-          await supabase.from("material_cuts").update({ status: "reservado" }).eq("id", item.material_cut_id);
+          const { error: cutError } = await supabase.from("material_cuts").update({ status: "reservado" }).eq("id", item.material_cut_id);
+          if (cutError) throw cutError;
         } else if (item.material_variation_id) {
-          const { data: variation } = await supabase.from("material_variations").select("current_stock").eq("id", item.material_variation_id).single();
+          const { data: variation, error: vError } = await supabase.from("material_variations").select("current_stock").eq("id", item.material_variation_id).maybeSingle();
+          if (vError) throw vError;
           if (variation) {
-            await supabase.from("material_variations").update({ current_stock: (variation.current_stock || 0) + neededQty }).eq("id", item.material_variation_id);
+            const { error: updError } = await supabase.from("material_variations").update({ current_stock: (variation.current_stock || 0) + neededQty }).eq("id", item.material_variation_id);
+            if (updError) throw updError;
           }
         } else if (item.material_id) {
-          const { data: material } = await supabase.from("materials").select("current_stock").eq("id", item.material_id).single();
+          const { data: material, error: mError } = await supabase.from("materials").select("current_stock").eq("id", item.material_id).maybeSingle();
+          if (mError) throw mError;
           if (material) {
-            await supabase.from("materials").update({ current_stock: (material.current_stock || 0) + neededQty }).eq("id", item.material_id);
+            const { error: updError } = await supabase.from("materials").update({ current_stock: (material.current_stock || 0) + neededQty }).eq("id", item.material_id);
+            if (updError) throw updError;
           }
         }
       }
@@ -172,17 +183,24 @@ export const deleteProductionOrder = createServerFn({ method: "POST" })
 
     // 3. If completed, remove from stock_products
     if (order.status === "completed") {
-      await supabase.from("stock_products").delete().eq("ordem_producao_id", orderId);
+      const { error: stockDelError } = await supabase.from("stock_products").delete().eq("ordem_producao_id", orderId);
+      if (stockDelError) throw stockDelError;
       
       // Also update global product stock
       const productData = order.products as any;
       const currentProdStock = productData?.current_stock || 0;
-      if (productId) await supabase.from("products").update({ current_stock: Math.max(0, currentProdStock - quantity) }).eq("id", productId);
+      if (productId) {
+        const { error: prodUpdError } = await supabase.from("products").update({ current_stock: Math.max(0, currentProdStock - quantity) }).eq("id", productId);
+        if (prodUpdError) throw prodUpdError;
+      }
     }
 
     // 4. Delete the order
     const { error: deleteError } = await supabase.from("production_orders").delete().eq("id", orderId);
-    if (deleteError) throw deleteError;
+    if (deleteError) {
+      console.error("Supabase delete error:", deleteError);
+      throw new Error(deleteError.message);
+    }
 
     return { success: true };
   });
@@ -209,22 +227,33 @@ export const startProduction = createServerFn({ method: "POST" })
     for (const item of composition || []) {
       const neededQty = (item.quantity || 0) * quantity;
       if (item.material_cut_id) {
-        await supabase.from("material_cuts").update({ status: "utilizado" }).eq("id", item.material_cut_id);
+        const { error: cutError } = await supabase.from("material_cuts").update({ status: "utilizado" }).eq("id", item.material_cut_id);
+        if (cutError) throw cutError;
       } else if (item.material_variation_id) {
-        const { data: v } = await supabase.from("material_variations").select("current_stock").eq("id", item.material_variation_id).single();
-        if (v) await supabase.from("material_variations").update({ current_stock: (v.current_stock || 0) - neededQty }).eq("id", item.material_variation_id);
+        const { data: v, error: vError } = await supabase.from("material_variations").select("current_stock").eq("id", item.material_variation_id).maybeSingle();
+        if (vError) throw vError;
+        if (v) {
+          const { error: updError } = await supabase.from("material_variations").update({ current_stock: (v.current_stock || 0) - neededQty }).eq("id", item.material_variation_id);
+          if (updError) throw updError;
+        }
       } else if (item.material_id) {
-        const { data: m } = await supabase.from("materials").select("current_stock").eq("id", item.material_id).single();
-        if (m) await supabase.from("materials").update({ current_stock: (m.current_stock || 0) - neededQty }).eq("id", item.material_id);
+        const { data: m, error: mError } = await supabase.from("materials").select("current_stock").eq("id", item.material_id).maybeSingle();
+        if (mError) throw mError;
+        if (m) {
+          const { error: updError } = await supabase.from("materials").update({ current_stock: (m.current_stock || 0) - neededQty }).eq("id", item.material_id);
+          if (updError) throw updError;
+        }
       }
     }
 
     // C. Update status
-    await supabase.from("production_orders").update({
+    const { error: startError } = await supabase.from("production_orders").update({
       status: "ongoing",
       started_at: new Date().toISOString(),
       materiais_baixados: true
     }).eq("id", orderId);
+
+    if (startError) throw startError;
 
     return { success: true };
   });
@@ -244,17 +273,27 @@ export const cancelProduction = createServerFn({ method: "POST" })
       for (const item of composition || []) {
         const neededQty = (item.quantity || 0) * quantity;
         if (item.material_cut_id) {
-          await supabase.from("material_cuts").update({ status: "reservado" }).eq("id", item.material_cut_id);
+          const { error: cutError } = await supabase.from("material_cuts").update({ status: "reservado" }).eq("id", item.material_cut_id);
+          if (cutError) throw cutError;
         } else if (item.material_variation_id) {
-          const { data: v } = await supabase.from("material_variations").select("current_stock").eq("id", item.material_variation_id).single();
-          if (v) await supabase.from("material_variations").update({ current_stock: (v.current_stock || 0) + neededQty }).eq("id", item.material_variation_id);
+          const { data: v, error: vError } = await supabase.from("material_variations").select("current_stock").eq("id", item.material_variation_id).maybeSingle();
+          if (vError) throw vError;
+          if (v) {
+            const { error: updError } = await supabase.from("material_variations").update({ current_stock: (v.current_stock || 0) + neededQty }).eq("id", item.material_variation_id);
+            if (updError) throw updError;
+          }
         } else if (item.material_id) {
-          const { data: m } = await supabase.from("materials").select("current_stock").eq("id", item.material_id).single();
-          if (m) await supabase.from("materials").update({ current_stock: (m.current_stock || 0) + neededQty }).eq("id", item.material_id);
+          const { data: m, error: mError } = await supabase.from("materials").select("current_stock").eq("id", item.material_id).maybeSingle();
+          if (mError) throw mError;
+          if (m) {
+            const { error: updError } = await supabase.from("materials").update({ current_stock: (m.current_stock || 0) + neededQty }).eq("id", item.material_id);
+            if (updError) throw updError;
+          }
         }
       }
     }
 
-    await supabase.from("production_orders").update({ status: "cancelled" }).eq("id", orderId);
+    const { error: cancelError } = await supabase.from("production_orders").update({ status: "cancelled" }).eq("id", orderId);
+    if (cancelError) throw cancelError;
     return { success: true };
   });
