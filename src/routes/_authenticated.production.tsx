@@ -8,7 +8,8 @@ import {
   Search,
   MoreVertical,
   Package,
-  Calendar
+  Calendar,
+  Trash2
 } from "lucide-react";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
@@ -44,7 +45,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useRows, logAudit } from "@/lib/data";
 import { dateBR, num } from "@/lib/format";
-import { processProductionCompletion } from "@/lib/production.functions";
+import { processProductionCompletion, deleteProductionOrder } from "@/lib/production.functions";
 
 export const Route = createFileRoute("/_authenticated/production")({
   head: () => ({
@@ -81,6 +82,8 @@ function ProductionPage() {
   const [activeStatus, setActiveStatus] = useState("Todos");
   const [newOrderOpen, setNewOrderOpen] = useState(false);
   const [newOrder, setNewOrder] = useState({ product_id: "", quantity: 1, priority: "Normal" as const });
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [orderToDelete, setOrderToDelete] = useState<ProductionOrder | null>(null);
 
   const productById = useMemo(() => new Map(products.map(p => [p.id, p])), [products]);
 
@@ -151,6 +154,26 @@ function ProductionPage() {
     await logAudit("producao", "production_orders", `Status da ordem ${order.id} alterado para ${newStatus}`);
     qc.invalidateQueries();
     toast.success(`Ordem atualizada para ${newStatus}`);
+  };
+
+  const handleDeleteOrder = async () => {
+    if (!orderToDelete) return;
+
+    try {
+      toast.loading("Excluindo ordem e estornando materiais...", { id: "delete-loading" });
+      await deleteProductionOrder({ data: { orderId: orderToDelete.id } });
+      
+      const productName = productById.get(orderToDelete.product_id)?.name || "Produto";
+      await logAudit("producao", "production_orders", `Ordem de produção de ${productName} excluída/estornada`);
+      
+      qc.invalidateQueries();
+      toast.success("Ordem excluída com sucesso!", { id: "delete-loading" });
+      setDeleteConfirmOpen(false);
+      setOrderToDelete(null);
+    } catch (error: any) {
+      console.error(error);
+      toast.error(error.message || "Erro ao excluir ordem", { id: "delete-loading" });
+    }
   };
 
   const getStatusBadge = (status: string) => {
@@ -258,8 +281,25 @@ function ProductionPage() {
                               </DropdownMenuItem>
                             )}
                             {order.status !== "completed" && (
-                              <DropdownMenuItem className="text-destructive">
-                                Cancelar Ordem
+                              <DropdownMenuItem 
+                                className="text-destructive"
+                                onClick={() => {
+                                  setOrderToDelete(order);
+                                  setDeleteConfirmOpen(true);
+                                }}
+                              >
+                                <Trash2 className="mr-2 size-4" /> Cancelar/Excluir Ordem
+                              </DropdownMenuItem>
+                            )}
+                            {order.status === "completed" && (
+                              <DropdownMenuItem 
+                                className="text-destructive font-bold"
+                                onClick={() => {
+                                  setOrderToDelete(order);
+                                  setDeleteConfirmOpen(true);
+                                }}
+                              >
+                                <Trash2 className="mr-2 size-4" /> Excluir (Estornar Estoque)
                               </DropdownMenuItem>
                             )}
                           </DropdownMenuContent>
@@ -295,11 +335,33 @@ function ProductionPage() {
                       )}
                     </div>
 
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between gap-2">
                       {getStatusBadge(order.status)}
-                      <Button variant="ghost" size="sm" className="text-[10px] uppercase font-bold tracking-widest h-7">
-                        Ver Detalhes
-                      </Button>
+                      <div className="flex gap-1">
+                        {order.status === "pending" && (
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="h-8 gap-1.5 text-[10px] font-bold uppercase tracking-wider border-gold/30 hover:bg-gold/10"
+                            onClick={() => updateStatus(order, "ongoing")}
+                          >
+                            <Play className="size-3" /> Iniciar
+                          </Button>
+                        )}
+                        {order.status === "ongoing" && (
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="h-8 gap-1.5 text-[10px] font-bold uppercase tracking-wider border-success/30 hover:bg-success/10 text-success"
+                            onClick={() => updateStatus(order, "completed")}
+                          >
+                            <CheckCircle2 className="size-3" /> Concluir
+                          </Button>
+                        )}
+                        <Button variant="ghost" size="sm" className="text-[10px] uppercase font-bold tracking-widest h-8 px-2">
+                          Ver Detalhes
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 </CardContent>
@@ -351,6 +413,25 @@ function ProductionPage() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setNewOrderOpen(false)}>Cancelar</Button>
             <Button onClick={createOrder}>Criar Ordem</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="text-destructive flex items-center gap-2">
+              <Trash2 className="size-5" /> Excluir Ordem de Produção
+            </DialogTitle>
+            <DialogDescription>
+              {orderToDelete?.status === "completed" 
+                ? "Esta ordem já foi concluída. Ao excluir, o sistema irá ESTORNAR as matérias-primas e REMOVER o produto do estoque. Esta ação não pode ser desfeita."
+                : "Deseja realmente cancelar e excluir esta ordem de produção? Os materiais não serão afetados se a produção não foi concluída."}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteConfirmOpen(false)}>Manter Ordem</Button>
+            <Button variant="destructive" onClick={handleDeleteOrder}>Confirmar Exclusão</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

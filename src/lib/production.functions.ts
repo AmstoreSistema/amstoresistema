@@ -111,3 +111,95 @@ export const processProductionCompletion = createServerFn({ method: "POST" })
 
     return { success: true };
   });
+
+export const deleteProductionOrder = createServerFn({ method: "POST" })
+  .inputValidator((data) => z.object({ orderId: z.string() }).parse(data))
+  .handler(async ({ data: { orderId } }) => {
+    // 1. Get the order
+    const { data: order, error: orderError } = await supabase
+      .from("production_orders")
+      .select("*, products(*)")
+      .eq("id", orderId)
+      .single();
+
+    if (orderError || !order) {
+      throw new Error(orderError?.message || "Ordem não encontrada");
+    }
+
+    // 2. If it was completed, we must reverse the stock changes
+    if (order.status === "completed") {
+      const productId = order.product_id;
+      const quantity = order.quantity;
+
+      if (!productId) throw new Error("Produto não vinculado à ordem");
+
+      // A. Get the composition
+      const { data: composition, error: compError } = await supabase
+        .from("product_materials")
+        .select("*")
+        .eq("product_id", productId);
+
+      if (compError) throw compError;
+
+      // B. Reverse each material
+      for (const item of composition || []) {
+        const neededQty = (item.quantity || 0) * quantity;
+
+        // Restore cuts to 'reservado'
+        if (item.material_cut_id) {
+          await supabase
+            .from("material_cuts")
+            .update({ status: "reservado" })
+            .eq("id", item.material_cut_id);
+        } 
+        // Restore variation stock
+        else if (item.material_variation_id) {
+          const { data: variation } = await supabase
+            .from("material_variations")
+            .select("current_stock")
+            .eq("id", item.material_variation_id)
+            .single();
+          
+          if (variation) {
+            await supabase
+              .from("material_variations")
+              .update({ current_stock: (variation.current_stock || 0) + neededQty })
+              .eq("id", item.material_variation_id);
+          }
+        }
+        // Restore raw material stock
+        else if (item.material_id) {
+          const { data: material } = await supabase
+            .from("materials")
+            .select("current_stock")
+            .eq("id", item.material_id)
+            .single();
+          
+          if (material) {
+            await supabase
+              .from("materials")
+              .update({ current_stock: (material.current_stock || 0) + neededQty })
+              .eq("id", item.material_id);
+          }
+        }
+      }
+
+      // C. Remove product stock
+      const productData = order.products as any;
+      const currentProdStock = productData?.current_stock || 0;
+      await supabase
+        .from("products")
+        .update({ current_stock: Math.max(0, currentProdStock - quantity) })
+        .eq("id", productId);
+    }
+
+    // 3. Delete the order
+    const { error: deleteError } = await supabase
+      .from("production_orders")
+      .delete()
+      .eq("id", orderId);
+
+    if (deleteError) throw deleteError;
+
+    return { success: true };
+  });
