@@ -187,6 +187,16 @@ function ProductionPage() {
         toast.success(`Produção de ${order.quantity} unidade(s) concluída com sucesso!`, { id: "production-loading" });
         qc.invalidateQueries();
         await logAudit("producao", "production_orders", `Ordem ${order.id} concluída. Estoque atualizado.`);
+        
+        // Abrir o DANFE automaticamente ao concluir
+        const { data: composition } = await supabase
+          .from("product_materials")
+          .select("*")
+          .eq("product_id", order.product_id);
+        
+        setSelectedOrderDoc({ ...order, status: 'completed', completed_at: new Date().toISOString() });
+        setOrderComposition(composition || []);
+        setDocumentOpen(true);
       } catch (error: any) {
         console.error(error);
         toast.error(error.message || "Erro ao concluir produção", { id: "production-loading" });
