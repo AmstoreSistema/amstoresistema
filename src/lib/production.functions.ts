@@ -53,7 +53,7 @@ export const processProductionCompletion = createServerFn({ method: "POST" })
           .eq("id", item.material_variation_id)
           .single();
         
-        if (varGetError) throw varGetError;
+        if (varGetError || !variation) throw new Error("Variação não encontrada");
 
         const { error: varUpdateError } = await supabase
           .from("material_variations")
@@ -70,7 +70,7 @@ export const processProductionCompletion = createServerFn({ method: "POST" })
           .eq("id", item.material_id)
           .single();
         
-        if (matGetError) throw matGetError;
+        if (matGetError || !material) throw new Error("Material não encontrado");
 
         const { error: matUpdateError } = await supabase
           .from("materials")
