@@ -240,7 +240,7 @@ export const cancelProduction = createServerFn({ method: "POST" })
     const productId = order.product_id;
 
     if (order.materiais_baixados) {
-      const { data: composition } = await supabase.from("product_materials").select("*").eq("product_id", productId);
+      const { data: composition } = await supabase.from("product_materials").select("*").eq("product_id", productId as string);
       for (const item of composition || []) {
         const neededQty = (item.quantity || 0) * quantity;
         if (item.material_cut_id) {
