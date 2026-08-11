@@ -20,6 +20,10 @@ export const processProductionCompletion = createServerFn({ method: "POST" })
       throw new Error("Ordem já concluída");
     }
 
+    if (!order.product_id) {
+      throw new Error("Ordem sem produto vinculado");
+    }
+
     const productId = order.product_id;
     const quantity = order.quantity;
 
@@ -40,7 +44,7 @@ export const processProductionCompletion = createServerFn({ method: "POST" })
         const { error: cutError } = await supabase
           .from("material_cuts")
           .update({ status: "utilizado" })
-          .eq("id", item.material_cut_id as string);
+          .eq("id", item.material_cut_id);
         
         if (cutError) throw cutError;
       } 
@@ -50,7 +54,7 @@ export const processProductionCompletion = createServerFn({ method: "POST" })
         const { data: variation, error: varGetError } = await supabase
           .from("material_variations")
           .select("current_stock")
-          .eq("id", item.material_variation_id as string)
+          .eq("id", item.material_variation_id)
           .single();
         
         if (varGetError || !variation) throw new Error("Variação não encontrada");
@@ -58,7 +62,7 @@ export const processProductionCompletion = createServerFn({ method: "POST" })
         const { error: varUpdateError } = await supabase
           .from("material_variations")
           .update({ current_stock: (variation.current_stock || 0) - neededQty })
-          .eq("id", item.material_variation_id as string);
+          .eq("id", item.material_variation_id);
         
         if (varUpdateError) throw varUpdateError;
       }
@@ -67,7 +71,7 @@ export const processProductionCompletion = createServerFn({ method: "POST" })
         const { data: material, error: matGetError } = await supabase
           .from("materials")
           .select("current_stock")
-          .eq("id", item.material_id as string)
+          .eq("id", item.material_id)
           .single();
         
         if (matGetError || !material) throw new Error("Material não encontrado");
@@ -75,22 +79,22 @@ export const processProductionCompletion = createServerFn({ method: "POST" })
         const { error: matUpdateError } = await supabase
           .from("materials")
           .update({ current_stock: (material.current_stock || 0) - neededQty })
-          .eq("id", item.material_id as string);
+          .eq("id", item.material_id);
         
         if (matUpdateError) throw matUpdateError;
       }
     }
 
     // 4. Update product stock (finished good)
-    const productsAny = order.products as any;
-    const currentProdStock = productsAny?.current_stock || 0;
+    const productData = order.products as any;
+    const currentProdStock = productData?.current_stock || 0;
     const { error: prodUpdateError } = await supabase
       .from("products")
       .update({ 
         current_stock: currentProdStock + quantity,
         updated_at: new Date().toISOString()
       })
-      .eq("id", productId as string);
+      .eq("id", productId);
     
     if (prodUpdateError) throw prodUpdateError;
 
