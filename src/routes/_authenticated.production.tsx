@@ -106,6 +106,12 @@ function ProductionPage() {
   const [documentOpen, setDocumentOpen] = useState(false);
   const [selectedOrderDoc, setSelectedOrderDoc] = useState<ProductionOrder | null>(null);
   const [orderComposition, setOrderComposition] = useState<any[]>([]);
+  const [nextCode, setNextCode] = useState("");
+
+  const openNewOrder = () => {
+    setNextCode(`OP-${Date.now()}`);
+    setNewOrderOpen(true);
+  };
 
 
   const productById = useMemo(() => new Map(products.map(p => [p.id, p])), [products]);
