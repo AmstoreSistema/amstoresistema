@@ -102,6 +102,7 @@ function ProductionPage() {
     notes: "" 
   });
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [confirmText, setConfirmText] = useState("");
   const [orderToDelete, setOrderToDelete] = useState<ProductionOrder | null>(null);
   const [documentOpen, setDocumentOpen] = useState(false);
   const [selectedOrderDoc, setSelectedOrderDoc] = useState<ProductionOrder | null>(null);
@@ -220,6 +221,10 @@ function ProductionPage() {
 
   const handleDeleteOrder = async () => {
     if (!orderToDelete) return;
+    if (confirmText !== "CONFIRMAR") {
+      toast.error("Digite CONFIRMAR para autorizar a exclusão");
+      return;
+    }
 
     try {
       toast.loading("Excluindo ordem e estornando materiais...", { id: "delete-loading" });
@@ -232,6 +237,7 @@ function ProductionPage() {
       toast.success("Ordem excluída com sucesso!", { id: "delete-loading" });
       setDeleteConfirmOpen(false);
       setOrderToDelete(null);
+      setConfirmText("");
     } catch (error: any) {
       console.error(error);
       toast.error(error.message || "Erro ao excluir ordem", { id: "delete-loading" });
@@ -535,11 +541,31 @@ function ProductionPage() {
               {orderToDelete?.status === "completed" 
                 ? "Esta ordem já foi concluída. Ao excluir, o sistema irá ESTORNAR as matérias-primas e REMOVER o produto do estoque. Esta ação não pode ser desfeita."
                 : "Deseja realmente cancelar e excluir esta ordem de produção? Os materiais não serão afetados se a produção não foi concluída."}
+              
+              <div className="mt-4 space-y-2">
+                <Label htmlFor="confirm-delete" className="text-foreground">Para prosseguir, digite <strong>CONFIRMAR</strong> abaixo:</Label>
+                <Input 
+                  id="confirm-delete"
+                  placeholder="Digite CONFIRMAR" 
+                  value={confirmText} 
+                  onChange={e => setConfirmText(e.target.value)}
+                  className="uppercase"
+                />
+              </div>
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteConfirmOpen(false)}>Manter Ordem</Button>
-            <Button variant="destructive" onClick={handleDeleteOrder}>Confirmar Exclusão</Button>
+            <Button variant="outline" onClick={() => {
+              setDeleteConfirmOpen(false);
+              setConfirmText("");
+            }}>Manter Ordem</Button>
+            <Button 
+              variant="destructive" 
+              onClick={handleDeleteOrder}
+              disabled={confirmText !== "CONFIRMAR"}
+            >
+              Confirmar Exclusão
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
