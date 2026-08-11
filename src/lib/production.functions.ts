@@ -197,7 +197,10 @@ export const deleteProductionOrder = createServerFn({ method: "POST" })
 
     // 4. Delete the order
     const { error: deleteError } = await supabase.from("production_orders").delete().eq("id", orderId);
-    if (deleteError) throw deleteError;
+    if (deleteError) {
+      console.error("Supabase delete error:", deleteError);
+      throw new Error(deleteError.message);
+    }
 
     return { success: true };
   });
