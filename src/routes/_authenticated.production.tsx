@@ -294,29 +294,12 @@ function ProductionPage() {
         icon={Package}
         actions={
           <div className="flex gap-2">
-            <Button 
-              variant="outline" 
-              className="gap-2 border-red-500/30 text-red-500 hover:bg-red-500/10"
-              onClick={async () => {
-                if (confirm("Deseja realmente ZERAR todo o sistema de produção e estoque de produtos? Esta ação não pode ser desfeita.")) {
-                  try {
-                    toast.loading("Limpando sistema...");
-                    await resetProductionSystem();
-                    qc.invalidateQueries();
-                    toast.success("Sistema resetado com sucesso!");
-                  } catch (e: any) {
-                    toast.error(e.message);
-                  }
-                }
-              }}
-            >
-              <Trash2 className="size-4" /> Zerar Tudo
-            </Button>
             <Button onClick={openNewOrder} className="gap-2 bg-gradient-gold border-none shadow-gold font-bold">
               <Plus className="size-4" /> Nova Ordem
             </Button>
           </div>
         }
+
       />
 
       <div className="grid gap-4 sm:grid-cols-3">
