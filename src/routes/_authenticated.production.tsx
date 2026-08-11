@@ -363,10 +363,14 @@ function ProductionPage() {
 
                   <div className="px-5 pb-5 space-y-4">
                     <div className="flex justify-between items-center text-sm">
-                      <div className="flex items-center gap-2">
-                        <span className="text-muted-foreground">Qtd:</span>
-                        <span className="font-bold">{num(order.quantity, 0)} un</span>
-                      </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-muted-foreground">Ordem:</span>
+                          <span className="font-mono font-bold text-xs">{order.codigo_ordem}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-muted-foreground">Qtd:</span>
+                          <span className="font-bold">{num(order.quantity, 0)} un</span>
+                        </div>
                       {getPriorityBadge(order.priority)}
                     </div>
 
