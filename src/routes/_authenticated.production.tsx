@@ -45,7 +45,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useRows, logAudit } from "@/lib/data";
 import { dateBR, num } from "@/lib/format";
-import { processProductionCompletion, deleteProductionOrder } from "@/lib/production.functions";
+import { processProductionCompletion, deleteProductionOrder, startProduction, cancelProduction } from "@/lib/production.functions";
 
 export const Route = createFileRoute("/_authenticated/production")({
   head: () => ({
