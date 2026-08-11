@@ -85,15 +85,21 @@ function ProductionPage() {
   const [term, setTerm] = useState("");
   const [activeStatus, setActiveStatus] = useState("Todos");
   const [newOrderOpen, setNewOrderOpen] = useState(false);
-  const [newOrder, setNewOrder] = useState({ 
+  const [newOrder, setNewOrder] = useState<{
+    product_id: string;
+    quantity: number;
+    priority: "Normal" | "Baixa" | "Alta" | "Urgente";
+    data_prevista: string | null;
+    notes: string;
+  }>({ 
     product_id: "", 
     quantity: 1, 
-    priority: "Normal" as const,
+    priority: "Normal",
     data_prevista: new Date().toISOString().split('T')[0],
     notes: "" 
   });
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
-  const [orderToDelete, setOrderToDelete] = useState<ProductionOrder | any>(null);
+  const [orderToDelete, setOrderToDelete] = useState<ProductionOrder | null>(null);
 
   const productById = useMemo(() => new Map(products.map(p => [p.id, p])), [products]);
 
