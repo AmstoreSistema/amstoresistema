@@ -271,7 +271,7 @@ function ProductionPage() {
         description="Gerência de produção"
         icon={Package}
         actions={
-          <Button onClick={() => setNewOrderOpen(true)} className="gap-2 bg-gradient-gold border-none shadow-gold font-bold">
+          <Button onClick={openNewOrder} className="gap-2 bg-gradient-gold border-none shadow-gold font-bold">
             <Plus className="size-4" /> Nova Ordem
           </Button>
         }
