@@ -134,23 +134,33 @@ export const processProductionCompletion = createServerFn({ method: "POST" })
 export const deleteProductionOrder = createServerFn({ method: "POST" })
   .inputValidator((data) => z.object({ orderId: z.string() }).parse(data))
   .handler(async ({ data: { orderId } }) => {
+    console.log("Starting deleteProductionOrder for ID:", orderId);
+    
     // 1. Get the order
     const { data: order, error: orderError } = await supabase
       .from("production_orders")
       .select("*, products(*)")
       .eq("id", orderId)
-      .single();
+      .maybeSingle();
 
-    if (orderError || !order) {
-      throw new Error(orderError?.message || "Ordem não encontrada");
+    if (orderError) {
+      console.error("Order fetch error:", orderError);
+      throw new Error(orderError.message);
+    }
+    
+    if (!order) {
+      console.error("Order not found for ID:", orderId);
+      throw new Error("Ordem não encontrada");
     }
 
     const productId = order.product_id;
     const quantity = order.quantity;
 
     // 2. Reverse stock if materials were already baixados
-    if (order.materiais_baixados && order.status !== "cancelado") {
-      if (!productId) throw new Error("Produto não vinculado");
+    if (order.materiais_baixados && order.status !== "cancelado" && order.status !== "cancelled") {
+      if (!productId) {
+        console.warn("Order has materiais_baixados=true but no product_id. Skipping stock reversal.");
+      } else {
 
       const { data: composition } = await supabase
         .from("product_materials")
@@ -184,14 +194,19 @@ export const deleteProductionOrder = createServerFn({ method: "POST" })
     // 3. If completed, remove from stock_products
     if (order.status === "completed") {
       const { error: stockDelError } = await supabase.from("stock_products").delete().eq("ordem_producao_id", orderId);
-      if (stockDelError) throw stockDelError;
+      if (stockDelError) {
+        console.error("Stock product delete error:", stockDelError);
+        // We continue even if this fails, as the order might not have a stock record yet
+      }
       
       // Also update global product stock
       const productData = order.products as any;
       const currentProdStock = productData?.current_stock || 0;
       if (productId) {
         const { error: prodUpdError } = await supabase.from("products").update({ current_stock: Math.max(0, currentProdStock - quantity) }).eq("id", productId);
-        if (prodUpdError) throw prodUpdError;
+        if (prodUpdError) {
+          console.error("Global product stock update error:", prodUpdError);
+        }
       }
     }
 
