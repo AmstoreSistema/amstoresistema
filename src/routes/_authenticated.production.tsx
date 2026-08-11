@@ -467,7 +467,7 @@ function ProductionPage() {
             </div>
             <div className="grid gap-2">
               <Label>Data Prevista de Conclusão</Label>
-              <Input type="date" value={newOrder.data_prevista} onChange={e => setNewOrder({ ...newOrder, data_prevista: e.target.value })} />
+              <Input type="date" value={newOrder.data_prevista || ""} onChange={e => setNewOrder({ ...newOrder, data_prevista: e.target.value })} />
             </div>
             <div className="grid gap-2">
               <Label>Observações</Label>
