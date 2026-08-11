@@ -7,6 +7,7 @@ import {
   BookOpen,
   Boxes,
   ChevronRight,
+  Clock,
   Coins,
   Factory,
   HandCoins,

@@ -109,7 +109,7 @@ function ProductionOrdersPage() {
       expected_date: newOrder.expected_date,
       notes: newOrder.notes,
       status: "rascunho" as any
-    });
+    } as any);
 
     if (error) { toast.error(error.message); return; }
     setNewOrderOpen(false);
@@ -119,7 +119,7 @@ function ProductionOrdersPage() {
 
   const updateStatus = async (order: ProductionOrder, status: ProductionOrder["status"]) => {
     // Logic for state transitions and material deduction would go here (or in a server function for atomicity)
-    const { error } = await supabase.from("production_orders").update({ status: status as any }).eq("id", order.id);
+    const { error } = await supabase.from("production_orders").update({ status: status as any } as any).eq("id", order.id);
     if (error) { toast.error(error.message); return; }
     qc.invalidateQueries();
     toast.success("Status atualizado");
