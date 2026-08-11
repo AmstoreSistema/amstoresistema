@@ -221,6 +221,10 @@ function ProductionPage() {
 
   const handleDeleteOrder = async () => {
     if (!orderToDelete) return;
+    if (confirmText !== "CONFIRMAR") {
+      toast.error("Digite CONFIRMAR para autorizar a exclusão");
+      return;
+    }
 
     try {
       toast.loading("Excluindo ordem e estornando materiais...", { id: "delete-loading" });
@@ -233,6 +237,7 @@ function ProductionPage() {
       toast.success("Ordem excluída com sucesso!", { id: "delete-loading" });
       setDeleteConfirmOpen(false);
       setOrderToDelete(null);
+      setConfirmText("");
     } catch (error: any) {
       console.error(error);
       toast.error(error.message || "Erro ao excluir ordem", { id: "delete-loading" });
