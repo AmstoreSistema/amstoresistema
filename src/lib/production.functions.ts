@@ -20,6 +20,10 @@ export const processProductionCompletion = createServerFn({ method: "POST" })
       throw new Error("Ordem já concluída");
     }
 
+    if (!order.product_id) {
+      throw new Error("Ordem sem produto vinculado");
+    }
+
     const productId = order.product_id;
     const quantity = order.quantity;
 
@@ -82,7 +86,8 @@ export const processProductionCompletion = createServerFn({ method: "POST" })
     }
 
     // 4. Update product stock (finished good)
-    const currentProdStock = order.products?.current_stock || 0;
+    const productData = order.products as any;
+    const currentProdStock = productData?.current_stock || 0;
     const { error: prodUpdateError } = await supabase
       .from("products")
       .update({ 
