@@ -202,7 +202,7 @@ function ProductionPage() {
       toast.loading("Excluindo ordem e estornando materiais...", { id: "delete-loading" });
       await deleteProductionOrder({ data: { orderId: orderToDelete.id } });
       
-      const productName = productById.get(orderToDelete.product_id)?.name || "Produto";
+      const productName = productById.get(orderToDelete.product_id as string)?.name || "Produto";
       await logAudit("producao", "production_orders", `Ordem de produção de ${productName} excluída/estornada`);
       
       qc.invalidateQueries();
