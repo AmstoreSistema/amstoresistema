@@ -46,7 +46,13 @@ import { FileText } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useRows, logAudit } from "@/lib/data";
 import { dateBR, num } from "@/lib/format";
-import { processProductionCompletion, deleteProductionOrder, startProduction, cancelProduction } from "@/lib/production.functions";
+import { 
+  processProductionCompletion, 
+  deleteProductionOrder, 
+  startProduction, 
+  cancelProduction,
+  resetProductionSystem
+} from "@/lib/production.functions";
 import { ProductionDocument } from "@/components/production/ProductionDocument";
 
 
