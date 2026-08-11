@@ -82,7 +82,8 @@ export const processProductionCompletion = createServerFn({ method: "POST" })
     }
 
     // 4. Update product stock (finished good)
-    const currentProdStock = order.products?.current_stock || 0;
+    const productsAny = order.products as any;
+    const currentProdStock = productsAny?.current_stock || 0;
     const { error: prodUpdateError } = await supabase
       .from("products")
       .update({ 
