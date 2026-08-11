@@ -177,9 +177,11 @@ function ProductionPage() {
   const updateStatus = async (order: any, newStatus: string) => {
     if (newStatus === "ongoing") {
       try {
-        toast.loading("Iniciando produção e baixando materiais...", { id: "prod-action" });
+        const loadingToast = toast.loading("Iniciando produção e baixando materiais...");
         await startProduction({ data: { orderId: order.id } });
-        toast.success("Produção iniciada!", { id: "prod-action" });
+        toast.dismiss(loadingToast);
+        toast.success("Produção iniciada!");
+
         qc.invalidateQueries();
       } catch (err: any) {
         toast.error(err.message || "Erro ao iniciar", { id: "prod-action" });
@@ -189,9 +191,11 @@ function ProductionPage() {
 
     if (newStatus === "completed") {
       try {
-        toast.loading("Processando baixa de materiais e entrada de estoque...", { id: "production-loading" });
+        const loadingToast = toast.loading("Processando baixa de materiais e entrada de estoque...");
         await processProductionCompletion({ data: { orderId: order.id } });
-        toast.success(`Produção de ${order.quantity} unidade(s) concluída com sucesso!`, { id: "production-loading" });
+        toast.dismiss(loadingToast);
+        toast.success(`Produção de ${order.quantity} unidade(s) concluída com sucesso!`);
+
         qc.invalidateQueries();
         await logAudit("producao", "production_orders", `Ordem ${order.id} concluída. Estoque atualizado.`);
         
@@ -233,14 +237,16 @@ function ProductionPage() {
     }
 
     try {
-      toast.loading("Excluindo ordem e estornando materiais...", { id: "delete-loading" });
+      const loadingToast = toast.loading("Excluindo ordem e estornando materiais...");
       await deleteProductionOrder({ data: { orderId: orderToDelete.id } });
       
       const productName = productById.get(orderToDelete.product_id as string)?.name || "Produto";
       await logAudit("producao", "production_orders", `Ordem de produção de ${productName} excluída/estornada`);
       
       await qc.invalidateQueries();
-      toast.success("Ordem excluída com sucesso!", { id: "delete-loading" });
+      toast.dismiss(loadingToast);
+      toast.success("Ordem excluída com sucesso!");
+
       setDeleteConfirmOpen(false);
       setOrderToDelete(null);
       setConfirmText("");
@@ -294,29 +300,12 @@ function ProductionPage() {
         icon={Package}
         actions={
           <div className="flex gap-2">
-            <Button 
-              variant="outline" 
-              className="gap-2 border-red-500/30 text-red-500 hover:bg-red-500/10"
-              onClick={async () => {
-                if (confirm("Deseja realmente ZERAR todo o sistema de produção e estoque de produtos? Esta ação não pode ser desfeita.")) {
-                  try {
-                    toast.loading("Limpando sistema...");
-                    await resetProductionSystem();
-                    qc.invalidateQueries();
-                    toast.success("Sistema resetado com sucesso!");
-                  } catch (e: any) {
-                    toast.error(e.message);
-                  }
-                }
-              }}
-            >
-              <Trash2 className="size-4" /> Zerar Tudo
-            </Button>
             <Button onClick={openNewOrder} className="gap-2 bg-gradient-gold border-none shadow-gold font-bold">
               <Plus className="size-4" /> Nova Ordem
             </Button>
           </div>
         }
+
       />
 
       <div className="grid gap-4 sm:grid-cols-3">
