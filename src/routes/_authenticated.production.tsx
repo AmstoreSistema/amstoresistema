@@ -233,7 +233,7 @@ function ProductionPage() {
       const productName = productById.get(orderToDelete.product_id as string)?.name || "Produto";
       await logAudit("producao", "production_orders", `Ordem de produção de ${productName} excluída/estornada`);
       
-      qc.invalidateQueries();
+      await qc.invalidateQueries();
       toast.success("Ordem excluída com sucesso!", { id: "delete-loading" });
       setDeleteConfirmOpen(false);
       setOrderToDelete(null);
