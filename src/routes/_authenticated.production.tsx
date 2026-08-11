@@ -347,25 +347,6 @@ function ProductionPage() {
                             <span className="font-bold text-gold/80">#</span> {order.codigo_ordem}
                           </p>
                         </div>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8 -mr-2">
-                              <MoreVertical className="size-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem 
-                              className="text-destructive font-bold"
-                              onClick={() => {
-                                setOrderToDelete(order);
-                                setDeleteConfirmOpen(true);
-                              }}
-                            >
-                              <Trash2 className="mr-2 size-4" /> 
-                              {order.status === "completed" ? "Excluir (Estornar Estoque)" : "Cancelar/Excluir Ordem"}
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
                       </div>
                       <p className="text-xs text-muted-foreground uppercase tracking-widest">{product?.category}</p>
                     </div>
