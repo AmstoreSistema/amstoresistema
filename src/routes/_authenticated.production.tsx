@@ -52,6 +52,10 @@ export const Route = createFileRoute("/_authenticated/production")({
     meta: [
       { title: "Produção — Amstore Gestão" },
       { name: "description", content: "Gerencie ordens de produção e estoque de materiais." },
+      { property: "og:title", content: "Produção — Amstore Gestão" },
+      { property: "og:description", content: "Gerencie ordens de produção e estoque de materiais." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: ProductionPage,
