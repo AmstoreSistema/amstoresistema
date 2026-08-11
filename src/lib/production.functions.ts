@@ -40,7 +40,7 @@ export const processProductionCompletion = createServerFn({ method: "POST" })
         const { error: cutError } = await supabase
           .from("material_cuts")
           .update({ status: "utilizado" })
-          .eq("id", item.material_cut_id);
+          .eq("id", item.material_cut_id as string);
         
         if (cutError) throw cutError;
       } 
@@ -50,7 +50,7 @@ export const processProductionCompletion = createServerFn({ method: "POST" })
         const { data: variation, error: varGetError } = await supabase
           .from("material_variations")
           .select("current_stock")
-          .eq("id", item.material_variation_id)
+          .eq("id", item.material_variation_id as string)
           .single();
         
         if (varGetError || !variation) throw new Error("Variação não encontrada");
@@ -58,7 +58,7 @@ export const processProductionCompletion = createServerFn({ method: "POST" })
         const { error: varUpdateError } = await supabase
           .from("material_variations")
           .update({ current_stock: (variation.current_stock || 0) - neededQty })
-          .eq("id", item.material_variation_id);
+          .eq("id", item.material_variation_id as string);
         
         if (varUpdateError) throw varUpdateError;
       }
@@ -67,7 +67,7 @@ export const processProductionCompletion = createServerFn({ method: "POST" })
         const { data: material, error: matGetError } = await supabase
           .from("materials")
           .select("current_stock")
-          .eq("id", item.material_id)
+          .eq("id", item.material_id as string)
           .single();
         
         if (matGetError || !material) throw new Error("Material não encontrado");
@@ -75,7 +75,7 @@ export const processProductionCompletion = createServerFn({ method: "POST" })
         const { error: matUpdateError } = await supabase
           .from("materials")
           .update({ current_stock: (material.current_stock || 0) - neededQty })
-          .eq("id", item.material_id);
+          .eq("id", item.material_id as string);
         
         if (matUpdateError) throw matUpdateError;
       }
@@ -90,7 +90,7 @@ export const processProductionCompletion = createServerFn({ method: "POST" })
         current_stock: currentProdStock + quantity,
         updated_at: new Date().toISOString()
       })
-      .eq("id", productId);
+      .eq("id", productId as string);
     
     if (prodUpdateError) throw prodUpdateError;
 
