@@ -264,13 +264,20 @@ export const startProduction = createServerFn({ method: "POST" })
     }
 
     // C. Update status
-    const { error: startError } = await supabase.from("production_orders").update({
+    console.log("StartProduction: Updating order status for ID:", orderId);
+    const { data: updatedOrder, error: startError } = await supabase.from("production_orders").update({
       status: "ongoing",
       started_at: new Date().toISOString(),
       materiais_baixados: true
-    }).eq("id", orderId);
+    }).eq("id", orderId).select().maybeSingle();
 
-    if (startError) throw startError;
+    if (startError) {
+      console.error("StartProduction: Status update error:", startError);
+      throw startError;
+    }
+    
+    console.log("StartProduction: Success. Updated order:", updatedOrder);
+
 
     return { success: true };
   });
