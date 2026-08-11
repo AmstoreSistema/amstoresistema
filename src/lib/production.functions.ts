@@ -10,7 +10,7 @@ export const processProductionCompletion = createServerFn({ method: "POST" })
       .from("production_orders")
       .select("*, products(*)")
       .eq("id", orderId)
-      .single();
+      .maybeSingle();
 
     if (orderError || !order) {
       throw new Error(orderError?.message || "Order not found");
@@ -134,48 +134,56 @@ export const processProductionCompletion = createServerFn({ method: "POST" })
 export const deleteProductionOrder = createServerFn({ method: "POST" })
   .inputValidator((data) => z.object({ orderId: z.string() }).parse(data))
   .handler(async ({ data: { orderId } }) => {
+    console.log("Starting deleteProductionOrder for ID:", orderId);
+    
     // 1. Get the order
     const { data: order, error: orderError } = await supabase
       .from("production_orders")
       .select("*, products(*)")
       .eq("id", orderId)
-      .single();
+      .maybeSingle();
 
-    if (orderError || !order) {
-      throw new Error(orderError?.message || "Ordem não encontrada");
+    if (orderError) {
+      console.error("Order fetch error:", orderError);
+      throw new Error(orderError.message);
+    }
+    
+    if (!order) {
+      console.error("Order not found for ID:", orderId);
+      throw new Error("Ordem não encontrada");
     }
 
     const productId = order.product_id;
     const quantity = order.quantity;
 
     // 2. Reverse stock if materials were already baixados
-    if (order.materiais_baixados && order.status !== "cancelado") {
-      if (!productId) throw new Error("Produto não vinculado");
+    if (order.materiais_baixados && order.status !== "cancelado" && order.status !== "cancelled") {
+      if (productId) {
+        const { data: composition } = await supabase
+          .from("product_materials")
+          .select("*")
+          .eq("product_id", productId);
 
-      const { data: composition } = await supabase
-        .from("product_materials")
-        .select("*")
-        .eq("product_id", productId);
+        for (const item of composition || []) {
+          const neededQty = (item.quantity || 0) * quantity;
 
-      for (const item of composition || []) {
-        const neededQty = (item.quantity || 0) * quantity;
-
-        if (item.material_cut_id) {
-          const { error: cutError } = await supabase.from("material_cuts").update({ status: "reservado" }).eq("id", item.material_cut_id);
-          if (cutError) throw cutError;
-        } else if (item.material_variation_id) {
-          const { data: variation, error: vError } = await supabase.from("material_variations").select("current_stock").eq("id", item.material_variation_id).maybeSingle();
-          if (vError) throw vError;
-          if (variation) {
-            const { error: updError } = await supabase.from("material_variations").update({ current_stock: (variation.current_stock || 0) + neededQty }).eq("id", item.material_variation_id);
-            if (updError) throw updError;
-          }
-        } else if (item.material_id) {
-          const { data: material, error: mError } = await supabase.from("materials").select("current_stock").eq("id", item.material_id).maybeSingle();
-          if (mError) throw mError;
-          if (material) {
-            const { error: updError } = await supabase.from("materials").update({ current_stock: (material.current_stock || 0) + neededQty }).eq("id", item.material_id);
-            if (updError) throw updError;
+          if (item.material_cut_id) {
+            const { error: cutError } = await supabase.from("material_cuts").update({ status: "reservado" }).eq("id", item.material_cut_id);
+            if (cutError) throw cutError;
+          } else if (item.material_variation_id) {
+            const { data: variation, error: vError } = await supabase.from("material_variations").select("current_stock").eq("id", item.material_variation_id).maybeSingle();
+            if (vError) throw vError;
+            if (variation) {
+              const { error: updError } = await supabase.from("material_variations").update({ current_stock: (variation.current_stock || 0) + neededQty }).eq("id", item.material_variation_id);
+              if (updError) throw updError;
+            }
+          } else if (item.material_id) {
+            const { data: material, error: mError } = await supabase.from("materials").select("current_stock").eq("id", item.material_id).maybeSingle();
+            if (mError) throw mError;
+            if (material) {
+              const { error: updError } = await supabase.from("materials").update({ current_stock: (material.current_stock || 0) + neededQty }).eq("id", item.material_id);
+              if (updError) throw updError;
+            }
           }
         }
       }
@@ -184,14 +192,18 @@ export const deleteProductionOrder = createServerFn({ method: "POST" })
     // 3. If completed, remove from stock_products
     if (order.status === "completed") {
       const { error: stockDelError } = await supabase.from("stock_products").delete().eq("ordem_producao_id", orderId);
-      if (stockDelError) throw stockDelError;
+      if (stockDelError) {
+        console.error("Stock product delete error:", stockDelError);
+      }
       
       // Also update global product stock
       const productData = order.products as any;
       const currentProdStock = productData?.current_stock || 0;
       if (productId) {
         const { error: prodUpdError } = await supabase.from("products").update({ current_stock: Math.max(0, currentProdStock - quantity) }).eq("id", productId);
-        if (prodUpdError) throw prodUpdError;
+        if (prodUpdError) {
+          console.error("Global product stock update error:", prodUpdError);
+        }
       }
     }
 
@@ -212,7 +224,7 @@ export const startProduction = createServerFn({ method: "POST" })
       .from("production_orders")
       .select("*, products(*)")
       .eq("id", orderId)
-      .single();
+      .maybeSingle();
 
     if (error || !order) throw new Error("Ordem não encontrada");
     if (order.status !== "pending") throw new Error("Apenas ordens pendentes podem ser iniciadas");
@@ -261,7 +273,7 @@ export const startProduction = createServerFn({ method: "POST" })
 export const cancelProduction = createServerFn({ method: "POST" })
   .inputValidator((data) => z.object({ orderId: z.string() }).parse(data))
   .handler(async ({ data: { orderId } }) => {
-    const { data: order, error } = await supabase.from("production_orders").select("*").eq("id", orderId).single();
+    const { data: order, error } = await supabase.from("production_orders").select("*").eq("id", orderId).maybeSingle();
     if (error || !order) throw new Error("Ordem não encontrada");
     if (order.status === "completed") throw new Error("Não é possível cancelar uma ordem concluída");
 
