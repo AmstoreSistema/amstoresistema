@@ -504,6 +504,15 @@ function ProductionPage() {
               <Label>Data Prevista de Conclusão</Label>
               <Input type="date" value={newOrder.data_prevista || ""} onChange={e => setNewOrder({ ...newOrder, data_prevista: e.target.value })} />
             </div>
+            {newOrder.product_id && (
+              <div className="bg-gold/5 border border-gold/20 p-3 rounded-xl flex items-center justify-between">
+                <div>
+                  <p className="text-[10px] uppercase font-bold text-gold tracking-widest">Código da Ordem Sugerido</p>
+                  <p className="font-mono text-sm font-bold">OP-{Date.now().toString().slice(-8)}</p>
+                </div>
+                <Badge variant="outline" className="border-gold/30 text-gold text-[10px]">AUTO-GERADO</Badge>
+              </div>
+            )}
             <div className="grid gap-2">
               <Label>Observações</Label>
               <Input value={newOrder.notes} onChange={e => setNewOrder({ ...newOrder, notes: e.target.value })} placeholder="Notas livres do operador..." />
@@ -511,10 +520,18 @@ function ProductionPage() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setNewOrderOpen(false)}>Cancelar</Button>
-            <Button onClick={createOrder}>Criar Ordem</Button>
+            <Button onClick={createOrder} className="bg-gradient-gold border-none shadow-gold font-bold">Criar Ordem</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <ProductionDocument 
+        order={selectedOrderDoc}
+        product={productById.get(selectedOrderDoc?.product_id as string)}
+        composition={orderComposition}
+        open={documentOpen}
+        onOpenChange={setDocumentOpen}
+      />
 
       <Dialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
         <DialogContent>
@@ -537,3 +554,4 @@ function ProductionPage() {
     </div>
   );
 }
+
