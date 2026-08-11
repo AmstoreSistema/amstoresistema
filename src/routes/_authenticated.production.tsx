@@ -416,7 +416,6 @@ function ProductionPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      </Dialog>
 
       <Dialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
         <DialogContent>
