@@ -182,7 +182,9 @@ function ProductionPage() {
         await startProduction({ data: { orderId: order.id } });
         if (loadingToast) toast.dismiss(loadingToast);
         toast.success("Produção iniciada!");
-        qc.invalidateQueries();
+        await qc.invalidateQueries({ queryKey: ["production_orders"] });
+        await qc.refetchQueries({ queryKey: ["production_orders"] });
+
       } catch (err: any) {
         if (loadingToast) toast.dismiss(loadingToast);
         toast.error(err.message || "Erro ao iniciar");
