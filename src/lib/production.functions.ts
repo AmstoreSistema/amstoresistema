@@ -177,7 +177,7 @@ export const deleteProductionOrder = createServerFn({ method: "POST" })
       // Also update global product stock
       const productData = order.products as any;
       const currentProdStock = productData?.current_stock || 0;
-      await supabase.from("products").update({ current_stock: Math.max(0, currentProdStock - quantity) }).eq("id", productId);
+      if (productId) await supabase.from("products").update({ current_stock: Math.max(0, currentProdStock - quantity) }).eq("id", productId);
     }
 
     // 4. Delete the order
