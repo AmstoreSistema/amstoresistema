@@ -904,7 +904,9 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      complete_production_order: { Args: { _order_id: string }; Returns: Json }
+      delete_production_order: { Args: { _order_id: string }; Returns: Json }
+      start_production_order: { Args: { _order_id: string }; Returns: Json }
     }
     Enums: {
       [_ in never]: never

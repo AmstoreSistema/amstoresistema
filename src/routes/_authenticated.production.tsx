@@ -6,7 +6,6 @@ import {
   Clock, 
   Plus, 
   Search,
-  MoreVertical,
   Package,
   Calendar,
   Trash2
@@ -36,12 +35,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { FileText } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useRows, logAudit } from "@/lib/data";
@@ -49,9 +42,7 @@ import { dateBR, num } from "@/lib/format";
 import { 
   processProductionCompletion, 
   deleteProductionOrder, 
-  startProduction, 
-  cancelProduction,
-  resetProductionSystem
+  startProduction
 } from "@/lib/production.functions";
 import { ProductionDocument } from "@/components/production/ProductionDocument";
 
@@ -61,6 +52,10 @@ export const Route = createFileRoute("/_authenticated/production")({
     meta: [
       { title: "Produção — Amstore Gestão" },
       { name: "description", content: "Gerencie ordens de produção e estoque de materiais." },
+      { property: "og:title", content: "Produção — Amstore Gestão" },
+      { property: "og:description", content: "Gerencie ordens de produção e estoque de materiais." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: ProductionPage,
@@ -114,6 +109,7 @@ function ProductionPage() {
   const [selectedOrderDoc, setSelectedOrderDoc] = useState<ProductionOrder | null>(null);
   const [orderComposition, setOrderComposition] = useState<any[]>([]);
   const [nextCode, setNextCode] = useState("");
+  const [processingOrderId, setProcessingOrderId] = useState<string | null>(null);
 
   const openNewOrder = () => {
     setNextCode(`OP-${Date.now()}`);
@@ -175,32 +171,36 @@ function ProductionPage() {
   };
 
   const updateStatus = async (order: any, newStatus: string) => {
+    if (processingOrderId) return;
+
     if (newStatus === "ongoing") {
-      let loadingToast: string | number | undefined;
+      const loadingToast = toast.loading("Iniciando produção e baixando materiais...");
+      setProcessingOrderId(order.id);
       try {
-        loadingToast = toast.loading("Iniciando produção e baixando materiais...");
         await startProduction({ data: { orderId: order.id } });
-        if (loadingToast) toast.dismiss(loadingToast);
-        toast.success("Produção iniciada!");
         await qc.invalidateQueries({ queryKey: ["production_orders"] });
         await qc.refetchQueries({ queryKey: ["production_orders"] });
-
+        await qc.invalidateQueries({ queryKey: ["materials"] });
+        await qc.invalidateQueries({ queryKey: ["material_variations"] });
+        await qc.invalidateQueries({ queryKey: ["material_cuts"] });
+        toast.success("Produção iniciada e materiais baixados.");
       } catch (err: any) {
-        if (loadingToast) toast.dismiss(loadingToast);
         toast.error(err.message || "Erro ao iniciar");
+      } finally {
+        toast.dismiss(loadingToast);
+        setProcessingOrderId(null);
       }
       return;
     }
 
     if (newStatus === "completed") {
-      let loadingToast: string | number | undefined;
+      const loadingToast = toast.loading("Concluindo produção e lançando no estoque...");
+      setProcessingOrderId(order.id);
       try {
-        loadingToast = toast.loading("Processando baixa de materiais e entrada de estoque...");
         await processProductionCompletion({ data: { orderId: order.id } });
-        if (loadingToast) toast.dismiss(loadingToast);
-        toast.success(`Produção de ${order.quantity} unidade(s) concluída com sucesso!`);
-
-        qc.invalidateQueries();
+        await qc.invalidateQueries({ queryKey: ["production_orders"] });
+        await qc.invalidateQueries({ queryKey: ["products"] });
+        await qc.invalidateQueries({ queryKey: ["stock_products"] });
         await logAudit("producao", "production_orders", `Ordem ${order.id} concluída. Estoque atualizado.`);
         
         const { data: composition } = await supabase
@@ -211,10 +211,13 @@ function ProductionPage() {
         setSelectedOrderDoc({ ...order, status: 'completed', completed_at: new Date().toISOString() });
         setOrderComposition(composition || []);
         setDocumentOpen(true);
+        toast.success(`Produção de ${order.quantity} unidade(s) concluída e lançada no estoque.`);
       } catch (error: any) {
         console.error(error);
-        if (loadingToast) toast.dismiss(loadingToast);
         toast.error(error.message || "Erro ao concluir produção");
+      } finally {
+        toast.dismiss(loadingToast);
+        setProcessingOrderId(null);
       }
       return;
     }
@@ -236,21 +239,26 @@ function ProductionPage() {
 
   const handleDeleteOrder = async () => {
     if (!orderToDelete) return;
+    if (processingOrderId) return;
     if (confirmText !== "CONFIRMAR") {
       toast.error("Digite CONFIRMAR para autorizar a exclusão");
       return;
     }
 
-    let loadingToast: string | number | undefined;
+    const loadingToast = toast.loading("Excluindo ordem e estornando estoque...");
+    setProcessingOrderId(orderToDelete.id);
     try {
-      loadingToast = toast.loading("Excluindo ordem e estornando materiais...");
       await deleteProductionOrder({ data: { orderId: orderToDelete.id } });
       
       const productName = productById.get(orderToDelete.product_id as string)?.name || "Produto";
       await logAudit("producao", "production_orders", `Ordem de produção de ${productName} excluída/estornada`);
       
-      await qc.invalidateQueries();
-      if (loadingToast) toast.dismiss(loadingToast);
+      await qc.invalidateQueries({ queryKey: ["production_orders"] });
+      await qc.invalidateQueries({ queryKey: ["products"] });
+      await qc.invalidateQueries({ queryKey: ["stock_products"] });
+      await qc.invalidateQueries({ queryKey: ["materials"] });
+      await qc.invalidateQueries({ queryKey: ["material_variations"] });
+      await qc.invalidateQueries({ queryKey: ["material_cuts"] });
       toast.success("Ordem excluída com sucesso!");
 
       setDeleteConfirmOpen(false);
@@ -258,8 +266,10 @@ function ProductionPage() {
       setConfirmText("");
     } catch (error: any) {
       console.error(error);
-      if (loadingToast) toast.dismiss(loadingToast);
       toast.error(error.message || "Erro ao excluir ordem");
+    } finally {
+      toast.dismiss(loadingToast);
+      setProcessingOrderId(null);
     }
 
 
@@ -437,6 +447,7 @@ function ProductionPage() {
                             size="sm" 
                             className="h-8 gap-1.5 text-[10px] font-bold uppercase tracking-wider border-gold/30 hover:bg-gold/10"
                             onClick={() => updateStatus(order, "ongoing")}
+                            disabled={processingOrderId === order.id}
                           >
                             <Play className="size-3" /> Iniciar
                           </Button>
@@ -447,6 +458,7 @@ function ProductionPage() {
                             size="sm" 
                             className="h-8 gap-1.5 text-[10px] font-bold uppercase tracking-wider border-success/30 hover:bg-success/10 text-success"
                             onClick={() => updateStatus(order, "completed")}
+                            disabled={processingOrderId === order.id}
                           >
                             <CheckCircle2 className="size-3" /> Concluir
                           </Button>
@@ -470,6 +482,7 @@ function ProductionPage() {
                             setOrderToDelete(order);
                             setDeleteConfirmOpen(true);
                           }}
+                          disabled={processingOrderId === order.id}
                           title={order.status === "completed" ? "Excluir (Estornar Estoque)" : "Cancelar/Excluir Ordem"}
                         >
                           <Trash2 className="size-4" />
@@ -586,7 +599,7 @@ function ProductionPage() {
             <Button 
               variant="destructive" 
               onClick={handleDeleteOrder}
-              disabled={confirmText !== "CONFIRMAR"}
+              disabled={confirmText !== "CONFIRMAR" || processingOrderId === orderToDelete?.id}
             >
               Confirmar Exclusão
             </Button>
