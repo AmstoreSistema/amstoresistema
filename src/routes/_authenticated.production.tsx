@@ -105,7 +105,7 @@ function ProductionPage() {
 
   const filtered = useMemo(() => {
     return orders.filter(o => {
-      const productName = productById.get(o.product_id)?.name || "";
+      const productName = productById.get(o.product_id as string)?.name || "";
       const matchesTerm = productName.toLowerCase().includes(term.toLowerCase());
       const matchesStatus = activeStatus === "Todos" || 
         (activeStatus === "Ativas" && ["pending", "ongoing"].includes(o.status)) ||
