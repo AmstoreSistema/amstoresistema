@@ -102,6 +102,7 @@ function ProductionPage() {
     notes: "" 
   });
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [confirmText, setConfirmText] = useState("");
   const [orderToDelete, setOrderToDelete] = useState<ProductionOrder | null>(null);
   const [documentOpen, setDocumentOpen] = useState(false);
   const [selectedOrderDoc, setSelectedOrderDoc] = useState<ProductionOrder | null>(null);
