@@ -333,7 +333,9 @@ function ProductionPage() {
                       <div className="flex justify-between items-start">
                         <div>
                           <h3 className="font-bold truncate text-lg">{product?.name || "Produto excluído"}</h3>
-                          <p className="text-[10px] text-muted-foreground font-mono">{order.codigo_ordem}</p>
+                          <p className="text-[10px] text-muted-foreground font-mono flex items-center gap-1">
+                            <span className="font-bold text-gold/80">#</span> {order.codigo_ordem}
+                          </p>
                         </div>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
@@ -342,42 +344,16 @@ function ProductionPage() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => openDocument(order)}>
-                              <FileText className="mr-2 size-4 text-gold" /> Ver DANFE de Produção
+                            <DropdownMenuItem 
+                              className="text-destructive font-bold"
+                              onClick={() => {
+                                setOrderToDelete(order);
+                                setDeleteConfirmOpen(true);
+                              }}
+                            >
+                              <Trash2 className="mr-2 size-4" /> 
+                              {order.status === "completed" ? "Excluir (Estornar Estoque)" : "Cancelar/Excluir Ordem"}
                             </DropdownMenuItem>
-                            {order.status === "pending" && (
-
-                              <DropdownMenuItem onClick={() => updateStatus(order, "ongoing")}>
-                                <Play className="mr-2 size-4" /> Iniciar Produção
-                              </DropdownMenuItem>
-                            )}
-                            {order.status === "ongoing" && (
-                              <DropdownMenuItem onClick={() => updateStatus(order, "completed")}>
-                                <CheckCircle2 className="mr-2 size-4 text-success" /> Concluir Produção
-                              </DropdownMenuItem>
-                            )}
-                            {order.status !== "completed" && (
-                              <DropdownMenuItem 
-                                className="text-destructive"
-                                onClick={() => {
-                                  setOrderToDelete(order);
-                                  setDeleteConfirmOpen(true);
-                                }}
-                              >
-                                <Trash2 className="mr-2 size-4" /> Cancelar/Excluir Ordem
-                              </DropdownMenuItem>
-                            )}
-                            {order.status === "completed" && (
-                              <DropdownMenuItem 
-                                className="text-destructive font-bold"
-                                onClick={() => {
-                                  setOrderToDelete(order);
-                                  setDeleteConfirmOpen(true);
-                                }}
-                              >
-                                <Trash2 className="mr-2 size-4" /> Excluir (Estornar Estoque)
-                              </DropdownMenuItem>
-                            )}
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </div>
@@ -387,10 +363,14 @@ function ProductionPage() {
 
                   <div className="px-5 pb-5 space-y-4">
                     <div className="flex justify-between items-center text-sm">
-                      <div className="flex items-center gap-2">
-                        <span className="text-muted-foreground">Qtd:</span>
-                        <span className="font-bold">{num(order.quantity, 0)} un</span>
-                      </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-muted-foreground">Ordem:</span>
+                          <span className="font-mono font-bold text-xs">{order.codigo_ordem}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-muted-foreground">Qtd:</span>
+                          <span className="font-bold">{num(order.quantity, 0)} un</span>
+                        </div>
                       {getPriorityBadge(order.priority)}
                     </div>
 
