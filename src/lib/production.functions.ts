@@ -227,7 +227,7 @@ export const startProduction = createServerFn({ method: "POST" })
       .from("production_orders")
       .select("*, products(*)")
       .eq("id", orderId)
-      .single();
+      .maybeSingle();
 
     if (error || !order) throw new Error("Ordem não encontrada");
     if (order.status !== "pending") throw new Error("Apenas ordens pendentes podem ser iniciadas");
