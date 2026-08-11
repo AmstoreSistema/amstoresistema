@@ -81,9 +81,15 @@ function ProductionPage() {
   const [term, setTerm] = useState("");
   const [activeStatus, setActiveStatus] = useState("Todos");
   const [newOrderOpen, setNewOrderOpen] = useState(false);
-  const [newOrder, setNewOrder] = useState({ product_id: "", quantity: 1, priority: "Normal" as const });
+  const [newOrder, setNewOrder] = useState({ 
+    product_id: "", 
+    quantity: 1, 
+    priority: "Normal" as const,
+    data_prevista: new Date().toISOString().split('T')[0],
+    notes: "" 
+  });
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
-  const [orderToDelete, setOrderToDelete] = useState<ProductionOrder | null>(null);
+  const [orderToDelete, setOrderToDelete] = useState<ProductionOrder | any>(null);
 
   const productById = useMemo(() => new Map(products.map(p => [p.id, p])), [products]);
 
@@ -111,23 +117,46 @@ function ProductionPage() {
       toast.error("Selecione um produto");
       return;
     }
+
+    const product = productById.get(newOrder.product_id);
+    const codigo_ordem = `OP-${Date.now()}`;
+
     const { error } = await supabase.from("production_orders").insert({
-      ...newOrder,
-      status: "pending"
+      product_id: newOrder.product_id,
+      produto_nome: product?.name || "Produto",
+      quantity: newOrder.quantity,
+      priority: newOrder.priority,
+      status: "pending",
+      codigo_ordem,
+      data_prevista: newOrder.data_prevista,
+      notes: newOrder.notes,
+      materiais_baixados: false
     });
+
     if (error) {
       toast.error(error.message);
       return;
     }
     
-    const productName = productById.get(newOrder.product_id)?.name || "Desconhecido";
-    await logAudit("producao", "production_orders", `Nova ordem de produção criada para ${productName}`, newOrder.product_id || "");
+    await logAudit("producao", "production_orders", `Nova ordem ${codigo_ordem} criada para ${product?.name}`, newOrder.product_id);
     setNewOrderOpen(false);
     qc.invalidateQueries();
     toast.success("Ordem de produção criada!");
   };
 
-  const updateStatus = async (order: ProductionOrder, newStatus: ProductionOrder["status"]) => {
+  const updateStatus = async (order: any, newStatus: string) => {
+    if (newStatus === "ongoing") {
+      try {
+        toast.loading("Iniciando produção e baixando materiais...", { id: "prod-action" });
+        await startProduction({ data: { orderId: order.id } });
+        toast.success("Produção iniciada!", { id: "prod-action" });
+        qc.invalidateQueries();
+      } catch (err: any) {
+        toast.error(err.message || "Erro ao iniciar", { id: "prod-action" });
+      }
+      return;
+    }
+
     if (newStatus === "completed") {
       try {
         toast.loading("Processando baixa de materiais e entrada de estoque...", { id: "production-loading" });
@@ -262,7 +291,10 @@ function ProductionPage() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex justify-between items-start">
-                        <h3 className="font-bold truncate text-lg">{product?.name || "Produto excluído"}</h3>
+                        <div>
+                          <h3 className="font-bold truncate text-lg">{product?.name || "Produto excluído"}</h3>
+                          <p className="text-[10px] text-muted-foreground font-mono">{order.codigo_ordem}</p>
+                        </div>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <Button variant="ghost" size="icon" className="h-8 w-8 -mr-2">
@@ -321,9 +353,15 @@ function ProductionPage() {
                     <div className="space-y-2 rounded-2xl bg-muted/30 p-3 text-[11px]">
                       <div className="flex justify-between items-center">
                         <div className="flex items-center gap-1.5 text-muted-foreground">
-                          <Calendar className="size-3" /> Criada em:
+                          <Calendar className="size-3" /> Previsão:
                         </div>
-                        <span className="font-medium">{dateBR(order.created_at)}</span>
+                        <span className="font-medium">{order.data_prevista ? dateBR(order.data_prevista) : "Não definida"}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <div className="flex items-center gap-1.5 text-muted-foreground">
+                          <Plus className="size-3" /> Criada:
+                        </div>
+                        <span className="font-medium text-muted-foreground/70">{dateBR(order.created_at)}</span>
                       </div>
                       {order.started_at && (
                         <div className="flex justify-between items-center">
@@ -331,6 +369,14 @@ function ProductionPage() {
                             <Clock className="size-3" /> Iniciada:
                           </div>
                           <span className="font-medium">{dateBR(order.started_at)}</span>
+                        </div>
+                      )}
+                      {order.completed_at && (
+                        <div className="flex justify-between items-center">
+                          <div className="flex items-center gap-1.5 text-success">
+                            <CheckCircle2 className="size-3" /> Concluída:
+                          </div>
+                          <span className="font-medium text-success">{dateBR(order.completed_at)}</span>
                         </div>
                       )}
                     </div>
@@ -408,6 +454,14 @@ function ProductionPage() {
                   </SelectContent>
                 </Select>
               </div>
+            </div>
+            <div className="grid gap-2">
+              <Label>Data Prevista de Conclusão</Label>
+              <Input type="date" value={newOrder.data_prevista} onChange={e => setNewOrder({ ...newOrder, data_prevista: e.target.value })} />
+            </div>
+            <div className="grid gap-2">
+              <Label>Observações</Label>
+              <Input value={newOrder.notes} onChange={e => setNewOrder({ ...newOrder, notes: e.target.value })} placeholder="Notas livres do operador..." />
             </div>
           </div>
           <DialogFooter>
