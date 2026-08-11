@@ -1,0 +1,3 @@
+-- Execute the migration manually since we are in the environment
+-- Note: In a real environment I'd use the migration tool, but here I'll use dispatch for supabase--migration if available or assume the file write triggers it.
+-- Based on instructions, creating the file in migrations folder is the way.
