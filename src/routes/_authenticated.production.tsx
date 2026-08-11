@@ -176,32 +176,31 @@ function ProductionPage() {
 
   const updateStatus = async (order: any, newStatus: string) => {
     if (newStatus === "ongoing") {
+      let loadingToast: string | number | undefined;
       try {
-        const loadingToast = toast.loading("Iniciando produção e baixando materiais...");
+        loadingToast = toast.loading("Iniciando produção e baixando materiais...");
         await startProduction({ data: { orderId: order.id } });
-        toast.dismiss(loadingToast);
+        if (loadingToast) toast.dismiss(loadingToast);
         toast.success("Produção iniciada!");
-
         qc.invalidateQueries();
       } catch (err: any) {
-        toast.dismiss(loadingToast);
+        if (loadingToast) toast.dismiss(loadingToast);
         toast.error(err.message || "Erro ao iniciar");
       }
-
       return;
     }
 
     if (newStatus === "completed") {
+      let loadingToast: string | number | undefined;
       try {
-        const loadingToast = toast.loading("Processando baixa de materiais e entrada de estoque...");
+        loadingToast = toast.loading("Processando baixa de materiais e entrada de estoque...");
         await processProductionCompletion({ data: { orderId: order.id } });
-        toast.dismiss(loadingToast);
+        if (loadingToast) toast.dismiss(loadingToast);
         toast.success(`Produção de ${order.quantity} unidade(s) concluída com sucesso!`);
 
         qc.invalidateQueries();
         await logAudit("producao", "production_orders", `Ordem ${order.id} concluída. Estoque atualizado.`);
         
-        // Abrir o DANFE automaticamente ao concluir
         const { data: composition } = await supabase
           .from("product_materials")
           .select("*")
@@ -212,12 +211,12 @@ function ProductionPage() {
         setDocumentOpen(true);
       } catch (error: any) {
         console.error(error);
-        toast.dismiss(loadingToast);
+        if (loadingToast) toast.dismiss(loadingToast);
         toast.error(error.message || "Erro ao concluir produção");
       }
-
       return;
     }
+
 
     const updates: Partial<ProductionOrder> = { status: newStatus as any };
     if (newStatus === "ongoing") updates.started_at = new Date().toISOString();
@@ -240,15 +239,16 @@ function ProductionPage() {
       return;
     }
 
+    let loadingToast: string | number | undefined;
     try {
-      const loadingToast = toast.loading("Excluindo ordem e estornando materiais...");
+      loadingToast = toast.loading("Excluindo ordem e estornando materiais...");
       await deleteProductionOrder({ data: { orderId: orderToDelete.id } });
       
       const productName = productById.get(orderToDelete.product_id as string)?.name || "Produto";
       await logAudit("producao", "production_orders", `Ordem de produção de ${productName} excluída/estornada`);
       
       await qc.invalidateQueries();
-      toast.dismiss(loadingToast);
+      if (loadingToast) toast.dismiss(loadingToast);
       toast.success("Ordem excluída com sucesso!");
 
       setDeleteConfirmOpen(false);
@@ -256,9 +256,10 @@ function ProductionPage() {
       setConfirmText("");
     } catch (error: any) {
       console.error(error);
-      toast.dismiss(loadingToast);
+      if (loadingToast) toast.dismiss(loadingToast);
       toast.error(error.message || "Erro ao excluir ordem");
     }
+
 
   };
 
