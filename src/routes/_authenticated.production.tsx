@@ -42,10 +42,13 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { FileText } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useRows, logAudit } from "@/lib/data";
 import { dateBR, num } from "@/lib/format";
 import { processProductionCompletion, deleteProductionOrder, startProduction, cancelProduction } from "@/lib/production.functions";
+import { ProductionDocument } from "@/components/production/ProductionDocument";
+
 
 export const Route = createFileRoute("/_authenticated/production")({
   head: () => ({
@@ -100,6 +103,10 @@ function ProductionPage() {
   });
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [orderToDelete, setOrderToDelete] = useState<ProductionOrder | null>(null);
+  const [documentOpen, setDocumentOpen] = useState(false);
+  const [selectedOrderDoc, setSelectedOrderDoc] = useState<ProductionOrder | null>(null);
+  const [orderComposition, setOrderComposition] = useState<any[]>([]);
+
 
   const productById = useMemo(() => new Map(products.map(p => [p.id, p])), [products]);
 
@@ -215,6 +222,23 @@ function ProductionPage() {
     }
   };
 
+  const openDocument = async (order: ProductionOrder) => {
+    setSelectedOrderDoc(order);
+    
+    // Buscar a composição do produto no momento da ordem
+    if (order.product_id) {
+      const { data } = await supabase
+        .from("product_materials")
+        .select("*")
+        .eq("product_id", order.product_id);
+      
+      setOrderComposition(data || []);
+    }
+    
+    setDocumentOpen(true);
+  };
+
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "pending": return <Badge variant="outline" className="border-gold/50 text-gold bg-gold/5">Pendente</Badge>;
@@ -312,7 +336,11 @@ function ProductionPage() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => openDocument(order)}>
+                              <FileText className="mr-2 size-4 text-gold" /> Ver DANFE de Produção
+                            </DropdownMenuItem>
                             {order.status === "pending" && (
+
                               <DropdownMenuItem onClick={() => updateStatus(order, "ongoing")}>
                                 <Play className="mr-2 size-4" /> Iniciar Produção
                               </DropdownMenuItem>
