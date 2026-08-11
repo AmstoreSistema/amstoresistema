@@ -333,7 +333,9 @@ function ProductionPage() {
                       <div className="flex justify-between items-start">
                         <div>
                           <h3 className="font-bold truncate text-lg">{product?.name || "Produto excluído"}</h3>
-                          <p className="text-[10px] text-muted-foreground font-mono">{order.codigo_ordem}</p>
+                          <p className="text-[10px] text-muted-foreground font-mono flex items-center gap-1">
+                            <span className="font-bold text-gold/80">#</span> {order.codigo_ordem}
+                          </p>
                         </div>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
