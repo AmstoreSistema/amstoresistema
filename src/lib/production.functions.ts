@@ -309,3 +309,26 @@ export const cancelProduction = createServerFn({ method: "POST" })
     if (cancelError) throw cancelError;
     return { success: true };
   });
+
+export const resetProductionSystem = createServerFn({ method: "POST" })
+  .handler(async () => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    
+    // 1. Delete all production orders
+    const { error: poError } = await supabaseAdmin.from("production_orders").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+    if (poError) throw poError;
+
+    // 2. Delete all stock products
+    const { error: spError } = await supabaseAdmin.from("stock_products").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+    if (spError) throw spError;
+
+    // 3. Reset all product current_stock to 0
+    const { error: pError } = await supabaseAdmin.from("products").update({ current_stock: 0 }).neq("id", "00000000-0000-0000-0000-000000000000");
+    if (pError) throw pError;
+
+    // 4. (Optional but requested) Reset material stocks
+    await supabaseAdmin.from("material_variations").update({ current_stock: 1000 }).neq("id", "00000000-0000-0000-0000-000000000000");
+    await supabaseAdmin.from("materials").update({ current_stock: 1000 }).neq("id", "00000000-0000-0000-0000-000000000000");
+
+    return { success: true };
+  });
