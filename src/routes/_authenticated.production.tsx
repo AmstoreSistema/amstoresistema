@@ -95,7 +95,7 @@ function ProductionPage() {
     product_id: "", 
     quantity: 1, 
     priority: "Normal",
-    data_prevista: new Date().toISOString().split('T')[0],
+    data_prevista: new Date().toISOString().split('T')[0] as string | null,
     notes: "" 
   });
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
