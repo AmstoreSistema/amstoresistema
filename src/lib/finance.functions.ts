@@ -22,12 +22,12 @@ export const createTransaction = createServerFn({ method: "POST" })
         amount: data.type === "saida" ? -Math.abs(data.amount) : Math.abs(data.amount),
         description: data.description,
         account_id: data.account_id,
-        category: data.category || null,
+        category: data.category ?? null,
         status: data.status,
-        due_date: data.due_date || null,
-        reference_id: data.reference_id || null,
-        reference_type: data.reference_type || null
-      });
+        due_date: data.due_date ?? null,
+        reference_id: data.reference_id ?? null,
+        reference_type: data.reference_type ?? null
+      } as any);
 
     if (error) throw new Error(error.message);
     return { success: true };
@@ -41,7 +41,7 @@ export const updateTransactionStatus = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { error } = await supabase
       .from("transactions")
-      .update({ status: data.status })
+      .update({ status: data.status } as any)
       .eq("id", data.id);
 
     if (error) throw new Error(error.message);
