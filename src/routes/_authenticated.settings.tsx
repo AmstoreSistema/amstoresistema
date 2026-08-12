@@ -242,8 +242,10 @@ function SettingsPage() {
       try {
         const payload = JSON.parse(event.target?.result as string);
         
-        // Check if it's a Base44 backup
-        if (payload.tabelas && payload.versao === "1.0") {
+        // Check if it's a Base44 backup (versao can be a string or number)
+        const isBase44 = payload.tabelas && (payload.versao === "1.0" || payload.versao === 1.0 || payload.versao === 1);
+        
+        if (isBase44) {
           toast.info("Backup Base44 detectado. Mapeando dados...");
           
           setSaving(true);
