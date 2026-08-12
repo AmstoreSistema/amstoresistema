@@ -95,6 +95,41 @@ export type Database = {
         }
         Relationships: []
       }
+      cashback_config: {
+        Row: {
+          active: boolean
+          cashback_percent: number
+          category_id: string | null
+          created_at: string | null
+          id: string
+          updated_at: string | null
+        }
+        Insert: {
+          active?: boolean
+          cashback_percent?: number
+          category_id?: string | null
+          created_at?: string | null
+          id?: string
+          updated_at?: string | null
+        }
+        Update: {
+          active?: boolean
+          cashback_percent?: number
+          category_id?: string | null
+          created_at?: string | null
+          id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cashback_config_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: true
+            referencedRelation: "material_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cashback_entries: {
         Row: {
           amount: number
@@ -1224,6 +1259,10 @@ export type Database = {
             Returns: string
           }
       delete_production_order: { Args: { _order_id: string }; Returns: Json }
+      get_cashback_percent_by_category: {
+        Args: { p_category_name: string }
+        Returns: number
+      }
       p_total_amount_calculated: {
         Args: { p_discount: number; p_items: Json }
         Returns: number

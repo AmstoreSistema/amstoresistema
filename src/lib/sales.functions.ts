@@ -57,8 +57,45 @@ export const createSale = createServerFn({ method: "POST" })
       p_total_amount: data.total_amount
     }, null, 2));
 
+    // Calculate cashback based on categories if not provided
+    let calculatedCashbackEarned = data.cashback_earned;
+    
+    if (calculatedCashbackEarned === 0 && data.items.length > 0 && data.client_id) {
+      const { supabaseAdmin: admin } = await import("@/integrations/supabase/client.server");
+      
+      // Get all products in the sale to find their categories
+      const productIds = [...new Set(data.items.map(i => i.product_id))];
+      const { data: products } = await admin
+        .from("products")
+        .select("id, category")
+        .in("id", productIds);
+      
+      if (products && products.length > 0) {
+        // Get cashback configs
+        const { data: configs } = await admin
+          .from("cashback_config")
+          .select("cashback_percent, material_categories(name)")
+          .eq("active", true);
+        
+        if (configs && configs.length > 0) {
+          let totalEarned = 0;
+          for (const item of data.items) {
+            const product = products.find(p => p.id === item.product_id);
+            if (!product) continue;
+            
+            const config = configs.find(c => (c.material_categories as any)?.name === product.category);
+            if (config) {
+              const itemTotal = (item.unit_price * item.quantity) - (item.discount || 0);
+              totalEarned += (itemTotal * Number(config.cashback_percent)) / 100;
+            }
+          }
+          calculatedCashbackEarned = Math.floor(totalEarned);
+        }
+      }
+    }
+
     const { data: saleId, error } = await (admin.rpc as any)('create_complete_sale', {
-      p_cashback_earned: data.cashback_earned,
+      p_cashback_earned: calculatedCashbackEarned,
       p_cashback_used: data.cashback_used,
       p_client_id: data.client_id,
       p_created_at: data.created_at,
@@ -75,9 +112,6 @@ export const createSale = createServerFn({ method: "POST" })
       p_sale_type: data.sale_type,
       p_total_amount: data.total_amount
     });
-
-
-
 
     if (error) throw new Error(`Erro ao criar venda: ${error.message}`);
     return { saleId: saleId as string };

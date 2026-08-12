@@ -114,8 +114,34 @@ export function POSModal({ open, onOpenChange }: { open: boolean; onOpenChange: 
   const itemsDiscount = items.reduce((acc, item) => acc + (item.discount || 0), 0);
   const finalTotal = Math.max(0, subtotal - itemsDiscount - discount - cashbackToUse);
   
-  // Cashback earn (example 5%)
-  const cashbackEarned = Math.floor(finalTotal * 0.05);
+  // Cashback earned is now handled server-side in createSale, but we can show an estimate
+  const [estimatedCashback, setEstimatedCashback] = React.useState(0);
+  const { data: stockItemsData = [] } = useRows<any>("stock_products");
+  const { data: cashbackConfigs = [] } = useRows<any>("cashback_config", {
+    select: "*, material_categories(name)"
+  });
+
+  React.useEffect(() => {
+    if (items.length > 0 && cashbackConfigs.length > 0) {
+      let total = 0;
+      items.forEach(item => {
+        const itemTotal = (item.price * item.quantity) - (item.discount || 0);
+        const stockItem = stockItemsData.find((si: any) => si.id === item.stock_id);
+        const config = cashbackConfigs.find((c: any) => 
+          c.active && c.material_categories?.name === stockItem?.categoria
+        );
+        
+        if (config) {
+          total += (itemTotal * Number(config.cashback_percent)) / 100;
+        }
+      });
+      setEstimatedCashback(Math.floor(total));
+    } else {
+      setEstimatedCashback(0);
+    }
+  }, [items, cashbackConfigs, stockItemsData]);
+
+
 
   React.useEffect(() => {
     if (isDebt && finalTotal > 0) {
@@ -177,7 +203,7 @@ export function POSModal({ open, onOpenChange }: { open: boolean; onOpenChange: 
         paid_amount: isDebt ? 0 : finalTotal,
         is_debt: isDebt,
         cashback_used: cashbackToUse,
-        cashback_earned: cashbackEarned,
+        cashback_earned: 0, // Server-side will calculate
         notes: notes,
         sale_type: saleType,
          financial_account_id: accountId,
@@ -565,7 +591,7 @@ export function POSModal({ open, onOpenChange }: { open: boolean; onOpenChange: 
                      {client && (
                        <div className="text-right mb-1">
                           <p className="text-[8px] uppercase font-bold text-success tracking-tighter">Bônus Cashback</p>
-                          <p className="text-sm font-black text-success">+{brl(cashbackEarned)}</p>
+                          <p className="text-sm font-black text-success">+{brl(estimatedCashback)}</p>
                        </div>
                      )}
                   </div>
@@ -612,7 +638,7 @@ export function POSModal({ open, onOpenChange }: { open: boolean; onOpenChange: 
             total_amount: finalTotal,
             discount: discount + itemsDiscount,
             cashback_used: cashbackToUse,
-            cashback_earned: cashbackEarned,
+            cashback_earned: estimatedCashback,
             payment_method: isDebt ? "Fiado" : paymentMethod,
             is_debt: isDebt,
             installments: installments,
