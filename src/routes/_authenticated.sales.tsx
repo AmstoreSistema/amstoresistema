@@ -70,7 +70,13 @@ function SalesPage() {
   const filtered = useMemo(() => {
     return (sales as any[]).filter(s => {
       const clientName = clientById.get(s.client_id || "")?.name || "Consumidor";
-      return clientName.toLowerCase().includes(term.toLowerCase()) || s.id.toLowerCase().includes(term.toLowerCase());
+      const matchesSearch = clientName.toLowerCase().includes(term.toLowerCase()) || s.id.toLowerCase().includes(term.toLowerCase());
+      
+      if (term.toLowerCase() === "pending") {
+        return !!s.is_debt && String(s.status || "") !== "paid";
+      }
+      
+      return matchesSearch;
     });
   }, [sales, term, clientById]);
 
@@ -93,7 +99,7 @@ function SalesPage() {
       const dateStr = typeof createdAt === 'string' ? createdAt : "";
       return dateStr.slice(0, 10) === today;
     });
-    const fiados = data.filter(s => !!s.is_debt && (s.status ? String(s.status) : "") !== "paid");
+    const fiados = data.filter(s => !!s.is_debt && String(s.status || "") !== "paid");
     
     return {
       countToday: todaySales.length,
@@ -103,7 +109,14 @@ function SalesPage() {
   }, [sales]);
 
   const getStatusBadge = (s: any) => {
-    if (s.is_debt && String(s.status || "") !== "paid") return <Badge className="bg-destructive/10 text-destructive border-none">Pendente (Fiado)</Badge>;
+    if (s.is_debt && String(s.status || "") !== "paid") {
+      const isPartial = String(s.status || "") === "partial";
+      return (
+        <Badge className={`${isPartial ? 'bg-warning/10 text-warning' : 'bg-destructive/10 text-destructive'} border-none`}>
+          {isPartial ? 'Pendente (Parcial)' : 'Pendente (Fiado)'}
+        </Badge>
+      );
+    }
     return <Badge className="bg-success/10 text-success border-none">Pago</Badge>;
   };
 
@@ -130,8 +143,8 @@ function SalesPage() {
 
       </div>
 
-      <div className="flex gap-2">
-        <div className="relative flex-1 max-w-md">
+      <div className="flex flex-col sm:flex-row gap-4">
+        <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input 
             placeholder="Buscar por cliente ou código da venda..." 
@@ -140,7 +153,16 @@ function SalesPage() {
             onChange={e => setTerm(e.target.value)}
           />
         </div>
-        <Button variant="outline" size="icon" className="h-11 w-11 rounded-xl"><Filter className="size-4" /></Button>
+        <div className="flex gap-2">
+          <Button 
+            variant={term === "pending" ? "default" : "outline"} 
+            className="h-11 rounded-xl gap-2 font-bold px-4"
+            onClick={() => setTerm(term === "pending" ? "" : "pending")}
+          >
+            <AlertTriangle className="size-4" /> Atrasados
+          </Button>
+          <Button variant="outline" size="icon" className="h-11 w-11 rounded-xl"><Filter className="size-4" /></Button>
+        </div>
       </div>
 
       {isLoading ? (
