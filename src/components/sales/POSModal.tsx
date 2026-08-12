@@ -116,29 +116,31 @@ export function POSModal({ open, onOpenChange }: { open: boolean; onOpenChange: 
   
   // Cashback earned is now handled server-side in createSale, but we can show an estimate
   const [estimatedCashback, setEstimatedCashback] = React.useState(0);
-  const { data: cashbackConfigs = [] } = useRows<any>("cashback_config");
+  const { data: stockItemsData = [] } = useRows<any>("stock_products");
+  const { data: cashbackConfigs = [] } = useRows<any>("cashback_config", {
+    select: "*, material_categories(name)"
+  });
 
   React.useEffect(() => {
     if (items.length > 0 && cashbackConfigs.length > 0) {
       let total = 0;
       items.forEach(item => {
         const itemTotal = (item.price * item.quantity) - (item.discount || 0);
-        // Find category by product_id or category name if available
-        // For simplicity in UI, we'll try to find if the category matches
-        const stockItem = stockItems.find(si => si.id === item.stock_id);
-        const config = cashbackConfigs.find(c => c.active && c.category_id === stockItems.find(si => si.id === item.stock_id)?.categoria_id);
-        // Wait, stockItems might not have categoria_id. Let's look at the config's category name
-        const configByName = cashbackConfigs.find(c => c.active && c.material_categories?.name === stockItem?.categoria);
+        const stockItem = stockItemsData.find((si: any) => si.id === item.stock_id);
+        const config = cashbackConfigs.find((c: any) => 
+          c.active && c.material_categories?.name === stockItem?.categoria
+        );
         
-        if (configByName) {
-          total += (itemTotal * Number(configByName.cashback_percent)) / 100;
+        if (config) {
+          total += (itemTotal * Number(config.cashback_percent)) / 100;
         }
       });
       setEstimatedCashback(Math.floor(total));
     } else {
       setEstimatedCashback(0);
     }
-  }, [items, cashbackConfigs, stockItems]);
+  }, [items, cashbackConfigs, stockItemsData]);
+
 
 
   React.useEffect(() => {
