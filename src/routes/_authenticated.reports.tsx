@@ -78,8 +78,8 @@ function ReportsPage() {
   const clientById = useMemo(() => new Map(clients.map((c: any) => [c.id, c])), [clients]);
 
   const reportData = useMemo(() => {
-    const start = new Date(dateRange.start);
-    const end = new Date(dateRange.end);
+    const start = new Date(dateRange.start || new Date());
+    const end = new Date(dateRange.end || new Date());
     end.setHours(23, 59, 59);
 
     const periodSales = (sales as any[]).filter(s => {
@@ -267,7 +267,7 @@ function ReportsPage() {
                        { (installments as any[]).filter(i => {
                           if (!i.paid_at) return false;
                           const d = new Date(i.paid_at);
-                          return d >= new Date(dateRange.start) && d <= new Date(dateRange.end);
+                          return d >= new Date(dateRange.start || new Date()) && d <= new Date(dateRange.end || new Date());
                        }).slice(0, 5).map((inst, idx) => (
                           <div key={idx} className="flex justify-between items-center p-3 bg-muted/20 rounded-2xl">
                              <div>
@@ -289,7 +289,7 @@ function ReportsPage() {
                     <div className="space-y-4">
                        { (installments as any[]).filter(i => {
                           const d = new Date(i.due_date);
-                          return i.status !== 'paid' && d >= new Date(dateRange.start) && d <= new Date(dateRange.end);
+                          return i.status !== 'paid' && d >= new Date(dateRange.start || new Date()) && d <= new Date(dateRange.end || new Date());
                        }).slice(0, 5).map((inst, idx) => (
                           <div key={idx} className="flex justify-between items-center p-3 bg-muted/20 rounded-2xl">
                              <div>
