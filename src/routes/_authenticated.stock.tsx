@@ -13,7 +13,8 @@ import {
   Settings2,
   CircleDollarSign,
   TrendingUp,
-  DollarSign
+  DollarSign,
+  Trash2
 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -59,11 +60,22 @@ type Product = {
   sale_price: number;
   wholesale_price: number;
   updated_at: string | null;
+  color: string | null;
+};
+
+type StockRecord = {
+  id: string;
+  produto_id: string;
+  lote: string | null;
+  localizacao: string | null;
+  data_entrada: string | null;
+  numeracoes: Record<string, number> | null;
 };
 
 function StockPage() {
   const qc = useQueryClient();
   const { data: products = [], isLoading } = useRows<Product>("products", { order: { column: "name", ascending: true } });
+  const { data: stockRecords = [] } = useRows<StockRecord>("stock_products");
   const save = useSaveRow("products", "estoque");
 
   const [term, setTerm] = useState("");
