@@ -1012,21 +1012,38 @@ export type Database = {
     Functions: {
       cancel_complete_sale: { Args: { p_sale_id: string }; Returns: undefined }
       complete_production_order: { Args: { _order_id: string }; Returns: Json }
-      create_complete_sale: {
-        Args: {
-          p_cashback_earned: number
-          p_cashback_used: number
-          p_client_id: string
-          p_discount: number
-          p_is_debt: boolean
-          p_items: Json
-          p_notes: string
-          p_paid_amount: number
-          p_payment_method: string
-          p_total_amount: number
-        }
-        Returns: string
-      }
+      create_complete_sale:
+        | {
+            Args: {
+              p_cashback_earned: number
+              p_cashback_used: number
+              p_client_id: string
+              p_discount: number
+              p_is_debt: boolean
+              p_items: Json
+              p_notes: string
+              p_paid_amount: number
+              p_payment_method: string
+              p_total_amount: number
+            }
+            Returns: string
+          }
+        | {
+            Args: {
+              p_cashback_earned: number
+              p_cashback_used: number
+              p_client_id: string
+              p_discount: number
+              p_installments?: Json
+              p_is_debt: boolean
+              p_items: Json
+              p_notes: string
+              p_paid_amount: number
+              p_payment_method: string
+              p_total_amount: number
+            }
+            Returns: string
+          }
       delete_production_order: { Args: { _order_id: string }; Returns: Json }
       pay_sale_installment: {
         Args: {
