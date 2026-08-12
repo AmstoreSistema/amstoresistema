@@ -129,6 +129,10 @@ export function POSModal({ open, onOpenChange }: { open: boolean; onOpenChange: 
         cashback_used: cashbackToUse,
         cashback_earned: cashbackEarned,
         notes: "",
+        sale_type: "Varejo", // Placeholder, can be a state later
+        financial_account_id: null, // Placeholder, can be a state later
+        protection_method: "Padrão", // Placeholder, can be a state later
+        sale_code: `V${Date.now().toString().slice(-10)}`,
         items: items.map(i => ({
           stock_id: i.stock_id,
           product_id: i.product_id,
