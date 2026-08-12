@@ -1,0 +1,9 @@
+ALTER TABLE public.clients 
+ADD COLUMN IF NOT EXISTS birth_date DATE,
+ADD COLUMN IF NOT EXISTS document_cpf VARCHAR(20),
+ADD COLUMN IF NOT EXISTS zip_code VARCHAR(10),
+ADD COLUMN IF NOT EXISTS city VARCHAR(100),
+ADD COLUMN IF NOT EXISTS state VARCHAR(2),
+ADD COLUMN IF NOT EXISTS client_type VARCHAR(20) DEFAULT 'Pessoa Física';
+
+COMMENT ON COLUMN public.clients.client_type IS 'Pessoa Física or Pessoa Jurídica';

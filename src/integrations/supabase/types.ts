@@ -133,33 +133,51 @@ export type Database = {
       clients: {
         Row: {
           address: string | null
+          birth_date: string | null
           cashback_balance: number
+          city: string | null
+          client_type: string | null
           created_at: string | null
+          document_cpf: string | null
           email: string | null
           id: string
           name: string
           notes: string | null
           phone: string | null
+          state: string | null
+          zip_code: string | null
         }
         Insert: {
           address?: string | null
+          birth_date?: string | null
           cashback_balance?: number
+          city?: string | null
+          client_type?: string | null
           created_at?: string | null
+          document_cpf?: string | null
           email?: string | null
           id?: string
           name: string
           notes?: string | null
           phone?: string | null
+          state?: string | null
+          zip_code?: string | null
         }
         Update: {
           address?: string | null
+          birth_date?: string | null
           cashback_balance?: number
+          city?: string | null
+          client_type?: string | null
           created_at?: string | null
+          document_cpf?: string | null
           email?: string | null
           id?: string
           name?: string
           notes?: string | null
           phone?: string | null
+          state?: string | null
+          zip_code?: string | null
         }
         Relationships: []
       }
