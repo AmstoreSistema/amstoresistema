@@ -115,7 +115,7 @@ export function ReceiptModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md p-0 overflow-hidden bg-background sm:rounded-[2rem] border-none shadow-2xl flex flex-col h-[95vh] sm:max-h-[90vh]">
+      <DialogContent className="max-w-md p-0 overflow-hidden bg-background sm:rounded-[2rem] border-none shadow-2xl flex flex-col h-[95vh] sm:max-h-[90vh] [&>button]:hidden">
         
         <div className="flex items-center justify-between p-4 border-b bg-muted/30 sticky top-0 z-10 print:hidden">
           <div className="flex items-center gap-2">
@@ -192,9 +192,20 @@ export function ReceiptModal({
               {sale.discount > 0 && <div className="flex justify-between"><span>Desconto:</span><span>-{brl(sale.discount)}</span></div>}
               {sale.cashback_used > 0 && <div className="flex justify-between"><span>Cashback:</span><span>-{brl(sale.cashback_used)}</span></div>}
               <div className="flex justify-between font-bold text-sm pt-1"><span>TOTAL:</span><span>{brl(sale.total_amount)}</span></div>
-              <div className="flex justify-between"><span>Pago:</span><span>{brl(sale.paid_amount || sale.total_amount)}</span></div>
-              {(sale.total_amount - (sale.paid_amount || sale.total_amount)) > 0 && (
-                <div className="flex justify-between font-bold"><span>Restante:</span><span>{brl(sale.total_amount - (sale.paid_amount || sale.total_amount))}</span></div>
+              <div className="flex justify-between"><span>Pago:</span><span>{brl(sale.paid_amount ?? (sale.is_debt ? 0 : sale.total_amount))}</span></div>
+              {sale.is_debt && sale.installments && sale.installments.length > 0 && (
+                <div className="mt-2 space-y-1 border-t border-dashed border-gray-200 pt-1">
+                  <div className="text-[9px] font-bold text-gray-500 uppercase">Detalhamento das Parcelas (Fiado)</div>
+                  {sale.installments.map((inst: any, idx: number) => (
+                    <div key={idx} className="flex justify-between text-[10px]">
+                      <span>{inst.number}ª Parcela ({new Date(inst.due_date).toLocaleDateString('pt-BR')})</span>
+                      <span>{brl(inst.amount)}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {(sale.total_amount - (sale.paid_amount ?? (sale.is_debt ? 0 : sale.total_amount))) > 0 && !sale.is_debt && (
+                <div className="flex justify-between font-bold"><span>Restante:</span><span>{brl(sale.total_amount - (sale.paid_amount ?? sale.total_amount))}</span></div>
               )}
               <div className="flex justify-between"><span>Forma Pagto:</span><span>{sale.payment_method?.toUpperCase()}</span></div>
             </div>

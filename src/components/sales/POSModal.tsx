@@ -565,6 +565,7 @@ export function POSModal({ open, onOpenChange }: { open: boolean; onOpenChange: 
             cashback_earned: cashbackEarned,
             payment_method: isDebt ? "Fiado" : paymentMethod,
             is_debt: isDebt,
+            installments: installments,
             items: items.map(i => ({
                name: i.name,
                quantity: i.quantity,
