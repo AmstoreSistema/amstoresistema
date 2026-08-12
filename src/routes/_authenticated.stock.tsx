@@ -272,6 +272,7 @@ function StockPage() {
              <Button onClick={handleAdjust} disabled={save.isPending}>Salvar Ajuste</Button>
           </DialogFooter>
         </DialogContent>
+      </Dialog>
       <AddProductDirectModal open={addDirectOpen} onOpenChange={setAddDirectOpen} />
     </div>
   );
