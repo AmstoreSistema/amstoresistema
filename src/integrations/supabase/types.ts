@@ -1305,6 +1305,15 @@ export type Database = {
         Args: { p_category_name: string }
         Returns: number
       }
+      get_client_cashback_by_category: {
+        Args: { p_client_id: string }
+        Returns: {
+          balance: number
+          category_name: string
+          total_earned: number
+          total_used: number
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
