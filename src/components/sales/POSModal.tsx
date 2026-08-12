@@ -186,6 +186,12 @@ export function POSModal({ open, onOpenChange }: { open: boolean; onOpenChange: 
       setIsDebt(false);
       // Don't close POS modal here yet, let receipt handle it or close after receipt
       qc.invalidateQueries();
+      
+      // Reset High-Fidelity states
+      setSaleType("Varejo");
+      setAccountId(null);
+      setProtectionMethod("Padrão");
+      setNotes("");
     } catch (error: any) {
 
       toast.error(error.message || "Erro ao processar venda");
@@ -196,7 +202,7 @@ export function POSModal({ open, onOpenChange }: { open: boolean; onOpenChange: 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-5xl max-h-[95vh] p-0 flex flex-col gap-0 overflow-hidden rounded-[2.5rem] border-none shadow-2xl">
+      <DialogContent className="max-w-7xl max-h-[98vh] p-0 flex flex-col gap-0 overflow-hidden rounded-[2.5rem] border-none shadow-2xl">
         <DialogHeader className="px-8 py-5 border-b border-border/40 bg-card/50 backdrop-blur-xl flex flex-row items-center justify-between">
           <div className="flex items-center gap-3">
              <div className="size-10 rounded-2xl bg-gradient-gold flex items-center justify-center shadow-gold">
@@ -204,19 +210,34 @@ export function POSModal({ open, onOpenChange }: { open: boolean; onOpenChange: 
              </div>
              <div>
                 <DialogTitle className="font-display font-black text-xl">PDV Amstore</DialogTitle>
-                <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Ponto de Venda Inteligente</p>
+                <div className="flex items-center gap-2">
+                  <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Ponto de Venda Inteligente</p>
+                  <Badge variant="outline" className="h-4 text-[9px] font-mono border-gold/30 text-gold bg-gold/5">
+                    {saleCode}
+                  </Badge>
+                </div>
              </div>
           </div>
           
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-8">
+             <div className="flex items-center gap-2 text-right">
+                <div>
+                   <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest">Vendedor</p>
+                   <div className="flex items-center gap-1.5 justify-end">
+                      <User className="size-3 text-gold" />
+                      <p className="text-sm font-black">Sistema Automático</p>
+                   </div>
+                </div>
+             </div>
+             <Separator orientation="vertical" className="h-8" />
              <div className="text-right">
-                <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest">Data</p>
+                <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest">Data da Venda</p>
                 <p className="text-sm font-black">{new Date().toLocaleDateString('pt-BR')}</p>
              </div>
              <Separator orientation="vertical" className="h-8" />
              <div className="text-right">
-                <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest">Itens</p>
-                <p className="text-sm font-black">{items.length}</p>
+                <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest">Itens no Carrinho</p>
+                <p className="text-sm font-black">{items.reduce((acc, i) => acc + i.quantity, 0)}</p>
              </div>
           </div>
         </DialogHeader>
