@@ -77,7 +77,8 @@ export function POSModal({ open, onOpenChange }: { open: boolean; onOpenChange: 
   const [saleCode] = React.useState(() => `V${Date.now().toString().slice(-10)}`);
 
   const [receiptOpen, setReceiptOpen] = React.useState(false);
-  const [previewOpen, setPreviewOpen] = React.useState(false);
+   const [previewOpen, setPreviewOpen] = React.useState(false);
+   const [lastSale, setLastSale] = React.useState<any>(null);
 
 
   // Totals
