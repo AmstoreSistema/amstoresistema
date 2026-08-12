@@ -37,8 +37,8 @@ export const createSale = createServerFn({ method: "POST" })
 
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: saleId, error } = await supabaseAdmin.rpc('create_complete_sale', {
-      p_client_id: data.client_id ?? undefined,
+    const { data: saleId, error } = await (supabaseAdmin.rpc as any)('create_complete_sale', {
+      p_client_id: data.client_id,
       p_payment_method: data.payment_method,
       p_total_amount: data.total_amount,
       p_discount: data.discount,
@@ -50,9 +50,9 @@ export const createSale = createServerFn({ method: "POST" })
       p_items: data.items,
       p_installments: data.installments,
       p_sale_type: data.sale_type,
-      p_financial_account_id: data.financial_account_id ?? undefined,
-      p_protection_method: data.protection_method ?? undefined,
-      p_sale_code: data.sale_code ?? undefined,
+      p_financial_account_id: data.financial_account_id,
+      p_protection_method: data.protection_method,
+      p_sale_code: data.sale_code,
       p_created_at: data.created_at
     });
 
