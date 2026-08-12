@@ -84,7 +84,9 @@ function StockPage() {
   const [term, setTerm] = useState("");
   const [activeTab, setActiveTab] = useState("Todos");
   const [adjustOpen, setAdjustOpen] = useState(false);
+  const [sizeDetailOpen, setSizeDetailOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [selectedSizeInfo, setSelectedSizeInfo] = useState<{ size: string; quantity: number } | null>(null);
   const [newQty, setNewQty] = useState("");
   const [adjustQuantities, setAdjustQuantities] = useState<Record<string, number>>({});
   const [addDirectOpen, setAddDirectOpen] = useState(false);
@@ -239,9 +241,9 @@ function StockPage() {
           {filtered.map(p => {
             const stockRecord = stockRecords.find(s => s.produto_id === p.id);
             const numeracoes = stockRecord?.numeracoes || {};
-            const availableSizes = Object.entries(numeracoes as Record<string, number>)
-              .filter(([_, qty]) => Number(qty) > 0)
-              .map(([size, _]) => size);
+            const allSizes = Object.entries(numeracoes as Record<string, number>)
+              .map(([size, qty]) => ({ size, qty: Number(qty) }));
+            const availableSizes = allSizes.filter(s => s.qty > 0).map(s => s.size);
 
             return (
               <Card key={p.id} className="group overflow-hidden rounded-[2rem] border-border/30 bg-card transition-all hover:shadow-xl shadow-elegant flex flex-col">
@@ -296,8 +298,33 @@ function StockPage() {
                       <div className="space-y-1">
                         <p className="text-[9px] uppercase font-black text-muted-foreground tracking-widest">Numerações:</p>
                         <div className="flex flex-wrap gap-1">
-                          {availableSizes.map(size => (
-                            <Badge key={size} className="bg-black text-white hover:bg-black px-2 py-0 h-5 text-[10px] font-black border-none">
+                          {allSizes.length > 0 ? allSizes.map(({ size, qty }) => (
+                            <Badge 
+                              key={size} 
+                              className={cn(
+                                "px-2 py-0 h-5 text-[10px] font-black border-none cursor-pointer transition-all",
+                                qty > 0 ? "bg-black text-white hover:bg-black/80" : "bg-muted text-muted-foreground hover:bg-muted/80 opacity-40"
+                              )}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedProduct(p);
+                                setSelectedSizeInfo({ size, quantity: qty });
+                                setSizeDetailOpen(true);
+                              }}
+                            >
+                              {size}
+                            </Badge>
+                          )) : availableSizes.map(size => (
+                            <Badge 
+                              key={size} 
+                              className="bg-black text-white hover:bg-black px-2 py-0 h-5 text-[10px] font-black border-none cursor-pointer"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedProduct(p);
+                                setSelectedSizeInfo({ size, quantity: numeracoes[size] as number });
+                                setSizeDetailOpen(true);
+                              }}
+                            >
                               {size}
                             </Badge>
                           ))}
@@ -406,6 +433,44 @@ function StockPage() {
              <Button variant="outline" onClick={() => setAdjustOpen(false)}>Cancelar</Button>
              <Button onClick={handleAdjust} disabled={save.isPending}>Salvar Ajuste</Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      <Dialog open={sizeDetailOpen} onOpenChange={setSizeDetailOpen}>
+        <DialogContent className="sm:max-w-[320px] rounded-[2rem] border-none shadow-2xl p-0 overflow-hidden">
+          <div className="bg-gradient-gold p-6 flex flex-col items-center text-white text-center">
+            <div className="size-16 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center mb-4 border border-white/30">
+              <Package className="size-8" />
+            </div>
+            <h3 className="font-display font-black text-lg leading-tight">{selectedProduct?.name}</h3>
+            <p className="text-[10px] uppercase tracking-tighter opacity-80 font-bold mt-1">Gradeado de Estoque</p>
+          </div>
+          
+          <div className="p-8 flex flex-col items-center gap-6">
+            <div className="flex flex-col items-center">
+              <span className="text-[10px] font-black uppercase text-muted-foreground tracking-widest mb-1">Tamanho</span>
+              <div className="size-16 rounded-2xl bg-black flex items-center justify-center shadow-lg">
+                <span className="text-white text-2xl font-black">{selectedSizeInfo?.size}</span>
+              </div>
+            </div>
+
+            <div className="w-full h-px bg-border/40" />
+
+            <div className="flex flex-col items-center">
+              <span className="text-[10px] font-black uppercase text-muted-foreground tracking-widest mb-1">Qtd Disponível</span>
+              <div className="flex items-baseline gap-1">
+                <span className="text-4xl font-display font-black text-success">{selectedSizeInfo?.quantity}</span>
+                <span className="text-[10px] font-black text-muted-foreground uppercase">Unidades</span>
+              </div>
+            </div>
+
+            <Button 
+              className="w-full bg-muted/50 hover:bg-muted text-foreground font-black text-[10px] uppercase tracking-widest h-10 rounded-xl mt-2 border-none"
+              onClick={() => setSizeDetailOpen(false)}
+            >
+              FECHAR
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
       <AddProductDirectModal open={addDirectOpen} onOpenChange={setAddDirectOpen} />
