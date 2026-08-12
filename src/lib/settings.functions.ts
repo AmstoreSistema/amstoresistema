@@ -1,11 +1,13 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { supabase } from "@/integrations/supabase/client";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+
+const FIXED_ADMINS = ["amstorebagshoes@gmail.com", "matosmonica000@gmail.com"];
 
 export const getAppSettings = createServerFn({ method: "GET" })
   .handler(async () => {
-    const { data, error } = await supabase.from("app_settings").select("*");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data, error } = await supabaseAdmin.from("app_settings").select("*");
     if (error) throw error;
     return data || [];
   });
@@ -73,11 +75,41 @@ export const updateAppSettingsBatch = createServerFn({ method: "POST" })
 
 export const getUsers = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
+  .handler(async () => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data, error } = await supabaseAdmin.from("user_profiles").select("*, user_roles(role)");
-    if (error) throw error;
-    return data || [];
+
+    const [{ data: profiles }, { data: roles }, authList] = await Promise.all([
+      supabaseAdmin.from("user_profiles").select("*"),
+      supabaseAdmin.from("user_roles").select("user_id, role"),
+      supabaseAdmin.auth.admin.listUsers(),
+    ]);
+
+    const roleMap = new Map<string, string>();
+    (roles || []).forEach((r: any) => roleMap.set(r.user_id, r.role));
+
+    const profileMap = new Map<string, any>();
+    (profiles || []).forEach((p: any) => profileMap.set(p.id, p));
+
+    // Garante que todo usuário de autenticação apareça, mesmo sem perfil salvo
+    (authList?.data?.users || []).forEach((u: any) => {
+      if (!profileMap.has(u.id)) {
+        profileMap.set(u.id, {
+          id: u.id,
+          email: u.email,
+          display_name: u.user_metadata?.display_name || null,
+          active: true,
+        });
+      } else if (!profileMap.get(u.id).email) {
+        profileMap.get(u.id).email = u.email;
+      }
+    });
+
+    return Array.from(profileMap.values()).map((p: any) => {
+      const role =
+        roleMap.get(p.id) ||
+        (p.email && FIXED_ADMINS.includes(p.email) ? "admin" : "user");
+      return { ...p, role, user_roles: [{ role }] };
+    });
   });
 
 export const updateUserStatus = createServerFn({ method: "POST" })
