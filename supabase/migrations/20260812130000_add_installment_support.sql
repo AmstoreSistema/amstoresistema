@@ -20,7 +20,11 @@ ALTER TABLE public.sale_installments ENABLE ROW LEVEL SECURITY;
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.sale_installments TO authenticated;
 GRANT ALL ON public.sale_installments TO service_role;
 
-CREATE POLICY "Allow all for authenticated users" ON public.sale_installments FOR ALL TO authenticated USING (true);
+DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Allow all for authenticated users' AND tablename = 'sale_installments') THEN
+        CREATE POLICY "Allow all for authenticated users" ON public.sale_installments FOR ALL TO authenticated USING (true);
+    END IF;
+END $$;
 
 -- Atualizar a função create_complete_sale para suportar parcelas
 CREATE OR REPLACE FUNCTION public.create_complete_sale(
