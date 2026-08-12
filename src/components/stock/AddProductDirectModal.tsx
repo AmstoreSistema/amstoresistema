@@ -127,6 +127,7 @@ export function AddProductDirectModal({ open, onOpenChange }: { open: boolean; o
         preco_venda: 0,
         preco_atacado: 0,
         min_stock: 5,
+        image_url: null,
       });
       setQuantities({});
       generateSku();
