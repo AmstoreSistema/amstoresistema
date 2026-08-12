@@ -70,9 +70,10 @@ export function ReceiptModal({
       qrcodeRef.current.innerHTML = "";
       
       const codigoUnico = sale.promo_qr || `QR-${Date.now()}-${Math.random().toString(36).substring(2, 10).toUpperCase()}`;
+      const checkUrl = `${window.location.origin}/api/public/qr-check?code=${codigoUnico}`;
       
       new window.QRCode(qrcodeRef.current, {
-        text: codigoUnico,
+        text: checkUrl,
         width: 160,
         height: 160,
         colorDark: "#000000",
