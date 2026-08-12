@@ -25,7 +25,7 @@ export const createSale = createServerFn({ method: "POST" })
   }).parse(data))
   .handler(async ({ data }) => {
     const { data: saleId, error } = await supabase.rpc('create_complete_sale', {
-      p_client_id: data.client_id,
+      p_client_id: data.client_id || undefined,
       p_payment_method: data.payment_method,
       p_total_amount: data.total_amount,
       p_discount: data.discount,
@@ -34,7 +34,7 @@ export const createSale = createServerFn({ method: "POST" })
       p_cashback_used: data.cashback_used,
       p_cashback_earned: data.cashback_earned,
       p_notes: data.notes || '',
-      p_items: data.items
+      p_items: data.items as any
     });
 
     if (error) throw new Error(`Erro ao criar venda: ${error.message}`);
