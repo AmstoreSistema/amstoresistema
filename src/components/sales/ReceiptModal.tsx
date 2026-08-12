@@ -128,21 +128,19 @@ export function ReceiptModal({
         </div>
 
         <div className="flex-1 overflow-y-auto p-4 sm:p-6 print:p-0">
-          {!isPreview && (
-            <div className="flex flex-col gap-4 print:hidden mb-6">
-              <Button onClick={handleShareWhatsApp} className="w-full bg-[#25D366] hover:bg-[#128C7E] text-white gap-2 font-bold h-12 rounded-xl">
-                <Share2 className="size-4" /> WhatsApp
+          <div className="flex flex-col gap-4 print:hidden mb-6">
+            <Button onClick={handleShareWhatsApp} className="w-full bg-[#25D366] hover:bg-[#128C7E] text-white gap-2 font-bold h-12 rounded-xl shadow-lg">
+              <Share2 className="size-4" /> Gerar Imagem para WhatsApp
+            </Button>
+            <div className="grid grid-cols-2 gap-3">
+               <Button variant="outline" className="gap-2 font-bold h-12 rounded-xl bg-[#6B46C1] text-white hover:bg-[#553C9A] border-none shadow-md" onClick={() => window.location.href = `intent://...`}>
+                <Smartphone className="size-4" /> ESC/POS
               </Button>
-              <div className="grid grid-cols-2 gap-3">
-                 <Button variant="outline" className="gap-2 font-bold h-12 rounded-xl bg-[#6B46C1] text-white hover:bg-[#553C9A] border-none" onClick={() => window.location.href = `intent://...`}>
-                  <Smartphone className="size-4" /> RAWBT
-                </Button>
-                <Button variant="outline" className="gap-2 font-bold h-12 rounded-xl" onClick={handlePrint}>
-                  <Printer className="size-4" /> Imprimir
-                </Button>
-              </div>
+              <Button variant="outline" className="gap-2 font-bold h-12 rounded-xl shadow-sm" onClick={handlePrint}>
+                <Printer className="size-4" /> Imprimir
+              </Button>
             </div>
-          )}
+          </div>
 
           <div 
             ref={receiptRef}
