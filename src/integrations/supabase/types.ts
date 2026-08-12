@@ -1185,32 +1185,21 @@ export type Database = {
       create_complete_sale:
         | {
             Args: {
-              p_cashback_earned: number
-              p_cashback_used: number
-              p_client_id: string
-              p_discount: number
-              p_is_debt: boolean
-              p_items: Json
-              p_notes: string
-              p_paid_amount: number
-              p_payment_method: string
-              p_total_amount: number
-            }
-            Returns: string
-          }
-        | {
-            Args: {
-              p_cashback_earned: number
-              p_cashback_used: number
-              p_client_id: string
-              p_discount: number
+              p_cashback_earned?: number
+              p_cashback_used?: number
+              p_client_id?: string
+              p_created_at?: string
+              p_discount?: number
+              p_financial_account_id?: string
               p_installments?: Json
-              p_is_debt: boolean
-              p_items: Json
-              p_notes: string
-              p_paid_amount: number
-              p_payment_method: string
-              p_total_amount: number
+              p_is_debt?: boolean
+              p_items?: Json
+              p_notes?: string
+              p_paid_amount?: number
+              p_payment_method?: string
+              p_protection_method?: string
+              p_sale_code?: string
+              p_sale_type?: string
             }
             Returns: string
           }
@@ -1235,6 +1224,10 @@ export type Database = {
             Returns: string
           }
       delete_production_order: { Args: { _order_id: string }; Returns: Json }
+      p_total_amount_calculated: {
+        Args: { p_discount: number; p_items: Json }
+        Returns: number
+      }
       pay_sale_installment: {
         Args: {
           p_amount: number
