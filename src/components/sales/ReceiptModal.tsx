@@ -40,7 +40,7 @@ export function ReceiptModal({
               <CheckCircle2 className="size-10" />
            </div>
            <h3 className="font-display font-black text-2xl">Venda Concluída!</h3>
-           <p className="text-sm opacity-90 mt-1">O pedido #{sale.id.slice(0, 8)} foi registrado.</p>
+           <p className="text-sm opacity-90 mt-1">O pedido {sale.sale_code || `#${sale.id.slice(0, 8)}`} foi registrado.</p>
         </div>
 
         <div className="p-8 space-y-6 bg-background print:p-0">
