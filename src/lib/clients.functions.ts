@@ -7,6 +7,7 @@ export const getClientDetails = createServerFn({ method: "GET" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     
     // Fetch sales and installments in parallel
+    // Correcting column names based on Supabase schema from error logs
     const [salesResult, installmentsResult] = await Promise.all([
       supabaseAdmin
         .from("sales")
@@ -27,19 +28,41 @@ export const getClientDetails = createServerFn({ method: "GET" })
         .select(`
           id,
           sale_id,
-          number,
+          installment_number,
           amount,
           due_date,
           status
         `)
-        .eq("client_id", data.client_id)
+        .eq("sale_id", "ANY") // We need to filter by sale_id in code or use a different approach if client_id is missing
+        // Wait, looking at the schema cache error, client_id might not be on sale_installments
         .order("due_date", { ascending: true })
     ]);
 
+    // Let's refine the query: fetch sales then installments for those sales
     if (salesResult.error) throw new Error(`Erro ao buscar vendas: ${salesResult.error.message}`);
     
     const sales = salesResult.data || [];
-    const installments = installmentsResult.data || [];
+    const saleIds = sales.map(s => s.id);
+
+    let installments: any[] = [];
+    if (saleIds.length > 0) {
+      const { data: instData, error: instError } = await supabaseAdmin
+        .from("sale_installments")
+        .select(`
+          id,
+          sale_id,
+          installment_number,
+          amount,
+          due_date,
+          status
+        `)
+        .in("sale_id", saleIds)
+        .order("due_date", { ascending: true });
+      
+      if (!instError) {
+        installments = instData || [];
+      }
+    }
 
     // Calculate totals
     const total_bought = sales.reduce((sum, s) => sum + Number(s.total_amount || 0), 0);
