@@ -302,7 +302,8 @@ function StockPage() {
                             <Badge 
                               key={size} 
                               className="bg-black text-white hover:bg-black px-2 py-0 h-5 text-[10px] font-black border-none cursor-pointer"
-                              onClick={() => {
+                              onClick={(e) => {
+                                e.stopPropagation();
                                 setSelectedProduct(p);
                                 setSelectedSizeInfo({ size, quantity: numeracoes[size] as number });
                                 setSizeDetailOpen(true);
