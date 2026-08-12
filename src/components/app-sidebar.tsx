@@ -70,7 +70,6 @@ const menuGroups: { label: string; items: Item[] }[] = [
       { title: "Produção", url: "/production", icon: Factory },
       { title: "Estoque", url: "/stock", icon: Warehouse },
       { title: "Etiquetas", url: "/labels", icon: Tags },
-      { title: "Relatórios", url: "/reports", icon: PieChart },
     ],
   },
   {
