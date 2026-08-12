@@ -670,6 +670,56 @@ export type Database = {
           },
         ]
       }
+      sale_installments: {
+        Row: {
+          amount: number
+          created_at: string | null
+          due_date: string
+          id: string
+          installment_number: number
+          paid_amount: number | null
+          paid_at: string | null
+          payment_method: string | null
+          remaining_amount: number | null
+          sale_id: string
+          status: string | null
+        }
+        Insert: {
+          amount: number
+          created_at?: string | null
+          due_date: string
+          id?: string
+          installment_number: number
+          paid_amount?: number | null
+          paid_at?: string | null
+          payment_method?: string | null
+          remaining_amount?: number | null
+          sale_id: string
+          status?: string | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string | null
+          due_date?: string
+          id?: string
+          installment_number?: number
+          paid_amount?: number | null
+          paid_at?: string | null
+          payment_method?: string | null
+          remaining_amount?: number | null
+          sale_id?: string
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sale_installments_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
+            referencedRelation: "sales"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sale_items: {
         Row: {
           discount: number | null
@@ -757,7 +807,9 @@ export type Database = {
           client_id: string | null
           created_at: string | null
           discount: number
+          due_date: string | null
           id: string
+          installments_count: number | null
           is_debt: boolean | null
           notes: string | null
           paid_amount: number
@@ -771,7 +823,9 @@ export type Database = {
           client_id?: string | null
           created_at?: string | null
           discount?: number
+          due_date?: string | null
           id?: string
+          installments_count?: number | null
           is_debt?: boolean | null
           notes?: string | null
           paid_amount?: number
@@ -785,7 +839,9 @@ export type Database = {
           client_id?: string | null
           created_at?: string | null
           discount?: number
+          due_date?: string | null
           id?: string
+          installments_count?: number | null
           is_debt?: boolean | null
           notes?: string | null
           paid_amount?: number
@@ -956,23 +1012,52 @@ export type Database = {
     Functions: {
       cancel_complete_sale: { Args: { p_sale_id: string }; Returns: undefined }
       complete_production_order: { Args: { _order_id: string }; Returns: Json }
-      create_complete_sale: {
-        Args: {
-          p_cashback_earned: number
-          p_cashback_used: number
-          p_client_id: string
-          p_discount: number
-          p_is_debt: boolean
-          p_items: Json
-          p_notes: string
-          p_paid_amount: number
-          p_payment_method: string
-          p_total_amount: number
-        }
-        Returns: string
-      }
+      create_complete_sale:
+        | {
+            Args: {
+              p_cashback_earned: number
+              p_cashback_used: number
+              p_client_id: string
+              p_discount: number
+              p_is_debt: boolean
+              p_items: Json
+              p_notes: string
+              p_paid_amount: number
+              p_payment_method: string
+              p_total_amount: number
+            }
+            Returns: string
+          }
+        | {
+            Args: {
+              p_cashback_earned: number
+              p_cashback_used: number
+              p_client_id: string
+              p_discount: number
+              p_installments?: Json
+              p_is_debt: boolean
+              p_items: Json
+              p_notes: string
+              p_paid_amount: number
+              p_payment_method: string
+              p_total_amount: number
+            }
+            Returns: string
+          }
       delete_production_order: { Args: { _order_id: string }; Returns: Json }
+      pay_sale_installment: {
+        Args: {
+          p_amount: number
+          p_installment_id: string
+          p_payment_method: string
+        }
+        Returns: undefined
+      }
       start_production_order: { Args: { _order_id: string }; Returns: Json }
+      update_sale_installments: {
+        Args: { p_installments: Json; p_sale_id: string }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never
