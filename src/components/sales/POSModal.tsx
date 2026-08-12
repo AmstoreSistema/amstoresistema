@@ -117,12 +117,19 @@ export function POSModal({ open, onOpenChange }: { open: boolean; onOpenChange: 
         }))
       };
 
-      await createSale({ data: saleData });
-
+      const { saleId } = await createSale({ data: saleData });
       toast.success("Venda realizada com sucesso!");
       
+      // Prepare for receipt
+      setLastSale({
+         id: saleId,
+         ...saleData
+      });
+      setReceiptOpen(true);
+
       // Reset POS
       setItems([]);
+
       setClient(null);
       setDiscount(0);
       setCashbackToUse(0);
