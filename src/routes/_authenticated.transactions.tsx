@@ -213,6 +213,8 @@ function TransactionsPage() {
                   Conta: t.financial_accounts?.name
                 }));
                 
+                if (csvContent.length === 0) return;
+
                 const header = Object.keys(csvContent[0]).join(",");
                 const rows = csvContent.map(row => Object.values(row).join(",")).join("\n");
                 const csv = `${header}\n${rows}`;
