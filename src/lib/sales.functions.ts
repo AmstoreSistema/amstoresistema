@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 export const createSale = createServerFn({ method: "POST" })
   .inputValidator((data) => z.object({
@@ -57,9 +58,10 @@ export const createSale = createServerFn({ method: "POST" })
   });
 
 export const cancelSale = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((data) => z.object({ sale_id: z.string() }).parse(data))
-  .handler(async ({ data }) => {
-    const { error } = await (supabase.rpc as any)('cancel_complete_sale', {
+  .handler(async ({ data, context }) => {
+    const { error } = await context.supabase.rpc('cancel_complete_sale', {
       p_sale_id: data.sale_id
     });
     
