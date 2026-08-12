@@ -114,6 +114,7 @@ export function ReceiptModal({
               >
                 <Printer className="size-4" /> Imprimir
               </Button>
+              </div>
             </div>
           )}
 
