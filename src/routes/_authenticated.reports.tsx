@@ -18,7 +18,8 @@ import {
   PieChart,
   ArrowLeftRight,
   Landmark,
-  FileText
+  FileText,
+  CheckCircle2
 } from "lucide-react";
 
 
@@ -54,6 +55,10 @@ export const Route = createFileRoute("/_authenticated/reports")({
     meta: [
       { title: "Relatórios Financeiros — Amstore Gestão" },
       { name: "description", content: "Relatórios e estatísticas da loja." },
+      { property: "og:title", content: "Relatórios Financeiros — Amstore Gestão" },
+      { property: "og:description", content: "Relatórios e estatísticas da loja." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: ReportsPage,
@@ -106,16 +111,16 @@ function ReportsPage() {
     const totalReceived = receivedInstallments.reduce((sum, i) => sum + Number(i.paid_amount), 0);
 
     // Group by client
-    const clientStats: Record<string, { name: string, total: number, paid: number, pending: number }> = {};
+    const clientStatsMap: Record<string, { name: string, total: number, paid: number, pending: number }> = {};
     
     periodSales.forEach(s => {
       const clientName = clientById.get(s.client_id || "")?.name || "Consumidor Final";
-      if (!clientStats[clientName]) {
-        clientStats[clientName] = { name: clientName, total: 0, paid: 0, pending: 0 };
+      if (!clientStatsMap[clientName]) {
+        clientStatsMap[clientName] = { name: clientName, total: 0, paid: 0, pending: 0 };
       }
-      clientStats[clientName].total += Number(s.total_amount);
-      clientStats[clientName].paid += Number(s.paid_amount);
-      clientStats[clientName].pending += (Number(s.total_amount) - Number(s.paid_amount));
+      clientStatsMap[clientName].total += Number(s.total_amount);
+      clientStatsMap[clientName].paid += Number(s.paid_amount);
+      clientStatsMap[clientName].pending += (Number(s.total_amount) - Number(s.paid_amount));
     });
 
     return {
@@ -126,7 +131,7 @@ function ReportsPage() {
       salesValue: periodSales.reduce((sum, s) => sum + Number(s.total_amount), 0),
       totalToReceive,
       totalReceived,
-      clientStats: Object.values(clientStats).sort((a, b) => b.total - a.total)
+      clientStats: Object.values(clientStatsMap).sort((a, b) => b.total - a.total)
     };
   }, [sales, installments, transactions, dateRange, clientById]);
 
@@ -139,7 +144,7 @@ function ReportsPage() {
       />
 
       <div className="flex flex-col sm:flex-row gap-4 p-4 bg-card rounded-[2rem] border border-border/40 shadow-sm items-end">
-        <div className="space-y-2 flex-1">
+        <div className="space-y-2 flex-1 w-full">
           <label className="text-[10px] uppercase font-bold text-muted-foreground ml-2">Data Início</label>
           <Input 
             type="date" 
@@ -148,7 +153,7 @@ function ReportsPage() {
             className="h-12 rounded-2xl bg-muted/20 border-none font-bold"
           />
         </div>
-        <div className="space-y-2 flex-1">
+        <div className="space-y-2 flex-1 w-full">
           <label className="text-[10px] uppercase font-bold text-muted-foreground ml-2">Data Fim</label>
           <Input 
             type="date" 
@@ -157,12 +162,12 @@ function ReportsPage() {
             className="h-12 rounded-2xl bg-muted/20 border-none font-bold"
           />
         </div>
-        <Button className="h-12 rounded-2xl bg-gold text-black font-bold hover:bg-gold/90 px-8 gap-2">
+        <Button className="h-12 rounded-2xl bg-gold text-black font-bold hover:bg-gold/90 px-8 gap-2 w-full sm:w-auto">
           <Filter className="size-4" /> FILTRAR PERÍODO
         </Button>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-4">
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard title="Total Vendas" value={reportData.totalSales} icon={ShoppingCart} tone="dark" />
         <StatCard title="Valor em Vendas" value={brl(reportData.salesValue)} icon={TrendingUp} tone="gold" />
         <StatCard title="Recebido (Fiado)" value={brl(reportData.totalReceived)} icon={Landmark} tone="success" />
@@ -170,14 +175,14 @@ function ReportsPage() {
       </div>
 
       <Tabs defaultValue="general" className="w-full">
-        <TabsList className="bg-card p-1 rounded-2xl border border-border/40 h-14 w-full sm:w-auto">
-          <TabsTrigger value="general" className="rounded-xl h-full font-bold px-6 data-[state=active]:bg-gold data-[state=active]:text-black">
+        <TabsList className="bg-card p-1 rounded-2xl border border-border/40 h-auto sm:h-14 w-full sm:w-auto flex flex-col sm:flex-row">
+          <TabsTrigger value="general" className="rounded-xl h-10 sm:h-full font-bold px-6 data-[state=active]:bg-gold data-[state=active]:text-black w-full sm:w-auto">
             Resumo Geral
           </TabsTrigger>
-          <TabsTrigger value="clients" className="rounded-xl h-full font-bold px-6 data-[state=active]:bg-gold data-[state=active]:text-black">
+          <TabsTrigger value="clients" className="rounded-xl h-10 sm:h-full font-bold px-6 data-[state=active]:bg-gold data-[state=active]:text-black w-full sm:w-auto">
             Por Cliente (Fiado)
           </TabsTrigger>
-          <TabsTrigger value="installments" className="rounded-xl h-full font-bold px-6 data-[state=active]:bg-gold data-[state=active]:text-black">
+          <TabsTrigger value="installments" className="rounded-xl h-10 sm:h-full font-bold px-6 data-[state=active]:bg-gold data-[state=active]:text-black w-full sm:w-auto">
             Fluxo de Parcelas
           </TabsTrigger>
         </TabsList>
@@ -185,7 +190,7 @@ function ReportsPage() {
         <TabsContent value="general" className="mt-6">
           <Card className="rounded-[2.5rem] border-border/40 bg-card overflow-hidden">
             <CardContent className="p-8">
-              <div className="grid sm:grid-cols-3 gap-8">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-8">
                 <div className="space-y-4">
                   <h3 className="font-display font-black text-xl text-success flex items-center gap-2">
                     <TrendingUp className="size-5" /> ENTRADAS
@@ -219,9 +224,9 @@ function ReportsPage() {
         </TabsContent>
 
         <TabsContent value="clients" className="mt-6">
-          <Card className="rounded-[2.5rem] border-border/40 bg-card overflow-hidden">
+          <Card className="rounded-[2.5rem] border-border/40 bg-card overflow-hidden overflow-x-auto">
             <CardContent className="p-0">
-              <table className="w-full text-left">
+              <table className="w-full text-left min-w-[600px]">
                 <thead className="bg-muted/30 border-b border-border/40">
                   <tr>
                     <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Cliente</th>
@@ -252,7 +257,7 @@ function ReportsPage() {
         </TabsContent>
 
         <TabsContent value="installments" className="mt-6">
-           <div className="grid gap-6 sm:grid-cols-2">
+           <div className="grid gap-6 grid-cols-1 sm:grid-cols-2">
               <Card className="rounded-[2.5rem] border-border/40 bg-card">
                  <CardContent className="p-8 space-y-6">
                     <h3 className="font-display font-black text-xl flex items-center gap-2">
@@ -291,7 +296,7 @@ function ReportsPage() {
                                 <p className="text-xs font-bold">Venda #{inst.sale_id.slice(0, 8)}</p>
                                 <p className="text-[9px] uppercase font-bold text-muted-foreground">Vence {dateBR(inst.due_date)}</p>
                              </div>
-                             <p className="font-black text-destructive">{brl(inst.remaining_amount ?? inst.amount)}</p>
+                             <p className="font-black text-destructive">{brl(Number(inst.remaining_amount ?? inst.amount))}</p>
                           </div>
                        ))}
                     </div>
@@ -303,5 +308,3 @@ function ReportsPage() {
     </div>
   );
 }
-
-import { CheckCircle2 } from "lucide-react";
