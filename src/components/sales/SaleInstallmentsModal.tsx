@@ -31,10 +31,11 @@ export function SaleInstallmentsModal({
   saleId: string | null;
 }) {
   const qc = useQueryClient();
-  const { data: installments = [], isLoading } = useRows("sale_installments", {
+  const { data: installments = [], isLoading } = useRows<any>("sale_installments" as any, {
     filters: saleId ? [{ column: "sale_id", value: saleId }] : undefined,
     order: { column: "installment_number", ascending: true }
-  } as any);
+  });
+
 
 
   const handlePay = async (inst: any) => {
@@ -49,14 +50,14 @@ export function SaleInstallmentsModal({
       
       // Update installment status
       const { supabase } = await import("@/integrations/supabase/client");
-      await supabase
-        .from("sale_installments")
+      await (supabase.from("sale_installments" as any) as any)
         .update({ 
           status: 'paid',
           paid_at: new Date().toISOString(),
           payment_method: "Dinheiro"
         })
         .eq("id", inst.id);
+
 
       toast.success("Parcela baixada com sucesso!");
       qc.invalidateQueries();
