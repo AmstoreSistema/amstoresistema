@@ -59,7 +59,7 @@ export const createSale = createServerFn({ method: "POST" })
 export const cancelSale = createServerFn({ method: "POST" })
   .inputValidator((data) => z.object({ sale_id: z.string() }).parse(data))
   .handler(async ({ data }) => {
-    const { error } = await supabase.rpc('cancel_complete_sale', {
+    const { error } = await (supabase.rpc as any)('cancel_complete_sale', {
       p_sale_id: data.sale_id
     });
     

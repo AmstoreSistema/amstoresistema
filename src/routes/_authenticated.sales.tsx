@@ -37,6 +37,7 @@ import { toast } from "sonner";
 import { POSModal } from "@/components/sales/POSModal";
 import { SaleInstallmentsModal } from "@/components/sales/SaleInstallmentsModal";
 import { ReceiptModal } from "@/components/sales/ReceiptModal";
+import { SaleDetailsModal } from "@/components/sales/SaleDetailsModal";
 
 
 
@@ -64,6 +65,7 @@ function SalesPage() {
   const [posOpen, setPosOpen] = useState(false);
   const [installmentsOpen, setInstallmentsOpen] = useState(false);
   const [receiptOpen, setReceiptOpen] = useState(false);
+  const [detailsOpen, setDetailsOpen] = useState(false);
   const [selectedSaleId, setSelectedSaleId] = useState<string | null>(null);
 
 
@@ -235,6 +237,15 @@ function SalesPage() {
                                  </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end" className="rounded-2xl p-2">
+                                 <DropdownMenuItem 
+                                   className="rounded-xl gap-2"
+                                   onClick={() => {
+                                     setSelectedSaleId(sale.id);
+                                     setDetailsOpen(true);
+                                   }}
+                                 >
+                                   <FileText className="size-4" /> Detalhes da Venda
+                                 </DropdownMenuItem>
                                  <DropdownMenuItem className="rounded-xl gap-2"><FileDown className="size-4" /> Baixar PDF</DropdownMenuItem>
                                  <DropdownMenuItem 
                                    className="rounded-xl gap-2"
@@ -277,7 +288,13 @@ function SalesPage() {
 
                               </DropdownMenuContent>
                            </DropdownMenu>
-                           <ChevronRight className="size-5 text-muted-foreground/30 group-hover:text-gold transition-colors ml-1" />
+                           <ChevronRight 
+                             className="size-5 text-muted-foreground/30 group-hover:text-gold transition-colors ml-1 cursor-pointer" 
+                             onClick={() => {
+                               setSelectedSaleId(sale.id);
+                               setDetailsOpen(true);
+                             }}
+                           />
                         </div>
                       </div>
                     </CardContent>
@@ -300,6 +317,11 @@ function SalesPage() {
         onOpenChange={setReceiptOpen}
         sale={sales.find((s: any) => s.id === selectedSaleId)}
         client={clientById.get(sales.find((s: any) => s.id === selectedSaleId)?.client_id || "")}
+      />
+      <SaleDetailsModal 
+        open={detailsOpen}
+        onOpenChange={setDetailsOpen}
+        saleId={selectedSaleId}
       />
     </div>
 

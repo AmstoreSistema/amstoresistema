@@ -11,7 +11,8 @@ import {
   Calendar,
   ChevronRight,
   CreditCard,
-  Plus
+  Plus,
+  FileText
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -33,6 +34,8 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { logAudit, useRows } from "@/lib/data";
 import { brl, dateBR } from "@/lib/format";
+import { SaleDetailsModal } from "@/components/sales/SaleDetailsModal";
+import { SaleInstallmentsModal } from "@/components/sales/SaleInstallmentsModal";
 
 export const Route = createFileRoute("/_authenticated/credit")({
   head: () => ({
@@ -70,6 +73,8 @@ function CreditPage() {
   const [amount, setAmount] = useState("");
   const [saving, setSaving] = useState(false);
   const [term, setTerm] = useState("");
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [installmentsOpen, setInstallmentsOpen] = useState(false);
 
   const remaining = (s: Sale) => Number(s.total_amount) - Number(s.paid_amount);
 
@@ -198,10 +203,27 @@ function CreditPage() {
                        <div className="flex items-center gap-2">
                           {sale.status !== "pago" && (
                              <Button size="sm" className="rounded-xl h-9 px-4 font-bold bg-gold/10 text-gold hover:bg-gold/20" onClick={() => openPayment(sale)}>
-                                <Plus className="size-4 mr-1" /> Pagar
-                             </Button>
-                          )}
-                          <ChevronRight className="size-5 text-muted-foreground/30 group-hover:text-gold transition-colors" />
+                                 <Plus className="size-4 mr-1" /> Pagar
+                              </Button>
+                           )}
+                           <Button 
+                             size="sm" 
+                             variant="ghost" 
+                             className="rounded-xl h-9 px-3 font-bold text-muted-foreground hover:text-gold"
+                             onClick={() => {
+                               setTarget(sale);
+                               setDetailsOpen(true);
+                             }}
+                           >
+                              <FileText className="size-4 mr-1" /> Detalhes
+                           </Button>
+                           <ChevronRight 
+                             className="size-5 text-muted-foreground/30 group-hover:text-gold transition-colors cursor-pointer" 
+                             onClick={() => {
+                               setTarget(sale);
+                               setInstallmentsOpen(true);
+                             }}
+                           />
                        </div>
                     </div>
                  </CardContent>
@@ -241,6 +263,18 @@ function CreditPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <SaleDetailsModal 
+        open={detailsOpen}
+        onOpenChange={setDetailsOpen}
+        saleId={target?.id || null}
+      />
+
+      <SaleInstallmentsModal 
+        open={installmentsOpen}
+        onOpenChange={setInstallmentsOpen}
+        saleId={target?.id || null}
+      />
     </div>
   );
 }
