@@ -103,7 +103,7 @@ const menuGroups: { label: string; items: Item[] }[] = [
           { title: "Transações", url: "/transactions", icon: ArrowLeftRight },
           { title: "Contas", url: "/accounts", icon: Landmark },
           { title: "Catálogo", url: "/catalog", icon: BookMarked },
-          { title: "Promoções", url: "/promotions", icon: BadgePercent },
+          { title: "Promoções QR", url: "/promotions", icon: BadgePercent },
         ],
       },
     ],
@@ -123,12 +123,6 @@ const menuGroups: { label: string; items: Item[] }[] = [
         url: "/whatsapp-billing",
         icon: MessageCircle,
         hint: "Envie lembretes e mensagens",
-      },
-      {
-        title: "Promoção QR",
-        url: "/qr-promo",
-        icon: QrCode,
-        hint: "Códigos QR promocionais",
       },
           { title: "Cashback", url: "/cashback", icon: Coins },
           {
