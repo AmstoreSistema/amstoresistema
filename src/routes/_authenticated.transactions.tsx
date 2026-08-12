@@ -106,7 +106,7 @@ function TransactionsPage() {
 
   const onSubmit = async (values: z.infer<typeof transactionSchema>) => {
     try {
-      await createTransaction(values);
+      await createTransaction({ data: values });
       toast.success("Lançamento realizado com sucesso");
       setOpen(false);
       form.reset();
@@ -118,7 +118,7 @@ function TransactionsPage() {
 
   const handleUpdateStatus = async (id: string, status: "pago" | "pendente" | "cancelado") => {
     try {
-      await updateTransactionStatus({ id, status });
+      await updateTransactionStatus({ data: { id, status } });
       toast.success("Status atualizado");
       qc.invalidateQueries();
     } catch (e: any) {
@@ -129,7 +129,7 @@ function TransactionsPage() {
   const handleDeleteItem = async (id: string) => {
     if (!confirm("Deseja realmente excluir este lançamento? Esta ação pode afetar o saldo das contas.")) return;
     try {
-      await deleteTransaction(id);
+      await deleteTransaction({ data: id });
       toast.success("Lançamento excluído");
       qc.invalidateQueries();
     } catch (e: any) {
