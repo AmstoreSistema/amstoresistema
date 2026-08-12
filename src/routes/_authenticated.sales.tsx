@@ -28,7 +28,10 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { brl, dateBR } from "@/lib/format";
 import { useRows } from "@/lib/data";
+import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { POSModal } from "@/components/sales/POSModal";
+
 
 export const Route = createFileRoute("/_authenticated/sales")({
   head: () => ({
@@ -45,7 +48,9 @@ export const Route = createFileRoute("/_authenticated/sales")({
 });
 
 function SalesPage() {
+  const qc = useQueryClient();
   const { data: sales = [], isLoading } = useRows("sales", { order: { column: "created_at", ascending: false } });
+
   const { data: clients = [] } = useRows("clients");
 
   const [term, setTerm] = useState("");
@@ -190,7 +195,24 @@ function SalesPage() {
                               <DropdownMenuContent align="end" className="rounded-2xl p-2">
                                  <DropdownMenuItem className="rounded-xl gap-2"><FileDown className="size-4" /> Baixar PDF</DropdownMenuItem>
                                  <DropdownMenuItem className="rounded-xl gap-2"><Printer className="size-4" /> Imprimir Cupom</DropdownMenuItem>
-                                 <DropdownMenuItem className="rounded-xl gap-2 text-destructive"><MoreVertical className="size-4" /> Estornar Venda</DropdownMenuItem>
+                                 <DropdownMenuItem 
+                                    className="rounded-xl gap-2 text-destructive"
+                                    onClick={async () => {
+                                       if (confirm("Deseja realmente estornar esta venda? O estoque será devolvido.")) {
+                                          try {
+                                             const { cancelSale } = await import("@/lib/sales.functions");
+                                             await cancelSale({ data: { sale_id: sale.id } });
+                                             toast.success("Venda estornada com sucesso");
+                                             qc.invalidateQueries();
+                                          } catch (err: any) {
+                                             toast.error(err.message);
+                                          }
+                                       }
+                                    }}
+                                 >
+                                    <MoreVertical className="size-4" /> Estornar Venda
+                                 </DropdownMenuItem>
+
                               </DropdownMenuContent>
                            </DropdownMenu>
                            <ChevronRight className="size-5 text-muted-foreground/30 group-hover:text-gold transition-colors ml-1" />
