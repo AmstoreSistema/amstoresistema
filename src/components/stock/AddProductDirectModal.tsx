@@ -91,11 +91,11 @@ export function AddProductDirectModal({ open, onOpenChange }: { open: boolean; o
         .insert({
           produto_id: product.id,
           produto_nome: product.name,
-          quantidade_disponivel: formData.category === "Sandália" ? totalQty : 1, // Default 1 se não for sandália e for manual
-          numeracoes: formData.category === "Sandália" ? quantities : null,
+          quantidade_disponivel: formData.category === "Sandália" ? totalQty : 1,
+          numeracoes: (formData.category === "Sandália" ? quantities : null) as any,
           preco_custo: formData.preco_custo,
           preco_venda: formData.preco_venda,
-          data_entrada: formData.data_entrada,
+          data_entrada: formData.data_entrada || null,
           lote: formData.lote,
           localizacao: formData.localizacao
         });
