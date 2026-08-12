@@ -73,18 +73,18 @@ const accountSchema = z.object({
   name: z.string().min(1, "Nome é obrigatório"),
   type: z.enum(['caixa', 'banco', 'carteira', 'outro']),
   initial_balance: z.coerce.number().min(0),
-  color: z.string().default('#3B82F6'),
-  bank_name: z.string().optional(),
-  agency: z.string().optional(),
-  account_number: z.string().optional(),
+  color: z.string().min(1),
+  bank_name: z.string().optional().nullable(),
+  agency: z.string().optional().nullable(),
+  account_number: z.string().optional().nullable(),
 });
 
 const transferSchema = z.object({
   origin_id: z.string().min(1, "Origem é obrigatória"),
-  dest_id: z.string().min(1, "Destino é obrigatório"),
+  dest_id: z.string().min(1, "Destino é obrigatória"),
   amount: z.coerce.number().positive("Valor deve ser maior que zero"),
   description: z.string().min(1, "Descrição é obrigatória"),
-  date: z.string(),
+  date: z.string().min(1, "Data é obrigatória"),
 });
 
 function AccountsPage() {
@@ -103,6 +103,9 @@ function AccountsPage() {
       type: "caixa",
       initial_balance: 0,
       color: "#3B82F6",
+      bank_name: null,
+      agency: null,
+      account_number: null,
     },
   });
 
@@ -197,7 +200,15 @@ function AccountsPage() {
             </Button>
             <Button onClick={() => {
               setEditingAccount(null);
-              form.reset();
+              form.reset({
+                name: "",
+                type: "caixa",
+                initial_balance: 0,
+                color: "#3B82F6",
+                bank_name: null,
+                agency: null,
+                account_number: null,
+              });
               setOpen(true);
             }} className="gap-2 bg-gradient-gold border-none shadow-gold font-bold">
               <Plus className="size-4" /> Nova Conta
@@ -311,7 +322,7 @@ function AccountsPage() {
                   <FormItem>
                     <FormLabel>Nome da Conta</FormLabel>
                     <FormControl>
-                      <Input placeholder="Ex: Caixa Principal, Banco do Brasil..." {...field} />
+                      <Input placeholder="Ex: Caixa Principal, Banco do Brasil..." {...field} value={field.value || ""} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -394,7 +405,7 @@ function AccountsPage() {
                       <FormItem>
                         <FormLabel>Nome do Banco</FormLabel>
                         <FormControl>
-                          <Input placeholder="Ex: Itaú, Santander..." {...field} />
+                          <Input placeholder="Ex: Itaú, Santander..." {...field} value={field.value || ""} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -408,7 +419,7 @@ function AccountsPage() {
                         <FormItem>
                           <FormLabel>Agência</FormLabel>
                           <FormControl>
-                            <Input {...field} />
+                            <Input {...field} value={field.value || ""} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -421,7 +432,7 @@ function AccountsPage() {
                         <FormItem>
                           <FormLabel>Número da Conta</FormLabel>
                           <FormControl>
-                            <Input {...field} />
+                            <Input {...field} value={field.value || ""} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
