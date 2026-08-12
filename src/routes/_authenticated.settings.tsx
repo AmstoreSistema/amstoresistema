@@ -35,6 +35,7 @@ function SettingsPage() {
   const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [isNewUserModalOpen, setIsNewUserModalOpen] = useState(false);
   const [newUser, setNewUser] = useState({ email: "", password: "", display_name: "", role: "admin" as const });
   const [selectedTables, setSelectedTables] = useState<string[]>([]);
   const [backupProgress, setBackupProgress] = useState<{ active: boolean; currentTable: string; percent: number }>({ active: false, currentTable: "", percent: 0 });
@@ -721,16 +722,54 @@ function SettingsPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <CardTitle className="text-xl font-bold flex items-center gap-2">
-                    <User className="size-5 text-gold" /> Gerenciamento de Usuários
+                    <Shield className="size-5 text-gold" /> Administradores do Sistema
                   </CardTitle>
-                  <CardDescription>Controle quem tem acesso e quais permissões possuem.</CardDescription>
+                  <CardDescription>Gerencie os e-mails com acesso total ao sistema.</CardDescription>
                 </div>
-                <Button className="bg-gradient-gold shadow-gold font-bold" onClick={() => setIsNewUserModalOpen(true)}>
-                  <UserPlus className="size-4 mr-2" /> Novo Usuário
+                <Button 
+                  onClick={() => setIsNewUserModalOpen(true)}
+                  className="bg-gradient-gold shadow-gold font-bold"
+                >
+                  <UserPlus className="size-4 mr-2" /> Adicionar Administrador
                 </Button>
               </div>
             </CardHeader>
             <CardContent className="p-8">
+              <div className="space-y-4">
+                {users.filter(u => u.user_roles?.[0]?.role === 'admin' || ['amstorebagshoes@gmail.com', 'matosmonica000@gmail.com'].includes(u.email)).map((user) => (
+                  <div key={user.id} className="flex items-center justify-between p-4 rounded-2xl bg-muted/20 border border-border/40 hover:border-gold/30 transition-colors">
+                    <div className="flex items-center gap-4">
+                      <div className="size-10 rounded-full bg-gold/10 flex items-center justify-center text-gold font-bold">
+                        {user.email?.slice(0, 2).toUpperCase()}
+                      </div>
+                      <div>
+                        <p className="font-bold">{user.display_name || "Sem nome"}</p>
+                        <p className="text-xs text-muted-foreground">{user.email}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Badge className="bg-gold/20 text-gold border-gold/30">Administrador</Badge>
+                      {!['amstorebagshoes@gmail.com', 'matosmonica000@gmail.com'].includes(user.email) && (
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                          onClick={async () => {
+                            if (confirm("Remover este administrador?")) {
+                              await updateRole({ data: { userId: user.id, role: "user" } });
+                              toast.success("Cargo alterado");
+                              loadData();
+                            }
+                          }}
+                        >
+                          Remover Acesso
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
               {/* New User Modal */}
               {isNewUserModalOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
@@ -768,14 +807,17 @@ function SettingsPage() {
                         <Select 
                           value={newUser.role} 
                           onValueChange={(role: any) => setNewUser({...newUser, role})}
+                          disabled
                         >
                           <SelectTrigger>
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="admin">Administrador</SelectItem>
-                            <SelectItem value="moderator">Moderador</SelectItem>
-                            <SelectItem value="user">Vendedor</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <p className="text-[10px] text-muted-foreground">Apenas administradores podem ser cadastrados conforme nova regra do sistema.</p>
+                      </div>
                           </SelectContent>
                         </Select>
                       </div>
