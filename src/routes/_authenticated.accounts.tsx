@@ -84,7 +84,7 @@ const transferSchema = z.object({
   dest_id: z.string().min(1, "Destino é obrigatória"),
   amount: z.coerce.number().positive("Valor deve ser maior que zero"),
   description: z.string().min(1, "Descrição é obrigatória"),
-  date: z.string(),
+  date: z.string().min(1, "Data é obrigatória"),
 });
 
 function AccountsPage() {
@@ -335,7 +335,7 @@ function AccountsPage() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Tipo</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Selecione o tipo" />
@@ -470,7 +470,7 @@ function AccountsPage() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Conta de Origem</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Selecione" />
@@ -492,7 +492,7 @@ function AccountsPage() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Conta de Destino</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Selecione" />
