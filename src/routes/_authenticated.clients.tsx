@@ -169,21 +169,6 @@ function ClientsPage() {
         </div>
       )}
 
-      <div className="hidden">
-        <CrudPage<any>
-          table="clients"
-          title="Hidden"
-          label="cliente"
-          fields={[
-            { name: "name", label: "Nome", span: 2 },
-            { name: "phone", label: "WhatsApp / Telefone", placeholder: "5511999999999" },
-            { name: "email", label: "E-mail" },
-            { name: "address", label: "Endereço", span: 2 },
-            { name: "notes", label: "Observações", type: "textarea" },
-          ]}
-          columns={[]}
-        />
-      </div>
 
       {isCrudOpen && (
         <ClientFormModal
