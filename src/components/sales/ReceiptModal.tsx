@@ -115,7 +115,8 @@ export function ReceiptModal({
   const isCancelled = sale.status === 'cancelado';
   const isAwarded = sale.is_awarded === true;
 
-  const { data: promoConfig } = useRows<any>("qr_promo_config", { single: true });
+  const { data: promoConfigs = [] } = useRows<any>("qr_promo_config");
+  const promoConfig = promoConfigs?.[0];
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
