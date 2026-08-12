@@ -121,9 +121,6 @@ export function ClientDetailsModal({ client, isOpen, onClose }: ClientDetailsMod
               <p className="text-sm text-muted-foreground">{client.phone || "Sem telefone"}</p>
             </div>
           </div>
-          <DialogClose className="absolute right-4 top-4 p-2 rounded-full hover:bg-muted transition-colors">
-            <X className="size-4" />
-          </DialogClose>
         </div>
 
         <ScrollArea className="max-h-[80vh]">
