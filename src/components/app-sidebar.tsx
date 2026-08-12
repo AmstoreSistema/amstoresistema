@@ -130,18 +130,12 @@ const menuGroups: { label: string; items: Item[] }[] = [
         icon: QrCode,
         hint: "Códigos QR promocionais",
       },
-      {
-        title: "Cashback",
-        url: "/cashback",
-        icon: Coins,
-        hint: "Programa de fidelidade",
-      },
-      {
-        title: "Configurações",
-        url: "/settings",
-        icon: Settings,
-        hint: "Ajustes do sistema",
-      },
+          { title: "Cashback", url: "/cashback", icon: Coins },
+          {
+            title: "Configurações",
+            url: "/settings",
+            icon: Settings,
+          },
     ],
   },
 ];
