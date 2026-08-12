@@ -95,7 +95,7 @@ export function POSModal({ open, onOpenChange }: { open: boolean; onOpenChange: 
       const initials = (client.name || "")
         .split(' ')
         .filter((n: string) => n.length > 0)
-        .map((n: string) => n[0].toUpperCase())
+        .map((n: string) => (n[0] || "").toUpperCase())
         .join('')
         .slice(0, 3);
       
@@ -223,7 +223,7 @@ export function POSModal({ open, onOpenChange }: { open: boolean; onOpenChange: 
       
       // Reset High-Fidelity states
       setSaleType("Varejo");
-      setAccountId(null);
+      setAccountId(accounts.find((a: any) => a.active)?.id || null);
       setProtectionMethod("Padrão");
       setNotes("");
     } catch (error: any) {
