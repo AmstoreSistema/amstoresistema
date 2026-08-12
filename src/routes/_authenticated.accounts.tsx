@@ -116,7 +116,7 @@ function AccountsPage() {
       dest_id: "",
       amount: 0,
       description: "Transferência entre contas",
-      date: new Date().toISOString().split('T')[0],
+      date: new Date().toISOString().split('T')[0] as string,
     },
   });
 
