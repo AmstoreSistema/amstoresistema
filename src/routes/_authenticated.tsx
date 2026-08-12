@@ -34,10 +34,14 @@ function AuthenticatedLayout() {
         const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", user.id);
         const userRole = (roles && roles.length > 0) ? (roles[0] as any).role : "user";
         
+        // Fix for amstorebagshoes@gmail.com if it's not detected as admin in the database yet
+        const isAdmin = userRole === 'admin' || user.email === 'amstorebagshoes@gmail.com';
+        const finalRole = isAdmin ? 'admin' : userRole;
+
         const roleMap: any = { admin: "Administrador", moderator: "Moderador", user: "Vendedor" };
-        setRole(roleMap[userRole] || "Vendedor");
+        setRole(roleMap[finalRole] || "Vendedor");
         
-        if (pathname === "/settings" && userRole !== "admin") {
+        if (pathname === "/settings" && finalRole !== "admin") {
           toast.error("Você não tem permissão para acessar as configurações.");
           window.location.href = "/dashboard";
         }
