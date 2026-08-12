@@ -455,6 +455,7 @@ function StockPage() {
             </Button>
           </div>
         </DialogContent>
+      </Dialog>
       <AddProductDirectModal open={addDirectOpen} onOpenChange={setAddDirectOpen} />
     </div>
   );
