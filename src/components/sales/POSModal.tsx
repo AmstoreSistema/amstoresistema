@@ -19,8 +19,20 @@ import {
   Banknote,
   Percent,
   Coins,
-  ReceiptText
+  ReceiptText,
+  Shield,
+  User,
+  Tag,
+  Building2
 } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { useRows } from "@/lib/data";
 
 import { ClientSearch } from "./ClientSearch";
 import { ProductSearch } from "./ProductSearch";
