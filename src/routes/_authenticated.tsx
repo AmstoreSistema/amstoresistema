@@ -37,6 +37,7 @@ function AuthenticatedLayout() {
         setRole(roleMap[userRole] || "Vendedor");
         
         if (pathname === "/settings" && userRole !== "admin") {
+          toast.error("Você não tem permissão para acessar as configurações.");
           window.location.href = "/dashboard";
         }
       }
