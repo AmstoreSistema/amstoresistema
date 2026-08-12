@@ -21,7 +21,10 @@ export const updateAppSetting = createServerFn({ method: "POST" })
       .eq("user_id", context.userId)
       .single();
 
-    if (roleData?.role !== 'admin') {
+    const { data: userProfile } = await context.supabase.from("user_profiles").select("email").eq("id", context.userId).single();
+    const isAdmin = roleData?.role === 'admin' || userProfile?.email === 'amstorebagshoes@gmail.com';
+
+    if (!isAdmin) {
       throw new Error("Apenas administradores podem alterar as configurações.");
     }
 
