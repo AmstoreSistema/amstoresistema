@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { brl } from "@/lib/format";
 import { 
   Trash2, 
@@ -20,6 +21,7 @@ import {
   Coins,
   ReceiptText
 } from "lucide-react";
+
 import { ClientSearch } from "./ClientSearch";
 import { ProductSearch } from "./ProductSearch";
 import { createSale } from "@/lib/sales.functions";
@@ -109,7 +111,8 @@ export function POSModal({ open, onOpenChange }: { open: boolean; onOpenChange: 
         }))
       };
 
-      await createSale(saleData);
+      await createSale({ data: saleData });
+
       toast.success("Venda realizada com sucesso!");
       
       // Reset POS
