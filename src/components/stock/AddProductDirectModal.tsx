@@ -24,11 +24,14 @@ import {
   DollarSign, 
   RefreshCw,
   AlertCircle,
-  Box
+  Box,
+  Upload,
+  X
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
+import { brl } from "@/lib/format";
 
 const CATEGORIES = ["Bolsa", "Sandália", "Carteira", "Mochila", "Cinto", "Acessório", "Geral"];
 const SIZES = ["33", "34", "35", "36", "37", "38", "39", "40"];
@@ -50,6 +53,7 @@ export function AddProductDirectModal({ open, onOpenChange }: { open: boolean; o
     preco_venda: 0,
     preco_atacado: 0,
     min_stock: 5,
+    image_url: "" as string | null,
   });
 
   const [quantities, setQuantities] = React.useState<Record<string, number>>({});
@@ -66,6 +70,10 @@ export function AddProductDirectModal({ open, onOpenChange }: { open: boolean; o
 
     setLoading(true);
     try {
+      const totalQty = formData.category === "Sandália" 
+        ? Object.values(quantities).reduce((a, b) => a + (Number(b) || 0), 0)
+        : 1;
+
       const { data: product, error: pError } = await supabase
         .from("products")
         .insert({
@@ -77,6 +85,8 @@ export function AddProductDirectModal({ open, onOpenChange }: { open: boolean; o
           sale_price: formData.preco_venda,
           wholesale_price: formData.preco_atacado,
           min_stock: formData.min_stock,
+          image_url: formData.image_url,
+          current_stock: totalQty,
           active: true
         })
         .select()
@@ -84,20 +94,19 @@ export function AddProductDirectModal({ open, onOpenChange }: { open: boolean; o
 
       if (pError) throw pError;
 
-      const totalQty = Object.values(quantities).reduce((a, b) => a + (Number(b) || 0), 0);
-
       const { error: sError } = await supabase
         .from("stock_products")
         .insert({
           produto_id: product.id,
           produto_nome: product.name,
-          quantidade_disponivel: formData.category === "Sandália" ? totalQty : 1,
+          quantidade_disponivel: totalQty,
           numeracoes: (formData.category === "Sandália" ? quantities : null) as any,
           preco_custo: formData.preco_custo,
           preco_venda: formData.preco_venda,
           data_entrada: formData.data_entrada || null,
           lote: formData.lote,
-          localizacao: formData.localizacao
+          localizacao: formData.localizacao,
+          categoria: formData.category
         });
 
       if (sError) throw sError;
@@ -118,6 +127,7 @@ export function AddProductDirectModal({ open, onOpenChange }: { open: boolean; o
         preco_venda: 0,
         preco_atacado: 0,
         min_stock: 5,
+        image_url: null,
       });
       setQuantities({});
       generateSku();
@@ -146,6 +156,56 @@ export function AddProductDirectModal({ open, onOpenChange }: { open: boolean; o
              <div className="flex items-center gap-2 text-success">
                 <Info className="size-4" />
                 <h3 className="font-bold uppercase text-[10px] tracking-widest">Informações do Produto</h3>
+             </div>
+             
+             {/* Upload de Imagem */}
+             <div className="space-y-2">
+                <Label className="text-xs font-bold pl-1 uppercase tracking-wider text-muted-foreground">Imagem do Produto</Label>
+                <div 
+                  className="relative flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-muted-foreground/20 bg-muted/5 p-6 transition-colors hover:bg-muted/10 cursor-pointer"
+                  onClick={() => document.getElementById('product-direct-image-upload')?.click()}
+                >
+                  <input 
+                    type="file" 
+                    id="product-direct-image-upload" 
+                    className="hidden" 
+                    accept="image/*"
+                    onChange={e => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        const reader = new FileReader();
+                        reader.onloadend = () => {
+                          setFormData({ ...formData, image_url: reader.result as string });
+                        };
+                        reader.readAsDataURL(file);
+                      }
+                    }}
+                  />
+                  {formData.image_url ? (
+                    <div className="group relative w-full overflow-hidden rounded-xl aspect-video max-h-40">
+                      <img src={formData.image_url} alt="Preview" className="h-full w-full object-contain" />
+                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Button 
+                          variant="destructive" 
+                          size="sm" 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setFormData({ ...formData, image_url: null });
+                          }}
+                        >
+                          <X className="size-4 mr-1" /> Remover
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-sm mb-2">
+                        <Upload className="size-5 text-muted-foreground" />
+                      </div>
+                      <p className="text-xs font-medium">Clique para fazer upload da imagem</p>
+                    </>
+                  )}
+                </div>
              </div>
              
              <div className="grid grid-cols-1 gap-4">

@@ -13,7 +13,8 @@ import {
   Settings2,
   CircleDollarSign,
   TrendingUp,
-  DollarSign
+  DollarSign,
+  Trash2
 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -59,11 +60,22 @@ type Product = {
   sale_price: number;
   wholesale_price: number;
   updated_at: string | null;
+  color: string | null;
+};
+
+type StockRecord = {
+  id: string;
+  produto_id: string;
+  lote: string | null;
+  localizacao: string | null;
+  data_entrada: string | null;
+  numeracoes: Record<string, number> | null;
 };
 
 function StockPage() {
   const qc = useQueryClient();
   const { data: products = [], isLoading } = useRows<Product>("products", { order: { column: "name", ascending: true } });
+  const { data: stockRecords = [] } = useRows<StockRecord>("stock_products");
   const save = useSaveRow("products", "estoque");
 
   const [term, setTerm] = useState("");
@@ -167,85 +179,129 @@ function StockPage() {
         </div>
       ) : (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {filtered.map(p => (
-            <Card key={p.id} className="group overflow-hidden rounded-[2rem] border-border/30 bg-card transition-all hover:shadow-xl shadow-elegant">
-              <div className="relative aspect-video bg-muted/20">
-                {p.image_url ? (
-                  <img src={p.image_url} alt={p.name} className="h-full w-full object-cover" />
-                ) : (
-                  <div className="flex h-full w-full items-center justify-center text-muted-foreground/10">
-                    <Package className="size-16" />
-                  </div>
-                )}
-                <div className="absolute bottom-3 left-3 flex gap-1">
-                   <Badge variant="secondary" className="bg-black/50 text-white backdrop-blur-sm border-none text-[10px] py-0 px-2 uppercase tracking-tighter">
-                      Geral
-                   </Badge>
-                </div>
-              </div>
-              <CardContent className="p-5">
-                <div className="mb-4">
-                  <div className="flex justify-between items-start gap-2">
-                     <h3 className="line-clamp-1 font-display font-black leading-tight flex-1">{p.name}</h3>
-                     <Barcode className="size-5 text-muted-foreground/50 shrink-0" />
-                  </div>
-                  <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold mt-1">Ref: {p.sku || "—"}</p>
-                </div>
+          {filtered.map(p => {
+            const stockRecord = stockRecords.find(s => s.produto_id === p.id);
+            const numeracoes = stockRecord?.numeracoes || {};
+            const availableSizes = Object.entries(numeracoes as Record<string, number>)
+              .filter(([_, qty]) => Number(qty) > 0)
+              .map(([size, _]) => size);
 
-                <div className="grid grid-cols-2 gap-3 mb-5">
-                   <div className="bg-muted/30 rounded-2xl p-3">
-                      <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest mb-1">Estoque</p>
-                      <p className={cn("text-xl font-black", Number(p.current_stock) <= Number(p.min_stock) ? "text-destructive" : "text-success")}>
-                         {p.current_stock}
-                      </p>
-                   </div>
-                   <div className="bg-muted/30 rounded-2xl p-3">
-                      <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest mb-1">Mínimo</p>
-                      <p className="text-xl font-black text-muted-foreground">
-                         {p.min_stock}
-                      </p>
-                   </div>
+            return (
+              <Card key={p.id} className="group overflow-hidden rounded-[2rem] border-border/30 bg-card transition-all hover:shadow-xl shadow-elegant flex flex-col">
+                <div className="relative aspect-video bg-muted/20 shrink-0">
+                  {p.image_url ? (
+                    <img src={p.image_url} alt={p.name} className="h-full w-full object-cover" />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center text-muted-foreground/10">
+                      <Package className="size-16" />
+                    </div>
+                  )}
                 </div>
                 
-                <div className="space-y-1.5 text-xs">
-                  <div className="flex justify-between font-medium">
-                    <span className="text-muted-foreground">Entrada:</span>
-                    <span>{dateBR(p.updated_at)}</span>
+                <CardContent className="p-5 flex-1 flex flex-col">
+                  <div className="mb-4">
+                    <div className="flex justify-between items-start gap-2">
+                       <h3 className="line-clamp-2 font-display font-black leading-tight flex-1 text-sm md:text-base">{p.name}</h3>
+                       <div className="bg-success/10 text-success text-[10px] font-black px-2 py-0.5 rounded-full shrink-0">
+                          {p.current_stock}
+                       </div>
+                    </div>
+                    <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold mt-1 flex items-center gap-1">
+                      <Barcode className="size-3" /> {p.sku || "—"}
+                    </p>
                   </div>
-                  <div className="flex justify-between font-medium">
-                    <span className="text-muted-foreground">Local:</span>
-                    <span className="text-gold">Prateleira A1</span>
+
+                  <div className="space-y-3 flex-1">
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-[11px]">
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground font-medium">Data de Entrada:</span>
+                        <span className="font-medium text-right">{dateBR(stockRecord?.data_entrada || p.updated_at)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground font-medium">Categoria:</span>
+                        <span className="font-medium text-right">{p.category}</span>
+                      </div>
+                      <div className="flex justify-between col-span-2">
+                        <span className="text-muted-foreground font-medium">Lote:</span>
+                        <span className="font-mono text-[9px] truncate max-w-[150px] text-right">{stockRecord?.lote || "—"}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground font-medium">Cor:</span>
+                        <span className="font-medium text-right">{p.color || "—"}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground font-medium">Localização:</span>
+                        <span className="font-medium text-primary text-right">{stockRecord?.localizacao || "—"}</span>
+                      </div>
+                    </div>
+
+                    {availableSizes.length > 0 && (
+                      <div className="space-y-1">
+                        <p className="text-[9px] uppercase font-black text-muted-foreground tracking-widest">Numerações:</p>
+                        <div className="flex flex-wrap gap-1">
+                          {availableSizes.map(size => (
+                            <Badge key={size} className="bg-black text-white hover:bg-black px-2 py-0 h-5 text-[10px] font-black border-none">
+                              {size}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="pt-2 border-t border-border/30">
+                      <p className="text-[9px] uppercase font-black text-muted-foreground tracking-widest mb-2">Valores Unitários</p>
+                      <div className="grid grid-cols-3 gap-2">
+                         <div className="text-left">
+                            <p className="text-[8px] uppercase font-bold text-muted-foreground tracking-tighter">Custo</p>
+                            <p className="font-bold text-[11px] text-orange-500">{brl(p.cost_price)}</p>
+                         </div>
+                         <div className="text-left border-x border-border/40 px-2">
+                            <p className="text-[8px] uppercase font-bold text-muted-foreground tracking-tighter">Varejo</p>
+                            <p className="font-bold text-[11px] text-success">{brl(p.sale_price)}</p>
+                         </div>
+                         <div className="text-left pl-2">
+                            <p className="text-[8px] uppercase font-bold text-muted-foreground tracking-tighter">Atacado</p>
+                            <p className="font-bold text-[11px] text-blue-600">{brl(p.wholesale_price)}</p>
+                         </div>
+                      </div>
+                    </div>
                   </div>
-                </div>
 
-                <div className="mt-5 grid grid-cols-3 gap-2 border-t border-border/30 pt-4">
-                   <div className="text-center">
-                      <p className="text-[8px] uppercase font-bold text-muted-foreground tracking-tighter">Custo</p>
-                      <p className="font-bold text-[11px]">{brl(p.cost_price)}</p>
-                   </div>
-                   <div className="text-center border-x border-border/40">
-                      <p className="text-[8px] uppercase font-bold text-muted-foreground tracking-tighter">Varejo</p>
-                      <p className="font-bold text-[11px] text-success">{brl(p.sale_price)}</p>
-                   </div>
-                   <div className="text-center">
-                      <p className="text-[8px] uppercase font-bold text-muted-foreground tracking-tighter">Atacado</p>
-                      <p className="font-bold text-[11px] text-primary">{brl(p.wholesale_price)}</p>
-                   </div>
-                </div>
-
-                <Button 
-                   variant="ghost" 
-                   className="w-full mt-4 rounded-xl h-10 gap-2 border border-border/40 hover:bg-gold hover:text-white transition-colors"
-                   onClick={() => {
-                      setSelectedProduct(p);
-                      setAdjustOpen(true);
-                   }}
-                >
-                   <Pencil className="size-4" /> Ajustar Estoque
-                </Button>
-              </CardContent>
-            </Card>
-          ))}
+                  <div className="mt-4 pt-4 border-t border-border/30 flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-1.5 bg-blue-50 text-blue-700 px-3 py-1.5 rounded-lg flex-1">
+                      <TrendingUp className="size-3" />
+                      <span className="text-[10px] font-black uppercase tracking-tight">Disponível para venda</span>
+                    </div>
+                    <Button 
+                       variant="outline" 
+                       size="icon"
+                       className="size-9 rounded-lg border-border/40 hover:bg-muted"
+                       onClick={() => {
+                          setSelectedProduct(p);
+                          setAdjustOpen(true);
+                       }}
+                    >
+                       <Pencil className="size-4" />
+                    </Button>
+                  </div>
+                  
+                  <div className="mt-4 flex justify-center">
+                    <Button 
+                      variant="ghost" 
+                      className="text-[10px] text-destructive hover:text-destructive hover:bg-destructive/5 font-bold h-7 gap-1"
+                      onClick={() => {
+                        if (confirm("Deseja realmente excluir este item do estoque?")) {
+                          toast.info("Funcionalidade de exclusão total em desenvolvimento");
+                        }
+                      }}
+                    >
+                      <Trash2 className="size-3" /> Excluir Item do Estoque
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
       )}
 
