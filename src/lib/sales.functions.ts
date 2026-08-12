@@ -74,8 +74,9 @@ export const createSale = createServerFn({ method: "POST" })
         
         if (item.numeracao && typeof newNumeracoes === 'object' && newNumeracoes !== null) {
           const numObj = { ...(newNumeracoes as Record<string, number>) };
-          if (numObj[item.numeracao]) {
-            numObj[item.numeracao] = Math.max(0, numObj[item.numeracao] - item.quantity);
+          const currentVal = numObj[item.numeracao];
+          if (typeof currentVal === 'number') {
+            numObj[item.numeracao] = Math.max(0, currentVal - item.quantity);
           }
           newNumeracoes = numObj;
         }
