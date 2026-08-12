@@ -13,7 +13,7 @@ export const exportSystemData = createServerFn({ method: "POST" })
     const exportData: Record<string, any> = {};
     
     for (const table of tables) {
-      const { data, error } = await supabaseAdmin.from(table).select("*");
+      const { data, error } = await supabaseAdmin.from(table as any).select("*");
       if (error) console.error(`Error exporting ${table}:`, error);
       exportData[table] = data || [];
     }
@@ -35,10 +35,9 @@ export const importSystemData = createServerFn({ method: "POST" })
       throw new Error("Formato de backup inválido");
     }
     
-    // Simple restoration logic: upserting data
     for (const [table, rows] of Object.entries(payload.data)) {
       if (Array.isArray(rows) && rows.length > 0) {
-        const { error } = await supabaseAdmin.from(table).upsert(rows);
+        const { error } = await supabaseAdmin.from(table as any).upsert(rows);
         if (error) console.error(`Error importing ${table}:`, error);
       }
     }

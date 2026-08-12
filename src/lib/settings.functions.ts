@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { supabase } from "./supabase/client";
+import { supabase } from "@/integrations/supabase/client";
 
 export const getAppSettings = createServerFn({ method: "GET" })
   .handler(async () => {
