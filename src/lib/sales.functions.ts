@@ -64,49 +64,85 @@ export const cancelSale = createServerFn({ method: "POST" })
 
 export const registerSalePayment = createServerFn({ method: "POST" })
   .inputValidator((data) => z.object({
+    installment_id: z.string().optional(),
     sale_id: z.string(),
     amount: z.number(),
     payment_method: z.string()
   }).parse(data))
   .handler(async ({ data }) => {
-    const { error: paymentError } = await supabase
-      .from("sale_payments")
-      .insert({
-        sale_id: data.sale_id,
-        amount: data.amount,
-        payment_method: data.payment_method
+    if (data.installment_id) {
+      const { error } = await supabase.rpc('pay_sale_installment', {
+        p_installment_id: data.installment_id,
+        p_amount: data.amount,
+        p_payment_method: data.payment_method
       });
-
-    if (paymentError) throw new Error(`Erro ao registrar pagamento: ${paymentError.message}`);
-
-    const { data: sale } = await supabase
-      .from("sales")
-      .select("paid_amount, total_amount")
-      .eq("id", data.sale_id)
-      .single();
-
-    if (sale) {
-      const newPaidAmount = Number(sale.paid_amount) + data.amount;
-      const newStatus = newPaidAmount >= Number(sale.total_amount) ? "paid" : "partial";
-      
-      await supabase
-        .from("sales")
-        .update({ 
-          paid_amount: newPaidAmount,
-          status: newStatus
-        })
-        .eq("id", data.sale_id);
-
-      await supabase
-        .from("transactions")
+      if (error) throw new Error(`Erro ao registrar pagamento da parcela: ${error.message}`);
+    } else {
+      const { error: paymentError } = await supabase
+        .from("sale_payments")
         .insert({
-          amount: data.amount,
-          type: "income",
-          description: `Pagamento Venda #${data.sale_id.slice(0, 8)}`,
           sale_id: data.sale_id,
-          category: 'Venda'
-        } as any);
+          amount: data.amount,
+          payment_method: data.payment_method
+        });
+
+      if (paymentError) throw new Error(`Erro ao registrar pagamento: ${paymentError.message}`);
+
+      const { data: sale } = await supabase
+        .from("sales")
+        .select("paid_amount, total_amount")
+        .eq("id", data.sale_id)
+        .single();
+
+      if (sale) {
+        const newPaidAmount = Number(sale.paid_amount) + data.amount;
+        const newStatus = newPaidAmount >= Number(sale.total_amount) ? "paid" : "partial";
+        
+        await supabase
+          .from("sales")
+          .update({ 
+            paid_amount: newPaidAmount,
+            status: newStatus
+          })
+          .eq("id", data.sale_id);
+
+        await supabase
+          .from("transactions")
+          .insert({
+            amount: data.amount,
+            type: "income",
+            description: `Pagamento Venda #${data.sale_id.slice(0, 8)}`,
+            sale_id: data.sale_id,
+            category: 'Venda'
+          } as any);
+      }
     }
+
+    return { success: true };
+  });
+
+export const updateInstallments = createServerFn({ method: "POST" })
+  .inputValidator((data) => z.object({
+    sale_id: z.string(),
+    installments: z.array(z.object({
+      number: z.number(),
+      amount: z.number(),
+      due_date: z.string()
+    }))
+  }).parse(data))
+  .handler(async ({ data }) => {
+    const { error } = await supabase.rpc('update_sale_installments', {
+      p_sale_id: data.sale_id,
+      p_installments: data.installments
+    });
+    
+    if (error) throw new Error(`Erro ao atualizar parcelas: ${error.message}`);
+
+    // Update sales table installments_count
+    await supabase
+      .from("sales")
+      .update({ installments_count: data.installments.length })
+      .eq("id", data.sale_id);
 
     return { success: true };
   });
