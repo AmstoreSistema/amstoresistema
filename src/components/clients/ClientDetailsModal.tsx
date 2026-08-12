@@ -103,7 +103,7 @@ export function ClientDetailsModal({ client, isOpen, onClose }: ClientDetailsMod
       bgColor: "bg-yellow-50",
       textColor: "text-yellow-600",
       valueColor: "text-yellow-600",
-      subValue: `A receber: ${brl(0)}`, // Logic for pending cashback could be added if available
+      subValue: `Bônus QR: ${brl(client.qr_bonus_amount || 0)}`,
     },
   ];
 

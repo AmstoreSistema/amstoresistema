@@ -45,9 +45,25 @@ function ClientsPage() {
   const [isCrudOpen, setIsCrudOpen] = useState(false);
   const [editingClient, setEditingClient] = useState<any | null>(null);
 
-  const { data: clients = [], isLoading } = useRows<any>("clients", {
+  const { data: clientsData = [], isLoading } = useRows<any>("clients", {
     order: { column: "name", ascending: true }
   });
+
+  const { data: qrBonusData } = useRows<any>("qr_promo_history", {
+    filter: { column: "is_awarded", operator: "eq", value: true },
+    select: "client_id, bonus_amount, available_bonus"
+  });
+
+  const clients = useMemo(() => {
+    return clientsData.map(client => {
+      const activeBonuses = qrBonusData?.filter(b => b.client_id === client.id && b.available_bonus !== false) || [];
+      return {
+        ...client,
+        has_qr_bonus: activeBonuses.length > 0,
+        qr_bonus_amount: activeBonuses.reduce((acc, b) => acc + (b.bonus_amount || 0), 0)
+      };
+    });
+  }, [clientsData, qrBonusData]);
 
   const { data: salesStats } = useQuery({
     queryKey: ['clients-sales-total'],

@@ -64,3 +64,19 @@ export const deleteQrPromoHistoryItem = createServerFn({ method: "POST" })
     if (error) throw error;
     return { success: true };
   });
+
+export const getClientAvailableBonus = createServerFn({ method: "GET" })
+  .inputValidator((data) => z.object({ client_id: z.string() }).parse(data))
+  .handler(async ({ data }) => {
+    const { data: bonus, error } = await supabaseAdmin
+      .from("qr_promo_history")
+      .select("*")
+      .eq("client_id", data.client_id)
+      .eq("is_awarded", true)
+      .eq("available_bonus", true)
+      .limit(1)
+      .maybeSingle();
+
+    if (error) throw error;
+    return bonus;
+  });
