@@ -175,11 +175,9 @@ export function AppSidebar() {
       <SidebarContent className="scrollbar-hide gap-0 overflow-y-auto overflow-x-hidden">
         {menuGroups.map((group) => (
           <SidebarGroup key={group.label} className="py-2">
-            {group.label !== "SISTEMA" && group.label !== "LOJA" && group.label !== "Sistema" && group.label !== "Loja" && (
-              <SidebarGroupLabel className="px-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-sidebar-foreground/45">
-                {group.label}
-              </SidebarGroupLabel>
-            )}
+            <SidebarGroupLabel className="px-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-sidebar-foreground/45">
+              {group.label}
+            </SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu className="gap-0.5 px-2">
                 {group.items.map((item) => {
