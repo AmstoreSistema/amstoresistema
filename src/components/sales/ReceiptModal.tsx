@@ -10,10 +10,12 @@ import {
   Share2,
   X,
   Smartphone,
-  Loader2
+  Loader2,
+  Gift
 } from "lucide-react";
 import { toPng } from 'html-to-image';
 import { toast } from "sonner";
+import { useRows } from "@/lib/data";
 import logoAsset from "@/assets/amstore-logo-receipt.png.asset.json";
 
 declare global {
@@ -111,7 +113,10 @@ export function ReceiptModal({
   const items = sale.items || [];
   const subtotal = sale.total_amount + (sale.discount || 0) + (sale.cashback_used || 0);
   const isCancelled = sale.status === 'cancelado';
-  const isAwarded = sale.is_awarded === true; // Mock or real logic
+  const isAwarded = sale.is_awarded === true;
+
+  const { data: promoConfigs = [] } = useRows<any>("qr_promo_config");
+  const promoConfig = promoConfigs?.[0];
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -211,25 +216,23 @@ export function ReceiptModal({
             <div className="border-t border-dashed border-gray-300 my-2" />
 
             {/* --- QR CODE PROMOCIONAL --- */}
-            {!isPreview && !isCancelled && (
+            {!isPreview && !isCancelled && promoConfig && promoConfig.active && (
               <div className="text-center py-2">
-                <p className="font-bold mb-2">🎁 PROMOÇÃO AMSTORE</p>
+                <p className="font-bold mb-2 flex items-center justify-center gap-2">
+                   <Gift className="size-3" /> PROMOÇÃO: {promoConfig.name || "QR Code Premiado"}
+                </p>
                 <div className="flex justify-center my-3 min-h-[160px]">
                   {!qrLoaded ? <Loader2 className="size-8 animate-spin text-muted-foreground/20 self-center" /> : <div ref={qrcodeRef} id="qrcode-cupom" />}
                 </div>
                 <p className="text-[8px] text-muted-foreground mb-2">Código: {sale.promo_qr || "GERANDO..."}</p>
                 
                 {isAwarded ? (
-                  <p className="text-green-700 font-bold leading-tight">
-                    🎉 PARABÉNS! Você foi sorteado!<br />
-                    Seu QR Code é PREMIADO!<br />
-                    Você ganhou um bônus especial de cashback.
+                  <p className="text-green-700 font-bold leading-tight px-2">
+                    {promoConfig.awarded_message || "PARABÉNS! Você foi sorteado!"}
                   </p>
                 ) : (
-                  <p className="text-gray-500 text-[9px] leading-tight">
-                    Que pena! Ainda não foi dessa vez.<br />
-                    Obrigado por comprar na AmStore!<br />
-                    Continue comprando para concorrer a prêmios. 🎁
+                  <p className="text-gray-500 text-[9px] leading-tight px-4">
+                    {promoConfig.standard_message || "Que pena! Continue comprando para concorrer."}
                   </p>
                 )}
               </div>
