@@ -1,5 +1,5 @@
 import React from "react";
-import { User, ShoppingBag, CreditCard, Smartphone, Trash2, Pencil, Eye, UserCheck, UserPlus, TrendingUp } from "lucide-react";
+import { User, ShoppingBag, CreditCard, Smartphone, Trash2, Pencil, Eye, UserCheck, UserPlus, TrendingUp, Trophy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { brl } from "@/lib/format";
@@ -98,20 +98,30 @@ export function ClientCard({ client, onViewDetails, onEdit, onDelete }: ClientCa
     <Card className="border-none shadow-sm hover:shadow-md transition-shadow group bg-white/50 backdrop-blur-sm">
       <CardContent className="p-5 space-y-4">
         <div className="flex items-center gap-4">
-          <div className="size-14 rounded-full bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center text-white text-xl font-bold shadow-lg shadow-primary/20">
+          <div className="size-14 rounded-full bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center text-white text-xl font-bold shadow-lg shadow-primary/20 relative">
             {initials}
+            {client.has_qr_bonus && (
+              <div className="absolute -top-1 -right-1 size-5 bg-gold rounded-full border-2 border-white flex items-center justify-center animate-pulse" title="Crédito QR Code Premiado disponível!">
+                <Trophy className="size-2.5 text-noir fill-noir" />
+              </div>
+            )}
           </div>
           <div className="flex-1 min-w-0">
             <h3 className="font-bold text-lg truncate text-foreground/90 group-hover:text-primary transition-colors">
               {client.name}
             </h3>
-            <div className="flex gap-2 mt-1">
+            <div className="flex flex-wrap gap-2 mt-1">
               <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-green-100 text-green-700">
                 R$ {client.total_spent?.toFixed(2) || "0.00"}
               </span>
               <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-purple-100 text-purple-700">
-                R$ {client.cashback_balance?.toFixed(2) || "0.00"}
+                CB: R$ {client.cashback_balance?.toFixed(2) || "0.00"}
               </span>
+              {client.has_qr_bonus && (
+                <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-gold/10 text-gold border border-gold/20">
+                  QR BÔNUS: {brl(client.qr_bonus_amount)}
+                </span>
+              )}
             </div>
           </div>
         </div>

@@ -848,6 +848,7 @@ export type Database = {
       }
       qr_promo_history: {
         Row: {
+          available_bonus: boolean | null
           bonus_amount: number | null
           client_id: string | null
           created_at: string | null
@@ -856,8 +857,10 @@ export type Database = {
           position: number
           sale_id: string | null
           status: string | null
+          used_in_sale_id: string | null
         }
         Insert: {
+          available_bonus?: boolean | null
           bonus_amount?: number | null
           client_id?: string | null
           created_at?: string | null
@@ -866,8 +869,10 @@ export type Database = {
           position: number
           sale_id?: string | null
           status?: string | null
+          used_in_sale_id?: string | null
         }
         Update: {
+          available_bonus?: boolean | null
           bonus_amount?: number | null
           client_id?: string | null
           created_at?: string | null
@@ -876,6 +881,7 @@ export type Database = {
           position?: number
           sale_id?: string | null
           status?: string | null
+          used_in_sale_id?: string | null
         }
         Relationships: [
           {
@@ -888,6 +894,13 @@ export type Database = {
           {
             foreignKeyName: "qr_promo_history_sale_id_fkey"
             columns: ["sale_id"]
+            isOneToOne: false
+            referencedRelation: "sales"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "qr_promo_history_used_in_sale_id_fkey"
+            columns: ["used_in_sale_id"]
             isOneToOne: false
             referencedRelation: "sales"
             referencedColumns: ["id"]

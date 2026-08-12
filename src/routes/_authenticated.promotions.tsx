@@ -113,29 +113,31 @@ function PromotionsPage() {
         </div>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-3">
         <StatCard 
-          title="Vendas Atuais" 
-          value={currentConfig?.current_counter || 0} 
-          icon={BadgePercent} 
-          tone="dark" 
+          title="Contador Real" 
+          value={`${currentConfig?.current_counter || 0} / ${currentConfig?.sales_limit || 0}`} 
+          icon={QrCode} 
+          tone="dark"
+          sub={
+            <div className="mt-2 h-2 w-full bg-muted/20 rounded-full overflow-hidden min-w-[120px]">
+              <div 
+                className="h-full bg-sidebar-primary transition-all duration-500" 
+                style={{ width: `${Math.min(100, ((currentConfig?.current_counter || 0) / (currentConfig?.sales_limit || 1)) * 100)}%` }} 
+              />
+            </div>
+          }
         />
         <StatCard 
-          title="Limite do Ciclo" 
-          value={currentConfig?.sales_limit || 0} 
-          icon={RefreshCcw} 
-          tone="dark" 
-        />
-        <StatCard 
-          title="Total de Premiados" 
+          title="QRs Premiados Gerados" 
           value={history.filter((h: any) => h.is_awarded).length} 
           icon={Trophy} 
-          tone="success" 
+          tone="warning" 
         />
         <StatCard 
-          title="Bônus Entregues" 
-          value={brl(history.filter((h: any) => h.is_awarded).reduce((acc: number, curr: any) => acc + (curr.bonus_value || 0), 0))} 
-          icon={Star} 
+          title="Bônus Reservados" 
+          value={`${history.filter((h: any) => h.is_awarded && h.available_bonus !== false).length} / ${history.filter((h: any) => h.is_awarded).length}`} 
+          icon={Gift} 
           tone="success" 
         />
       </div>
