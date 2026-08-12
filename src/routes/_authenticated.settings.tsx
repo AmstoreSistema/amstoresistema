@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Settings, User, Bell, Database, Zap, Save, UserPlus, Shield, Power, Download, Upload, Store, Loader2 } from "lucide-react";
+import { Settings, User, Bell, Database, Zap, Save, UserPlus, Shield, Power, Download, Upload, Store, Loader2, FileJson, CheckCircle } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
@@ -15,7 +15,8 @@ import { toast } from "sonner";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { CheckCircle2, Info } from "lucide-react";
+import { CheckCircle2, Info, Loader2 as Spinner } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
 
 export const Route = createFileRoute("/_authenticated/settings")({
   head: () => ({
@@ -37,6 +38,8 @@ function SettingsPage() {
   const [isNewUserModalOpen, setIsNewUserModalOpen] = useState(false);
   const [newUser, setNewUser] = useState({ email: "", password: "", display_name: "", role: "user" as const });
   const [selectedTables, setSelectedTables] = useState<string[]>([]);
+  const [backupProgress, setBackupProgress] = useState<{ active: boolean; currentTable: string; percent: number }>({ active: false, currentTable: "", percent: 0 });
+  const [importDialog, setImportDialog] = useState<{ open: boolean; payload: any; selected: string[] }>({ open: false, payload: null, selected: [] });
   
   const backupModules = [
     {
@@ -183,10 +186,35 @@ function SettingsPage() {
       toast.error("Selecione ao menos um módulo para backup");
       return;
     }
+    
     setSaving(true);
+    setBackupProgress({ active: true, currentTable: "Iniciando...", percent: 0 });
+    
     try {
-      const data = await exportData({ data: { tables: selectedTables } });
-      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+      const exportDataMap: Record<string, any> = {};
+      const total = selectedTables.length;
+      
+      for (let i = 0; i < selectedTables.length; i++) {
+        const table = selectedTables[i];
+        const label = allTableIds.find(id => id === table) ? 
+          backupModules.flatMap(m => m.items).find(item => item.id === table)?.label || table : table;
+        
+        setBackupProgress({ active: true, currentTable: `Exportando: ${label}`, percent: Math.round((i / total) * 100) });
+        
+        // Export table by table to show progress
+        const result = await exportData({ data: { tables: [table] } });
+        exportDataMap[table] = result.data[table];
+      }
+      
+      setBackupProgress({ active: true, currentTable: "Concluído!", percent: 100 });
+      
+      const finalData = {
+        version: "1.0",
+        timestamp: new Date().toISOString(),
+        data: exportDataMap
+      };
+      
+      const blob = new Blob([JSON.stringify(finalData, null, 2)], { type: "application/json" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
@@ -198,10 +226,11 @@ function SettingsPage() {
       toast.error("Erro ao gerar backup");
     } finally {
       setSaving(false);
+      setTimeout(() => setBackupProgress(prev => ({ ...prev, active: false })), 2000);
     }
   };
 
-  const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImportFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -209,14 +238,53 @@ function SettingsPage() {
     reader.onload = async (event) => {
       try {
         const payload = JSON.parse(event.target?.result as string);
-        await importData({ data: { payload } });
-        toast.success("Backup restaurado com sucesso");
-        window.location.reload();
+        if (!payload.data) throw new Error("Formato inválido");
+        
+        const availableTables = Object.keys(payload.data);
+        setImportDialog({
+          open: true,
+          payload,
+          selected: availableTables
+        });
       } catch (error) {
-        toast.error("Erro ao restaurar backup: arquivo inválido");
+        toast.error("Erro ao carregar arquivo de backup: formato inválido");
       }
     };
     reader.readAsText(file);
+    e.target.value = ''; // Reset input
+  };
+
+  const handleConfirmImport = async () => {
+    if (importDialog.selected.length === 0) {
+      toast.error("Selecione ao menos um item para restaurar");
+      return;
+    }
+
+    setSaving(true);
+    setBackupProgress({ active: true, currentTable: "Iniciando restauração...", percent: 0 });
+    
+    try {
+      const total = importDialog.selected.length;
+      
+      for (let i = 0; i < importDialog.selected.length; i++) {
+        const table = importDialog.selected[i];
+        const label = backupModules.flatMap(m => m.items).find(item => item.id === table)?.label || table;
+        
+        setBackupProgress({ active: true, currentTable: `Restaurando: ${label}`, percent: Math.round((i / total) * 100) });
+        
+        await importData({ data: { payload: importDialog.payload, tables: [table] } });
+      }
+      
+      setBackupProgress({ active: true, currentTable: "Restauração Concluída!", percent: 100 });
+      toast.success("Backup restaurado com sucesso");
+      setImportDialog({ open: false, payload: null, selected: [] });
+      setTimeout(() => window.location.reload(), 1500);
+    } catch (error) {
+      console.error("Erro import:", error);
+      toast.error("Erro ao restaurar backup");
+    } finally {
+      setSaving(false);
+    }
   };
 
   if (loading) {
@@ -384,6 +452,28 @@ function SettingsPage() {
               <CardDescription>Exporte seus dados ou restaure um backup anterior.</CardDescription>
             </CardHeader>
             <CardContent className="p-8 space-y-8">
+              {backupProgress.active && (
+                <div className="bg-muted/30 border border-border/40 rounded-2xl p-6 space-y-4 animate-in fade-in zoom-in duration-300">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="size-10 rounded-full bg-gold/10 flex items-center justify-center">
+                        {backupProgress.percent === 100 ? (
+                          <CheckCircle className="size-5 text-green-500" />
+                        ) : (
+                          <Loader2 className="size-5 text-gold animate-spin" />
+                        )}
+                      </div>
+                      <div>
+                        <h4 className="font-bold text-sm">{backupProgress.currentTable}</h4>
+                        <p className="text-xs text-muted-foreground">Progresso do processo atual</p>
+                      </div>
+                    </div>
+                    <span className="text-xl font-black text-gold">{backupProgress.percent}%</span>
+                  </div>
+                  <Progress value={backupProgress.percent} className="h-2 bg-muted border-none" />
+                </div>
+              )}
+
               <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 flex gap-4">
                 <div className="bg-white rounded-full p-2 h-fit border border-blue-200">
                   <CheckCircle2 className="size-5 text-blue-500" />
@@ -391,10 +481,6 @@ function SettingsPage() {
                 <div className="space-y-1">
                   <h4 className="font-bold text-blue-900">Backup Automático Ativado</h4>
                   <p className="text-sm text-blue-700">O sistema faz backup automático a cada 24 horas quando você entra no sistema e salva localmente</p>
-                  <ul className="text-xs text-blue-600 list-disc list-inside mt-2 space-y-1">
-                    <li>Backup manual (botão) = Download do arquivo</li>
-                    <li>Backup automático = Salvo no navegador</li>
-                  </ul>
                 </div>
               </div>
 
@@ -450,7 +536,7 @@ function SettingsPage() {
                   <input 
                     type="file" 
                     accept=".json" 
-                    onChange={handleImport}
+                    onChange={handleImportFile}
                     className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-10"
                   />
                   <Button variant="outline" className="w-full h-12 font-bold border-2 flex gap-2">
@@ -459,6 +545,120 @@ function SettingsPage() {
                   </Button>
                 </div>
               </div>
+
+              {/* Import Selection Modal */}
+              {importDialog.open && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-300">
+                  <Card className="w-full max-w-2xl rounded-[2rem] border-gold/20 shadow-2xl overflow-hidden animate-in zoom-in duration-300">
+                    <CardHeader className="bg-muted/50 border-b border-border/40 p-8">
+                      <div className="flex items-center gap-3">
+                        <div className="size-12 rounded-2xl bg-gold/10 flex items-center justify-center border border-gold/20">
+                          <FileJson className="size-6 text-gold" />
+                        </div>
+                        <div>
+                          <CardTitle className="text-2xl font-black">Restaurar Backup</CardTitle>
+                          <CardDescription>Selecione quais módulos deseja restaurar do arquivo enviado.</CardDescription>
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="p-8">
+                      <div className="space-y-6">
+                        <div className="flex items-center justify-between border-b pb-4">
+                          <h3 className="font-bold text-lg">Módulos encontrados no arquivo</h3>
+                          <div className="flex gap-2">
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              onClick={() => setImportDialog(prev => ({ ...prev, selected: Object.keys(prev.payload.data) }))}
+                              className="h-8 text-[10px] uppercase tracking-widest font-bold"
+                            >
+                              Todos
+                            </Button>
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              onClick={() => setImportDialog(prev => ({ ...prev, selected: [] }))}
+                              className="h-8 text-[10px] uppercase tracking-widest font-bold"
+                            >
+                              Nenhum
+                            </Button>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 max-h-[40vh] overflow-y-auto p-2 pr-4 custom-scrollbar">
+                          {Object.keys(importDialog.payload.data).map((tableId) => {
+                            const label = backupModules.flatMap(m => m.items).find(item => item.id === tableId)?.label || tableId;
+                            const rowCount = importDialog.payload.data[tableId]?.length || 0;
+                            
+                            return (
+                              <div 
+                                key={tableId} 
+                                className={`flex items-start gap-3 p-4 rounded-2xl border transition-all cursor-pointer ${
+                                  importDialog.selected.includes(tableId) 
+                                    ? "bg-gold/5 border-gold shadow-[0_0_15px_-5px_rgba(212,175,55,0.3)]" 
+                                    : "bg-muted/20 border-border/40 hover:border-gold/30"
+                                }`}
+                                onClick={() => {
+                                  setImportDialog(prev => ({
+                                    ...prev,
+                                    selected: prev.selected.includes(tableId)
+                                      ? prev.selected.filter(id => id !== tableId)
+                                      : [...prev.selected, tableId]
+                                  }));
+                                }}
+                              >
+                                <Checkbox 
+                                  id={`import-${tableId}`} 
+                                  checked={importDialog.selected.includes(tableId)}
+                                  className="mt-1 border-gold/40 data-[state=checked]:bg-gold data-[state=checked]:text-black"
+                                />
+                                <div className="space-y-1">
+                                  <Label 
+                                    htmlFor={`import-${tableId}`} 
+                                    className="font-bold text-sm cursor-pointer block"
+                                  >
+                                    {label}
+                                  </Label>
+                                  <Badge variant="secondary" className="bg-muted/50 text-[10px] py-0 h-4 border-none">
+                                    {rowCount} registros
+                                  </Badge>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </CardContent>
+                    <CardFooter className="bg-muted/30 border-t border-border/40 p-8 flex justify-end gap-4">
+                      <Button 
+                        variant="ghost" 
+                        onClick={() => setImportDialog({ open: false, payload: null, selected: [] })}
+                        disabled={saving}
+                        className="font-bold"
+                      >
+                        Cancelar
+                      </Button>
+                      <Button 
+                        className="bg-gradient-gold shadow-gold font-bold min-w-[200px] h-12"
+                        onClick={handleConfirmImport}
+                        disabled={saving || importDialog.selected.length === 0}
+                      >
+                        {saving ? (
+                          <>
+                            <Spinner className="size-4 mr-2 animate-spin" />
+                            Restaurando...
+                          </>
+                        ) : (
+                          <>
+                            <CheckCircle className="size-4 mr-2" />
+                            Iniciar Restauração
+                          </>
+                        )}
+                      </Button>
+                    </CardFooter>
+                  </Card>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
