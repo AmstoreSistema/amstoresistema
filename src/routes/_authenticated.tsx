@@ -37,8 +37,7 @@ function AuthenticatedLayout() {
         setRole(roleMap[userRole] || "Vendedor");
         
         if (pathname === "/settings" && userRole !== "admin") {
-            window.location.href = "/dashboard";
-          }
+          window.location.href = "/dashboard";
         }
       }
     });
