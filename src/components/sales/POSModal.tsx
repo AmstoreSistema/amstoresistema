@@ -24,10 +24,12 @@ import {
 
 import { ClientSearch } from "./ClientSearch";
 import { ProductSearch } from "./ProductSearch";
+import { ReceiptModal } from "./ReceiptModal";
 import { createSale } from "@/lib/sales.functions";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { Badge } from "@/components/ui/badge";
+
 
 interface CartItem {
   id: string; // key
@@ -49,6 +51,10 @@ export function POSModal({ open, onOpenChange }: { open: boolean; onOpenChange: 
   const [cashbackToUse, setCashbackToUse] = React.useState(0);
   const [isDebt, setIsDebt] = React.useState(false);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
+  
+  const [receiptOpen, setReceiptOpen] = React.useState(false);
+  const [lastSale, setLastSale] = React.useState<any>(null);
+
 
   // Totals
   const subtotal = items.reduce((acc, item) => acc + (item.price * item.quantity), 0);
@@ -121,9 +127,10 @@ export function POSModal({ open, onOpenChange }: { open: boolean; onOpenChange: 
       setDiscount(0);
       setCashbackToUse(0);
       setIsDebt(false);
-      onOpenChange(false);
+      // Don't close POS modal here yet, let receipt handle it or close after receipt
       qc.invalidateQueries();
     } catch (error: any) {
+
       toast.error(error.message || "Erro ao processar venda");
     } finally {
       setIsSubmitting(false);
@@ -347,7 +354,18 @@ export function POSModal({ open, onOpenChange }: { open: boolean; onOpenChange: 
           </div>
         </div>
       </DialogContent>
+
+      <ReceiptModal 
+         open={receiptOpen} 
+         onOpenChange={(val) => {
+            setReceiptOpen(val);
+            if (!val) onOpenChange(false); // Close POS when receipt closes
+         }} 
+         sale={lastSale}
+         client={client}
+      />
     </Dialog>
+
   );
 }
 
