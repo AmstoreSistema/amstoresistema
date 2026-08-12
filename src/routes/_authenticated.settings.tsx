@@ -851,6 +851,3 @@ function SettingsPage() {
     </div>
   );
 }
-    </div>
-  );
-}
