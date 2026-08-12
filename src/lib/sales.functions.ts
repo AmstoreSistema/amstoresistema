@@ -38,31 +38,34 @@ export const createSale = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { supabaseAdmin: admin } = await import("@/integrations/supabase/client.server");
     
-    console.log("Creating sale with parameters:", JSON.stringify({
-      p_cashback_earned: data.cashback_earned,
-      p_cashback_used: data.cashback_used,
-      p_client_id: data.client_id,
-      p_created_at: data.created_at,
-      p_discount: data.discount,
-      p_financial_account_id: data.financial_account_id,
-      p_installments: data.installments,
-      p_is_debt: data.is_debt,
-      p_items: data.items,
-      p_notes: data.notes || '',
-      p_paid_amount: data.paid_amount,
-      p_payment_method: data.payment_method,
-      p_protection_method: data.protection_method,
-      p_sale_code: data.sale_code,
-      p_sale_type: data.sale_type,
-      p_total_amount: data.total_amount
-    }, null, 2));
+    // Promo QR Logic
+    let isAwarded = false;
+    let promoQr = null;
+    let newCounter = 0;
+
+    const { data: promoConfig } = await admin
+      .from("qr_promo_config")
+      .select("*")
+      .single();
+
+    if (promoConfig && promoConfig.active) {
+      newCounter = (promoConfig.current_counter || 0) + 1;
+      const positions = (promoConfig.awarded_positions || "")
+        .split(',')
+        .map(p => parseInt(p.trim()))
+        .filter(p => !isNaN(p));
+      
+      isAwarded = positions.includes(newCounter);
+      promoQr = `QR-PROM-${new Date().getFullYear()}-${newCounter.toString().padStart(4, '0')}`;
+
+      // Update counter
+      await admin.from("qr_promo_config").update({ current_counter: newCounter }).eq("id", promoConfig.id);
+    }
 
     // Calculate cashback based on categories if not provided
     let calculatedCashbackEarned = data.cashback_earned;
     
     if (calculatedCashbackEarned === 0 && data.items.length > 0 && data.client_id) {
-      const { supabaseAdmin: admin } = await import("@/integrations/supabase/client.server");
-      
       // Get all products in the sale to find their categories
       const productIds = [...new Set(data.items.map(i => i.product_id))];
       const { data: products } = await admin
@@ -114,7 +117,43 @@ export const createSale = createServerFn({ method: "POST" })
     });
 
     if (error) throw new Error(`Erro ao criar venda: ${error.message}`);
+
+    // Update sale with promo info and log to history
+    if (promoConfig && promoConfig.active) {
+      await admin.from("sales").update({
+        is_awarded: isAwarded,
+        promo_qr: promoQr
+      }).eq("id", saleId);
+
+      await admin.from("qr_promo_history").insert({
+        sale_id: saleId,
+        client_id: data.client_id,
+        position: newCounter,
+        is_awarded: isAwarded,
+        bonus_amount: isAwarded ? promoConfig.bonus_value : 0,
+        status: isAwarded ? 'premiado' : 'padrao'
+      });
+
+      // If awarded, apply bonus as cashback balance (optional, based on logic)
+      if (isAwarded && data.client_id) {
+         const { data: client } = await admin.from("clients").select("cashback_balance").eq("id", data.client_id).single();
+         if (client) {
+            await admin.from("clients").update({
+              cashback_balance: Number(client.cashback_balance) + Number(promoConfig.bonus_value)
+            }).eq("id", data.client_id);
+            
+            await admin.from("cashback_entries").insert({
+              client_id: data.client_id,
+              amount: promoConfig.bonus_value,
+              kind: 'earned',
+              description: `Bônus QR Code Premiado (Venda #${data.sale_code || (saleId as string).slice(0,8)})`
+            });
+         }
+      }
+    }
+
     return { saleId: saleId as string };
+
   });
 
 export const cancelSale = createServerFn({ method: "POST" })
