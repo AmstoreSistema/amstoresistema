@@ -409,6 +409,39 @@ export type Database = {
         }
         Relationships: []
       }
+      notifications: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_read: boolean | null
+          message: string
+          reference_id: string | null
+          reference_type: string | null
+          title: string
+          type: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_read?: boolean | null
+          message: string
+          reference_id?: string | null
+          reference_type?: string | null
+          title: string
+          type?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_read?: boolean | null
+          message?: string
+          reference_id?: string | null
+          reference_type?: string | null
+          title?: string
+          type?: string | null
+        }
+        Relationships: []
+      }
       product_materials: {
         Row: {
           allows_scrap: boolean
@@ -1107,6 +1140,7 @@ export type Database = {
     }
     Functions: {
       cancel_complete_sale: { Args: { p_sale_id: string }; Returns: undefined }
+      check_sale_installments_alerts: { Args: never; Returns: undefined }
       complete_production_order: { Args: { _order_id: string }; Returns: Json }
       create_complete_sale:
         | {

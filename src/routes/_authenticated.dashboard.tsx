@@ -4,16 +4,20 @@ import {
   ArrowUpRight, 
   Boxes, 
   CheckCircle2, 
+  Clock,
   Factory, 
   Package, 
   ShoppingCart, 
-  TrendingUp 
+  TrendingUp,
+  User,
+  ChevronRight
 } from "lucide-react";
-import { useMemo } from "react";
-
-import { StatCard } from "@/components/stat-card";
+import { useEffect, useMemo } from "react";
+import { Badge } from "@/components/ui/badge";
+import { supabase } from "@/integrations/supabase/client";
 import { useRows } from "@/lib/data";
 import { brl } from "@/lib/format";
+import { StatCard } from "@/components/stat-card";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({
@@ -30,6 +34,17 @@ function Dashboard() {
   const { data: products = [] } = useRows("products");
   const { data: orders = [] } = useRows("production_orders");
   const { data: sales = [] } = useRows("sales");
+  const { data: clients = [] } = useRows("clients");
+  const { data: installments = [] } = useRows("sale_installments", { 
+    filters: [{ column: "status", value: "overdue" }],
+    order: { column: "due_date", ascending: true }
+  });
+
+  useEffect(() => {
+    supabase.rpc('check_sale_installments_alerts').then(() => {
+      // Alerts checked
+    });
+  }, []);
 
   const criticalMaterials = useMemo(
     () => materials.filter((m: any) => Number(m.current_stock) <= Number(m.min_stock)).length,
@@ -168,6 +183,52 @@ function Dashboard() {
               <div className="flex flex-col items-center justify-center py-12 text-center text-muted-foreground">
                 <CheckCircle2 className="mb-2 size-8 text-success opacity-20" />
                 <p className="text-sm italic">Tudo em ordem com o estoque.</p>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-1">
+        <div className="rounded-3xl border border-destructive/20 bg-destructive/5 p-8 shadow-sm backdrop-blur-sm">
+          <div className="mb-8 flex items-center justify-between">
+            <div className="space-y-1">
+              <h3 className="font-display text-lg font-bold text-destructive flex items-center gap-2">
+                <AlertTriangle className="size-5" /> Parcelas de Fiado em Atraso
+              </h3>
+              <p className="text-xs text-muted-foreground">Clientes com pendências financeiras que precisam de atenção.</p>
+            </div>
+            <Badge variant="destructive" className="rounded-full px-3">{installments.length}</Badge>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {installments.slice(0, 6).map((inst: any) => {
+              const sale = sales.find((s: any) => s.id === inst.sale_id);
+              const client = clients.find((c: any) => c.id === sale?.client_id);
+              return (
+                <div key={inst.id} className="flex items-center justify-between rounded-2xl border border-destructive/10 bg-card p-4 transition-all hover:border-destructive/30">
+                  <div className="flex items-center gap-3">
+                    <div className="flex size-10 items-center justify-center rounded-xl bg-destructive/10 text-destructive">
+                      <User className="size-5" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold truncate max-w-[120px]">{client?.name || "Consumidor"}</p>
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+                        <Clock className="size-3" /> Venceu {new Date(inst.due_date).toLocaleDateString('pt-BR')}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-black text-destructive">{brl(inst.amount)}</p>
+                    <ChevronRight className="size-4 text-muted-foreground/30 ml-auto" />
+                  </div>
+                </div>
+              );
+            })}
+            {installments.length === 0 && (
+              <div className="col-span-full flex flex-col items-center justify-center py-8 text-center text-muted-foreground">
+                <CheckCircle2 className="mb-2 size-8 text-success opacity-20" />
+                <p className="text-sm italic">Nenhuma parcela em atraso hoje.</p>
               </div>
             )}
           </div>

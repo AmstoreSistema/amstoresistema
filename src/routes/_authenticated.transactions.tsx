@@ -196,8 +196,42 @@ function TransactionsPage() {
         icon={ArrowLeftRight}
         actions={
           <div className="flex gap-2">
-            <Button variant="outline" className="gap-2 rounded-xl">
-              <Download className="size-4" /> Exportar
+            <Button 
+              variant="outline" 
+              className="gap-2 rounded-xl"
+              onClick={() => {
+                const start = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
+                const end = new Date().toISOString().split('T')[0];
+                
+                const csvContent = filtered.map(t => ({
+                  Data: dateBR(t.created_at),
+                  Descricao: t.description || "",
+                  Tipo: t.type || "",
+                  Valor: Math.abs(t.amount || 0),
+                  Status: t.status || "",
+                  Categoria: t.category || "",
+                  Conta: t.financial_accounts?.name || ""
+                }));
+                
+                if (csvContent.length === 0) return;
+
+                const firstItem = csvContent[0] as Record<string, any>;
+                const header = Object.keys(firstItem).join(",");
+                const rows = csvContent.map(row => Object.values(row).join(",")).join("\n");
+                const csv = `${header}\n${rows}`;
+                
+                const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement("a");
+                const url = URL.createObjectURL(blob);
+                link.setAttribute("href", url);
+                link.setAttribute("download", `extrato_financeiro_${start}_${end}.csv`);
+                link.style.visibility = 'hidden';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+              }}
+            >
+              <Download className="size-4" /> Exportar CSV
             </Button>
             <Button onClick={() => setOpen(true)} className="gap-2 bg-gradient-gold border-none shadow-gold font-bold">
               <Plus className="size-4" /> Novo Lançamento
