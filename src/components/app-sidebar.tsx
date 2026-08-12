@@ -77,7 +77,7 @@ const menuGroups: { label: string; items: Item[] }[] = [
     label: "Sistema",
     items: [
       {
-        title: "Sistema",
+        title: "Segurança & IA",
         url: "#sistema",
         icon: ShieldCheck,
         items: [
@@ -92,7 +92,7 @@ const menuGroups: { label: string; items: Item[] }[] = [
     label: "Loja",
     items: [
       {
-        title: "Loja",
+        title: "Operações Loja",
         url: "#loja",
         icon: Store,
         items: [
@@ -120,7 +120,7 @@ const menuGroups: { label: string; items: Item[] }[] = [
     label: "Gestão",
     items: [
       {
-        title: "Cobrança WhatsApp",
+        title: "WhatsApp Billing",
         url: "/whatsapp-billing",
         icon: MessageCircle,
         hint: "Envie lembretes e mensagens",
@@ -148,9 +148,15 @@ const menuGroups: { label: string; items: Item[] }[] = [
 ];
 
 export function AppSidebar() {
-  const { state } = useSidebar();
+  const { state, isMobile, setOpenMobile } = useSidebar();
   const collapsed = state === "collapsed";
   const pathname = useRouterState({ select: (r) => r.location.pathname });
+
+  const handleLinkClick = () => {
+    if (isMobile) {
+      setOpenMobile(false);
+    }
+  };
 
   return (
     <Sidebar collapsible="icon" className="border-sidebar-border scrollbar-hide [&_[data-sidebar=sidebar]]:scrollbar-hide">
@@ -212,6 +218,7 @@ export function AppSidebar() {
                                   <SidebarMenuSubButton
                                     asChild
                                     isActive={pathname === subItem.url}
+                                    onClick={handleLinkClick}
                                   >
                                     <Link to={subItem.url}>
                                       {subItem.icon && (
@@ -236,6 +243,7 @@ export function AppSidebar() {
                         asChild
                         isActive={active}
                         tooltip={item.title}
+                        onClick={handleLinkClick}
                       >
                         <Link to={item.url!} className="group/nav">
                           <item.icon
