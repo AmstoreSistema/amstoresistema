@@ -29,7 +29,8 @@ import {
   Truck,
   LayoutDashboard,
   FileBarChart,
-  X
+  X,
+  RefreshCw
 } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 
@@ -37,6 +38,7 @@ import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { brl, dateBR } from "@/lib/format";
 import { useRows } from "@/lib/data";
 import { cn } from "@/lib/utils";
@@ -61,7 +63,14 @@ type ReportType =
   | "production" | "clients" | "materials" | "products" | "suppliers" 
   | "purchases" | "general";
 
-const REPORT_CONFIG = {
+interface ReportConfig {
+  table: string;
+  url: string;
+  dateColumn: string;
+  filters?: { column: string; value: any }[];
+}
+
+const REPORT_CONFIG: Record<ReportType, ReportConfig> = {
   sales: { 
     table: "sales", 
     url: "/sales", 
