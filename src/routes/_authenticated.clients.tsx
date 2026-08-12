@@ -185,15 +185,16 @@ function ClientsPage() {
         />
       </div>
 
-      {/* Since I need the modal to be controllable, I'll implement a simplified version of the CrudModal logic if needed, 
-          but for now let's just use the CrudPage component as the source of truth and wrap it if necessary.
-          Actually, let's just implement a cleaner form for Add/Edit as requested by high fidelity.
-      */}
-      
-      {/* For now, I'll use the existing CrudPage logic but I need to make sure the modal opens correctly. 
-          Actually, the CrudPage isn't designed to be triggered externally easily. 
-          I will refactor the ClientsPage to use its own modal for creation to keep it clean.
-      */}
+      {isCrudOpen && (
+        <ClientFormModal
+          isOpen={isCrudOpen}
+          onClose={() => {
+            setIsCrudOpen(false);
+            setEditingClient(null);
+          }}
+          client={editingClient}
+        />
+      )}
 
       <ClientDetailsModal 
         client={selectedClient} 
@@ -204,6 +205,88 @@ function ClientsPage() {
   );
 }
 
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { useSaveRow } from "@/lib/data";
+
+function ClientFormModal({ isOpen, onClose, client }: { isOpen: boolean, onClose: () => void, client: any }) {
+  const save = useSaveRow("clients", "cliente");
+  const [values, setValues] = useState<any>(client || {
+    name: "",
+    phone: "",
+    email: "",
+    address: "",
+    notes: ""
+  });
+
+  const handleSubmit = () => {
+    save.mutate(
+      { id: client?.id, values },
+      { onSuccess: onClose }
+    );
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle>{client ? "Editar Cliente" : "Novo Cliente"}</DialogTitle>
+          <DialogDescription>Preencha as informações do cliente abaixo.</DialogDescription>
+        </DialogHeader>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="sm:col-span-2">
+            <Label className="mb-1.5 block text-xs font-medium">Nome</Label>
+            <Input 
+              value={values.name} 
+              onChange={e => setValues({...values, name: e.target.value})} 
+              placeholder="Nome completo"
+            />
+          </div>
+          <div>
+            <Label className="mb-1.5 block text-xs font-medium">WhatsApp / Telefone</Label>
+            <Input 
+              value={values.phone} 
+              onChange={e => setValues({...values, phone: e.target.value})} 
+              placeholder="5511999999999"
+            />
+          </div>
+          <div>
+            <Label className="mb-1.5 block text-xs font-medium">E-mail</Label>
+            <Input 
+              value={values.email} 
+              onChange={e => setValues({...values, email: e.target.value})} 
+              placeholder="email@exemplo.com"
+            />
+          </div>
+          <div className="sm:col-span-2">
+            <Label className="mb-1.5 block text-xs font-medium">Endereço</Label>
+            <Input 
+              value={values.address} 
+              onChange={e => setValues({...values, address: e.target.value})} 
+              placeholder="Rua, número, bairro, cidade"
+            />
+          </div>
+          <div className="sm:col-span-2">
+            <Label className="mb-1.5 block text-xs font-medium">Observações</Label>
+            <Input 
+              value={values.notes} 
+              onChange={e => setValues({...values, notes: e.target.value})} 
+              placeholder="Adicione 'PJ' para identificar como empresa"
+            />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>Cancelar</Button>
+          <Button onClick={handleSubmit} disabled={save.isPending}>
+            {save.isPending ? "Salvando..." : "Salvar"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function cn(...inputs: any[]) {
   return inputs.filter(Boolean).join(" ");
 }
+
