@@ -37,10 +37,7 @@ export function ProductSearch({
   const [open, setOpen] = React.useState(false);
   const [selectedStock, setSelectedStock] = React.useState<StockProduct | null>(null);
   
-  const { data: stockItems = [] } = useRows<StockProduct>("stock_products", {
-    filters: [{ column: 'quantidade_disponivel', value: 0 }] // This filter in useRows might need to be 'gt' but our helper only does 'eq'. 
-    // Actually, let's fetch all and filter in memory if the helper is limited.
-  });
+  const { data: stockItems = [] } = useRows<StockProduct>("stock_products");
 
   const availableItems = React.useMemo(() => {
     return stockItems.filter(item => (item.quantidade_disponivel ?? 0) > 0);
