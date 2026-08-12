@@ -36,7 +36,7 @@ function SettingsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [isNewUserModalOpen, setIsNewUserModalOpen] = useState(false);
-  const [newUser, setNewUser] = useState({ email: "", password: "", display_name: "", role: "user" as const });
+  const [newUser, setNewUser] = useState({ email: "", password: "", display_name: "", role: "admin" as const });
   const [selectedTables, setSelectedTables] = useState<string[]>([]);
   const [backupProgress, setBackupProgress] = useState<{ active: boolean; currentTable: string; percent: number }>({ active: false, currentTable: "", percent: 0 });
   const [importDialog, setImportDialog] = useState<{ open: boolean; payload: any; selected: string[] }>({ open: false, payload: null, selected: [] });
@@ -722,16 +722,54 @@ function SettingsPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <CardTitle className="text-xl font-bold flex items-center gap-2">
-                    <User className="size-5 text-gold" /> Gerenciamento de Usuários
+                    <Shield className="size-5 text-gold" /> Administradores do Sistema
                   </CardTitle>
-                  <CardDescription>Controle quem tem acesso e quais permissões possuem.</CardDescription>
+                  <CardDescription>Gerencie os e-mails com acesso total ao sistema.</CardDescription>
                 </div>
-                <Button className="bg-gradient-gold shadow-gold font-bold" onClick={() => setIsNewUserModalOpen(true)}>
-                  <UserPlus className="size-4 mr-2" /> Novo Usuário
+                <Button 
+                  onClick={() => setIsNewUserModalOpen(true)}
+                  className="bg-gradient-gold shadow-gold font-bold"
+                >
+                  <UserPlus className="size-4 mr-2" /> Adicionar Administrador
                 </Button>
               </div>
             </CardHeader>
             <CardContent className="p-8">
+              <div className="space-y-4">
+                {users.filter(u => u.user_roles?.[0]?.role === 'admin' || ['amstorebagshoes@gmail.com', 'matosmonica000@gmail.com'].includes(u.email)).map((user) => (
+                  <div key={user.id} className="flex items-center justify-between p-4 rounded-2xl bg-muted/20 border border-border/40 hover:border-gold/30 transition-colors">
+                    <div className="flex items-center gap-4">
+                      <div className="size-10 rounded-full bg-gold/10 flex items-center justify-center text-gold font-bold">
+                        {user.email?.slice(0, 2).toUpperCase()}
+                      </div>
+                      <div>
+                        <p className="font-bold">{user.display_name || "Sem nome"}</p>
+                        <p className="text-xs text-muted-foreground">{user.email}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Badge className="bg-gold/20 text-gold border-gold/30">Administrador</Badge>
+                      {!['amstorebagshoes@gmail.com', 'matosmonica000@gmail.com'].includes(user.email) && (
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                          onClick={async () => {
+                            if (confirm("Remover este administrador?")) {
+                              await updateRole({ data: { userId: user.id, role: "user" } });
+                              toast.success("Cargo alterado");
+                              loadData();
+                            }
+                          }}
+                        >
+                          Remover Acesso
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
               {/* New User Modal */}
               {isNewUserModalOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
@@ -769,101 +807,44 @@ function SettingsPage() {
                         <Select 
                           value={newUser.role} 
                           onValueChange={(role: any) => setNewUser({...newUser, role})}
+                          disabled
                         >
                           <SelectTrigger>
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="admin">Administrador</SelectItem>
-                            <SelectItem value="moderator">Moderador</SelectItem>
-                            <SelectItem value="user">Vendedor</SelectItem>
                           </SelectContent>
                         </Select>
+                        <p className="text-[10px] text-muted-foreground">Apenas administradores podem ser cadastrados conforme nova regra do sistema.</p>
                       </div>
                     </CardContent>
                     <CardFooter className="flex justify-end gap-2">
-                      <Button variant="outline" onClick={() => setIsNewUserModalOpen(false)}>Cancelar</Button>
+                      <Button variant="ghost" onClick={() => setIsNewUserModalOpen(false)}>Cancelar</Button>
                       <Button 
-                        className="bg-gradient-gold" 
+                        className="bg-gradient-gold shadow-gold font-bold"
                         onClick={async () => {
-                          setSaving(true);
                           try {
+                            setSaving(true);
                             await createUser({ data: newUser });
-                            toast.success("Usuário criado com sucesso");
+                            toast.success("Administrador cadastrado");
                             setIsNewUserModalOpen(false);
-                            setNewUser({ email: "", password: "", display_name: "", role: "user" });
+                            setNewUser({ email: "", password: "", display_name: "", role: "admin" });
                             loadData();
                           } catch (error: any) {
-                            toast.error(error.message || "Erro ao criar usuário");
+                            toast.error(error.message);
                           } finally {
                             setSaving(false);
                           }
                         }}
                         disabled={saving}
                       >
-                        {saving ? "Criando..." : "Criar Usuário"}
+                        {saving ? <Spinner className="size-4 animate-spin" /> : "Criar Usuário"}
                       </Button>
                     </CardFooter>
                   </Card>
                 </div>
               )}
-              <div className="space-y-4">
-                {users.map((user) => {
-                  const currentRole = user.user_roles?.[0]?.role || "user";
-                  return (
-                    <div key={user.id} className="flex items-center justify-between p-4 rounded-2xl bg-muted/20 border border-border/40">
-                      <div className="flex items-center gap-4">
-                        <div className="size-10 rounded-full bg-gold/10 flex items-center justify-center text-gold font-bold">
-                          {user.display_name?.slice(0, 2).toUpperCase() || "U"}
-                        </div>
-                        <div>
-                          <h4 className="font-bold">{user.display_name || user.email}</h4>
-                          <p className="text-xs text-muted-foreground">{user.email}</p>
-                        </div>
-                      </div>
-                      
-                      <div className="flex items-center gap-6">
-                        <div className="flex items-center gap-2">
-                          <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Cargo</Label>
-                          <Select 
-                            value={currentRole} 
-                            onValueChange={async (role: any) => {
-                              await updateRole({ data: { userId: user.id, role } });
-                              toast.success(`Cargo atualizado para ${role}`);
-                              loadData();
-                            }}
-                          >
-                            <SelectTrigger className="w-[140px] h-9 text-xs">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="admin">Administrador</SelectItem>
-                              <SelectItem value="moderator">Moderador</SelectItem>
-                              <SelectItem value="user">Vendedor</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-
-                        <div className="flex items-center gap-2">
-                          <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Status</Label>
-                          <Switch 
-                            checked={user.active} 
-                            onCheckedChange={async (active) => {
-                              await updateStatus({ data: { id: user.id, active } });
-                              toast.success(active ? "Usuário ativado" : "Usuário desativado");
-                              loadData();
-                            }}
-                          />
-                        </div>
-
-                        <Badge variant={user.active ? "default" : "secondary"} className={user.active ? "bg-green-500/10 text-green-500 border-green-500/20" : ""}>
-                          {user.active ? "Ativo" : "Inativo"}
-                        </Badge>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
             </CardContent>
           </Card>
         </TabsContent>

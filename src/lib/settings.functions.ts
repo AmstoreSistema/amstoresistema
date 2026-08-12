@@ -14,7 +14,6 @@ export const updateAppSetting = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data) => z.object({ key: z.string(), value: z.any() }).parse(data))
   .handler(async ({ data, context }) => {
-    // Check if user is admin via RPC or direct check
     const { data: roleData } = await context.supabase
       .from("user_roles")
       .select("role")
@@ -22,7 +21,7 @@ export const updateAppSetting = createServerFn({ method: "POST" })
       .single();
 
     const { data: userProfile } = await context.supabase.from("user_profiles").select("email").eq("id", context.userId).single();
-    const isAdmin = roleData?.role === 'admin' || userProfile?.email === 'amstorebagshoes@gmail.com';
+    const isAdmin = roleData?.role === 'admin' || userProfile?.email === 'amstorebagshoes@gmail.com' || userProfile?.email === 'matosmonica000@gmail.com';
 
     if (!isAdmin) {
       throw new Error("Apenas administradores podem alterar as configurações.");
@@ -51,7 +50,7 @@ export const updateAppSettingsBatch = createServerFn({ method: "POST" })
       .single();
 
     const { data: userProfile } = await context.supabase.from("user_profiles").select("email").eq("id", context.userId).single();
-    const isAdmin = roleData?.role === 'admin' || userProfile?.email === 'amstorebagshoes@gmail.com';
+    const isAdmin = roleData?.role === 'admin' || userProfile?.email === 'amstorebagshoes@gmail.com' || userProfile?.email === 'matosmonica000@gmail.com';
 
     if (!isAdmin) {
       throw new Error("Apenas administradores podem alterar as configurações.");
@@ -97,7 +96,6 @@ export const updateUserRole = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data) => z.object({ userId: z.string(), role: z.enum(["admin", "moderator", "user"]) }).parse(data))
   .handler(async ({ data, context }) => {
-    // Check if current user is admin
     const { data: currentUserRole } = await context.supabase
       .from("user_roles")
       .select("role")
@@ -105,7 +103,7 @@ export const updateUserRole = createServerFn({ method: "POST" })
       .single();
 
     const { data: userProfile } = await context.supabase.from("user_profiles").select("email").eq("id", context.userId).single();
-    const isAdmin = currentUserRole?.role === 'admin' || userProfile?.email === 'amstorebagshoes@gmail.com';
+    const isAdmin = currentUserRole?.role === 'admin' || userProfile?.email === 'amstorebagshoes@gmail.com' || userProfile?.email === 'matosmonica000@gmail.com';
 
     if (!isAdmin) {
       throw new Error("Apenas administradores podem gerenciar cargos.");
@@ -113,9 +111,6 @@ export const updateUserRole = createServerFn({ method: "POST" })
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     
-    // First remove current roles for this user to avoid conflicts if needed, 
-    // though upsert on unique constraint should handle it if defined correctly.
-    // In our case user_id is the unique key for role in this logic.
     const { error } = await supabaseAdmin
       .from("user_roles")
       .upsert({ user_id: data.userId, role: data.role }, { onConflict: "user_id" });
@@ -140,7 +135,7 @@ export const createNewUser = createServerFn({ method: "POST" })
       .single();
 
     const { data: userProfile } = await context.supabase.from("user_profiles").select("email").eq("id", context.userId).single();
-    const isAdmin = currentUserRole?.role === 'admin' || userProfile?.email === 'amstorebagshoes@gmail.com';
+    const isAdmin = currentUserRole?.role === 'admin' || userProfile?.email === 'amstorebagshoes@gmail.com' || userProfile?.email === 'matosmonica000@gmail.com';
 
     if (!isAdmin) {
       throw new Error("Apenas administradores podem criar novos usuários.");
@@ -148,7 +143,6 @@ export const createNewUser = createServerFn({ method: "POST" })
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     
-    // Create user in Auth
     const { data: authUser, error: authError } = await supabaseAdmin.auth.admin.createUser({
       email: data.email,
       password: data.password,
@@ -158,7 +152,6 @@ export const createNewUser = createServerFn({ method: "POST" })
 
     if (authError) throw authError;
 
-    // The trigger handles user_profiles, but we need to set the role
     const { error: roleError } = await supabaseAdmin
       .from("user_roles")
       .upsert({ user_id: authUser.user.id, role: data.role }, { onConflict: "user_id" });

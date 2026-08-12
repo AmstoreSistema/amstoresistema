@@ -34,8 +34,8 @@ function AuthenticatedLayout() {
         const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", user.id);
         const userRole = (roles && roles.length > 0) ? (roles[0] as any).role : "user";
         
-        // Fix for amstorebagshoes@gmail.com if it's not detected as admin in the database yet
-        const isAdmin = userRole === 'admin' || user.email === 'amstorebagshoes@gmail.com';
+        // Fix for admins if they are not detected as admin in the database yet
+        const isAdmin = userRole === 'admin' || user.email === 'amstorebagshoes@gmail.com' || user.email === 'matosmonica000@gmail.com';
         const finalRole = isAdmin ? 'admin' : userRole;
 
         const roleMap: any = { admin: "Administrador", moderator: "Moderador", user: "Vendedor" };
