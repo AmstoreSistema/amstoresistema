@@ -31,7 +31,7 @@ function AuthenticatedLayout() {
       if (user) {
         setEmail(user.email ?? "");
         const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", user.id);
-        const userRole = roles && roles.length > 0 ? roles[0].role : "user";
+        const userRole = (roles && roles.length > 0) ? (roles[0] as any).role : "user";
         
         const roleMap: any = { admin: "Administrador", moderator: "Moderador", user: "Vendedor" };
         setRole(roleMap[userRole] || "Vendedor");
