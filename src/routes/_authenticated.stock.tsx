@@ -35,6 +35,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { brl, num, dateBR } from "@/lib/format";
 import { useRows, useSaveRow } from "@/lib/data";
+import { AddProductDirectModal } from "@/components/stock/AddProductDirectModal";
 
 export const Route = createFileRoute("/_authenticated/stock")({
   head: () => ({
