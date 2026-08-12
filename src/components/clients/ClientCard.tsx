@@ -1,5 +1,5 @@
 import React from "react";
-import { User, ShoppingBag, CreditCard, Smartphone, Trash2, Pencil, Eye, UserCheck, UserPlus, TrendingUp } from "lucide-react";
+import { User, ShoppingBag, CreditCard, Smartphone, Trash2, Pencil, Eye, UserCheck, UserPlus, TrendingUp, Trophy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { brl } from "@/lib/format";

@@ -50,7 +50,7 @@ function ClientsPage() {
   });
 
   const { data: qrBonusData } = useRows<any>("qr_promo_history", {
-    filter: { column: "is_awarded", operator: "eq", value: true },
+    filters: [{ column: "is_awarded", value: true }],
     select: "client_id, bonus_amount, available_bonus"
   });
 

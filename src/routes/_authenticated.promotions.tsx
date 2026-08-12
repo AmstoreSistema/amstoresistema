@@ -119,8 +119,8 @@ function PromotionsPage() {
           value={`${currentConfig?.current_counter || 0} / ${currentConfig?.sales_limit || 0}`} 
           icon={QrCode} 
           tone="dark"
-          description={
-            <div className="mt-2 h-2 w-full bg-muted/20 rounded-full overflow-hidden">
+          sub={
+            <div className="mt-2 h-2 w-full bg-muted/20 rounded-full overflow-hidden min-w-[120px]">
               <div 
                 className="h-full bg-sidebar-primary transition-all duration-500" 
                 style={{ width: `${Math.min(100, ((currentConfig?.current_counter || 0) / (currentConfig?.sales_limit || 1)) * 100)}%` }} 
