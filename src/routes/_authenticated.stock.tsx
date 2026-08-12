@@ -71,6 +71,7 @@ function StockPage() {
   const [adjustOpen, setAdjustOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [newQty, setNewQty] = useState("");
+  const [addDirectOpen, setAddDirectOpen] = useState(false);
 
   const filtered = useMemo(() => {
     return products.filter(p => {
