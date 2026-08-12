@@ -13,11 +13,11 @@ import {
   ChevronRight
 } from "lucide-react";
 import { useEffect, useMemo } from "react";
+import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
-
-import { StatCard } from "@/components/stat-card";
 import { useRows } from "@/lib/data";
 import { brl } from "@/lib/format";
+import { StatCard } from "@/components/stat-card";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({
@@ -198,7 +198,7 @@ function Dashboard() {
               </h3>
               <p className="text-xs text-muted-foreground">Clientes com pendências financeiras que precisam de atenção.</p>
             </div>
-            <Badge className="bg-destructive text-destructive-foreground rounded-full px-3">{installments.length}</Badge>
+            <Badge variant="destructive" className="rounded-full px-3">{installments.length}</Badge>
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -233,6 +233,7 @@ function Dashboard() {
             )}
           </div>
         </div>
+      </div>
 
       <div className="rounded-3xl border border-border bg-gradient-to-br from-gold/5 via-transparent to-transparent p-8">
         <div className="flex flex-col items-center justify-between gap-4 md:flex-row">
