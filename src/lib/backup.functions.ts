@@ -2,13 +2,9 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
 export const exportSystemData = createServerFn({ method: "POST" })
-  .handler(async () => {
+  .inputValidator((data) => z.object({ tables: z.array(z.string()) }).parse(data))
+  .handler(async ({ data: { tables } }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    
-    const tables = [
-      "materials", "products", "production_orders", "sales", 
-      "clients", "financial_accounts", "transactions", "app_settings"
-    ];
     
     const exportData: Record<string, any> = {};
     
@@ -35,8 +31,10 @@ export const importSystemData = createServerFn({ method: "POST" })
       throw new Error("Formato de backup inválido");
     }
     
+    // Process tables in order to respect potential foreign keys (simplified)
     for (const [table, rows] of Object.entries(payload.data)) {
       if (Array.isArray(rows) && rows.length > 0) {
+        // We use upsert to either update existing or insert new rows
         const { error } = await supabaseAdmin.from(table as any).upsert(rows);
         if (error) console.error(`Error importing ${table}:`, error);
       }
