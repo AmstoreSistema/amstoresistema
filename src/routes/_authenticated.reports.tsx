@@ -271,10 +271,10 @@ function ReportsPage() {
                        }).slice(0, 5).map((inst, idx) => (
                           <div key={idx} className="flex justify-between items-center p-3 bg-muted/20 rounded-2xl">
                              <div>
-                                <p className="text-xs font-bold">Venda #{inst.sale_id.slice(0, 8)}</p>
+                                <p className="text-xs font-bold">Venda #{inst.sale_id ? String(inst.sale_id).slice(0, 8) : ''}</p>
                                 <p className="text-[9px] uppercase font-bold text-muted-foreground">{dateBR(inst.paid_at)}</p>
                              </div>
-                             <p className="font-black text-success">{brl(inst.paid_amount)}</p>
+                             <p className="font-black text-success">{brl(Number(inst.paid_amount || 0))}</p>
                           </div>
                        ))}
                     </div>
@@ -293,10 +293,10 @@ function ReportsPage() {
                        }).slice(0, 5).map((inst, idx) => (
                           <div key={idx} className="flex justify-between items-center p-3 bg-muted/20 rounded-2xl">
                              <div>
-                                <p className="text-xs font-bold">Venda #{inst.sale_id.slice(0, 8)}</p>
+                                <p className="text-xs font-bold">Venda #{inst.sale_id ? String(inst.sale_id).slice(0, 8) : ''}</p>
                                 <p className="text-[9px] uppercase font-bold text-muted-foreground">Vence {dateBR(inst.due_date)}</p>
                              </div>
-                             <p className="font-black text-destructive">{brl(Number(inst.remaining_amount ?? inst.amount))}</p>
+                             <p className="font-black text-destructive">{brl(Number(inst.remaining_amount ?? inst.amount ?? 0))}</p>
                           </div>
                        ))}
                     </div>
