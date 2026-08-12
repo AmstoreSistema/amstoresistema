@@ -74,11 +74,39 @@ export function POSModal({ open, onOpenChange }: { open: boolean; onOpenChange: 
   const [accountId, setAccountId] = React.useState<string | null>(null);
   const [protectionMethod, setProtectionMethod] = React.useState("Padrão");
   const [notes, setNotes] = React.useState("");
-  const [saleCode] = React.useState(() => `V${Date.now().toString().slice(-10)}`);
+  const [saleDate, setSaleDate] = React.useState(new Date().toISOString().split('T')[0]);
+  const [saleCode, setSaleCode] = React.useState(() => `V${Date.now().toString().slice(-10)}`);
 
   const [receiptOpen, setReceiptOpen] = React.useState(false);
-   const [previewOpen, setPreviewOpen] = React.useState(false);
-   const [lastSale, setLastSale] = React.useState<any>(null);
+  const [previewOpen, setPreviewOpen] = React.useState(false);
+  const [lastSale, setLastSale] = React.useState<any>(null);
+
+  // Auto-update accountId based on active account
+  React.useEffect(() => {
+    const activeAccount = accounts.find((a: any) => a.active);
+    if (activeAccount && !accountId && !isDebt) {
+      setAccountId(activeAccount.id);
+    }
+  }, [accounts, accountId, isDebt]);
+
+  // Update sale code when client changes
+  React.useEffect(() => {
+    if (client) {
+      const initials = client.name
+        .split(' ')
+        .filter((n: string) => n.length > 0)
+        .map((n: string) => n[0].toUpperCase())
+        .join('')
+        .slice(0, 3);
+      
+      setSaleCode(prev => {
+        const base = prev.split('-')[0];
+        return `${base}-${initials}`;
+      });
+    } else {
+      setSaleCode(prev => prev.split('-')[0]);
+    }
+  }, [client]);
 
 
   // Totals
@@ -152,9 +180,10 @@ export function POSModal({ open, onOpenChange }: { open: boolean; onOpenChange: 
         cashback_earned: cashbackEarned,
         notes: notes,
         sale_type: saleType,
-        financial_account_id: accountId,
-        protection_method: protectionMethod,
-        sale_code: saleCode,
+         financial_account_id: accountId,
+         protection_method: protectionMethod,
+         sale_code: saleCode,
+         created_at: new Date(saleDate).toISOString(),
         items: items.map(i => ({
           stock_id: i.stock_id,
           product_id: i.product_id,
@@ -235,9 +264,14 @@ export function POSModal({ open, onOpenChange }: { open: boolean; onOpenChange: 
                 </div>
              </div>
              <Separator orientation="vertical" className="h-8" />
-             <div className="text-right">
+             <div className="text-right flex flex-col items-end">
                 <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest">Data da Venda</p>
-                <p className="text-sm font-black">{new Date().toLocaleDateString('pt-BR')}</p>
+                <Input 
+                  type="date" 
+                  value={saleDate} 
+                  onChange={(e) => setSaleDate(e.target.value)}
+                  className="h-7 w-32 text-xs font-black p-1 bg-transparent border-none focus-visible:ring-0 text-right cursor-pointer hover:bg-muted/30 rounded-md"
+                />
              </div>
              <Separator orientation="vertical" className="h-8" />
              <div className="text-right">
@@ -264,52 +298,68 @@ export function POSModal({ open, onOpenChange }: { open: boolean; onOpenChange: 
                
                <ScrollArea className="flex-1 p-4">
                   <div className="space-y-3">
-                     {items.length === 0 ? (
+                      {items.length === 0 ? (
                         <div className="flex flex-col items-center justify-center py-20 text-muted-foreground/40 gap-3">
                            <ShoppingCart className="size-12" />
                            <p className="font-bold text-sm uppercase tracking-widest">Carrinho Vazio</p>
                         </div>
                      ) : items.map((item) => (
-                       <div key={item.id} className="group flex items-center gap-4 p-4 rounded-3xl border border-border/40 bg-card hover:bg-muted/10 transition-all shadow-sm">
-                          <div className="size-12 rounded-2xl bg-muted/50 flex items-center justify-center shrink-0 font-display font-black text-xs text-muted-foreground">
+                       <div key={item.id} className="group flex items-center gap-3 p-3 rounded-2xl border border-border/40 bg-card hover:bg-muted/5 transition-all shadow-sm">
+                          <div className="size-10 rounded-xl bg-muted/50 flex items-center justify-center shrink-0 font-display font-black text-[10px] text-muted-foreground">
                              {item.name.charAt(0)}
                           </div>
                           
                           <div className="flex-1 min-w-0">
-                             <div className="flex items-center gap-2">
-                                <h4 className="font-bold truncate">{item.name}</h4>
+                             <div className="flex items-center gap-1.5">
+                                <h4 className="font-bold truncate text-xs">{item.name}</h4>
                                 {item.numeracao && (
-                                   <Badge variant="secondary" className="h-5 px-1.5 rounded-md font-black text-[9px] bg-gold/10 text-gold border-none">
-                                      TAM: {item.numeracao}
+                                   <Badge variant="secondary" className="h-4 px-1 rounded-md font-black text-[8px] bg-gold/10 text-gold border-none">
+                                      {item.numeracao}
                                    </Badge>
                                 )}
                              </div>
-                             <p className="text-[10px] text-muted-foreground font-medium">Preço Unit: {brl(item.price)}</p>
+                             <div className="flex items-center gap-2 mt-0.5">
+                                <p className="text-[9px] text-muted-foreground font-medium">Preço Unit: {brl(item.price)}</p>
+                             </div>
                           </div>
                           
-                          <div className="flex items-center gap-4">
-                             <div className="flex items-center gap-2 bg-muted/30 p-1 rounded-xl border border-border/40">
+                          <div className="flex items-center gap-3">
+                             <div className="flex items-center gap-2">
+                                <Label className="text-[8px] uppercase font-bold text-muted-foreground tracking-tighter">Desc. Item</Label>
+                                <Input 
+                                  type="number" 
+                                  value={item.discount || ""} 
+                                  onChange={(e) => {
+                                    const val = Number(e.target.value);
+                                    setItems(prev => prev.map(i => i.id === item.id ? { ...i, discount: val } : i));
+                                  }}
+                                  className="h-7 w-16 text-[10px] font-bold px-1.5 rounded-lg border-border/40 bg-muted/20"
+                                  placeholder="R$ 0"
+                                />
+                             </div>
+
+                             <div className="flex items-center gap-1.5 bg-muted/30 p-0.5 rounded-lg border border-border/40">
                                 <Button 
-                                   variant="ghost" size="icon" className="size-7 rounded-lg"
+                                   variant="ghost" size="icon" className="size-6 rounded-md"
                                    onClick={() => setItems(prev => prev.map(i => i.id === item.id ? { ...i, quantity: Math.max(1, i.quantity - 1) } : i))}
                                 >-</Button>
-                                <span className="w-6 text-center font-black text-sm">{item.quantity}</span>
+                                <span className="w-5 text-center font-black text-[11px]">{item.quantity}</span>
                                 <Button 
-                                   variant="ghost" size="icon" className="size-7 rounded-lg"
+                                   variant="ghost" size="icon" className="size-6 rounded-md"
                                    onClick={() => setItems(prev => prev.map(i => i.id === item.id ? { ...i, quantity: i.quantity + 1 } : i))}
                                 >+</Button>
                              </div>
                              
-                             <div className="text-right w-24">
-                                <p className="font-black text-gold">{brl(item.price * item.quantity)}</p>
+                             <div className="text-right w-20">
+                                <p className="font-black text-xs text-gold">{brl((item.price * item.quantity) - (item.discount || 0))}</p>
                              </div>
                              
                              <Button 
                                 variant="ghost" size="icon" 
-                                className="size-9 rounded-xl text-destructive hover:bg-destructive/10"
+                                className="size-8 rounded-lg text-destructive hover:bg-destructive/10"
                                 onClick={() => removeItem(item.id)}
                              >
-                                <Trash2 className="size-4" />
+                                <Trash2 className="size-3.5" />
                              </Button>
                           </div>
                        </div>

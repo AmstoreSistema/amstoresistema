@@ -18,6 +18,7 @@ export const createSale = createServerFn({ method: "POST" })
     financial_account_id: z.string().nullable().optional(),
     protection_method: z.string().nullable().optional(),
     sale_code: z.string().nullable().optional(),
+    created_at: z.string().optional(),
     items: z.array(z.object({
       stock_id: z.string().nullable(),
       product_id: z.string(),
@@ -50,7 +51,8 @@ export const createSale = createServerFn({ method: "POST" })
       p_sale_type: data.sale_type,
       p_financial_account_id: data.financial_account_id,
       p_protection_method: data.protection_method,
-      p_sale_code: data.sale_code
+      p_sale_code: data.sale_code,
+      p_created_at: data.created_at
     });
 
     if (error) throw new Error(`Erro ao criar venda: ${error.message}`);
