@@ -192,6 +192,54 @@ export type Database = {
           },
         ]
       }
+      financial_accounts: {
+        Row: {
+          account_number: string | null
+          active: boolean
+          agency: string | null
+          bank_name: string | null
+          color: string | null
+          created_at: string | null
+          created_by_id: string | null
+          current_balance: number
+          id: string
+          initial_balance: number
+          name: string
+          type: string
+          updated_at: string | null
+        }
+        Insert: {
+          account_number?: string | null
+          active?: boolean
+          agency?: string | null
+          bank_name?: string | null
+          color?: string | null
+          created_at?: string | null
+          created_by_id?: string | null
+          current_balance?: number
+          id?: string
+          initial_balance?: number
+          name: string
+          type: string
+          updated_at?: string | null
+        }
+        Update: {
+          account_number?: string | null
+          active?: boolean
+          agency?: string | null
+          bank_name?: string | null
+          color?: string | null
+          created_at?: string | null
+          created_by_id?: string | null
+          current_balance?: number
+          id?: string
+          initial_balance?: number
+          name?: string
+          type?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       material_categories: {
         Row: {
           created_at: string | null
@@ -948,38 +996,86 @@ export type Database = {
       }
       transactions: {
         Row: {
+          account_id: string | null
           amount: number
           category: string | null
+          client_id: string | null
           created_at: string | null
           description: string | null
+          due_date: string | null
           id: string
+          notes: string | null
+          payment_method: string | null
+          purchase_id: string | null
           sale_id: string | null
+          status: string | null
+          supplier_id: string | null
           type: string
+          updated_at: string | null
         }
         Insert: {
+          account_id?: string | null
           amount: number
           category?: string | null
+          client_id?: string | null
           created_at?: string | null
           description?: string | null
+          due_date?: string | null
           id?: string
+          notes?: string | null
+          payment_method?: string | null
+          purchase_id?: string | null
           sale_id?: string | null
+          status?: string | null
+          supplier_id?: string | null
           type: string
+          updated_at?: string | null
         }
         Update: {
+          account_id?: string | null
           amount?: number
           category?: string | null
+          client_id?: string | null
           created_at?: string | null
           description?: string | null
+          due_date?: string | null
           id?: string
+          notes?: string | null
+          payment_method?: string | null
+          purchase_id?: string | null
           sale_id?: string | null
+          status?: string | null
+          supplier_id?: string | null
           type?: string
+          updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "transactions_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "financial_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transactions_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "transactions_sale_id_fkey"
             columns: ["sale_id"]
             isOneToOne: false
             referencedRelation: "sales"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transactions_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
             referencedColumns: ["id"]
           },
         ]
@@ -1054,6 +1150,16 @@ export type Database = {
         Returns: undefined
       }
       start_production_order: { Args: { _order_id: string }; Returns: Json }
+      transfer_between_accounts: {
+        Args: {
+          p_amount: number
+          p_date: string
+          p_description: string
+          p_dest_id: string
+          p_origin_id: string
+        }
+        Returns: undefined
+      }
       update_sale_installments: {
         Args: { p_installments: Json; p_sale_id: string }
         Returns: undefined
