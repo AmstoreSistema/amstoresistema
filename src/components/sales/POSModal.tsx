@@ -100,11 +100,11 @@ export function POSModal({ open, onOpenChange }: { open: boolean; onOpenChange: 
         .slice(0, 3);
       
       setSaleCode(prev => {
-        const base = (prev || "").split('-')[0];
+        const base = (prev || "").split('-')[0] || "";
         return `${base}-${initials}`;
       });
     } else {
-      setSaleCode(prev => (prev || "").split('-')[0]);
+      setSaleCode(prev => (prev || "").split('-')[0] || "");
     }
   }, [client]);
 
