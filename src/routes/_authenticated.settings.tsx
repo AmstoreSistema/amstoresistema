@@ -14,6 +14,8 @@ import { exportSystemData, importSystemData } from "@/lib/backup.functions";
 import { toast } from "sonner";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
+import { CheckCircle2, Info } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/settings")({
   head: () => ({
@@ -32,6 +34,73 @@ function SettingsPage() {
   const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [selectedTables, setSelectedTables] = useState<string[]>([]);
+  
+  const backupModules = [
+    {
+      id: "producao",
+      label: "Produção",
+      items: [
+        { id: "materials", label: "Materiais" },
+        { id: "products", label: "Produtos" },
+        { id: "product_materials", label: "Composições de Materiais" },
+        { id: "production_orders", label: "Ordens de Produção" },
+        { id: "material_cuts", label: "Cortes de Couro" },
+        { id: "material_variations", label: "Cupons de Produção" }, // Mapping to material_variations as context suggests
+      ]
+    },
+    {
+      id: "estoque",
+      label: "Estoque",
+      items: [
+        { id: "stock_products", label: "Estoque de Produtos" },
+      ]
+    },
+    {
+      id: "loja",
+      label: "Loja",
+      items: [
+        { id: "clients", label: "Clientes" },
+        { id: "sales", label: "Vendas" },
+        { id: "sale_items", label: "Itens de Venda" },
+        { id: "sale_payments", label: "Pagamentos de Vendas" },
+        { id: "sale_installments", label: "Parcelas de Vendas" },
+      ]
+    },
+    {
+      id: "financeiro",
+      label: "Financeiro",
+      items: [
+        { id: "transactions", label: "Transações Financeiras" },
+        { id: "financial_accounts", label: "Contas Financeiras" },
+        { id: "accounts", label: "Categorias de Transação" }, // Assuming accounts table for categories based on types
+      ]
+    },
+    {
+      id: "compras",
+      label: "Compras",
+      items: [
+        { id: "suppliers", label: "Fornecedores" },
+        { id: "purchases", label: "Compras de Materiais" },
+        { id: "units_of_measure", label: "Itens de Compra" }, // Mapping units for reference
+      ]
+    },
+    {
+      id: "sistema",
+      label: "Sistema",
+      items: [
+        { id: "notifications", label: "Alertas" },
+        { id: "material_categories", label: "Configurações de Materiais" },
+        { id: "app_settings", label: "Configurações Globais" },
+      ]
+    }
+  ];
+
+  const allTableIds = backupModules.flatMap(m => m.items.map(i => i.id));
+
+  useEffect(() => {
+    setSelectedTables(allTableIds);
+  }, []);
 
   const fetchSettings = useServerFn(getAppSettings);
   const saveSettingsBatch = useServerFn(updateAppSettingsBatch);
@@ -107,8 +176,13 @@ function SettingsPage() {
   };
 
   const handleExport = async () => {
+    if (selectedTables.length === 0) {
+      toast.error("Selecione ao menos um módulo para backup");
+      return;
+    }
+    setSaving(true);
     try {
-      const data = await exportData();
+      const data = await exportData({ data: { tables: selectedTables } });
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -117,7 +191,10 @@ function SettingsPage() {
       a.click();
       toast.success("Backup gerado com sucesso");
     } catch (error) {
+      console.error("Erro export:", error);
       toast.error("Erro ao gerar backup");
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -304,35 +381,79 @@ function SettingsPage() {
               <CardDescription>Exporte seus dados ou restaure um backup anterior.</CardDescription>
             </CardHeader>
             <CardContent className="p-8 space-y-8">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="p-6 rounded-3xl bg-gold/5 border border-gold/20 space-y-4">
-                  <div className="size-12 rounded-2xl bg-gold/10 flex items-center justify-center text-gold">
-                    <Download className="size-6" />
+              <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 flex gap-4">
+                <div className="bg-white rounded-full p-2 h-fit border border-blue-200">
+                  <CheckCircle2 className="size-5 text-blue-500" />
+                </div>
+                <div className="space-y-1">
+                  <h4 className="font-bold text-blue-900">Backup Automático Ativado</h4>
+                  <p className="text-sm text-blue-700">O sistema faz backup automático a cada 24 horas quando você entra no sistema e salva localmente</p>
+                  <ul className="text-xs text-blue-600 list-disc list-inside mt-2 space-y-1">
+                    <li>Backup manual (botão) = Download do arquivo</li>
+                    <li>Backup automático = Salvo no navegador</li>
+                  </ul>
+                </div>
+              </div>
+
+              <div className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-bold text-lg">Selecione o que deseja fazer backup</h3>
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm" onClick={() => setSelectedTables(allTableIds)}>Todos</Button>
+                    <Button variant="outline" size="sm" onClick={() => setSelectedTables([])}>Nenhum</Button>
                   </div>
-                  <h4 className="font-bold">Exportar Dados</h4>
-                  <p className="text-sm text-muted-foreground">Gera um arquivo .json com todas as informações do sistema para salvaguarda.</p>
-                  <Button onClick={handleExport} className="w-full bg-gradient-gold shadow-gold font-bold h-12">
-                    Gerar Backup Agora
-                  </Button>
                 </div>
 
-                <div className="p-6 rounded-3xl bg-primary/5 border border-primary/20 space-y-4">
-                  <div className="size-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
-                    <Upload className="size-6" />
-                  </div>
-                  <h4 className="font-bold">Restaurar Backup</h4>
-                  <p className="text-sm text-muted-foreground">Importe um arquivo de backup para restaurar os dados do sistema. CUIDADO: Isso sobrescreverá dados atuais.</p>
-                  <div className="relative">
-                    <input 
-                      type="file" 
-                      accept=".json" 
-                      onChange={handleImport}
-                      className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
-                    />
-                    <Button variant="outline" className="w-full h-12 font-bold border-2">
-                      Selecionar Arquivo
-                    </Button>
-                  </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  {backupModules.map((module) => (
+                    <div key={module.id} className="space-y-3">
+                      <h4 className="font-bold text-muted-foreground border-b pb-2">{module.label}</h4>
+                      <div className="space-y-2">
+                        {module.items.map((item) => (
+                          <div key={item.id} className="flex items-center space-x-2">
+                            <Checkbox 
+                              id={`chk-${item.id}`} 
+                              checked={selectedTables.includes(item.id)}
+                              onCheckedChange={(checked) => {
+                                if (checked) {
+                                  setSelectedTables(prev => [...prev, item.id]);
+                                } else {
+                                  setSelectedTables(prev => prev.filter(id => id !== item.id));
+                                }
+                              }}
+                            />
+                            <Label htmlFor={`chk-${item.id}`} className="text-sm font-medium leading-none cursor-pointer">
+                              {item.label}
+                            </Label>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-4">
+                <Button 
+                  onClick={handleExport} 
+                  disabled={saving}
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold h-12 shadow-md transition-all flex gap-2"
+                >
+                  {saving ? <Loader2 className="size-4 animate-spin" /> : <Download className="size-4" />}
+                  Gerar Backup Agora
+                </Button>
+
+                <div className="relative w-full">
+                  <input 
+                    type="file" 
+                    accept=".json" 
+                    onChange={handleImport}
+                    className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-10"
+                  />
+                  <Button variant="outline" className="w-full h-12 font-bold border-2 flex gap-2">
+                    <Upload className="size-4" />
+                    Restaurar Backup (Selecionar Arquivo)
+                  </Button>
                 </div>
               </div>
             </CardContent>
