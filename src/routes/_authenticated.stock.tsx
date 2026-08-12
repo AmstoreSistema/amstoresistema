@@ -241,9 +241,9 @@ function StockPage() {
           {filtered.map(p => {
             const stockRecord = stockRecords.find(s => s.produto_id === p.id);
             const numeracoes = stockRecord?.numeracoes || {};
-            const availableSizes = Object.entries(numeracoes as Record<string, number>)
-              .filter(([_, qty]) => Number(qty) > 0)
-              .map(([size, _]) => size);
+            const allSizes = Object.entries(numeracoes as Record<string, number>)
+              .map(([size, qty]) => ({ size, qty: Number(qty) }));
+            const availableSizes = allSizes.filter(s => s.qty > 0).map(s => s.size);
 
             return (
               <Card key={p.id} className="group overflow-hidden rounded-[2rem] border-border/30 bg-card transition-all hover:shadow-xl shadow-elegant flex flex-col">
