@@ -144,7 +144,7 @@ export const createSale = createServerFn({ method: "POST" })
             
             await admin.from("cashback_entries").insert({
               client_id: data.client_id,
-              amount: promoConfig.bonus_value,
+              amount: Number(promoConfig.bonus_value),
               kind: 'earned',
               description: `Bônus QR Code Premiado (Venda #${data.sale_code || (saleId as string).slice(0,8)})`
             });
