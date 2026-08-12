@@ -1,50 +1,32 @@
-# Plano de Implementação: Fluxo Completo de Vendas
+# Plano de Implementação: Módulo de Vendas (PDV)
 
-Este plano detalha a implementação do módulo de Vendas (PDV) com integração total ao estoque, financeiro, clientes e cashback, conforme a documentação técnica fornecida.
+Implementação do fluxo completo de vendas, desde a seleção de produtos até o fechamento financeiro e controle de estoque/cashback.
 
-## 1. Banco de Dados (Supabase)
+## Mudanças
 
-O esquema básico já existe, mas precisa de tabelas e campos adicionais para suportar o fluxo completo.
+### Banco de Dados (Já implementado via RPCs)
+- RPC `create_complete_sale`: Cria venda, itens, transações, decrementa estoque (incluindo numerações) e atualiza cashback.
+- RPC `cancel_complete_sale`: Estorna venda, itens, restaura estoque e estorna cashback.
+- Tabelas envolvidas: `sales`, `sale_items`, `sale_payments`, `stock_products`, `cashback_entries`, `transactions`.
 
-- **Tabelas Novas:**
-  - `sale_payments`: Registro de pagamentos parciais vinculados a uma venda.
-  - `cashback_history`: Registro detalhado de ganho e uso de cashback.
-  - `promotional_qr`: Registro de cupons QR gerados em vendas.
-
-- **Ajustes nas Tabelas Existentes:**
-  - `sales`: Adicionar `discount`, `paid_amount`, `status` (pendente, parcial, pago, cancelado), `payment_method`, `is_historical`, `cashback_used`, `cashback_earned`, `vendedor`.
-  - `sale_items`: Adicionar `numeracao` (para calçados), `discount` (por item), `stock_snapshot` (JSON com dados do produto no momento da venda).
-  - `clients`: Garantir campos `cashback_balance`, `total_purchases`, `last_purchase_at`, `used_sizes`.
-  - `stock_products`: Campo `numeracoes` (JSON) para controle por tamanho.
-
-## 2. Lógica de Servidor (TanStack Start)
-
-Criação de `src/lib/sales.functions.ts` com funções robustas:
-- `createSale`: Executa a cascata atômica (Venda -> Itens -> Estoque -> Financeiro -> Cashback).
-- `registerSalePayment`: Registra pagamentos adicionais em vendas "parciais".
-- `cancelSale`: Reverte integralmente o estoque e o financeiro.
-
-## 3. Interface do Usuário (Frontend)
-
-- **PDV (Novo Produto):**
-  - Modal lateral de alta fidelidade para seleção de cliente, produtos e forma de pagamento.
-  - Busca inteligente de produtos (nome/SKU/barras).
-  - Seleção de numeração dinâmica baseada no estoque disponível.
-  - Resumo financeiro em tempo real (subtotal, descontos, cashback).
-  
-- **Listagem e Histórico:**
-  - Visualização de vendas por data.
-  - Status coloridos (Pago, Parcial, Pendente, Cancelado).
-  - Ações rápidas: Impressão de Cupom, DANFE, Estorno.
-
-- **Componentes:**
-  - `SaleModal`: O coração do PDV.
-  - `SaleReceipt`: Visualização/Impressão do cupom de venda.
-  - `PaymentModal`: Para baixas parciais.
+### Frontend
+- **Componentes do PDV**:
+  - `POSModal.tsx`: Modal principal com interface dividida entre seleção de itens e fechamento.
+  - `ClientSearch.tsx`: Busca e seleção de clientes com exibição de saldo de cashback.
+  - `ProductSearch.tsx`: Busca de produtos no estoque com seleção de numeração/tamanho.
+  - `ReceiptModal.tsx`: Modal para visualização e impressão do comprovante de venda.
+- **Integração na Página de Vendas**:
+  - Atualização de `src/routes/_authenticated.sales.tsx` para gerenciar o estado do PDV e listar vendas recentes.
+  - Implementação do botão "Estornar Venda" que invoca o `cancelSale` do servidor.
 
 ## Detalhes Técnicos
+- Utilização de `createServerFn` para invocar os RPCs do backend.
+- Gestão de estado local para o "Carrinho de Vendas" antes da persistência.
+- Lógica de cálculo de totais, descontos e cashback em tempo real no frontend.
+- Tratamento de vendas a prazo (fiado) com registro nas transações financeiras.
 
-- **Cálculo de Cashback:** Baseado na categoria do produto.
-- **Atomicidade:** Uso de transações Supabase ou lógica de compensação no servidor.
-- **Controle de Estoque:** Decremento preciso no objeto JSON de numerações para calçados.
-- **Integração Financeira:** Geração automática de registros na tabela `transactions`.
+## Próximos Passos
+1. Finalizar `ProductSearch.tsx` com suporte a numerações.
+2. Finalizar `ClientSearch.tsx` com exibição de cashback.
+3. Integrar fechamento financeiro no `POSModal.tsx`.
+4. Implementar visualização de recibo.

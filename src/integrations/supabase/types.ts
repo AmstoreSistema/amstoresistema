@@ -672,24 +672,33 @@ export type Database = {
       }
       sale_items: {
         Row: {
+          discount: number | null
           id: string
+          numeracao: string | null
           product_id: string | null
           quantity: number
           sale_id: string | null
+          stock_snapshot: Json | null
           unit_price: number
         }
         Insert: {
+          discount?: number | null
           id?: string
+          numeracao?: string | null
           product_id?: string | null
           quantity: number
           sale_id?: string | null
+          stock_snapshot?: Json | null
           unit_price: number
         }
         Update: {
+          discount?: number | null
           id?: string
+          numeracao?: string | null
           product_id?: string | null
           quantity?: number
           sale_id?: string | null
+          stock_snapshot?: Json | null
           unit_price?: number
         }
         Relationships: [
@@ -709,8 +718,42 @@ export type Database = {
           },
         ]
       }
+      sale_payments: {
+        Row: {
+          amount: number
+          created_at: string | null
+          id: string
+          payment_method: string
+          sale_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string | null
+          id?: string
+          payment_method: string
+          sale_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string | null
+          id?: string
+          payment_method?: string
+          sale_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sale_payments_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
+            referencedRelation: "sales"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sales: {
         Row: {
+          cashback_earned: number | null
+          cashback_used: number | null
           client_id: string | null
           created_at: string | null
           discount: number
@@ -723,6 +766,8 @@ export type Database = {
           total_amount: number
         }
         Insert: {
+          cashback_earned?: number | null
+          cashback_used?: number | null
           client_id?: string | null
           created_at?: string | null
           discount?: number
@@ -735,6 +780,8 @@ export type Database = {
           total_amount: number
         }
         Update: {
+          cashback_earned?: number | null
+          cashback_used?: number | null
           client_id?: string | null
           created_at?: string | null
           discount?: number
@@ -846,6 +893,7 @@ export type Database = {
       transactions: {
         Row: {
           amount: number
+          category: string | null
           created_at: string | null
           description: string | null
           id: string
@@ -854,6 +902,7 @@ export type Database = {
         }
         Insert: {
           amount: number
+          category?: string | null
           created_at?: string | null
           description?: string | null
           id?: string
@@ -862,6 +911,7 @@ export type Database = {
         }
         Update: {
           amount?: number
+          category?: string | null
           created_at?: string | null
           description?: string | null
           id?: string
@@ -904,7 +954,23 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      cancel_complete_sale: { Args: { p_sale_id: string }; Returns: undefined }
       complete_production_order: { Args: { _order_id: string }; Returns: Json }
+      create_complete_sale: {
+        Args: {
+          p_cashback_earned: number
+          p_cashback_used: number
+          p_client_id: string
+          p_discount: number
+          p_is_debt: boolean
+          p_items: Json
+          p_notes: string
+          p_paid_amount: number
+          p_payment_method: string
+          p_total_amount: number
+        }
+        Returns: string
+      }
       delete_production_order: { Args: { _order_id: string }; Returns: Json }
       start_production_order: { Args: { _order_id: string }; Returns: Json }
     }

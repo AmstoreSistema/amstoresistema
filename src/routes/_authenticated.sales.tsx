@@ -28,12 +28,17 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { brl, dateBR } from "@/lib/format";
 import { useRows } from "@/lib/data";
+import { POSModal } from "@/components/sales/POSModal";
 
 export const Route = createFileRoute("/_authenticated/sales")({
   head: () => ({
     meta: [
       { title: "Vendas — Amstore Gestão" },
       { name: "description", content: "Histórico de vendas e PDV." },
+      { property: "og:title", content: "Vendas — Amstore Gestão" },
+      { property: "og:description", content: "Histórico de vendas e PDV." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: SalesPage,
@@ -44,6 +49,7 @@ function SalesPage() {
   const { data: clients = [] } = useRows("clients");
 
   const [term, setTerm] = useState("");
+  const [posOpen, setPosOpen] = useState(false);
 
   const clientById = useMemo(() => new Map(clients.map((c: any) => [c.id, c])), [clients]);
 
@@ -94,7 +100,10 @@ function SalesPage() {
         description="Histórico completo de vendas e recebimentos"
         icon={ShoppingCart}
         actions={
-          <Button className="gap-2 bg-gradient-gold border-none shadow-gold font-bold">
+          <Button 
+            className="gap-2 bg-gradient-gold border-none shadow-gold font-bold"
+            onClick={() => setPosOpen(true)}
+          >
             <Plus className="size-4" /> Nova Venda (PDV)
           </Button>
         }
@@ -195,6 +204,8 @@ function SalesPage() {
           ))}
         </div>
       )}
+
+      <POSModal open={posOpen} onOpenChange={setPosOpen} />
     </div>
   );
 }
