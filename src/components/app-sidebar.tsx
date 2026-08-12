@@ -103,7 +103,6 @@ const menuGroups: { label: string; items: Item[] }[] = [
           { title: "Transações", url: "/transactions", icon: ArrowLeftRight },
           { title: "Contas", url: "/accounts", icon: Landmark },
           { title: "Catálogo", url: "/catalog", icon: BookMarked },
-          { title: "Promoções QR", url: "/promotions", icon: BadgePercent },
         ],
       },
     ],
@@ -125,6 +124,7 @@ const menuGroups: { label: string; items: Item[] }[] = [
         hint: "Envie lembretes e mensagens",
       },
           { title: "Cashback", url: "/cashback", icon: Coins },
+          { title: "Promoções QR", url: "/promotions", icon: BadgePercent },
           {
             title: "Configurações",
             url: "/settings",
