@@ -56,6 +56,8 @@ interface CartItem {
 
 export function POSModal({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
   const qc = useQueryClient();
+  const { data: accounts = [] } = useRows<any>("financial_accounts");
+  
   const [items, setItems] = React.useState<CartItem[]>([]);
   const [client, setClient] = React.useState<any>(null);
   const [paymentMethod, setPaymentMethod] = React.useState("Dinheiro");
@@ -65,8 +67,14 @@ export function POSModal({ open, onOpenChange }: { open: boolean; onOpenChange: 
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [installmentsCount, setInstallmentsCount] = React.useState(1);
   const [installments, setInstallments] = React.useState<{ number: number; amount: number; due_date: string }[]>([]);
-
   
+  // New High-Fidelity fields
+  const [saleType, setSaleType] = React.useState("Varejo");
+  const [accountId, setAccountId] = React.useState<string | null>(null);
+  const [protectionMethod, setProtectionMethod] = React.useState("Padrão");
+  const [notes, setNotes] = React.useState("");
+  const [saleCode] = React.useState(() => `V${Date.now().toString().slice(-10)}`);
+
   const [receiptOpen, setReceiptOpen] = React.useState(false);
   const [lastSale, setLastSale] = React.useState<any>(null);
 
