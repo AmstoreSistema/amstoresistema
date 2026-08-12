@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Users, Plus, Search, Filter } from "lucide-react";
+import { Users, Plus, Search } from "lucide-react";
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 
@@ -9,8 +9,9 @@ import { Input } from "@/components/ui/input";
 import { useRows, useDeleteRow } from "@/lib/data";
 import { ClientCard, ClientSummary } from "@/components/clients/ClientCard";
 import { ClientDetailsModal } from "@/components/clients/ClientDetailsModal";
-import { CrudPage } from "@/components/crud-page";
 import { supabase } from "@/integrations/supabase/client";
+import { cn } from "@/lib/utils";
+
 
 export const Route = createFileRoute("/_authenticated/clients")({
   head: () => ({
