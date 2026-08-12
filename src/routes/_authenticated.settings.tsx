@@ -35,8 +35,7 @@ function SettingsPage() {
   const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [isNewUserModalOpen, setIsNewUserModalOpen] = useState(false);
-  const [newUser, setNewUser] = useState({ email: "", password: "", display_name: "", role: "user" as const });
+  const [newUser, setNewUser] = useState({ email: "", password: "", display_name: "", role: "admin" as const });
   const [selectedTables, setSelectedTables] = useState<string[]>([]);
   const [backupProgress, setBackupProgress] = useState<{ active: boolean; currentTable: string; percent: number }>({ active: false, currentTable: "", percent: 0 });
   const [importDialog, setImportDialog] = useState<{ open: boolean; payload: any; selected: string[] }>({ open: false, payload: null, selected: [] });
