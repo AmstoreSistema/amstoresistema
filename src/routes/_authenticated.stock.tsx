@@ -35,6 +35,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { brl, num, dateBR } from "@/lib/format";
 import { useRows, useSaveRow } from "@/lib/data";
+import { AddProductDirectModal } from "@/components/stock/AddProductDirectModal";
 
 export const Route = createFileRoute("/_authenticated/stock")({
   head: () => ({
@@ -70,6 +71,7 @@ function StockPage() {
   const [adjustOpen, setAdjustOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [newQty, setNewQty] = useState("");
+  const [addDirectOpen, setAddDirectOpen] = useState(false);
 
   const filtered = useMemo(() => {
     return products.filter(p => {
@@ -110,6 +112,9 @@ function StockPage() {
           <div className="flex gap-2">
              <Button variant="outline" className="gap-2">
                 <History className="size-4" /> Histórico
+             </Button>
+             <Button onClick={() => setAddDirectOpen(true)} className="gap-2 bg-success hover:bg-success/90 border-none shadow-lg shadow-success/20 font-bold text-white">
+                <Plus className="size-4" /> Adicionar Produto Direto
              </Button>
              <Button onClick={() => window.location.href = "/production"} className="gap-2 bg-gradient-gold border-none shadow-gold font-bold">
                 <Plus className="size-4" /> Nova Produção
@@ -268,6 +273,7 @@ function StockPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <AddProductDirectModal open={addDirectOpen} onOpenChange={setAddDirectOpen} />
     </div>
   );
 }
