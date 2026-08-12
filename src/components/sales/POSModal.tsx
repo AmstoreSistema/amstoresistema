@@ -19,8 +19,20 @@ import {
   Banknote,
   Percent,
   Coins,
-  ReceiptText
+  ReceiptText,
+  Shield,
+  User,
+  Tag,
+  Building2
 } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { useRows } from "@/lib/data";
 
 import { ClientSearch } from "./ClientSearch";
 import { ProductSearch } from "./ProductSearch";
@@ -44,6 +56,8 @@ interface CartItem {
 
 export function POSModal({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
   const qc = useQueryClient();
+  const { data: accounts = [] } = useRows<any>("financial_accounts");
+  
   const [items, setItems] = React.useState<CartItem[]>([]);
   const [client, setClient] = React.useState<any>(null);
   const [paymentMethod, setPaymentMethod] = React.useState("Dinheiro");
@@ -53,8 +67,14 @@ export function POSModal({ open, onOpenChange }: { open: boolean; onOpenChange: 
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [installmentsCount, setInstallmentsCount] = React.useState(1);
   const [installments, setInstallments] = React.useState<{ number: number; amount: number; due_date: string }[]>([]);
-
   
+  // New High-Fidelity fields
+  const [saleType, setSaleType] = React.useState("Varejo");
+  const [accountId, setAccountId] = React.useState<string | null>(null);
+  const [protectionMethod, setProtectionMethod] = React.useState("Padrão");
+  const [notes, setNotes] = React.useState("");
+  const [saleCode] = React.useState(() => `V${Date.now().toString().slice(-10)}`);
+
   const [receiptOpen, setReceiptOpen] = React.useState(false);
   const [lastSale, setLastSale] = React.useState<any>(null);
 
@@ -128,7 +148,11 @@ export function POSModal({ open, onOpenChange }: { open: boolean; onOpenChange: 
         is_debt: isDebt,
         cashback_used: cashbackToUse,
         cashback_earned: cashbackEarned,
-        notes: "",
+        notes: notes,
+        sale_type: saleType,
+        financial_account_id: accountId,
+        protection_method: protectionMethod,
+        sale_code: saleCode,
         items: items.map(i => ({
           stock_id: i.stock_id,
           product_id: i.product_id,
@@ -162,6 +186,12 @@ export function POSModal({ open, onOpenChange }: { open: boolean; onOpenChange: 
       setIsDebt(false);
       // Don't close POS modal here yet, let receipt handle it or close after receipt
       qc.invalidateQueries();
+      
+      // Reset High-Fidelity states
+      setSaleType("Varejo");
+      setAccountId(null);
+      setProtectionMethod("Padrão");
+      setNotes("");
     } catch (error: any) {
 
       toast.error(error.message || "Erro ao processar venda");
@@ -172,7 +202,7 @@ export function POSModal({ open, onOpenChange }: { open: boolean; onOpenChange: 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-5xl max-h-[95vh] p-0 flex flex-col gap-0 overflow-hidden rounded-[2.5rem] border-none shadow-2xl">
+      <DialogContent className="max-w-7xl max-h-[98vh] p-0 flex flex-col gap-0 overflow-hidden rounded-[2.5rem] border-none shadow-2xl">
         <DialogHeader className="px-8 py-5 border-b border-border/40 bg-card/50 backdrop-blur-xl flex flex-row items-center justify-between">
           <div className="flex items-center gap-3">
              <div className="size-10 rounded-2xl bg-gradient-gold flex items-center justify-center shadow-gold">
@@ -180,19 +210,34 @@ export function POSModal({ open, onOpenChange }: { open: boolean; onOpenChange: 
              </div>
              <div>
                 <DialogTitle className="font-display font-black text-xl">PDV Amstore</DialogTitle>
-                <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Ponto de Venda Inteligente</p>
+                <div className="flex items-center gap-2">
+                  <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Ponto de Venda Inteligente</p>
+                  <Badge variant="outline" className="h-4 text-[9px] font-mono border-gold/30 text-gold bg-gold/5">
+                    {saleCode}
+                  </Badge>
+                </div>
              </div>
           </div>
           
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-8">
+             <div className="flex items-center gap-2 text-right">
+                <div>
+                   <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest">Vendedor</p>
+                   <div className="flex items-center gap-1.5 justify-end">
+                      <User className="size-3 text-gold" />
+                      <p className="text-sm font-black">Sistema Automático</p>
+                   </div>
+                </div>
+             </div>
+             <Separator orientation="vertical" className="h-8" />
              <div className="text-right">
-                <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest">Data</p>
+                <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest">Data da Venda</p>
                 <p className="text-sm font-black">{new Date().toLocaleDateString('pt-BR')}</p>
              </div>
              <Separator orientation="vertical" className="h-8" />
              <div className="text-right">
-                <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest">Itens</p>
-                <p className="text-sm font-black">{items.length}</p>
+                <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest">Itens no Carrinho</p>
+                <p className="text-sm font-black">{items.reduce((acc, i) => acc + i.quantity, 0)}</p>
              </div>
           </div>
         </DialogHeader>
@@ -270,16 +315,50 @@ export function POSModal({ open, onOpenChange }: { open: boolean; onOpenChange: 
           </div>
           
           {/* Sidebar: Checkout */}
-          <div className="w-[380px] border-l border-border/40 bg-muted/10 p-8 flex flex-col gap-6">
+          <div className="w-[420px] border-l border-border/40 bg-muted/10 p-8 flex flex-col gap-6 overflow-y-auto">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                 <Label className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest pl-1">Tipo de Venda</Label>
+                 <Select value={saleType} onValueChange={setSaleType}>
+                    <SelectTrigger className="h-10 rounded-xl bg-card border-border/40 font-bold text-xs">
+                      <div className="flex items-center gap-2">
+                        <Tag className="size-3 text-gold" />
+                        <SelectValue placeholder="Tipo" />
+                      </div>
+                    </SelectTrigger>
+                    <SelectContent>
+                       <SelectItem value="Varejo">Varejo</SelectItem>
+                       <SelectItem value="Atacado">Atacado</SelectItem>
+                    </SelectContent>
+                 </Select>
+              </div>
+              <div className="space-y-2">
+                 <Label className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest pl-1">Proteção</Label>
+                 <Select value={protectionMethod} onValueChange={setProtectionMethod}>
+                    <SelectTrigger className="h-10 rounded-xl bg-card border-border/40 font-bold text-xs">
+                      <div className="flex items-center gap-2">
+                        <Shield className="size-3 text-gold" />
+                        <SelectValue placeholder="Proteção" />
+                      </div>
+                    </SelectTrigger>
+                    <SelectContent>
+                       <SelectItem value="Padrão">Padrão</SelectItem>
+                       <SelectItem value="Garantia Estendida">Garantia Estendida</SelectItem>
+                       <SelectItem value="Sem Proteção">Sem Proteção</SelectItem>
+                    </SelectContent>
+                 </Select>
+              </div>
+            </div>
+
             <div className="space-y-4">
-               <Label className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest pl-1">Cliente</Label>
+               <Label className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest pl-1">Cliente da Venda</Label>
                <ClientSearch selectedClient={client} onSelect={setClient} />
             </div>
 
             <Separator className="bg-border/40" />
 
             <div className="space-y-4">
-               <Label className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest pl-1">Pagamento & Ajustes</Label>
+               <Label className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest pl-1">Forma de Recebimento</Label>
                
                <div className="grid grid-cols-2 gap-2">
                   {[
@@ -303,7 +382,26 @@ export function POSModal({ open, onOpenChange }: { open: boolean; onOpenChange: 
                   ))}
                </div>
 
-               <div className="flex items-center gap-3">
+               <div className="space-y-2">
+                 <Label className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest pl-1">Conta para Recebimento</Label>
+                 <Select value={accountId || ""} onValueChange={setAccountId}>
+                    <SelectTrigger className="h-11 rounded-xl bg-card border-border/40 font-bold text-xs">
+                      <div className="flex items-center gap-2">
+                        <Building2 className="size-4 text-gold" />
+                        <SelectValue placeholder="Selecione a conta" />
+                      </div>
+                    </SelectTrigger>
+                    <SelectContent>
+                       {accounts.map((acc: any) => (
+                         <SelectItem key={acc.id} value={acc.id}>
+                           {acc.name} ({brl(acc.balance)})
+                         </SelectItem>
+                       ))}
+                    </SelectContent>
+                 </Select>
+               </div>
+
+               <div className="flex items-center gap-3 pt-2">
                   <div className="flex-1 relative">
                      <Percent className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
                      <Input 
@@ -318,10 +416,11 @@ export function POSModal({ open, onOpenChange }: { open: boolean; onOpenChange: 
                   {client && client.cashback_balance > 0 && (
                      <Button 
                         variant={cashbackToUse > 0 ? "default" : "outline"}
-                        className="h-11 rounded-xl gap-2 font-bold px-4"
+                        type="button"
+                        className="h-11 rounded-xl gap-2 font-bold px-4 transition-all"
                         onClick={() => setCashbackToUse(cashbackToUse > 0 ? 0 : Math.min(finalTotal, client.cashback_balance))}
                      >
-                        <Coins className="size-4" /> Use Cashback
+                        <Coins className="size-4" /> Cashback: {brl(client.cashback_balance)}
                      </Button>
                   )}
                </div>
@@ -338,9 +437,9 @@ export function POSModal({ open, onOpenChange }: { open: boolean; onOpenChange: 
                            if (!e.target.checked) setInstallmentsCount(1);
                         }}
                      />
-                     <Label htmlFor="is_debt" className="cursor-pointer font-bold select-none">Venda no Fiado</Label>
+                     <Label htmlFor="is_debt" className="cursor-pointer font-bold select-none text-sm">Lançar no Fiado</Label>
                   </div>
-                  {isDebt && <Badge className="bg-destructive/10 text-destructive border-none">A receber</Badge>}
+                  {isDebt && <Badge className="bg-destructive/10 text-destructive border-none text-[10px]">A receber</Badge>}
                </div>
 
                {isDebt && (
@@ -357,7 +456,7 @@ export function POSModal({ open, onOpenChange }: { open: boolean; onOpenChange: 
                            ))}
                         </select>
                      </div>
-                     <div className="space-y-2">
+                     <div className="space-y-2 max-h-32 overflow-y-auto pr-2">
                         {installments.map((inst) => (
                            <div key={inst.number} className="flex justify-between text-[11px] font-bold">
                               <span className="text-muted-foreground">{inst.number}ª Parcela ({new Date(inst.due_date).toLocaleDateString('pt-BR')})</span>
@@ -368,38 +467,48 @@ export function POSModal({ open, onOpenChange }: { open: boolean; onOpenChange: 
                   </div>
                )}
 
+               <div className="space-y-2">
+                 <Label className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest pl-1">Observações</Label>
+                 <textarea 
+                    className="w-full h-20 rounded-xl bg-card border border-border/40 p-3 text-xs focus:ring-1 focus:ring-gold outline-none resize-none"
+                    placeholder="Notas adicionais sobre a venda..."
+                    value={notes}
+                    onChange={e => setNotes(e.target.value)}
+                 />
+               </div>
+
             </div>
 
             <Separator className="bg-border/40" />
 
-            <div className="mt-auto space-y-4">
-               <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                     <span className="text-muted-foreground font-medium">Subtotal</span>
+            <div className="mt-auto space-y-4 pt-4">
+               <div className="space-y-2 bg-card/50 p-4 rounded-[1.5rem] border border-border/20">
+                  <div className="flex justify-between text-xs">
+                     <span className="text-muted-foreground font-medium">Subtotal Bruto</span>
                      <span className="font-bold">{brl(subtotal)}</span>
                   </div>
                   {(discount > 0 || itemsDiscount > 0) && (
-                    <div className="flex justify-between text-sm text-destructive">
-                       <span className="font-medium">Descontos</span>
+                    <div className="flex justify-between text-xs text-destructive">
+                       <span className="font-medium">Total Descontos</span>
                        <span className="font-bold">-{brl(discount + itemsDiscount)}</span>
                     </div>
                   )}
                   {cashbackToUse > 0 && (
-                    <div className="flex justify-between text-sm text-success">
-                       <span className="font-medium">Cashback Utilizado</span>
+                    <div className="flex justify-between text-xs text-success">
+                       <span className="font-medium">Cashback Aplicado</span>
                        <span className="font-bold">-{brl(cashbackToUse)}</span>
                     </div>
                   )}
                   <div className="h-px bg-border/40 my-2" />
                   <div className="flex justify-between items-end">
                      <div>
-                        <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest">Total a Pagar</p>
-                        <h2 className="text-3xl font-display font-black text-gold">{brl(finalTotal)}</h2>
+                        <p className="text-[9px] uppercase font-bold text-muted-foreground tracking-widest">Total Líquido</p>
+                        <h2 className="text-4xl font-display font-black text-gold leading-none">{brl(finalTotal)}</h2>
                      </div>
                      {client && (
                        <div className="text-right mb-1">
-                          <p className="text-[8px] uppercase font-bold text-success tracking-tighter">Ganhará Cashback</p>
-                          <p className="text-xs font-black text-success">+{brl(cashbackEarned)}</p>
+                          <p className="text-[8px] uppercase font-bold text-success tracking-tighter">Bônus Cashback</p>
+                          <p className="text-sm font-black text-success">+{brl(cashbackEarned)}</p>
                        </div>
                      )}
                   </div>
@@ -410,7 +519,7 @@ export function POSModal({ open, onOpenChange }: { open: boolean; onOpenChange: 
                   onClick={handleFinish}
                   disabled={isSubmitting || items.length === 0}
                >
-                  {isSubmitting ? "Finalizando..." : "FINALIZAR VENDA"}
+                  {isSubmitting ? "PROCESSANDO..." : "FINALIZAR E IMPRIMIR"}
                </Button>
             </div>
           </div>

@@ -13,6 +13,10 @@ export const createSale = createServerFn({ method: "POST" })
     cashback_used: z.number().default(0),
     cashback_earned: z.number().default(0),
     notes: z.string().optional(),
+    sale_type: z.string().default("Varejo"),
+    financial_account_id: z.string().nullable().optional(),
+    protection_method: z.string().nullable().optional(),
+    sale_code: z.string().nullable().optional(),
     items: z.array(z.object({
       stock_id: z.string().nullable(),
       product_id: z.string(),
@@ -30,8 +34,6 @@ export const createSale = createServerFn({ method: "POST" })
   }).parse(data))
 
   .handler(async ({ data }) => {
-    // Type casting here to bypass strict generated types if needed, 
-    // but the RPC requires the exact UUID type string.
     const { data: saleId, error } = await (supabase.rpc as any)('create_complete_sale', {
       p_client_id: data.client_id,
       p_payment_method: data.payment_method,
@@ -43,9 +45,12 @@ export const createSale = createServerFn({ method: "POST" })
       p_cashback_earned: data.cashback_earned,
       p_notes: data.notes || '',
       p_items: data.items,
-      p_installments: data.installments
+      p_installments: data.installments,
+      p_sale_type: data.sale_type,
+      p_financial_account_id: data.financial_account_id,
+      p_protection_method: data.protection_method,
+      p_sale_code: data.sale_code
     });
-
 
     if (error) throw new Error(`Erro ao criar venda: ${error.message}`);
     return { saleId: saleId as string };
@@ -67,7 +72,8 @@ export const registerSalePayment = createServerFn({ method: "POST" })
     installment_id: z.string().optional(),
     sale_id: z.string(),
     amount: z.number(),
-    payment_method: z.string()
+    payment_method: z.string(),
+    account_id: z.string().optional()
   }).parse(data))
   .handler(async ({ data }) => {
     if (data.installment_id) {
@@ -90,7 +96,7 @@ export const registerSalePayment = createServerFn({ method: "POST" })
 
       const { data: sale } = await supabase
         .from("sales")
-        .select("paid_amount, total_amount")
+        .select("paid_amount, total_amount, sale_code")
         .eq("id", data.sale_id)
         .single();
 
@@ -111,9 +117,10 @@ export const registerSalePayment = createServerFn({ method: "POST" })
           .insert({
             amount: data.amount,
             type: "income",
-            description: `Pagamento Venda #${data.sale_id.slice(0, 8)}`,
+            description: `Pagamento Venda #${sale.sale_code || data.sale_id.slice(0, 8)}`,
             sale_id: data.sale_id,
-            category: 'Venda'
+            category: 'Venda',
+            account_id: data.account_id
           } as any);
       }
     }

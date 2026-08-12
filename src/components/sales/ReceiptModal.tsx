@@ -40,7 +40,7 @@ export function ReceiptModal({
               <CheckCircle2 className="size-10" />
            </div>
            <h3 className="font-display font-black text-2xl">Venda Concluída!</h3>
-           <p className="text-sm opacity-90 mt-1">O pedido #{sale.id.slice(0, 8)} foi registrado.</p>
+           <p className="text-sm opacity-90 mt-1">O pedido {sale.sale_code || `#${sale.id.slice(0, 8)}`} foi registrado.</p>
         </div>
 
         <div className="p-8 space-y-6 bg-background print:p-0">
@@ -96,10 +96,24 @@ export function ReceiptModal({
                  </div>
               </div>
 
-              <div className="pt-4 text-center space-y-1">
-                 <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest">Forma de Pagamento</p>
-                 <p className="text-sm font-black">{sale.payment_method}</p>
+              <div className="pt-4 grid grid-cols-2 gap-4 text-center">
+                 <div className="space-y-1">
+                    <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest">Pagamento</p>
+                    <p className="text-sm font-black">{sale.payment_method}</p>
+                 </div>
+                 {sale.sale_type && (
+                    <div className="space-y-1 border-l border-border/40">
+                       <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest">Tipo</p>
+                       <p className="text-sm font-black">{sale.sale_type}</p>
+                    </div>
+                 )}
               </div>
+              {sale.notes && (
+                <div className="pt-2 text-center">
+                   <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest">Observações</p>
+                   <p className="text-[11px] italic text-muted-foreground">{sale.notes}</p>
+                </div>
+              )}
            </div>
 
            <div className="flex gap-2 print:hidden">
