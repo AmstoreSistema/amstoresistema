@@ -36,9 +36,10 @@ export function ClientDetailsModal({ client, isOpen, onClose }: ClientDetailsMod
   
   const { data, isLoading } = useQuery({
     queryKey: ['client-details', client?.id],
-    queryFn: () => fetchDetails({ client_id: client.id }),
+    queryFn: () => fetchDetails({ data: { client_id: client.id } }),
     enabled: !!client && isOpen,
   });
+
 
   if (!client) return null;
 
