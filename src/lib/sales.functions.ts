@@ -24,8 +24,10 @@ export const createSale = createServerFn({ method: "POST" })
     }))
   }).parse(data))
   .handler(async ({ data }) => {
-    const { data: saleId, error } = await supabase.rpc('create_complete_sale', {
-      p_client_id: data.client_id || undefined,
+    // Type casting here to bypass strict generated types if needed, 
+    // but the RPC requires the exact UUID type string.
+    const { data: saleId, error } = await (supabase.rpc as any)('create_complete_sale', {
+      p_client_id: data.client_id,
       p_payment_method: data.payment_method,
       p_total_amount: data.total_amount,
       p_discount: data.discount,
@@ -34,11 +36,11 @@ export const createSale = createServerFn({ method: "POST" })
       p_cashback_used: data.cashback_used,
       p_cashback_earned: data.cashback_earned,
       p_notes: data.notes || '',
-      p_items: data.items as any
+      p_items: data.items
     });
 
     if (error) throw new Error(`Erro ao criar venda: ${error.message}`);
-    return { saleId };
+    return { saleId: saleId as string };
   });
 
 export const cancelSale = createServerFn({ method: "POST" })
@@ -69,7 +71,6 @@ export const registerSalePayment = createServerFn({ method: "POST" })
 
     if (paymentError) throw new Error(`Erro ao registrar pagamento: ${paymentError.message}`);
 
-    // Atualizar valor pago na venda
     const { data: sale } = await supabase
       .from("sales")
       .select("paid_amount, total_amount")
@@ -88,7 +89,6 @@ export const registerSalePayment = createServerFn({ method: "POST" })
         })
         .eq("id", data.sale_id);
 
-      // Registrar transação
       await supabase
         .from("transactions")
         .insert({
@@ -97,7 +97,7 @@ export const registerSalePayment = createServerFn({ method: "POST" })
           description: `Pagamento Venda #${data.sale_id.slice(0, 8)}`,
           sale_id: data.sale_id,
           category: 'Venda'
-        });
+        } as any);
     }
 
     return { success: true };
