@@ -69,7 +69,8 @@ export const updateAppSettingsBatch = createServerFn({ method: "POST" })
 export const getUsers = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { data, error } = await context.supabase.from("user_profiles").select("*, user_roles(role)");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data, error } = await supabaseAdmin.from("user_profiles").select("*, user_roles(role)");
     if (error) throw error;
     return data || [];
   });

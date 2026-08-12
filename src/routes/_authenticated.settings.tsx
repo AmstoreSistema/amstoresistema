@@ -605,58 +605,61 @@ function SettingsPage() {
                 </div>
               )}
               <div className="space-y-4">
-                {users.map((user) => (
-                  <div key={user.id} className="flex items-center justify-between p-4 rounded-2xl bg-muted/20 border border-border/40">
-                    <div className="flex items-center gap-4">
-                      <div className="size-10 rounded-full bg-gold/10 flex items-center justify-center text-gold font-bold">
-                        {user.display_name?.slice(0, 2).toUpperCase() || "U"}
+                {users.map((user) => {
+                  const currentRole = user.user_roles?.[0]?.role || "user";
+                  return (
+                    <div key={user.id} className="flex items-center justify-between p-4 rounded-2xl bg-muted/20 border border-border/40">
+                      <div className="flex items-center gap-4">
+                        <div className="size-10 rounded-full bg-gold/10 flex items-center justify-center text-gold font-bold">
+                          {user.display_name?.slice(0, 2).toUpperCase() || "U"}
+                        </div>
+                        <div>
+                          <h4 className="font-bold">{user.display_name || user.email}</h4>
+                          <p className="text-xs text-muted-foreground">{user.email}</p>
+                        </div>
                       </div>
-                      <div>
-                        <h4 className="font-bold">{user.display_name || user.email}</h4>
-                        <p className="text-xs text-muted-foreground">{user.email}</p>
+                      
+                      <div className="flex items-center gap-6">
+                        <div className="flex items-center gap-2">
+                          <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Cargo</Label>
+                          <Select 
+                            value={currentRole} 
+                            onValueChange={async (role: any) => {
+                              await updateRole({ data: { userId: user.id, role } });
+                              toast.success(`Cargo atualizado para ${role}`);
+                              loadData();
+                            }}
+                          >
+                            <SelectTrigger className="w-[140px] h-9 text-xs">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="admin">Administrador</SelectItem>
+                              <SelectItem value="moderator">Moderador</SelectItem>
+                              <SelectItem value="user">Vendedor</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Status</Label>
+                          <Switch 
+                            checked={user.active} 
+                            onCheckedChange={async (active) => {
+                              await updateStatus({ data: { id: user.id, active } });
+                              toast.success(active ? "Usuário ativado" : "Usuário desativado");
+                              loadData();
+                            }}
+                          />
+                        </div>
+
+                        <Badge variant={user.active ? "default" : "secondary"} className={user.active ? "bg-green-500/10 text-green-500 border-green-500/20" : ""}>
+                          {user.active ? "Ativo" : "Inativo"}
+                        </Badge>
                       </div>
                     </div>
-                    
-                    <div className="flex items-center gap-6">
-                      <div className="flex items-center gap-2">
-                        <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Cargo</Label>
-                        <Select 
-                          defaultValue={user.user_roles?.[0]?.role || "user"} 
-                          onValueChange={async (role: any) => {
-                            await updateRole({ data: { userId: user.id, role } });
-                            toast.success(`Cargo atualizado para ${role}`);
-                            loadData();
-                          }}
-                        >
-                          <SelectTrigger className="w-[140px] h-9 text-xs">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="admin">Administrador</SelectItem>
-                            <SelectItem value="moderator">Moderador</SelectItem>
-                            <SelectItem value="user">Vendedor</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Status</Label>
-                        <Switch 
-                          checked={user.active} 
-                          onCheckedChange={async (active) => {
-                            await updateStatus({ data: { id: user.id, active } });
-                            toast.success(active ? "Usuário ativado" : "Usuário desativado");
-                            loadData();
-                          }}
-                        />
-                      </div>
-
-                      <Badge variant={user.active ? "default" : "secondary"} className={user.active ? "bg-green-500/10 text-green-500 border-green-500/20" : ""}>
-                        {user.active ? "Ativo" : "Inativo"}
-                      </Badge>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </CardContent>
           </Card>
