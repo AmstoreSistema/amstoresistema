@@ -202,8 +202,10 @@ function SettingsPage() {
         setBackupProgress({ active: true, currentTable: `Exportando: ${label}`, percent: Math.round((i / total) * 100) });
         
         // Export table by table to show progress
-        const result = (await exportData({ data: { tables: [table] } })) as any;
-        exportDataMap[table] = result.data[table];
+        const result = (await exportData({ data: { tables: [table] } })) as { data: Record<string, any> };
+        if (result.data) {
+          exportDataMap[table] = result.data[table];
+        }
       }
       
       setBackupProgress({ active: true, currentTable: "Concluído!", percent: 100 });
