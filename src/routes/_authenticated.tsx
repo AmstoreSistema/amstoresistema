@@ -30,12 +30,13 @@ function AuthenticatedLayout() {
       const user = data.session?.user;
       if (user) {
         setEmail(user.email ?? "");
-        const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", user.id).single();
-        if (roles) {
+        const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", user.id);
+        const userRole = roles && roles.length > 0 ? roles[0].role : "user";
+        if (userRole) {
           const roleMap: any = { admin: "Administrador", moderator: "Moderador", user: "Vendedor" };
-          setRole(roleMap[roles.role] || "Vendedor");
+          setRole(roleMap[userRole] || "Vendedor");
           
-          if (pathname === "/settings" && roles.role !== "admin") {
+          if (pathname === "/settings" && userRole !== "admin") {
             window.location.href = "/dashboard";
           }
         }
