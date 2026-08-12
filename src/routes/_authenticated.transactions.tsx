@@ -86,7 +86,7 @@ const transactionSchema = z.object({
 function TransactionsPage() {
   const qc = useQueryClient();
   const { data: transactions = [], isLoading } = useRows("transactions", { order: { column: "created_at", ascending: false } });
-  const { data: accounts = [] } = useRows("financial_accounts", { where: { active: true } });
+  const { data: accounts = [] } = useRows("financial_accounts", { filters: [{ column: "active", value: true }] });
   
   const [term, setTerm] = useState("");
   const [open, setOpen] = useState(false);
@@ -126,7 +126,7 @@ function TransactionsPage() {
     }
   };
 
-  const handleDelete = async (id: string) => {
+  const handleDeleteItem = async (id: string) => {
     if (!confirm("Deseja realmente excluir este lançamento? Esta ação pode afetar o saldo das contas.")) return;
     try {
       await deleteTransaction(id);
@@ -310,7 +310,7 @@ function TransactionsPage() {
                                    </DropdownMenuItem>
                                  )}
                                  <DropdownMenuItem 
-                                   onClick={() => handleDelete(t.id)}
+                                   onClick={() => handleDeleteItem(t.id)}
                                    className="rounded-xl gap-2 text-destructive"
                                  >
                                    <Trash2 className="size-4" /> Excluir permanentemente
@@ -347,7 +347,7 @@ function TransactionsPage() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Tipo</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Selecione" />
@@ -384,7 +384,7 @@ function TransactionsPage() {
                   <FormItem>
                     <FormLabel>Descrição</FormLabel>
                     <FormControl>
-                      <Input placeholder="Ex: Aluguel, Compra de material, Venda direta..." {...field} />
+                      <Input placeholder="Ex: Aluguel, Compra de material, Venda direta..." {...field} value={field.value || ""} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -398,7 +398,7 @@ function TransactionsPage() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Conta Financeira</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Selecione" />
@@ -420,7 +420,7 @@ function TransactionsPage() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Categoria</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value || "Outros"}>
+                      <Select onValueChange={field.onChange} value={field.value || "Outros"}>
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Selecione" />
@@ -448,7 +448,7 @@ function TransactionsPage() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Status</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Selecione" />
