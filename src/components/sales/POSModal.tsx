@@ -33,6 +33,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useRows } from "@/lib/data";
+import { supabase } from "@/integrations/supabase/client";
 
 import { ClientSearch } from "./ClientSearch";
 import { ProductSearch } from "./ProductSearch";
