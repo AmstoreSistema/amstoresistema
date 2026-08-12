@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Settings, User, Bell, Database, Zap, Save, UserPlus, Shield, Power, Download, Upload } from "lucide-react";
+import { Settings, User, Bell, Database, Zap, Save, UserPlus, Shield, Power, Download, Upload, Store } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -72,7 +72,7 @@ function SettingsPage() {
 
   const handleSaveSetting = async (key: string, value: any) => {
     try {
-      await saveSetting({ key, value });
+      await saveSetting({ data: { key, value } });
       toast.success("Configuração salva");
       loadData();
     } catch (error) {
@@ -103,7 +103,7 @@ function SettingsPage() {
     reader.onload = async (event) => {
       try {
         const payload = JSON.parse(event.target?.result as string);
-        await importData({ payload });
+        await importData({ data: { payload } });
         toast.success("Backup restaurado com sucesso");
         window.location.reload();
       } catch (error) {
@@ -368,7 +368,7 @@ function SettingsPage() {
                         <Select 
                           defaultValue={user.user_roles?.[0]?.role || "user"} 
                           onValueChange={async (role: any) => {
-                            await updateRole({ userId: user.id, role });
+                            await updateRole({ data: { userId: user.id, role } });
                             toast.success(`Cargo atualizado para ${role}`);
                             loadData();
                           }}
@@ -389,7 +389,7 @@ function SettingsPage() {
                         <Switch 
                           checked={user.active} 
                           onCheckedChange={async (active) => {
-                            await updateStatus({ id: user.id, active });
+                            await updateStatus({ data: { id: user.id, active } });
                             toast.success(active ? "Usuário ativado" : "Usuário desativado");
                             loadData();
                           }}
