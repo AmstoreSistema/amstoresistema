@@ -113,6 +113,9 @@ function StockPage() {
              <Button variant="outline" className="gap-2">
                 <History className="size-4" /> Histórico
              </Button>
+             <Button onClick={() => setAddDirectOpen(true)} className="gap-2 bg-success hover:bg-success/90 border-none shadow-lg shadow-success/20 font-bold text-white">
+                <Plus className="size-4" /> Adicionar Produto Direto
+             </Button>
              <Button onClick={() => window.location.href = "/production"} className="gap-2 bg-gradient-gold border-none shadow-gold font-bold">
                 <Plus className="size-4" /> Nova Produção
              </Button>
@@ -269,7 +272,7 @@ function StockPage() {
              <Button onClick={handleAdjust} disabled={save.isPending}>Salvar Ajuste</Button>
           </DialogFooter>
         </DialogContent>
-      </Dialog>
+      <AddProductDirectModal open={addDirectOpen} onOpenChange={setAddDirectOpen} />
     </div>
   );
 }
