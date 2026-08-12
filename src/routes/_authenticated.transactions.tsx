@@ -205,17 +205,18 @@ function TransactionsPage() {
                 
                 const csvContent = filtered.map(t => ({
                   Data: dateBR(t.created_at),
-                  Descricao: t.description,
-                  Tipo: t.type,
-                  Valor: Math.abs(t.amount),
-                  Status: t.status,
-                  Categoria: t.category,
-                  Conta: t.financial_accounts?.name
+                  Descricao: t.description || "",
+                  Tipo: t.type || "",
+                  Valor: Math.abs(t.amount || 0),
+                  Status: t.status || "",
+                  Categoria: t.category || "",
+                  Conta: t.financial_accounts?.name || ""
                 }));
                 
                 if (csvContent.length === 0) return;
 
-                const header = Object.keys(csvContent[0]).join(",");
+                const firstItem = csvContent[0] as Record<string, any>;
+                const header = Object.keys(firstItem).join(",");
                 const rows = csvContent.map(row => Object.values(row).join(",")).join("\n");
                 const csv = `${header}\n${rows}`;
                 
