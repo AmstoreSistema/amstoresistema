@@ -36,10 +36,36 @@ export const importSystemData = createServerFn({ method: "POST" })
     let dataToImport: Record<string, any[]> = {};
 
     if (isBase44) {
-      // Logic for Base44 backup parsing
-      // This is a placeholder for the actual mapping logic once the structure is provided
-      // For now, we assume payload is already mapped or we'll add mapping here
-      dataToImport = payload;
+      if (!payload.tabelas) {
+        throw new Error("Formato de backup Base44 inválido: chave 'tabelas' não encontrada");
+      }
+
+      // Mapping 'clientes' -> 'clients'
+      if (Array.isArray(payload.tabelas.clientes)) {
+        dataToImport['clients'] = payload.tabelas.clientes.map((c: any) => ({
+          name: c.nome,
+          phone: c.telefone,
+          cashback_balance: 0,
+          created_at: new Date().toISOString()
+        }));
+      }
+
+      // Mapping 'produtos' -> 'products'
+      if (Array.isArray(payload.tabelas.produtos)) {
+        dataToImport['products'] = payload.tabelas.produtos.map((p: any) => ({
+          sku: p.sku,
+          name: p.nome || `Produto ${p.sku}`,
+          sale_price: p.preco || 0,
+          category: 'Geral',
+          cost_price: 0,
+          labor_cost: 0,
+          overhead_cost: 0,
+          retail_margin: 0,
+          wholesale_margin: 0,
+          active: true,
+          created_at: new Date().toISOString()
+        }));
+      }
     } else {
       if (!payload.data || !payload.version) {
         throw new Error("Formato de backup inválido");
