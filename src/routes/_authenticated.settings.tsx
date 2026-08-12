@@ -241,6 +241,24 @@ function SettingsPage() {
     reader.onload = async (event) => {
       try {
         const payload = JSON.parse(event.target?.result as string);
+        
+        // Check if it's a Base44 backup
+        if (payload.tabelas && payload.versao === "1.0") {
+          toast.info("Backup Base44 detectado. Mapeando dados...");
+          
+          setSaving(true);
+          try {
+            await importData({ data: { payload, isBase44: true } });
+            toast.success("Dados do Base44 restaurados com sucesso!");
+            setTimeout(() => window.location.reload(), 1500);
+          } catch (error: any) {
+            toast.error(`Erro na restauração Base44: ${error.message}`);
+          } finally {
+            setSaving(false);
+          }
+          return;
+        }
+
         if (!payload.data) throw new Error("Formato inválido");
         
         const availableTables = Object.keys(payload.data);
