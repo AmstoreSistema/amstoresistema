@@ -109,7 +109,7 @@ function AccountsPage() {
     },
   });
 
-  const transferForm = useForm({
+  const transferForm = useForm<z.infer<typeof transferSchema>>({
     resolver: zodResolver(transferSchema),
     defaultValues: {
       origin_id: "",
