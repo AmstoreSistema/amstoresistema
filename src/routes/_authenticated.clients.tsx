@@ -247,37 +247,37 @@ function ClientFormModal({ isOpen, onClose, client }: { isOpen: boolean, onClose
 
   return (
     <Dialog open={isOpen} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-4xl p-0 overflow-hidden bg-white border-none shadow-2xl">
-        <div className="flex items-center justify-between p-6 bg-white border-b relative">
-          <DialogTitle className="text-lg font-bold text-foreground">
+      <DialogContent className="max-w-3xl p-0 overflow-hidden bg-white border-none shadow-2xl">
+        <div className="flex items-center justify-between px-6 py-4 bg-white border-b relative">
+          <DialogTitle className="text-base font-bold text-foreground">
             {client ? "Editar Cliente" : "Novo Cliente"}
           </DialogTitle>
-          <DialogClose className="p-2 rounded-full hover:bg-muted transition-colors">
+          <DialogClose className="p-1.5 rounded-full hover:bg-muted transition-colors">
             <X className="size-4" />
           </DialogClose>
         </div>
 
-        <ScrollArea className="max-h-[85vh]">
-          <div className="p-8 space-y-8">
+        <ScrollArea className="max-h-[80vh]">
+          <div className="p-6 space-y-6">
             {/* Basic Info Section */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <Label className="text-sm font-semibold text-foreground">Nome Completo / Razão Social *</Label>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-4">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-foreground">Nome Completo / Razão Social *</Label>
                 <Input 
                   value={values.name} 
                   onChange={e => setValues({...values, name: e.target.value})} 
-                  placeholder="Adriana Pereira"
-                  className="h-11 rounded-xl bg-gray-50/50 border-gray-200 focus:bg-white transition-all"
+                  placeholder="Ex: João Silva"
+                  className="h-9 text-sm rounded-lg bg-gray-50/50 border-gray-200 focus:bg-white transition-all"
                 />
               </div>
-              <div className="space-y-2">
-                <Label className="text-sm font-semibold text-foreground">Tipo de Cliente</Label>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-foreground">Tipo de Cliente</Label>
                 <Select 
                   value={values.client_type} 
                   onValueChange={v => setValues({...values, client_type: v})}
                 >
-                  <SelectTrigger className="h-11 rounded-xl bg-gray-50/50 border-gray-200 focus:bg-white transition-all">
-                    <SelectValue placeholder="Selecione o tipo" />
+                  <SelectTrigger className="h-9 text-sm rounded-lg bg-gray-50/50 border-gray-200 focus:bg-white transition-all">
+                    <SelectValue placeholder="Selecione" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="Pessoa Física">Pessoa Física</SelectItem>
@@ -286,110 +286,109 @@ function ClientFormModal({ isOpen, onClose, client }: { isOpen: boolean, onClose
                 </Select>
               </div>
 
-              <div className="space-y-2">
-                <Label className="text-sm font-semibold text-foreground">CPF / CNPJ</Label>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-foreground">CPF / CNPJ</Label>
                 <Input 
                   value={values.document_cpf} 
                   onChange={e => setValues({...values, document_cpf: e.target.value})} 
                   placeholder="000.000.000-00"
-                  className="h-11 rounded-xl bg-gray-50/50 border-gray-200 focus:bg-white transition-all"
+                  className="h-9 text-sm rounded-lg bg-gray-50/50 border-gray-200 focus:bg-white transition-all"
                 />
               </div>
-              <div className="space-y-2">
-                <Label className="text-sm font-semibold text-foreground">Telefone / WhatsApp</Label>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-foreground">Telefone / WhatsApp</Label>
                 <Input 
                   value={values.phone} 
                   onChange={e => setValues({...values, phone: e.target.value})} 
-                  placeholder="73988421343"
-                  className="h-11 rounded-xl bg-gray-50/50 border-gray-200 focus:bg-white transition-all"
+                  placeholder="(00) 00000-0000"
+                  className="h-9 text-sm rounded-lg bg-gray-50/50 border-gray-200 focus:bg-white transition-all"
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label className="text-sm font-semibold text-foreground">E-mail</Label>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-foreground">E-mail</Label>
                 <Input 
                   value={values.email} 
                   onChange={e => setValues({...values, email: e.target.value})} 
                   placeholder="cliente@email.com"
-                  className="h-11 rounded-xl bg-gray-50/50 border-gray-200 focus:bg-white transition-all"
+                  className="h-9 text-sm rounded-lg bg-gray-50/50 border-gray-200 focus:bg-white transition-all"
                 />
               </div>
-              <div className="space-y-2">
-                <Label className="text-sm font-semibold text-foreground flex items-center gap-1">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-foreground flex items-center gap-1">
                   Data de Aniversário 🎂
                 </Label>
                 <Input 
                   type="date"
                   value={values.birth_date} 
                   onChange={e => setValues({...values, birth_date: e.target.value})} 
-                  className="h-11 rounded-xl bg-gray-50/50 border-gray-200 focus:bg-white transition-all"
+                  className="h-9 text-sm rounded-lg bg-gray-50/50 border-gray-200 focus:bg-white transition-all"
                 />
               </div>
             </div>
 
             {/* Address Section */}
-            <div className="space-y-6">
-              <h3 className="text-lg font-bold text-foreground">Endereço</h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="space-y-2">
-                  <Label className="text-sm font-semibold text-foreground">CEP</Label>
+            <div className="space-y-4 pt-2 border-t">
+              <h3 className="text-sm font-bold text-foreground">Endereço</h3>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold text-foreground">CEP</Label>
                   <Input 
                     value={values.zip_code} 
                     onChange={e => setValues({...values, zip_code: e.target.value})} 
                     onBlur={handleZipCodeBlur}
                     placeholder="00000-000"
-                    className="h-11 rounded-xl bg-gray-50/50 border-gray-200 focus:bg-white transition-all"
+                    className="h-9 text-sm rounded-lg bg-gray-50/50 border-gray-200 focus:bg-white transition-all"
                   />
-                  <p className="text-[10px] text-muted-foreground">Digite o CEP para preencher automaticamente</p>
                 </div>
-                <div className="md:col-span-2 space-y-2">
-                  <Label className="text-sm font-semibold text-foreground">Endereço Completo</Label>
+                <div className="md:col-span-3 space-y-1.5">
+                  <Label className="text-xs font-semibold text-foreground">Endereço Completo</Label>
                   <Input 
                     value={values.address} 
                     onChange={e => setValues({...values, address: e.target.value})} 
                     placeholder="Rua, número, complemento"
-                    className="h-11 rounded-xl bg-gray-50/50 border-gray-200 focus:bg-white transition-all"
+                    className="h-9 text-sm rounded-lg bg-gray-50/50 border-gray-200 focus:bg-white transition-all"
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label className="text-sm font-semibold text-foreground">Cidade</Label>
+                <div className="md:col-span-2 space-y-1.5">
+                  <Label className="text-xs font-semibold text-foreground">Cidade</Label>
                   <Input 
                     value={values.city} 
                     onChange={e => setValues({...values, city: e.target.value})} 
                     placeholder="Cidade"
-                    className="h-11 rounded-xl bg-gray-50/50 border-gray-200 focus:bg-white transition-all"
+                    className="h-9 text-sm rounded-lg bg-gray-50/50 border-gray-200 focus:bg-white transition-all"
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label className="text-sm font-semibold text-foreground">Estado</Label>
+                <div className="md:col-span-2 space-y-1.5">
+                  <Label className="text-xs font-semibold text-foreground">Estado</Label>
                   <Input 
                     value={values.state} 
                     onChange={e => setValues({...values, state: e.target.value})} 
                     placeholder="UF"
-                    className="h-11 rounded-xl bg-gray-50/50 border-gray-200 focus:bg-white transition-all"
+                    className="h-9 text-sm rounded-lg bg-gray-50/50 border-gray-200 focus:bg-white transition-all"
                   />
                 </div>
               </div>
             </div>
 
             {/* Observations Section */}
-            <div className="space-y-2">
-              <Label className="text-sm font-semibold text-foreground">Observações</Label>
+            <div className="space-y-1.5 pt-2 border-t">
+              <Label className="text-xs font-semibold text-foreground">Observações</Label>
               <Textarea 
                 value={values.notes} 
                 onChange={e => setValues({...values, notes: e.target.value})} 
                 placeholder="Anotações sobre o cliente..."
-                className="min-h-[100px] rounded-xl bg-gray-50/50 border-gray-200 focus:bg-white transition-all resize-none"
+                className="min-h-[60px] text-sm rounded-lg bg-gray-50/50 border-gray-200 focus:bg-white transition-all resize-none"
               />
             </div>
           </div>
         </ScrollArea>
 
-        <div className="p-6 bg-gray-50/50 border-t flex justify-end gap-3">
-          <Button variant="outline" onClick={onClose} className="h-11 px-8 rounded-xl font-semibold">
+        <div className="px-6 py-4 bg-gray-50/50 border-t flex justify-end gap-2">
+          <Button variant="outline" onClick={onClose} className="h-9 text-xs px-4 rounded-lg font-semibold">
             Cancelar
           </Button>
-          <Button onClick={handleSubmit} disabled={save.isPending} className="h-11 px-8 rounded-xl font-bold bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 text-white">
+          <Button onClick={handleSubmit} disabled={save.isPending} className="h-9 text-xs px-4 rounded-lg font-bold bg-primary hover:bg-primary/90 shadow-sm text-white">
             {save.isPending ? "Salvando..." : client ? "Atualizar Cliente" : "Cadastrar Cliente"}
           </Button>
         </div>
@@ -397,3 +396,4 @@ function ClientFormModal({ isOpen, onClose, client }: { isOpen: boolean, onClose
     </Dialog>
   );
 }
+
