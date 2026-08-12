@@ -1,4 +1,4 @@
-import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
+import { createFileRoute, Outlet, redirect, useRouterState } from "@tanstack/react-router";
 import { LogOut, Search } from "lucide-react";
 import { useEffect, useState } from "react";
 
@@ -22,10 +22,26 @@ export const Route = createFileRoute("/_authenticated")({
 
 function AuthenticatedLayout() {
   const [email, setEmail] = useState("");
+  const [role, setRole] = useState("Vendedor");
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => setEmail(data.session?.user.email ?? ""));
-  }, []);
+    supabase.auth.getSession().then(async ({ data }) => {
+      const user = data.session?.user;
+      if (user) {
+        setEmail(user.email ?? "");
+        const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", user.id).single();
+        if (roles) {
+          const roleMap: any = { admin: "Administrador", moderator: "Moderador", user: "Vendedor" };
+          setRole(roleMap[roles.role] || "Vendedor");
+          
+          if (pathname === "/settings" && roles.role !== "admin") {
+            window.location.href = "/dashboard";
+          }
+        }
+      }
+    });
+  }, [pathname]);
 
   const initials = (email || "AM").slice(0, 2).toUpperCase();
 
@@ -43,7 +59,7 @@ function AuthenticatedLayout() {
             </div>
             <div className="flex-1" />
             <div className="hidden text-right sm:block">
-              <p className="text-xs font-semibold leading-tight">Administrador</p>
+              <p className="text-xs font-semibold leading-tight">{role}</p>
               <p className="max-w-[180px] truncate text-[11px] text-muted-foreground">{email}</p>
             </div>
             <div className="flex size-9 items-center justify-center rounded-full bg-gradient-gold text-xs font-bold text-primary-foreground shadow-gold">
