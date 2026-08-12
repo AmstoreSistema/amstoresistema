@@ -5,7 +5,7 @@ export const Route = createFileRoute('/api/public/users-debug')({
     handlers: {
       GET: async () => {
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-        const { data: users, error: usersError } = await supabaseAdmin.from("user_profiles").select("*, user_roles(role)");
+        const { data: users, error: usersError } = await supabaseAdmin.from("user_profiles").select("*");
         const { data: roles, error: rolesError } = await supabaseAdmin.from("user_roles").select("*");
         
         return new Response(JSON.stringify({ 
