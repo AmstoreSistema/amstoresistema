@@ -139,7 +139,7 @@ export const createSale = createServerFn({ method: "POST" })
          const { data: client } = await admin.from("clients").select("cashback_balance").eq("id", data.client_id).single();
          if (client) {
             await admin.from("clients").update({
-              cashback_balance: Number(client.cashback_balance) + Number(promoConfig.bonus_value)
+              cashback_balance: (client.cashback_balance || 0) + Number(promoConfig.bonus_value)
             }).eq("id", data.client_id);
             
             await admin.from("cashback_entries").insert({
