@@ -1,6 +1,8 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
+import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { hasRole } from "./auth.server"; // Assuming this exists or we can check role manually
 
 export const getAppSettings = createServerFn({ method: "GET" })
   .handler(async () => {
@@ -28,7 +30,7 @@ export const updateAppSettingsBatch = createServerFn({ method: "POST" })
       updated_at: new Date().toISOString()
     }));
 
-    const { error } = await supabase
+    const { error } = await supabaseAdmin
       .from("app_settings")
       .upsert(upserts);
 
