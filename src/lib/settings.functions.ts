@@ -19,6 +19,23 @@ export const updateAppSetting = createServerFn({ method: "POST" })
     return { success: true };
   });
 
+export const updateAppSettingsBatch = createServerFn({ method: "POST" })
+  .inputValidator((data) => z.array(z.object({ key: z.string(), value: z.any() })).parse(data))
+  .handler(async ({ data }) => {
+    const upserts = data.map(item => ({
+      key: item.key,
+      value: JSON.stringify(item.value),
+      updated_at: new Date().toISOString()
+    }));
+
+    const { error } = await supabase
+      .from("app_settings")
+      .upsert(upserts);
+
+    if (error) throw error;
+    return { success: true };
+  });
+
 export const getUsers = createServerFn({ method: "GET" })
   .handler(async () => {
     const { data, error } = await supabase.from("user_profiles").select("*, user_roles(role)");

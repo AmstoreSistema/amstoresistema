@@ -1,15 +1,15 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Settings, User, Bell, Database, Zap, Save, UserPlus, Shield, Power, Download, Upload, Store } from "lucide-react";
+import { Settings, User, Bell, Database, Zap, Save, UserPlus, Shield, Power, Download, Upload, Store, Loader2 } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { getAppSettings, updateAppSetting, getUsers, updateUserStatus, updateUserRole } from "@/lib/settings.functions";
+import { getAppSettings, updateAppSettingsBatch, getUsers, updateUserStatus, updateUserRole } from "@/lib/settings.functions";
 import { exportSystemData, importSystemData } from "@/lib/backup.functions";
 import { toast } from "sonner";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -28,11 +28,13 @@ export const Route = createFileRoute("/_authenticated/settings")({
 function SettingsPage() {
   const [activeTab, setActiveTab] = useState("geral");
   const [settings, setSettings] = useState<any[]>([]);
+  const [localSettings, setLocalSettings] = useState<Record<string, any>>({});
   const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
   const fetchSettings = useServerFn(getAppSettings);
-  const saveSetting = useServerFn(updateAppSetting);
+  const saveSettingsBatch = useServerFn(updateAppSettingsBatch);
   const fetchUsers = useServerFn(getUsers);
   const updateStatus = useServerFn(updateUserStatus);
   const updateRole = useServerFn(updateUserRole);
@@ -48,6 +50,17 @@ function SettingsPage() {
       ]);
       setSettings(settingsData);
       setUsers(usersData);
+      
+      // Initialize local state
+      const initialLocal: Record<string, any> = {};
+      settingsData.forEach((s: any) => {
+        try {
+          initialLocal[s.key] = JSON.parse(s.value);
+        } catch {
+          initialLocal[s.key] = s.value;
+        }
+      });
+      setLocalSettings(initialLocal);
     } catch (error) {
       console.error("Erro ao carregar dados:", error);
       toast.error("Erro ao carregar configurações");
@@ -60,23 +73,29 @@ function SettingsPage() {
     loadData();
   }, []);
 
-  const getSetting = (key: string, defaultValue: any = "") => {
-    const s = settings.find(i => i.key === key);
-    if (!s) return defaultValue;
-    try {
-      return JSON.parse(s.value);
-    } catch {
-      return s.value || defaultValue;
-    }
+  const getSettingValue = (key: string, defaultValue: any = "") => {
+    return localSettings[key] !== undefined ? localSettings[key] : defaultValue;
   };
 
-  const handleSaveSetting = async (key: string, value: any) => {
+  const handleLocalUpdate = (key: string, value: any) => {
+    setLocalSettings(prev => ({ ...prev, [key]: value }));
+  };
+
+  const handleSaveAll = async () => {
+    setSaving(true);
     try {
-      await saveSetting({ data: { key, value } });
-      toast.success("Configuração salva");
-      loadData();
+      const batch = Object.entries(localSettings).map(([key, value]) => ({
+        key,
+        value
+      }));
+      await saveSettingsBatch({ data: batch });
+      toast.success("Configurações salvas com sucesso");
+      await loadData();
     } catch (error) {
-      toast.error("Erro ao salvar configuração");
+      console.error("Erro ao salvar:", error);
+      toast.error("Erro ao salvar configurações");
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -118,7 +137,7 @@ function SettingsPage() {
   }
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500">
+    <div className="space-y-6 animate-in fade-in duration-500 pb-20">
       <PageHeader 
         title="Configurações" 
         description="Personalize e gerencie seu sistema."
@@ -157,8 +176,8 @@ function SettingsPage() {
                 <div className="space-y-2">
                   <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Nome da Loja</Label>
                   <Input 
-                    defaultValue={getSetting("store_name", "Amstore")} 
-                    onBlur={(e) => handleSaveSetting("store_name", e.target.value)}
+                    value={getSettingValue("store_name", "Amstore")} 
+                    onChange={(e) => handleLocalUpdate("store_name", e.target.value)}
                     placeholder="Amstore"
                     className="h-12 border-border/60 focus-visible:ring-gold"
                   />
@@ -166,8 +185,8 @@ function SettingsPage() {
                 <div className="space-y-2">
                   <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">CNPJ / CPF</Label>
                   <Input 
-                    defaultValue={getSetting("store_document")} 
-                    onBlur={(e) => handleSaveSetting("store_document", e.target.value)}
+                    value={getSettingValue("store_document")} 
+                    onChange={(e) => handleLocalUpdate("store_document", e.target.value)}
                     placeholder="00.000.000/0000-00"
                     className="h-12 border-border/60 focus-visible:ring-gold"
                   />
@@ -175,8 +194,8 @@ function SettingsPage() {
                 <div className="space-y-2">
                   <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">E-mail de Contato</Label>
                   <Input 
-                    defaultValue={getSetting("store_email")} 
-                    onBlur={(e) => handleSaveSetting("store_email", e.target.value)}
+                    value={getSettingValue("store_email")} 
+                    onChange={(e) => handleLocalUpdate("store_email", e.target.value)}
                     placeholder="contato@amstore.com"
                     className="h-12 border-border/60 focus-visible:ring-gold"
                   />
@@ -184,8 +203,8 @@ function SettingsPage() {
                 <div className="space-y-2">
                   <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Telefone</Label>
                   <Input 
-                    defaultValue={getSetting("store_phone")} 
-                    onBlur={(e) => handleSaveSetting("store_phone", e.target.value)}
+                    value={getSettingValue("store_phone")} 
+                    onChange={(e) => handleLocalUpdate("store_phone", e.target.value)}
                     placeholder="(00) 00000-0000"
                     className="h-12 border-border/60 focus-visible:ring-gold"
                   />
@@ -193,14 +212,24 @@ function SettingsPage() {
                 <div className="col-span-1 md:col-span-2 space-y-2">
                   <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Endereço Completo</Label>
                   <Input 
-                    defaultValue={getSetting("store_address")} 
-                    onBlur={(e) => handleSaveSetting("store_address", e.target.value)}
+                    value={getSettingValue("store_address")} 
+                    onChange={(e) => handleLocalUpdate("store_address", e.target.value)}
                     placeholder="Rua, Número, Bairro, Cidade - UF"
                     className="h-12 border-border/60 focus-visible:ring-gold"
                   />
                 </div>
               </div>
             </CardContent>
+            <CardFooter className="bg-muted/30 border-t border-border/40 p-6 flex justify-end">
+              <Button 
+                onClick={handleSaveAll} 
+                disabled={saving}
+                className="bg-gradient-gold shadow-gold font-bold min-w-[200px]"
+              >
+                {saving ? <Loader2 className="size-4 mr-2 animate-spin" /> : <Save className="size-4 mr-2" />}
+                Salvar Configurações
+              </Button>
+            </CardFooter>
           </Card>
         </TabsContent>
 
@@ -219,8 +248,8 @@ function SettingsPage() {
                   <p className="text-xs text-muted-foreground">Notificar quando materiais ou produtos atingirem o nível crítico.</p>
                 </div>
                 <Switch 
-                  checked={getSetting("alert_stock", true)} 
-                  onCheckedChange={(val) => handleSaveSetting("alert_stock", val)}
+                  checked={getSettingValue("alert_stock", true)} 
+                  onCheckedChange={(val) => handleLocalUpdate("alert_stock", val)}
                 />
               </div>
 
@@ -230,8 +259,8 @@ function SettingsPage() {
                   <p className="text-xs text-muted-foreground">Enviar um resumo das vendas do dia por e-mail.</p>
                 </div>
                 <Switch 
-                  checked={getSetting("alert_daily_report", false)} 
-                  onCheckedChange={(val) => handleSaveSetting("alert_daily_report", val)}
+                  checked={getSettingValue("alert_daily_report", false)} 
+                  onCheckedChange={(val) => handleLocalUpdate("alert_daily_report", val)}
                 />
               </div>
 
@@ -241,11 +270,21 @@ function SettingsPage() {
                   <p className="text-xs text-muted-foreground">Ativar envio de mensagens automáticas de cobrança.</p>
                 </div>
                 <Switch 
-                  checked={getSetting("alert_whatsapp", true)} 
-                  onCheckedChange={(val) => handleSaveSetting("alert_whatsapp", val)}
+                  checked={getSettingValue("alert_whatsapp", true)} 
+                  onCheckedChange={(val) => handleLocalUpdate("alert_whatsapp", val)}
                 />
               </div>
             </CardContent>
+            <CardFooter className="bg-muted/30 border-t border-border/40 p-6 flex justify-end">
+              <Button 
+                onClick={handleSaveAll} 
+                disabled={saving}
+                className="bg-gradient-gold shadow-gold font-bold min-w-[200px]"
+              >
+                {saving ? <Loader2 className="size-4 mr-2 animate-spin" /> : <Save className="size-4 mr-2" />}
+                Salvar Configurações
+              </Button>
+            </CardFooter>
           </Card>
         </TabsContent>
 
@@ -307,16 +346,16 @@ function SettingsPage() {
                   <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Tempo de Expiração da Sessão (horas)</Label>
                   <Input 
                     type="number" 
-                    defaultValue={getSetting("session_expiry", 24)} 
-                    onBlur={(e) => handleSaveSetting("session_expiry", e.target.value)}
+                    value={getSettingValue("session_expiry", 24)} 
+                    onChange={(e) => handleLocalUpdate("session_expiry", e.target.value)}
                     className="h-12"
                   />
                 </div>
                 <div className="space-y-2">
                   <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Moeda Padrão</Label>
                   <Select 
-                    defaultValue={getSetting("currency", "BRL")} 
-                    onValueChange={(val) => handleSaveSetting("currency", val)}
+                    value={getSettingValue("currency", "BRL")} 
+                    onValueChange={(val) => handleLocalUpdate("currency", val)}
                   >
                     <SelectTrigger className="h-12">
                       <SelectValue />
@@ -330,6 +369,16 @@ function SettingsPage() {
                 </div>
               </div>
             </CardContent>
+            <CardFooter className="bg-muted/30 border-t border-border/40 p-6 flex justify-end">
+              <Button 
+                onClick={handleSaveAll} 
+                disabled={saving}
+                className="bg-gradient-gold shadow-gold font-bold min-w-[200px]"
+              >
+                {saving ? <Loader2 className="size-4 mr-2 animate-spin" /> : <Save className="size-4 mr-2" />}
+                Salvar Configurações
+              </Button>
+            </CardFooter>
           </Card>
         </TabsContent>
 
