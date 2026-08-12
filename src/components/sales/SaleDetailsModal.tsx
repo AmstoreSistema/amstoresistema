@@ -12,7 +12,6 @@ import { cn } from "@/lib/utils";
 import { 
   ShoppingBag, 
   DollarSign, 
-  CheckCircle2, 
   X,
   Printer,
   Calendar,
@@ -27,18 +26,30 @@ import { ReceiptModal } from "./ReceiptModal";
 
 interface SaleDetailsModalProps {
   saleId: string | null;
-  isOpen: boolean;
-  onClose: () => void;
+  isOpen?: boolean;
+  onClose?: () => void;
+  // Support legacy props from existing routes
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
-export function SaleDetailsModal({ saleId, isOpen, onClose }: SaleDetailsModalProps) {
+export function SaleDetailsModal({ 
+  saleId, 
+  isOpen, 
+  onClose,
+  open,
+  onOpenChange 
+}: SaleDetailsModalProps) {
+  const isModalOpen = isOpen ?? open ?? false;
+  const handleClose = onClose || (() => onOpenChange?.(false));
+
   const fetchSale = useServerFn(getSaleDetails);
   const [receiptOpen, setReceiptOpen] = React.useState(false);
   
   const { data, isLoading } = useQuery({
     queryKey: ['sale-details', saleId],
     queryFn: () => fetchSale({ data: { sale_id: saleId! } }),
-    enabled: !!saleId && isOpen,
+    enabled: !!saleId && isModalOpen,
   });
 
   if (!saleId) return null;
