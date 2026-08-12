@@ -889,12 +889,17 @@ export type Database = {
           created_at: string | null
           discount: number
           due_date: string | null
+          financial_account_id: string | null
           id: string
           installments_count: number | null
           is_debt: boolean | null
           notes: string | null
           paid_amount: number
           payment_method: string
+          protection_method: string | null
+          sale_code: string | null
+          sale_type: string | null
+          seller_id: string | null
           status: string | null
           total_amount: number
         }
@@ -905,12 +910,17 @@ export type Database = {
           created_at?: string | null
           discount?: number
           due_date?: string | null
+          financial_account_id?: string | null
           id?: string
           installments_count?: number | null
           is_debt?: boolean | null
           notes?: string | null
           paid_amount?: number
           payment_method?: string
+          protection_method?: string | null
+          sale_code?: string | null
+          sale_type?: string | null
+          seller_id?: string | null
           status?: string | null
           total_amount: number
         }
@@ -921,12 +931,17 @@ export type Database = {
           created_at?: string | null
           discount?: number
           due_date?: string | null
+          financial_account_id?: string | null
           id?: string
           installments_count?: number | null
           is_debt?: boolean | null
           notes?: string | null
           paid_amount?: number
           payment_method?: string
+          protection_method?: string | null
+          sale_code?: string | null
+          sale_type?: string | null
+          seller_id?: string | null
           status?: string | null
           total_amount?: number
         }
@@ -936,6 +951,13 @@ export type Database = {
             columns: ["client_id"]
             isOneToOne: false
             referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_financial_account_id_fkey"
+            columns: ["financial_account_id"]
+            isOneToOne: false
+            referencedRelation: "financial_accounts"
             referencedColumns: ["id"]
           },
         ]
@@ -1170,6 +1192,26 @@ export type Database = {
               p_notes: string
               p_paid_amount: number
               p_payment_method: string
+              p_total_amount: number
+            }
+            Returns: string
+          }
+        | {
+            Args: {
+              p_cashback_earned: number
+              p_cashback_used: number
+              p_client_id: string
+              p_discount: number
+              p_financial_account_id?: string
+              p_installments?: Json
+              p_is_debt: boolean
+              p_items: Json
+              p_notes: string
+              p_paid_amount: number
+              p_payment_method: string
+              p_protection_method?: string
+              p_sale_code?: string
+              p_sale_type?: string
               p_total_amount: number
             }
             Returns: string
