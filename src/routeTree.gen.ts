@@ -29,6 +29,7 @@ import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedStockRouteImport } from './routes/_authenticated.stock'
 import { Route as AuthenticatedTransactionsRouteImport } from './routes/_authenticated.transactions'
 import { Route as ApiPublicQrCheckRouteImport } from './routes/api/public/qr-check'
+import { Route as ApiPublicUsersDebugRouteImport } from './routes/api/public/users-debug'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -130,6 +131,11 @@ const ApiPublicQrCheckRoute = ApiPublicQrCheckRouteImport.update({
   path: '/api/public/qr-check',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicUsersDebugRoute = ApiPublicUsersDebugRouteImport.update({
+  id: '/api/public/users-debug',
+  path: '/api/public/users-debug',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -151,6 +157,7 @@ export interface FileRoutesByFullPath {
   '/stock': typeof AuthenticatedStockRoute
   '/transactions': typeof AuthenticatedTransactionsRoute
   '/api/public/qr-check': typeof ApiPublicQrCheckRoute
+  '/api/public/users-debug': typeof ApiPublicUsersDebugRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -172,6 +179,7 @@ export interface FileRoutesByTo {
   '/stock': typeof AuthenticatedStockRoute
   '/transactions': typeof AuthenticatedTransactionsRoute
   '/api/public/qr-check': typeof ApiPublicQrCheckRoute
+  '/api/public/users-debug': typeof ApiPublicUsersDebugRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -195,6 +203,7 @@ export interface FileRoutesById {
   '/_authenticated/stock': typeof AuthenticatedStockRoute
   '/_authenticated/transactions': typeof AuthenticatedTransactionsRoute
   '/api/public/qr-check': typeof ApiPublicQrCheckRoute
+  '/api/public/users-debug': typeof ApiPublicUsersDebugRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -218,6 +227,7 @@ export interface FileRouteTypes {
     | '/stock'
     | '/transactions'
     | '/api/public/qr-check'
+    | '/api/public/users-debug'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -239,6 +249,7 @@ export interface FileRouteTypes {
     | '/stock'
     | '/transactions'
     | '/api/public/qr-check'
+    | '/api/public/users-debug'
   id:
     | '__root__'
     | '/'
@@ -261,6 +272,7 @@ export interface FileRouteTypes {
     | '/_authenticated/stock'
     | '/_authenticated/transactions'
     | '/api/public/qr-check'
+    | '/api/public/users-debug'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -268,6 +280,7 @@ export interface RootRouteChildren {
   AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
   AuthRoute: typeof AuthRoute
   ApiPublicQrCheckRoute: typeof ApiPublicQrCheckRoute
+  ApiPublicUsersDebugRoute: typeof ApiPublicUsersDebugRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -412,6 +425,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicQrCheckRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/users-debug': {
+      id: '/api/public/users-debug'
+      path: '/api/public/users-debug'
+      fullPath: '/api/public/users-debug'
+      preLoaderRoute: typeof ApiPublicUsersDebugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -462,6 +482,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRoute: AuthenticatedRouteWithChildren,
   AuthRoute: AuthRoute,
   ApiPublicQrCheckRoute: ApiPublicQrCheckRoute,
+  ApiPublicUsersDebugRoute: ApiPublicUsersDebugRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
