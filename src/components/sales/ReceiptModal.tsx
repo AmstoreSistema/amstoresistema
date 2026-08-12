@@ -10,10 +10,12 @@ import {
   Share2,
   X,
   Smartphone,
-  Loader2
+  Loader2,
+  Gift
 } from "lucide-react";
 import { toPng } from 'html-to-image';
 import { toast } from "sonner";
+import { useRows } from "@/lib/data";
 import logoAsset from "@/assets/amstore-logo-receipt.png.asset.json";
 
 declare global {
