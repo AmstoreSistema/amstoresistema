@@ -80,11 +80,11 @@ const accountSchema = z.object({
 });
 
 const transferSchema = z.object({
-  origin_id: z.string().min(1, "Origem é obrigatória"),
-  dest_id: z.string().min(1, "Destino é obrigatória"),
-  amount: z.coerce.number().positive("Valor deve ser maior que zero"),
-  description: z.string().min(1, "Descrição é obrigatória"),
-  date: z.string().min(1, "Data é obrigatória"),
+  origin_id: z.string().min(1, "Selecione a conta de origem"),
+  dest_id: z.string().min(1, "Selecione a conta de destino"),
+  amount: z.coerce.number().positive("O valor deve ser maior que zero"),
+  description: z.string().min(1, "Informe uma descrição"),
+  date: z.string().min(1, "Selecione a data"),
 });
 
 function AccountsPage() {
