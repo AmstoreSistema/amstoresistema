@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { BadgePercent, QrCode, History, Receipt, Save, RefreshCcw, Trash2, Gift, Trophy, Star } from "lucide-react";
+import { BadgePercent, QrCode, History, Receipt, Save, RefreshCcw, Trash2, Gift, Trophy, Star, Settings } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useRows } from "@/lib/data";
 import { useServerFn } from "@tanstack/react-start";
