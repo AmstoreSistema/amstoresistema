@@ -52,7 +52,7 @@ export function SaleDetailsModal({ saleId, isOpen, onClose }: SaleDetailsModalPr
 
   return (
     <>
-      <Dialog open={isOpen} onOpenChange={(o) => !o && onClose()}>
+      <Dialog open={isModalOpen} onOpenChange={(o) => !o && handleClose()}>
         <DialogContent className="max-w-2xl p-0 overflow-hidden bg-[#F8F9FB] border-none shadow-2xl">
           <div className="flex items-center justify-between p-6 bg-white border-b relative">
             <div className="flex items-center gap-4">
