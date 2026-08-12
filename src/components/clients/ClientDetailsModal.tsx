@@ -17,7 +17,8 @@ import {
   Coins, 
   Phone,
   Calendar,
-  X
+  X,
+  PieChart
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -163,6 +164,33 @@ export function ClientDetailsModal({ client, isOpen, onClose }: ClientDetailsMod
                   {stat.subValue && <div className="text-[10px] text-muted-foreground mt-1">{stat.subValue}</div>}
                 </div>
               ))}
+            </div>
+
+            {/* Cashback by Category */}
+            <div>
+              <h3 className="text-sm font-bold text-foreground mb-4 uppercase tracking-wider flex items-center gap-2">
+                <PieChart className="size-4 text-primary" />
+                Detalhamento de Cashback por Categoria
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {isLoading ? (
+                  <div className="col-span-full p-4 text-center text-muted-foreground bg-white rounded-2xl border border-dashed">
+                    Carregando categorias...
+                  </div>
+                ) : data?.cashback_by_category?.length === 0 ? (
+                  <div className="col-span-full p-4 text-center text-muted-foreground bg-white rounded-2xl border border-dashed">
+                    Nenhuma categoria configurada.
+                  </div>
+                ) : (
+                  data?.cashback_by_category?.map((cat: any) => (
+                    <div key={cat.category_name} className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex flex-col items-center text-center">
+                      <span className="text-[10px] font-bold uppercase text-muted-foreground mb-2">{cat.category_name}</span>
+                      <div className="text-lg font-black text-primary">{brl(cat.balance)}</div>
+                      <div className="text-[10px] text-muted-foreground mt-1">Acumulado: {brl(cat.total_earned)}</div>
+                    </div>
+                  ))
+                )}
+              </div>
             </div>
 
             {/* Sales History */}

@@ -136,7 +136,7 @@ type BomLine = {
   notes: string;
 };
 
-const CATEGORIES = ["Bolsa", "Sandália", "Carteira", "Mochila", "Cinto", "Acessório", "Geral"];
+const CATEGORIES = ["Bolsa", "Sandália", "Carteira", "Perfume"];
 
 const emptyLine = (): BomLine => ({
   key: Math.random().toString(36).slice(2),
@@ -301,7 +301,7 @@ function ProductsPage() {
     try {
       const values = {
         name: form.name.trim(),
-        category: form.category || "Geral",
+        category: form.category || "Bolsa",
         color: form.color || null,
         sku: form.sku || null,
         description: form.description || null,

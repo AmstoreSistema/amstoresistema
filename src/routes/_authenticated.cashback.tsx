@@ -51,7 +51,8 @@ export const Route = createFileRoute("/_authenticated/cashback")({
 
 function CashbackPage() {
   const { data: configs = [], isLoading } = useRows<any>("cashback_config", {
-    select: "*, material_categories(name)"
+    select: "*, material_categories(name)",
+    order: { column: "material_categories(name)", ascending: true }
   });
   const { data: categories = [] } = useRows<any>("material_categories");
   
