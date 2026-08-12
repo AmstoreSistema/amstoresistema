@@ -525,26 +525,26 @@ function SettingsPage() {
                 </div>
               </div>
 
-              <div className="flex flex-col gap-4">
+              <div className="flex flex-col sm:flex-row gap-4">
                 <Button 
                   onClick={handleExport} 
                   disabled={saving}
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold h-12 shadow-md transition-all flex gap-2"
+                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold h-12 shadow-md transition-all flex gap-2"
                 >
                   {saving ? <Loader2 className="size-4 animate-spin" /> : <Download className="size-4" />}
                   Gerar Backup Agora
                 </Button>
 
-                <div className="relative w-full">
+                <div className="relative flex-1">
                   <input 
                     type="file" 
                     accept=".json" 
                     onChange={handleImportFile}
                     className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-10"
                   />
-                  <Button variant="outline" className="w-full h-12 font-bold border-2 flex gap-2">
+                  <Button variant="outline" className="w-full h-12 font-bold border-2 flex gap-2 border-gold/40 text-gold hover:bg-gold/5">
                     <Upload className="size-4" />
-                    Restaurar Backup (Selecionar Arquivo)
+                    Restaurar Backup BASE
                   </Button>
                 </div>
               </div>
@@ -845,7 +845,6 @@ function SettingsPage() {
                   </Card>
                 </div>
               )}
-            </CardContent>
           </Card>
         </TabsContent>
       </Tabs>
