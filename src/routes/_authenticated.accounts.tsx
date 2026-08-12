@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { 
   Landmark, 
@@ -103,9 +103,6 @@ function AccountsPage() {
       type: "caixa",
       initial_balance: 0,
       color: "#3B82F6",
-      bank_name: "",
-      agency: "",
-      account_number: "",
     },
   });
 
