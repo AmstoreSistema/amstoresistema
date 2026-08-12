@@ -1095,7 +1095,11 @@ function MaterialsPage() {
                 {cuts.map((cut) => (
                   <div 
                     key={cut.id}
-                    className="absolute border-2 border-blue-600 bg-blue-500/20 flex items-center justify-center p-2 text-[9px] font-bold text-blue-900 leading-tight text-center overflow-hidden transition-all duration-300"
+                    className={`absolute border-2 flex items-center justify-center p-2 text-[9px] font-bold leading-tight text-center overflow-hidden transition-all duration-300 ${
+                      cut.status === 'utilizado' 
+                        ? 'border-green-600 bg-green-500/20 text-green-900' 
+                        : 'border-blue-600 bg-blue-500/20 text-blue-900'
+                    }`}
                     style={{
                       width: `${(cut.width / 100) * 350}px`,
                       height: `${(cut.height / 100) * 350}px`,
@@ -1346,13 +1350,32 @@ function MaterialsPage() {
                             </Button>
                           </div>
                           <div className="flex justify-between items-center gap-2">
-                            <span className="text-[11px] font-bold text-success bg-success/10 px-2 py-0.5 rounded-md">
+                            <span className={`text-[11px] font-bold px-2 py-0.5 rounded-md ${
+                              cut.status === 'utilizado' ? 'text-green-600 bg-green-100' : 'text-success bg-success/10'
+                            }`}>
                               {brl(activeMaterial?.cost_price && activeMaterial?.width && activeMaterial?.height 
                                 ? (activeMaterial.cost_price / (activeMaterial.width * 100 * activeMaterial.height * 100)) * (cut.width * cut.height) 
                                 : 0)}
                             </span>
-                            <Select defaultValue={cut.status}>
-                              <SelectTrigger className="h-6 w-24 text-[9px] uppercase font-bold rounded-lg border-gray-100 bg-gray-50/50">
+                            <Select 
+                              defaultValue={cut.status} 
+                              onValueChange={async (newStatus) => {
+                                const { supabase } = await import("@/integrations/supabase/client");
+                                const { error } = await supabase
+                                  .from("material_cuts")
+                                  .update({ status: newStatus })
+                                  .eq("id", cut.id);
+                                
+                                if (error) {
+                                  toast.error("Erro ao atualizar status");
+                                } else {
+                                  refetchCuts();
+                                }
+                              }}
+                            >
+                              <SelectTrigger className={`h-6 w-24 text-[9px] uppercase font-bold rounded-lg border-gray-100 ${
+                                cut.status === 'utilizado' ? 'bg-green-50 text-green-700' : 'bg-gray-50/50'
+                              }`}>
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
