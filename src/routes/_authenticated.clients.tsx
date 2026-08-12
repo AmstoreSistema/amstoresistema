@@ -169,10 +169,10 @@ function ClientsPage() {
         </div>
       )}
 
-      {/* Reusing CrudPage internally to handle the edit/create logic without re-implementing it */}
       <div className="hidden">
         <CrudPage<any>
           table="clients"
+          title="Hidden"
           label="cliente"
           fields={[
             { name: "name", label: "Nome", span: 2 },
@@ -182,8 +182,6 @@ function ClientsPage() {
             { name: "notes", label: "Observações", type: "textarea" },
           ]}
           columns={[]}
-          // This is a hack to use CrudPage's modal logic
-          // We'll manually trigger it
         />
       </div>
 
