@@ -1,17 +1,29 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Users, Plus, Search } from "lucide-react";
+import { Users, Plus, Search, X } from "lucide-react";
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useRows, useDeleteRow } from "@/lib/data";
+import { useRows, useDeleteRow, useSaveRow } from "@/lib/data";
 import { ClientCard, ClientSummary } from "@/components/clients/ClientCard";
 import { ClientDetailsModal } from "@/components/clients/ClientDetailsModal";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
-
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogHeader, 
+  DialogTitle, 
+  DialogFooter, 
+  DialogDescription, 
+  DialogClose 
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 export const Route = createFileRoute("/_authenticated/clients")({
   head: () => ({
@@ -65,9 +77,9 @@ function ClientsPage() {
 
     // PF/PJ filter
     if (filterType === "pf") {
-      result = result.filter(c => !c.notes?.toLowerCase().includes('pj') && !c.name?.toLowerCase().includes('ltda'));
+      result = result.filter(c => c.client_type !== 'Pessoa Jurídica');
     } else if (filterType === "pj") {
-      result = result.filter(c => c.notes?.toLowerCase().includes('pj') || c.name?.toLowerCase().includes('ltda'));
+      result = result.filter(c => c.client_type === 'Pessoa Jurídica');
     }
 
     return result;
@@ -118,7 +130,7 @@ function ClientsPage() {
             variant={filterType === "all" ? "default" : "ghost"} 
             size="sm" 
             onClick={() => setFilterType("all")}
-            className={cn("rounded-lg px-6 font-bold text-xs", filterType === "all" ? "bg-primary shadow-md" : "")}
+            className={cn("rounded-lg px-6 font-bold text-xs", filterType === "all" ? "bg-primary shadow-md text-white" : "")}
           >
             Todos
           </Button>
@@ -126,7 +138,7 @@ function ClientsPage() {
             variant={filterType === "pf" ? "default" : "ghost"} 
             size="sm" 
             onClick={() => setFilterType("pf")}
-            className={cn("rounded-lg px-6 font-bold text-xs", filterType === "pf" ? "bg-primary shadow-md" : "")}
+            className={cn("rounded-lg px-6 font-bold text-xs", filterType === "pf" ? "bg-primary shadow-md text-white" : "")}
           >
             PF
           </Button>
@@ -134,7 +146,7 @@ function ClientsPage() {
             variant={filterType === "pj" ? "default" : "ghost"} 
             size="sm" 
             onClick={() => setFilterType("pj")}
-            className={cn("rounded-lg px-6 font-bold text-xs", filterType === "pj" ? "bg-primary shadow-md" : "")}
+            className={cn("rounded-lg px-6 font-bold text-xs", filterType === "pj" ? "bg-primary shadow-md text-white" : "")}
           >
             PJ
           </Button>
@@ -170,7 +182,6 @@ function ClientsPage() {
         </div>
       )}
 
-
       {isCrudOpen && (
         <ClientFormModal
           isOpen={isCrudOpen}
@@ -191,10 +202,6 @@ function ClientsPage() {
   );
 }
 
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
-import { useSaveRow } from "@/lib/data";
-
 function ClientFormModal({ isOpen, onClose, client }: { isOpen: boolean, onClose: () => void, client: any }) {
   const save = useSaveRow("clients", "cliente");
   const [values, setValues] = useState<any>(client || {
@@ -202,7 +209,13 @@ function ClientFormModal({ isOpen, onClose, client }: { isOpen: boolean, onClose
     phone: "",
     email: "",
     address: "",
-    notes: ""
+    notes: "",
+    client_type: "Pessoa Física",
+    document_cpf: "",
+    birth_date: "",
+    zip_code: "",
+    city: "",
+    state: ""
   });
 
   const handleSubmit = () => {
@@ -212,64 +225,175 @@ function ClientFormModal({ isOpen, onClose, client }: { isOpen: boolean, onClose
     );
   };
 
+  const handleZipCodeBlur = async () => {
+    const cep = values.zip_code?.replace(/\D/g, '');
+    if (cep?.length === 8) {
+      try {
+        const response = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+        const data = await response.json();
+        if (!data.erro) {
+          setValues({
+            ...values,
+            address: `${data.logradouro}${data.bairro ? `, ${data.bairro}` : ''}`,
+            city: data.localidade,
+            state: data.uf
+          });
+        }
+      } catch (error) {
+        console.error("Erro ao buscar CEP:", error);
+      }
+    }
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-lg">
-        <DialogHeader>
-          <DialogTitle>{client ? "Editar Cliente" : "Novo Cliente"}</DialogTitle>
-          <DialogDescription>Preencha as informações do cliente abaixo.</DialogDescription>
-        </DialogHeader>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className="sm:col-span-2">
-            <Label className="mb-1.5 block text-xs font-medium">Nome</Label>
-            <Input 
-              value={values.name} 
-              onChange={e => setValues({...values, name: e.target.value})} 
-              placeholder="Nome completo"
-            />
-          </div>
-          <div>
-            <Label className="mb-1.5 block text-xs font-medium">WhatsApp / Telefone</Label>
-            <Input 
-              value={values.phone} 
-              onChange={e => setValues({...values, phone: e.target.value})} 
-              placeholder="5511999999999"
-            />
-          </div>
-          <div>
-            <Label className="mb-1.5 block text-xs font-medium">E-mail</Label>
-            <Input 
-              value={values.email} 
-              onChange={e => setValues({...values, email: e.target.value})} 
-              placeholder="email@exemplo.com"
-            />
-          </div>
-          <div className="sm:col-span-2">
-            <Label className="mb-1.5 block text-xs font-medium">Endereço</Label>
-            <Input 
-              value={values.address} 
-              onChange={e => setValues({...values, address: e.target.value})} 
-              placeholder="Rua, número, bairro, cidade"
-            />
-          </div>
-          <div className="sm:col-span-2">
-            <Label className="mb-1.5 block text-xs font-medium">Observações</Label>
-            <Input 
-              value={values.notes} 
-              onChange={e => setValues({...values, notes: e.target.value})} 
-              placeholder="Adicione 'PJ' para identificar como empresa"
-            />
-          </div>
+      <DialogContent className="max-w-4xl p-0 overflow-hidden bg-white border-none shadow-2xl">
+        <div className="flex items-center justify-between p-6 bg-white border-b relative">
+          <DialogTitle className="text-lg font-bold text-foreground">
+            {client ? "Editar Cliente" : "Novo Cliente"}
+          </DialogTitle>
+          <DialogClose className="p-2 rounded-full hover:bg-muted transition-colors">
+            <X className="size-4" />
+          </DialogClose>
         </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose}>Cancelar</Button>
-          <Button onClick={handleSubmit} disabled={save.isPending}>
-            {save.isPending ? "Salvando..." : "Salvar"}
+
+        <ScrollArea className="max-h-[85vh]">
+          <div className="p-8 space-y-8">
+            {/* Basic Info Section */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <Label className="text-sm font-semibold text-foreground">Nome Completo / Razão Social *</Label>
+                <Input 
+                  value={values.name} 
+                  onChange={e => setValues({...values, name: e.target.value})} 
+                  placeholder="Adriana Pereira"
+                  className="h-11 rounded-xl bg-gray-50/50 border-gray-200 focus:bg-white transition-all"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-sm font-semibold text-foreground">Tipo de Cliente</Label>
+                <Select 
+                  value={values.client_type} 
+                  onValueChange={v => setValues({...values, client_type: v})}
+                >
+                  <SelectTrigger className="h-11 rounded-xl bg-gray-50/50 border-gray-200 focus:bg-white transition-all">
+                    <SelectValue placeholder="Selecione o tipo" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Pessoa Física">Pessoa Física</SelectItem>
+                    <SelectItem value="Pessoa Jurídica">Pessoa Jurídica</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-sm font-semibold text-foreground">CPF / CNPJ</Label>
+                <Input 
+                  value={values.document_cpf} 
+                  onChange={e => setValues({...values, document_cpf: e.target.value})} 
+                  placeholder="000.000.000-00"
+                  className="h-11 rounded-xl bg-gray-50/50 border-gray-200 focus:bg-white transition-all"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-sm font-semibold text-foreground">Telefone / WhatsApp</Label>
+                <Input 
+                  value={values.phone} 
+                  onChange={e => setValues({...values, phone: e.target.value})} 
+                  placeholder="73988421343"
+                  className="h-11 rounded-xl bg-gray-50/50 border-gray-200 focus:bg-white transition-all"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-sm font-semibold text-foreground">E-mail</Label>
+                <Input 
+                  value={values.email} 
+                  onChange={e => setValues({...values, email: e.target.value})} 
+                  placeholder="cliente@email.com"
+                  className="h-11 rounded-xl bg-gray-50/50 border-gray-200 focus:bg-white transition-all"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-sm font-semibold text-foreground flex items-center gap-1">
+                  Data de Aniversário 🎂
+                </Label>
+                <Input 
+                  type="date"
+                  value={values.birth_date} 
+                  onChange={e => setValues({...values, birth_date: e.target.value})} 
+                  className="h-11 rounded-xl bg-gray-50/50 border-gray-200 focus:bg-white transition-all"
+                />
+              </div>
+            </div>
+
+            {/* Address Section */}
+            <div className="space-y-6">
+              <h3 className="text-lg font-bold text-foreground">Endereço</h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="space-y-2">
+                  <Label className="text-sm font-semibold text-foreground">CEP</Label>
+                  <Input 
+                    value={values.zip_code} 
+                    onChange={e => setValues({...values, zip_code: e.target.value})} 
+                    onBlur={handleZipCodeBlur}
+                    placeholder="00000-000"
+                    className="h-11 rounded-xl bg-gray-50/50 border-gray-200 focus:bg-white transition-all"
+                  />
+                  <p className="text-[10px] text-muted-foreground">Digite o CEP para preencher automaticamente</p>
+                </div>
+                <div className="md:col-span-2 space-y-2">
+                  <Label className="text-sm font-semibold text-foreground">Endereço Completo</Label>
+                  <Input 
+                    value={values.address} 
+                    onChange={e => setValues({...values, address: e.target.value})} 
+                    placeholder="Rua, número, complemento"
+                    className="h-11 rounded-xl bg-gray-50/50 border-gray-200 focus:bg-white transition-all"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-sm font-semibold text-foreground">Cidade</Label>
+                  <Input 
+                    value={values.city} 
+                    onChange={e => setValues({...values, city: e.target.value})} 
+                    placeholder="Cidade"
+                    className="h-11 rounded-xl bg-gray-50/50 border-gray-200 focus:bg-white transition-all"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-sm font-semibold text-foreground">Estado</Label>
+                  <Input 
+                    value={values.state} 
+                    onChange={e => setValues({...values, state: e.target.value})} 
+                    placeholder="UF"
+                    className="h-11 rounded-xl bg-gray-50/50 border-gray-200 focus:bg-white transition-all"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Observations Section */}
+            <div className="space-y-2">
+              <Label className="text-sm font-semibold text-foreground">Observações</Label>
+              <Textarea 
+                value={values.notes} 
+                onChange={e => setValues({...values, notes: e.target.value})} 
+                placeholder="Anotações sobre o cliente..."
+                className="min-h-[100px] rounded-xl bg-gray-50/50 border-gray-200 focus:bg-white transition-all resize-none"
+              />
+            </div>
+          </div>
+        </ScrollArea>
+
+        <div className="p-6 bg-gray-50/50 border-t flex justify-end gap-3">
+          <Button variant="outline" onClick={onClose} className="h-11 px-8 rounded-xl font-semibold">
+            Cancelar
           </Button>
-        </DialogFooter>
+          <Button onClick={handleSubmit} disabled={save.isPending} className="h-11 px-8 rounded-xl font-bold bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 text-white">
+            {save.isPending ? "Salvando..." : client ? "Atualizar Cliente" : "Cadastrar Cliente"}
+          </Button>
+        </div>
       </DialogContent>
     </Dialog>
   );
 }
-
-
