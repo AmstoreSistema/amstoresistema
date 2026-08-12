@@ -86,14 +86,21 @@ function SettingsPage() {
     try {
       const batch = Object.entries(localSettings).map(([key, value]) => ({
         key,
-        value
+        value: value === null || value === undefined ? "" : value
       }));
-      await saveSettingsBatch({ data: batch });
-      toast.success("Configurações salvas com sucesso");
-      await loadData();
+      
+      console.log("Salvando configurações:", batch);
+      const result = await saveSettingsBatch({ data: batch });
+      
+      if (result?.success) {
+        toast.success("Configurações salvas com sucesso");
+        await loadData();
+      } else {
+        throw new Error("Falha ao salvar");
+      }
     } catch (error) {
       console.error("Erro ao salvar:", error);
-      toast.error("Erro ao salvar configurações");
+      toast.error("Erro ao salvar configurações. Verifique se você tem permissão de administrador.");
     } finally {
       setSaving(false);
     }

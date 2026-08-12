@@ -24,7 +24,7 @@ export const updateAppSettingsBatch = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const upserts = data.map(item => ({
       key: item.key,
-      value: JSON.stringify(item.value),
+      value: typeof item.value === 'string' ? item.value : JSON.stringify(item.value),
       updated_at: new Date().toISOString()
     }));
 
