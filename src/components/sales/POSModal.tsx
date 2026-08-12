@@ -77,7 +77,7 @@ export function POSModal({ open, onOpenChange }: { open: boolean; onOpenChange: 
   const [saleCode] = React.useState(() => `V${Date.now().toString().slice(-10)}`);
 
   const [receiptOpen, setReceiptOpen] = React.useState(false);
-  const [lastSale, setLastSale] = React.useState<any>(null);
+  const [previewOpen, setPreviewOpen] = React.useState(false);
 
 
   // Totals
@@ -520,26 +520,60 @@ export function POSModal({ open, onOpenChange }: { open: boolean; onOpenChange: 
                   </div>
                </div>
 
-               <Button 
-                  className="w-full bg-gradient-gold h-16 rounded-[1.5rem] font-display font-black text-lg shadow-gold hover:shadow-gold/60 transition-all border-none"
-                  onClick={handleFinish}
-                  disabled={isSubmitting || items.length === 0}
-               >
-                  {isSubmitting ? "PROCESSANDO..." : "FINALIZAR E IMPRIMIR"}
-               </Button>
+               <div className="grid grid-cols-2 gap-3">
+                 <Button 
+                    variant="outline"
+                    className="h-16 rounded-[1.5rem] font-display font-black text-sm transition-all border-border/40"
+                    onClick={() => {
+                       if (items.length === 0) {
+                          toast.error("Adicione itens à venda");
+                          return;
+                       }
+                       setPreviewOpen(true);
+                    }}
+                 >
+                    PRÉVIA RECIBO
+                 </Button>
+                 <Button 
+                    className="bg-gradient-gold h-16 rounded-[1.5rem] font-display font-black text-lg shadow-gold hover:shadow-gold/60 transition-all border-none"
+                    onClick={handleFinish}
+                    disabled={isSubmitting || items.length === 0}
+                 >
+                    {isSubmitting ? "PROCESSANDO..." : "FINALIZAR"}
+                 </Button>
+               </div>
             </div>
           </div>
         </div>
       </DialogContent>
 
       <ReceiptModal 
-         open={receiptOpen} 
+         open={receiptOpen || previewOpen} 
          onOpenChange={(val) => {
-            setReceiptOpen(val);
-            if (!val) onOpenChange(false); // Close POS when receipt closes
+            if (previewOpen) setPreviewOpen(false);
+            if (receiptOpen) {
+               setReceiptOpen(false);
+               if (!val) onOpenChange(false);
+            }
          }} 
-         sale={lastSale}
+         sale={receiptOpen ? lastSale : {
+            sale_code: saleCode,
+            total_amount: finalTotal,
+            discount: discount + itemsDiscount,
+            cashback_used: cashbackToUse,
+            cashback_earned: cashbackEarned,
+            payment_method: isDebt ? "Fiado" : paymentMethod,
+            is_debt: isDebt,
+            items: items.map(i => ({
+               name: i.name,
+               quantity: i.quantity,
+               unit_price: i.price,
+               numeracao: i.numeracao,
+               discount: i.discount
+            }))
+         }}
          client={client}
+         isPreview={previewOpen}
       />
     </Dialog>
 
