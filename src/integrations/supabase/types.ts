@@ -804,6 +804,96 @@ export type Database = {
           },
         ]
       }
+      qr_promo_config: {
+        Row: {
+          active: boolean | null
+          awarded_message: string | null
+          awarded_positions: string | null
+          bonus_value: number | null
+          created_at: string | null
+          current_counter: number | null
+          id: string
+          name: string | null
+          sales_limit: number | null
+          standard_message: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          active?: boolean | null
+          awarded_message?: string | null
+          awarded_positions?: string | null
+          bonus_value?: number | null
+          created_at?: string | null
+          current_counter?: number | null
+          id?: string
+          name?: string | null
+          sales_limit?: number | null
+          standard_message?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          active?: boolean | null
+          awarded_message?: string | null
+          awarded_positions?: string | null
+          bonus_value?: number | null
+          created_at?: string | null
+          current_counter?: number | null
+          id?: string
+          name?: string | null
+          sales_limit?: number | null
+          standard_message?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      qr_promo_history: {
+        Row: {
+          bonus_amount: number | null
+          client_id: string | null
+          created_at: string | null
+          id: string
+          is_awarded: boolean | null
+          position: number
+          sale_id: string | null
+          status: string | null
+        }
+        Insert: {
+          bonus_amount?: number | null
+          client_id?: string | null
+          created_at?: string | null
+          id?: string
+          is_awarded?: boolean | null
+          position: number
+          sale_id?: string | null
+          status?: string | null
+        }
+        Update: {
+          bonus_amount?: number | null
+          client_id?: string | null
+          created_at?: string | null
+          id?: string
+          is_awarded?: boolean | null
+          position?: number
+          sale_id?: string | null
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "qr_promo_history_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "qr_promo_history_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
+            referencedRelation: "sales"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sale_installments: {
         Row: {
           amount: number
@@ -945,10 +1035,12 @@ export type Database = {
           financial_account_id: string | null
           id: string
           installments_count: number | null
+          is_awarded: boolean | null
           is_debt: boolean | null
           notes: string | null
           paid_amount: number
           payment_method: string
+          promo_qr: string | null
           protection_method: string | null
           sale_code: string | null
           sale_type: string | null
@@ -966,10 +1058,12 @@ export type Database = {
           financial_account_id?: string | null
           id?: string
           installments_count?: number | null
+          is_awarded?: boolean | null
           is_debt?: boolean | null
           notes?: string | null
           paid_amount?: number
           payment_method?: string
+          promo_qr?: string | null
           protection_method?: string | null
           sale_code?: string | null
           sale_type?: string | null
@@ -987,10 +1081,12 @@ export type Database = {
           financial_account_id?: string | null
           id?: string
           installments_count?: number | null
+          is_awarded?: boolean | null
           is_debt?: boolean | null
           notes?: string | null
           paid_amount?: number
           payment_method?: string
+          promo_qr?: string | null
           protection_method?: string | null
           sale_code?: string | null
           sale_type?: string | null
