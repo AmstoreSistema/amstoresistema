@@ -32,9 +32,10 @@ export function SaleInstallmentsModal({
 }) {
   const qc = useQueryClient();
   const { data: installments = [], isLoading } = useRows("sale_installments", {
-    filters: saleId ? [{ column: "sale_id", operator: "eq", value: saleId }] : undefined,
+    filters: saleId ? [{ column: "sale_id", value: saleId }] : undefined,
     order: { column: "installment_number", ascending: true }
-  });
+  } as any);
+
 
   const handlePay = async (inst: any) => {
     try {

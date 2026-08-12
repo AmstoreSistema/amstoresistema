@@ -11,8 +11,12 @@ import {
   CreditCard,
   ChevronRight,
   Printer,
-  FileDown
+  FileDown,
+  TrendingUp,
+  AlertTriangle,
+  CreditCard as InstallmentsIcon
 } from "lucide-react";
+
 
 import { PageHeader } from "@/components/page-header";
 import { StatCard } from "@/components/stat-card";
@@ -31,6 +35,8 @@ import { useRows } from "@/lib/data";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { POSModal } from "@/components/sales/POSModal";
+import { SaleInstallmentsModal } from "@/components/sales/SaleInstallmentsModal";
+
 
 
 export const Route = createFileRoute("/_authenticated/sales")({
@@ -55,6 +61,9 @@ function SalesPage() {
 
   const [term, setTerm] = useState("");
   const [posOpen, setPosOpen] = useState(false);
+  const [installmentsOpen, setInstallmentsOpen] = useState(false);
+  const [selectedSaleId, setSelectedSaleId] = useState<string | null>(null);
+
 
   const clientById = useMemo(() => new Map(clients.map((c: any) => [c.id, c])), [clients]);
 
@@ -116,8 +125,9 @@ function SalesPage() {
 
       <div className="grid gap-4 sm:grid-cols-3">
         <StatCard title="Vendas Hoje" value={stats.countToday} icon={ShoppingCart} tone="dark" />
-        <StatCard title="Faturamento Hoje" value={brl(stats.totalToday)} icon={TrendingUpIcon} tone="gold" />
-        <StatCard title="Fiados em Aberto" value={stats.pendingFiado} icon={AlertTriangleIcon} tone="warning" />
+        <StatCard title="Faturamento Hoje" value={brl(stats.totalToday)} icon={TrendingUp} tone="gold" />
+        <StatCard title="Fiados em Aberto" value={stats.pendingFiado} icon={AlertTriangle} tone="warning" />
+
       </div>
 
       <div className="flex gap-2">
@@ -195,6 +205,18 @@ function SalesPage() {
                               <DropdownMenuContent align="end" className="rounded-2xl p-2">
                                  <DropdownMenuItem className="rounded-xl gap-2"><FileDown className="size-4" /> Baixar PDF</DropdownMenuItem>
                                  <DropdownMenuItem className="rounded-xl gap-2"><Printer className="size-4" /> Imprimir Cupom</DropdownMenuItem>
+                                 {sale.is_debt && (
+                                   <DropdownMenuItem 
+                                     className="rounded-xl gap-2"
+                                     onClick={() => {
+                                       setSelectedSaleId(sale.id);
+                                       setInstallmentsOpen(true);
+                                     }}
+                                   >
+                                      <InstallmentsIcon className="size-4" /> Ver Parcelas
+                                   </DropdownMenuItem>
+                                 )}
+
                                  <DropdownMenuItem 
                                     className="rounded-xl gap-2 text-destructive"
                                     onClick={async () => {
@@ -228,47 +250,13 @@ function SalesPage() {
       )}
 
       <POSModal open={posOpen} onOpenChange={setPosOpen} />
+      <SaleInstallmentsModal 
+        open={installmentsOpen} 
+        onOpenChange={setInstallmentsOpen} 
+        saleId={selectedSaleId}
+      />
     </div>
+
   );
 }
 
-function TrendingUpIcon(props: any) {
-   return (
-      <svg
-        {...props}
-        xmlns="http://www.w3.org/2000/svg"
-        width="24"
-        height="24"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" />
-        <polyline points="17 6 23 6 23 12" />
-      </svg>
-   )
-}
-
-function AlertTriangleIcon(props: any) {
-   return (
-      <svg
-        {...props}
-        xmlns="http://www.w3.org/2000/svg"
-        width="24"
-        height="24"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" />
-        <path d="M12 9v4" />
-        <path d="M12 17h.01" />
-      </svg>
-   )
-}
