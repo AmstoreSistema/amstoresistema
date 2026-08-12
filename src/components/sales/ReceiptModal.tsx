@@ -75,7 +75,7 @@ export function ReceiptModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md p-0 overflow-hidden bg-background sm:rounded-[2rem] border-none shadow-2xl flex flex-col h-[90vh] sm:h-auto">
+      <DialogContent className="max-w-md p-0 overflow-hidden bg-background sm:rounded-[2rem] border-none shadow-2xl flex flex-col h-[95vh] sm:max-h-[90vh]">
         
         {/* Header Actions */}
         <div className="flex items-center justify-between p-4 border-b bg-muted/30 sticky top-0 z-10 print:hidden">
@@ -117,7 +117,7 @@ export function ReceiptModal({
           {/* The Actual Receipt Content - Formatted for Thermal 80mm */}
           <div 
             ref={receiptRef}
-            className="bg-white text-black p-4 sm:p-8 rounded-lg shadow-inner font-mono text-[12px] leading-relaxed mx-auto max-w-[380px] print:shadow-none print:p-0"
+            className="bg-white text-black p-4 sm:p-8 rounded-lg shadow-inner font-mono text-[14px] leading-relaxed mx-auto max-w-[380px] print:shadow-none print:p-0"
             style={{ fontFamily: "'Courier New', Courier, monospace" }}
           >
             <div className="flex flex-col items-center text-center gap-2 mb-4">
@@ -234,16 +234,19 @@ export function ReceiptModal({
               <p className="font-bold">{dateTimeBR(new Date().toISOString())}</p>
               <p className="uppercase font-bold">Obrigado! Volte Sempre!</p>
               
-              <div className="flex flex-col items-center gap-2 pt-2 border-t border-dotted border-black">
-                <p className="text-[10px]">Você tem um qr-code especial!</p>
-                <div className="size-24 border-2 border-black p-1">
-                  {/* Mock QR Code representation */}
-                  <div className="size-full bg-[radial-gradient(black_2px,transparent_0)] bg-[length:4px_4px]" />
+              {/* Promo QR Code - Only shows if mock promotion logic is "active" */}
+              {/* In a real app, this would check a DB setting like app_settings.key = 'promo_qrcode_active' */}
+              {false && ( // Disabled by default per user request: "só deve mostrar se configurar e ativar"
+                <div className="flex flex-col items-center gap-2 pt-2 border-t border-dotted border-black">
+                  <p className="text-[10px]">Você tem um qr-code especial!</p>
+                  <div className="size-24 border-2 border-black p-1">
+                    <div className="size-full bg-[radial-gradient(black_2px,transparent_0)] bg-[length:4px_4px]" />
+                  </div>
+                  <p className="text-[9px] uppercase font-bold">Parabéns! Você foi sorteado! Use QR-Code e VERIFIQUE! Você ganhou um bônus especial de cashback!</p>
+                  <p className="font-bold mt-1">{brl(20.00)} de cashback!</p>
+                  <p className="text-[8px] opacity-60">Código: CB-${Math.random().toString(36).substring(7).toUpperCase()}</p>
                 </div>
-                <p className="text-[9px] uppercase font-bold">Parabéns! Você foi sorteado! Use QR-Code e VERIFIQUE! Você ganhou um bônus especial de cashback!</p>
-                <p className="font-bold mt-1">{brl(20.00)} de cashback!</p>
-                <p className="text-[8px] opacity-60">Código: CB-${Math.random().toString(36).substring(7).toUpperCase()}</p>
-              </div>
+              )}
               
               <div className="pt-4 text-[9px]">
                 www.amstorecalcados.com.br

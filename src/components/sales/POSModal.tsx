@@ -374,9 +374,11 @@ export function POSModal({ open, onOpenChange }: { open: boolean; onOpenChange: 
                     <Button
                       key={m.id}
                       variant={paymentMethod === m.id ? "default" : "outline"}
+                      disabled={isDebt}
                       className={cn(
                         "h-12 rounded-2xl flex flex-col gap-1 items-center justify-center transition-all",
-                        paymentMethod === m.id ? "bg-gradient-dark border-none shadow-elegant" : "bg-card"
+                        paymentMethod === m.id ? "bg-gradient-dark border-none shadow-elegant" : "bg-card",
+                        isDebt && "opacity-50 grayscale"
                       )}
                       onClick={() => setPaymentMethod(m.id)}
                     >
@@ -388,8 +390,8 @@ export function POSModal({ open, onOpenChange }: { open: boolean; onOpenChange: 
 
                <div className="space-y-2">
                  <Label className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest pl-1">Conta para Recebimento</Label>
-                 <Select value={accountId || ""} onValueChange={setAccountId}>
-                    <SelectTrigger className="h-11 rounded-xl bg-card border-border/40 font-bold text-xs">
+                 <Select value={accountId || ""} onValueChange={setAccountId} disabled={isDebt}>
+                    <SelectTrigger className={cn("h-11 rounded-xl bg-card border-border/40 font-bold text-xs", isDebt && "opacity-50")}>
                       <div className="flex items-center gap-2">
                         <Building2 className="size-4 text-gold" />
                         <SelectValue placeholder="Selecione a conta" />
