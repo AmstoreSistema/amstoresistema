@@ -36,7 +36,8 @@ export const createSale = createServerFn({ method: "POST" })
   }).parse(data))
 
   .handler(async ({ data }) => {
-    const { data: saleId, error } = await (supabase.rpc as any)('create_complete_sale', {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: saleId, error } = await (supabaseAdmin.rpc as any)('create_complete_sale', {
       p_client_id: data.client_id,
       p_payment_method: data.payment_method,
       p_total_amount: data.total_amount,
