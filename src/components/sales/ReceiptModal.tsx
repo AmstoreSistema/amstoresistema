@@ -21,12 +21,14 @@ export function ReceiptModal({
   open, 
   onOpenChange, 
   sale,
-  client 
+  client,
+  isPreview = false
 }: { 
   open: boolean; 
   onOpenChange: (open: boolean) => void;
   sale: any;
   client: any;
+  isPreview?: boolean;
 }) {
   const receiptRef = React.useRef<HTMLDivElement>(null);
 
@@ -80,7 +82,7 @@ export function ReceiptModal({
         {/* Header Actions */}
         <div className="flex items-center justify-between p-4 border-b bg-muted/30 sticky top-0 z-10 print:hidden">
           <div className="flex items-center gap-2">
-            <h3 className="font-bold text-sm">Cupom de Venda</h3>
+            <h3 className="font-bold text-sm">{isPreview ? "Prévia do Cupom" : "Cupom de Venda"}</h3>
             <span className="text-[10px] text-muted-foreground uppercase font-medium">Impressora Térmica 80mm</span>
           </div>
           <Button variant="ghost" size="icon" onClick={() => onOpenChange(false)}>
@@ -89,7 +91,8 @@ export function ReceiptModal({
         </div>
 
         <div className="flex-1 overflow-y-auto p-4 sm:p-6 print:p-0">
-          <div className="flex flex-col gap-4 print:hidden mb-6">
+          {!isPreview && (
+            <div className="flex flex-col gap-4 print:hidden mb-6">
             <Button 
               onClick={handleShareWhatsApp}
               className="w-full bg-[#25D366] hover:bg-[#128C7E] text-white gap-2 font-bold h-12 rounded-xl"
@@ -111,8 +114,9 @@ export function ReceiptModal({
               >
                 <Printer className="size-4" /> Imprimir
               </Button>
+              </div>
             </div>
-          </div>
+          )}
 
           {/* The Actual Receipt Content - Formatted for Thermal 80mm */}
           <div 
