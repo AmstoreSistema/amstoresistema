@@ -14,7 +14,8 @@ import {
   FileDown,
   TrendingUp,
   AlertTriangle,
-  CreditCard as InstallmentsIcon
+  CreditCard as InstallmentsIcon,
+  FileText
 } from "lucide-react";
 
 
