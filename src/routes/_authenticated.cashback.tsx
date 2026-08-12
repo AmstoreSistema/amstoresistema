@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 import { 
   Dialog, 
   DialogContent, 
@@ -195,7 +196,7 @@ function CashbackPage() {
                 <div className="space-y-4">
                   <div className="flex items-center gap-2">
                     <h3 className="font-black text-xl">{config.material_categories?.name}</h3>
-                    <Badge variant={config.active ? "success" : "secondary"} className="h-5 rounded-md px-1.5 font-bold text-[9px] uppercase tracking-wider">
+                    <Badge variant={config.active ? "default" : "secondary"} className={cn("h-5 rounded-md px-1.5 font-bold text-[9px] uppercase tracking-wider", config.active ? "bg-success hover:bg-success/90" : "")}>
                       {config.active ? "Ativo" : "Inativo"}
                     </Badge>
                   </div>
