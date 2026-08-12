@@ -35,7 +35,7 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { brl, num, dateBR } from "@/lib/format";
-import { useRows, useSaveRow } from "@/lib/data";
+import { useRows, useSaveRow, useDeleteRow } from "@/lib/data";
 import { AddProductDirectModal } from "@/components/stock/AddProductDirectModal";
 
 export const Route = createFileRoute("/_authenticated/stock")({
@@ -77,12 +77,16 @@ function StockPage() {
   const { data: products = [], isLoading } = useRows<Product>("products", { order: { column: "name", ascending: true } });
   const { data: stockRecords = [] } = useRows<StockRecord>("stock_products");
   const save = useSaveRow("products", "estoque");
+  const remove = useDeleteRow("products", "estoque");
+  const saveStock = useSaveRow("stock_products", "estoque detalhado");
+  const removeStock = useDeleteRow("stock_products", "estoque detalhado");
 
   const [term, setTerm] = useState("");
   const [activeTab, setActiveTab] = useState("Todos");
   const [adjustOpen, setAdjustOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [newQty, setNewQty] = useState("");
+  const [adjustQuantities, setAdjustQuantities] = useState<Record<string, number>>({});
   const [addDirectOpen, setAddDirectOpen] = useState(false);
 
   const filtered = useMemo(() => {
@@ -101,17 +105,70 @@ function StockPage() {
     };
   }, [products]);
 
-  const handleAdjust = () => {
-    if (!selectedProduct || !newQty) return;
-    save.mutate({
-      id: selectedProduct.id,
-      values: { current_stock: Number(newQty), updated_at: new Date().toISOString() }
-    }, {
-      onSuccess: () => {
-        setAdjustOpen(false);
-        setNewQty("");
+  const handleAdjust = async () => {
+    if (!selectedProduct) return;
+
+    const stockRecord = stockRecords.find(s => s.produto_id === selectedProduct.id);
+    const isSandalia = selectedProduct.category === "Sandália";
+
+    try {
+      let totalQty = 0;
+      if (isSandalia) {
+        totalQty = Object.values(adjustQuantities).reduce((a, b) => a + (Number(b) || 0), 0);
+      } else {
+        totalQty = Number(newQty);
       }
-    });
+
+      // Update product table
+      await save.mutateAsync({
+        id: selectedProduct.id,
+        values: { 
+          current_stock: totalQty, 
+          updated_at: new Date().toISOString() 
+        }
+      });
+
+      // Update stock_products table if record exists
+      if (stockRecord) {
+        await saveStock.mutateAsync({
+          id: stockRecord.id,
+          values: {
+            quantidade_disponivel: totalQty,
+            numeracoes: isSandalia ? adjustQuantities : null
+          }
+        });
+      }
+
+      setAdjustOpen(false);
+      setNewQty("");
+      setAdjustQuantities({});
+      toast.success("Estoque ajustado com sucesso");
+    } catch (error) {
+      console.error(error);
+      toast.error("Erro ao ajustar estoque");
+    }
+  };
+
+  const handleDeleteItem = async (productId: string) => {
+    if (!confirm("Deseja realmente excluir este item do estoque? Esta ação é irreversível.")) return;
+
+    try {
+      const stockRecord = stockRecords.find(s => s.produto_id === productId);
+      
+      // Delete from stock_products first (foreign key)
+      if (stockRecord) {
+        await removeStock.mutateAsync(stockRecord.id);
+      }
+      
+      // Delete from products
+      await remove.mutateAsync(productId);
+      
+      toast.success("Item removido do estoque");
+      qc.invalidateQueries();
+    } catch (error) {
+      console.error(error);
+      toast.error("Erro ao remover item");
+    }
   };
 
   return (
@@ -314,14 +371,38 @@ function StockPage() {
             </DialogDescription>
           </DialogHeader>
           <div className="py-4">
-             <Label className="mb-2 block">Novo saldo disponível</Label>
-             <Input 
-                type="number" 
-                value={newQty} 
-                onChange={e => setNewQty(e.target.value)}
-                placeholder={`Saldo atual: ${selectedProduct?.current_stock}`}
-                className="h-12 text-lg font-bold"
-             />
+             {selectedProduct?.category === "Sandália" ? (
+               <div className="space-y-4">
+                 <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Numerações</Label>
+                 <div className="grid grid-cols-4 gap-3">
+                   {["33", "34", "35", "36", "37", "38", "39", "40"].map(size => (
+                     <div key={size} className="space-y-1.5">
+                       <Label className="text-[10px] font-bold block text-center">{size}</Label>
+                       <Input 
+                         type="number" 
+                         value={adjustQuantities[size] || 0}
+                         onChange={e => setAdjustQuantities({...adjustQuantities, [size]: Number(e.target.value)})}
+                         className="h-10 text-center font-bold"
+                       />
+                     </div>
+                   ))}
+                 </div>
+                 <div className="pt-2 border-t text-right">
+                   <span className="text-xs font-bold">Total: {Object.values(adjustQuantities).reduce((a, b) => a + (Number(b) || 0), 0)}</span>
+                 </div>
+               </div>
+             ) : (
+               <>
+                 <Label className="mb-2 block">Novo saldo disponível</Label>
+                 <Input 
+                    type="number" 
+                    value={newQty} 
+                    onChange={e => setNewQty(e.target.value)}
+                    placeholder={`Saldo atual: ${selectedProduct?.current_stock}`}
+                    className="h-12 text-lg font-bold"
+                 />
+               </>
+             )}
           </div>
           <DialogFooter>
              <Button variant="outline" onClick={() => setAdjustOpen(false)}>Cancelar</Button>
