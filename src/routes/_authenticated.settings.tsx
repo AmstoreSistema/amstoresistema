@@ -818,93 +818,33 @@ function SettingsPage() {
                         </Select>
                         <p className="text-[10px] text-muted-foreground">Apenas administradores podem ser cadastrados conforme nova regra do sistema.</p>
                       </div>
-                          </SelectContent>
-                        </Select>
-                      </div>
                     </CardContent>
                     <CardFooter className="flex justify-end gap-2">
-                      <Button variant="outline" onClick={() => setIsNewUserModalOpen(false)}>Cancelar</Button>
+                      <Button variant="ghost" onClick={() => setIsNewUserModalOpen(false)}>Cancelar</Button>
                       <Button 
-                        className="bg-gradient-gold" 
+                        className="bg-gradient-gold shadow-gold font-bold"
                         onClick={async () => {
-                          setSaving(true);
                           try {
+                            setSaving(true);
                             await createUser({ data: newUser });
-                            toast.success("Usuário criado com sucesso");
+                            toast.success("Administrador cadastrado");
                             setIsNewUserModalOpen(false);
-                            setNewUser({ email: "", password: "", display_name: "", role: "user" });
+                            setNewUser({ email: "", password: "", display_name: "", role: "admin" });
                             loadData();
                           } catch (error: any) {
-                            toast.error(error.message || "Erro ao criar usuário");
+                            toast.error(error.message);
                           } finally {
                             setSaving(false);
                           }
                         }}
                         disabled={saving}
                       >
-                        {saving ? "Criando..." : "Criar Usuário"}
+                        {saving ? <Spinner className="size-4 animate-spin" /> : "Criar Usuário"}
                       </Button>
                     </CardFooter>
                   </Card>
                 </div>
               )}
-              <div className="space-y-4">
-                {users.map((user) => {
-                  const currentRole = user.user_roles?.[0]?.role || "user";
-                  return (
-                    <div key={user.id} className="flex items-center justify-between p-4 rounded-2xl bg-muted/20 border border-border/40">
-                      <div className="flex items-center gap-4">
-                        <div className="size-10 rounded-full bg-gold/10 flex items-center justify-center text-gold font-bold">
-                          {user.display_name?.slice(0, 2).toUpperCase() || "U"}
-                        </div>
-                        <div>
-                          <h4 className="font-bold">{user.display_name || user.email}</h4>
-                          <p className="text-xs text-muted-foreground">{user.email}</p>
-                        </div>
-                      </div>
-                      
-                      <div className="flex items-center gap-6">
-                        <div className="flex items-center gap-2">
-                          <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Cargo</Label>
-                          <Select 
-                            value={currentRole} 
-                            onValueChange={async (role: any) => {
-                              await updateRole({ data: { userId: user.id, role } });
-                              toast.success(`Cargo atualizado para ${role}`);
-                              loadData();
-                            }}
-                          >
-                            <SelectTrigger className="w-[140px] h-9 text-xs">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="admin">Administrador</SelectItem>
-                              <SelectItem value="moderator">Moderador</SelectItem>
-                              <SelectItem value="user">Vendedor</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-
-                        <div className="flex items-center gap-2">
-                          <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Status</Label>
-                          <Switch 
-                            checked={user.active} 
-                            onCheckedChange={async (active) => {
-                              await updateStatus({ data: { id: user.id, active } });
-                              toast.success(active ? "Usuário ativado" : "Usuário desativado");
-                              loadData();
-                            }}
-                          />
-                        </div>
-
-                        <Badge variant={user.active ? "default" : "secondary"} className={user.active ? "bg-green-500/10 text-green-500 border-green-500/20" : ""}>
-                          {user.active ? "Ativo" : "Inativo"}
-                        </Badge>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
             </CardContent>
           </Card>
         </TabsContent>
