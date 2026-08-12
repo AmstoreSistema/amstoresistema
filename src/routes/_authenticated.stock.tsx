@@ -298,7 +298,23 @@ function StockPage() {
                       <div className="space-y-1">
                         <p className="text-[9px] uppercase font-black text-muted-foreground tracking-widest">Numerações:</p>
                         <div className="flex flex-wrap gap-1">
-                          {availableSizes.map(size => (
+                          {allSizes.length > 0 ? allSizes.map(({ size, qty }) => (
+                            <Badge 
+                              key={size} 
+                              className={cn(
+                                "px-2 py-0 h-5 text-[10px] font-black border-none cursor-pointer transition-all",
+                                qty > 0 ? "bg-black text-white hover:bg-black/80" : "bg-muted text-muted-foreground hover:bg-muted/80 opacity-40"
+                              )}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedProduct(p);
+                                setSelectedSizeInfo({ size, quantity: qty });
+                                setSizeDetailOpen(true);
+                              }}
+                            >
+                              {size}
+                            </Badge>
+                          )) : availableSizes.map(size => (
                             <Badge 
                               key={size} 
                               className="bg-black text-white hover:bg-black px-2 py-0 h-5 text-[10px] font-black border-none cursor-pointer"
