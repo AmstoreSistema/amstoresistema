@@ -845,11 +845,12 @@ function SettingsPage() {
                   </Card>
                 </div>
               )}
-            </CardContent>
           </Card>
         </TabsContent>
-        </TabsContent>
       </Tabs>
+    </div>
+  );
+}
     </div>
   );
 }
