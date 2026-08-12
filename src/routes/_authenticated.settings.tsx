@@ -119,16 +119,29 @@ function SettingsPage() {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [settingsData, usersData] = await Promise.all([
+      const [settingsResult, usersResult] = await Promise.allSettled([
         fetchSettings(),
         fetchUsers()
       ]);
+
+      const settingsData = settingsResult.status === "fulfilled" ? settingsResult.value : [];
+      if (settingsResult.status === "rejected") {
+        console.error("Erro ao carregar configurações:", settingsResult.reason);
+        toast.error("Erro ao carregar configurações");
+      }
+
+      if (usersResult.status === "fulfilled") {
+        setUsers(usersResult.value as any[]);
+      } else {
+        console.error("Erro ao carregar administradores:", usersResult.reason);
+        setUsers([]);
+      }
+
       setSettings(settingsData);
-      setUsers(usersData);
       
       // Initialize local state
       const initialLocal: Record<string, any> = {};
-      settingsData.forEach((s: any) => {
+      (settingsData as any[]).forEach((s: any) => {
         try {
           initialLocal[s.key] = JSON.parse(s.value);
         } catch {
@@ -138,7 +151,7 @@ function SettingsPage() {
       setLocalSettings(initialLocal);
     } catch (error) {
       console.error("Erro ao carregar dados:", error);
-      toast.error("Erro ao carregar configurações");
+      toast.error("Erro ao carregar dados do sistema");
     } finally {
       setLoading(false);
     }
