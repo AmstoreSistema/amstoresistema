@@ -272,7 +272,4 @@ function ClientFormModal({ isOpen, onClose, client }: { isOpen: boolean, onClose
   );
 }
 
-function cn(...inputs: any[]) {
-  return inputs.filter(Boolean).join(" ");
-}
 
