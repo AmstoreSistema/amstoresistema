@@ -893,6 +893,7 @@ export type Database = {
       transactions: {
         Row: {
           amount: number
+          category: string | null
           created_at: string | null
           description: string | null
           id: string
@@ -901,6 +902,7 @@ export type Database = {
         }
         Insert: {
           amount: number
+          category?: string | null
           created_at?: string | null
           description?: string | null
           id?: string
@@ -909,6 +911,7 @@ export type Database = {
         }
         Update: {
           amount?: number
+          category?: string | null
           created_at?: string | null
           description?: string | null
           id?: string
