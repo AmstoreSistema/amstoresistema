@@ -159,3 +159,25 @@ export const updateInstallments = createServerFn({ method: "POST" })
 
     return { success: true };
   });
+
+export const getSaleDetails = createServerFn({ method: "GET" })
+  .inputValidator((data) => z.object({ sale_id: z.string() }).parse(data))
+  .handler(async ({ data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    
+    const [saleResult, itemsResult, paymentsResult, installmentsResult] = await Promise.all([
+      supabaseAdmin.from("sales").select("*").eq("id", data.sale_id).single(),
+      supabaseAdmin.from("sale_items").select("*, products(name)").eq("sale_id", data.sale_id),
+      supabaseAdmin.from("sale_payments").select("*, financial_accounts(name)").eq("sale_id", data.sale_id),
+      supabaseAdmin.from("sale_installments").select("*").eq("sale_id", data.sale_id).order("installment_number", { ascending: true })
+    ]);
+
+    if (saleResult.error) throw new Error(`Erro ao buscar venda: ${saleResult.error.message}`);
+    
+    return {
+      sale: saleResult.data,
+      items: itemsResult.data || [],
+      payments: paymentsResult.data || [],
+      installments: installmentsResult.data || []
+    };
+  });
