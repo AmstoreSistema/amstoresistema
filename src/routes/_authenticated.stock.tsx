@@ -335,6 +335,8 @@ function StockPage() {
                        className="size-9 rounded-lg border-border/40 hover:bg-muted"
                        onClick={() => {
                           setSelectedProduct(p);
+                          setNewQty(p.current_stock.toString());
+                          setAdjustQuantities(stockRecord?.numeracoes || {});
                           setAdjustOpen(true);
                        }}
                     >
@@ -346,11 +348,7 @@ function StockPage() {
                     <Button 
                       variant="ghost" 
                       className="text-[10px] text-destructive hover:text-destructive hover:bg-destructive/5 font-bold h-7 gap-1"
-                      onClick={() => {
-                        if (confirm("Deseja realmente excluir este item do estoque?")) {
-                          toast.info("Funcionalidade de exclusão total em desenvolvimento");
-                        }
-                      }}
+                      onClick={() => handleDeleteItem(p.id)}
                     >
                       <Trash2 className="size-3" /> Excluir Item do Estoque
                     </Button>
