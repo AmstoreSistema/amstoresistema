@@ -169,12 +169,15 @@ export function POSModal({ open, onOpenChange }: { open: boolean; onOpenChange: 
       const saleId = (result as any).saleId;
       toast.success("Venda realizada com sucesso!");
 
+      // Find client info to pass to receipt
+      const { data: clientData } = await supabase.from("clients").select("*").eq("id", client?.id || "").maybeSingle();
       
       // Prepare for receipt
       setLastSale({
          id: saleId,
          ...saleData
       });
+      setClient(clientData || client); // Use fetched client or current state
       setReceiptOpen(true);
 
       // Reset POS

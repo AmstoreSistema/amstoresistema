@@ -36,6 +36,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { POSModal } from "@/components/sales/POSModal";
 import { SaleInstallmentsModal } from "@/components/sales/SaleInstallmentsModal";
+import { ReceiptModal } from "@/components/sales/ReceiptModal";
 
 
 
@@ -62,6 +63,7 @@ function SalesPage() {
   const [term, setTerm] = useState("");
   const [posOpen, setPosOpen] = useState(false);
   const [installmentsOpen, setInstallmentsOpen] = useState(false);
+  const [receiptOpen, setReceiptOpen] = useState(false);
   const [selectedSaleId, setSelectedSaleId] = useState<string | null>(null);
 
 
@@ -215,7 +217,15 @@ function SalesPage() {
                         </div>
 
                         <div className="flex items-center gap-1">
-                           <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity">
+                           <Button 
+                             variant="ghost" 
+                             size="icon" 
+                             className="h-9 w-9 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity"
+                             onClick={() => {
+                               setSelectedSaleId(sale.id);
+                               setReceiptOpen(true);
+                             }}
+                           >
                               <Printer className="size-4" />
                            </Button>
                            <DropdownMenu>
@@ -226,7 +236,15 @@ function SalesPage() {
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end" className="rounded-2xl p-2">
                                  <DropdownMenuItem className="rounded-xl gap-2"><FileDown className="size-4" /> Baixar PDF</DropdownMenuItem>
-                                 <DropdownMenuItem className="rounded-xl gap-2"><Printer className="size-4" /> Imprimir Cupom</DropdownMenuItem>
+                                 <DropdownMenuItem 
+                                   className="rounded-xl gap-2"
+                                   onClick={() => {
+                                     setSelectedSaleId(sale.id);
+                                     setReceiptOpen(true);
+                                   }}
+                                 >
+                                   <Printer className="size-4" /> Imprimir Cupom
+                                 </DropdownMenuItem>
                                  {sale.is_debt && (
                                    <DropdownMenuItem 
                                      className="rounded-xl gap-2"
@@ -276,6 +294,12 @@ function SalesPage() {
         open={installmentsOpen} 
         onOpenChange={setInstallmentsOpen} 
         saleId={selectedSaleId}
+      />
+      <ReceiptModal 
+        open={receiptOpen}
+        onOpenChange={setReceiptOpen}
+        sale={sales.find((s: any) => s.id === selectedSaleId)}
+        client={clientById.get(sales.find((s: any) => s.id === selectedSaleId)?.client_id || "")}
       />
     </div>
 
