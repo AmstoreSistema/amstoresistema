@@ -114,8 +114,32 @@ export function POSModal({ open, onOpenChange }: { open: boolean; onOpenChange: 
   const itemsDiscount = items.reduce((acc, item) => acc + (item.discount || 0), 0);
   const finalTotal = Math.max(0, subtotal - itemsDiscount - discount - cashbackToUse);
   
-  // Cashback earn (example 5%)
-  const cashbackEarned = Math.floor(finalTotal * 0.05);
+  // Cashback earned is now handled server-side in createSale, but we can show an estimate
+  const [estimatedCashback, setEstimatedCashback] = React.useState(0);
+  const { data: cashbackConfigs = [] } = useRows<any>("cashback_config");
+
+  React.useEffect(() => {
+    if (items.length > 0 && cashbackConfigs.length > 0) {
+      let total = 0;
+      items.forEach(item => {
+        const itemTotal = (item.price * item.quantity) - (item.discount || 0);
+        // Find category by product_id or category name if available
+        // For simplicity in UI, we'll try to find if the category matches
+        const stockItem = stockItems.find(si => si.id === item.stock_id);
+        const config = cashbackConfigs.find(c => c.active && c.category_id === stockItems.find(si => si.id === item.stock_id)?.categoria_id);
+        // Wait, stockItems might not have categoria_id. Let's look at the config's category name
+        const configByName = cashbackConfigs.find(c => c.active && c.material_categories?.name === stockItem?.categoria);
+        
+        if (configByName) {
+          total += (itemTotal * Number(configByName.cashback_percent)) / 100;
+        }
+      });
+      setEstimatedCashback(Math.floor(total));
+    } else {
+      setEstimatedCashback(0);
+    }
+  }, [items, cashbackConfigs, stockItems]);
+
 
   React.useEffect(() => {
     if (isDebt && finalTotal > 0) {
