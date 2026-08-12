@@ -6,9 +6,7 @@ export const getClientDetails = createServerFn({ method: "GET" })
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     
-    // Fetch sales and installments in parallel
-    // Correcting column names based on Supabase schema from error logs
-    const [salesResult, installmentsResult] = await Promise.all([
+    const [salesResult, installmentsResult, cashbackResult] = await Promise.all([
       supabaseAdmin
         .from("sales")
         .select(`
@@ -33,12 +31,11 @@ export const getClientDetails = createServerFn({ method: "GET" })
           due_date,
           status
         `)
-        .eq("sale_id", "ANY") // We need to filter by sale_id in code or use a different approach if client_id is missing
-        // Wait, looking at the schema cache error, client_id might not be on sale_installments
-        .order("due_date", { ascending: true })
+        .order("due_date", { ascending: true }),
+      supabaseAdmin
+        .rpc("get_client_cashback_by_category", { p_client_id: data.client_id })
     ]);
 
-    // Let's refine the query: fetch sales then installments for those sales
     if (salesResult.error) throw new Error(`Erro ao buscar vendas: ${salesResult.error.message}`);
     
     const sales = salesResult.data || [];
@@ -46,22 +43,7 @@ export const getClientDetails = createServerFn({ method: "GET" })
 
     let installments: any[] = [];
     if (saleIds.length > 0) {
-      const { data: instData, error: instError } = await supabaseAdmin
-        .from("sale_installments")
-        .select(`
-          id,
-          sale_id,
-          installment_number,
-          amount,
-          due_date,
-          status
-        `)
-        .in("sale_id", saleIds)
-        .order("due_date", { ascending: true });
-      
-      if (!instError) {
-        installments = instData || [];
-      }
+      installments = (installmentsResult.data || []).filter(i => saleIds.includes(i.sale_id));
     }
 
     // Calculate totals
@@ -73,6 +55,7 @@ export const getClientDetails = createServerFn({ method: "GET" })
     return {
       sales,
       installments,
+      cashback_by_category: cashbackResult.data || [],
       stats: {
         sales_count: sales.length,
         total_bought,
