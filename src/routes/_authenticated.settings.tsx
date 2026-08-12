@@ -9,7 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { getAppSettings, updateAppSettingsBatch, getUsers, updateUserStatus, updateUserRole } from "@/lib/settings.functions";
+import { getAppSettings, updateAppSettingsBatch, getUsers, updateUserStatus, updateUserRole, createNewUser } from "@/lib/settings.functions";
 import { exportSystemData, importSystemData } from "@/lib/backup.functions";
 import { toast } from "sonner";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -34,6 +34,8 @@ function SettingsPage() {
   const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [isNewUserModalOpen, setIsNewUserModalOpen] = useState(false);
+  const [newUser, setNewUser] = useState({ email: "", password: "", display_name: "", role: "user" as const });
   const [selectedTables, setSelectedTables] = useState<string[]>([]);
   
   const backupModules = [
@@ -107,6 +109,7 @@ function SettingsPage() {
   const fetchUsers = useServerFn(getUsers);
   const updateStatus = useServerFn(updateUserStatus);
   const updateRole = useServerFn(updateUserRole);
+  const createUser = useServerFn(createNewUser);
   const exportData = useServerFn(exportSystemData);
   const importData = useServerFn(importSystemData);
 
@@ -520,12 +523,87 @@ function SettingsPage() {
                   </CardTitle>
                   <CardDescription>Controle quem tem acesso e quais permissões possuem.</CardDescription>
                 </div>
-                <Button className="bg-gradient-gold shadow-gold font-bold">
+                <Button className="bg-gradient-gold shadow-gold font-bold" onClick={() => setIsNewUserModalOpen(true)}>
                   <UserPlus className="size-4 mr-2" /> Novo Usuário
                 </Button>
               </div>
             </CardHeader>
             <CardContent className="p-8">
+              {/* New User Modal */}
+              {isNewUserModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+                  <Card className="w-full max-w-md">
+                    <CardHeader>
+                      <CardTitle>Cadastrar Novo Usuário</CardTitle>
+                      <CardDescription>Crie um novo acesso para o sistema.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="space-y-2">
+                        <Label>Nome</Label>
+                        <Input 
+                          value={newUser.display_name} 
+                          onChange={(e) => setNewUser({...newUser, display_name: e.target.value})}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>E-mail</Label>
+                        <Input 
+                          type="email"
+                          value={newUser.email} 
+                          onChange={(e) => setNewUser({...newUser, email: e.target.value})}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Senha</Label>
+                        <Input 
+                          type="password"
+                          value={newUser.password} 
+                          onChange={(e) => setNewUser({...newUser, password: e.target.value})}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Cargo</Label>
+                        <Select 
+                          value={newUser.role} 
+                          onValueChange={(role: any) => setNewUser({...newUser, role})}
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="admin">Administrador</SelectItem>
+                            <SelectItem value="moderator">Moderador</SelectItem>
+                            <SelectItem value="user">Vendedor</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </CardContent>
+                    <CardFooter className="flex justify-end gap-2">
+                      <Button variant="outline" onClick={() => setIsNewUserModalOpen(false)}>Cancelar</Button>
+                      <Button 
+                        className="bg-gradient-gold" 
+                        onClick={async () => {
+                          setSaving(true);
+                          try {
+                            await createUser({ data: newUser });
+                            toast.success("Usuário criado com sucesso");
+                            setIsNewUserModalOpen(false);
+                            setNewUser({ email: "", password: "", display_name: "", role: "user" });
+                            loadData();
+                          } catch (error: any) {
+                            toast.error(error.message || "Erro ao criar usuário");
+                          } finally {
+                            setSaving(false);
+                          }
+                        }}
+                        disabled={saving}
+                      >
+                        {saving ? "Criando..." : "Criar Usuário"}
+                      </Button>
+                    </CardFooter>
+                  </Card>
+                </div>
+              )}
               <div className="space-y-4">
                 {users.map((user) => (
                   <div key={user.id} className="flex items-center justify-between p-4 rounded-2xl bg-muted/20 border border-border/40">
