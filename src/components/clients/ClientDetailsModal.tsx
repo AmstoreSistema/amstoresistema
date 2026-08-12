@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { 
   Dialog, 
   DialogContent, 
@@ -24,6 +24,8 @@ import { ptBR } from "date-fns/locale";
 import { useServerFn } from "@tanstack/react-start";
 import { getClientDetails } from "@/lib/clients.functions";
 import { useQuery } from "@tanstack/react-query";
+import { SaleDetailsModal } from "../sales/SaleDetailsModal";
+
 
 interface ClientDetailsModalProps {
   client: any | null;
@@ -33,12 +35,20 @@ interface ClientDetailsModalProps {
 
 export function ClientDetailsModal({ client, isOpen, onClose }: ClientDetailsModalProps) {
   const fetchDetails = useServerFn(getClientDetails);
+  const [selectedSaleId, setSelectedSaleId] = useState<string | null>(null);
+  const [isSaleDetailsOpen, setIsSaleDetailsOpen] = useState(false);
   
   const { data, isLoading } = useQuery({
     queryKey: ['client-details', client?.id],
     queryFn: () => fetchDetails({ data: { client_id: client.id } }),
     enabled: !!client && isOpen,
   });
+
+  const handleSaleClick = (saleId: string) => {
+    setSelectedSaleId(saleId);
+    setIsSaleDetailsOpen(true);
+  };
+
 
 
   if (!client) return null;
@@ -172,8 +182,10 @@ export function ClientDetailsModal({ client, isOpen, onClose }: ClientDetailsMod
                   data?.sales.map((sale: any) => (
                     <div 
                       key={sale.id} 
-                      className="bg-white rounded-xl p-4 flex items-center justify-between shadow-sm border border-gray-50 hover:border-primary/20 transition-colors"
+                      className="bg-white rounded-xl p-4 flex items-center justify-between shadow-sm border border-gray-50 hover:border-primary/20 hover:bg-gray-50 cursor-pointer transition-all active:scale-[0.98]"
+                      onClick={() => handleSaleClick(sale.id)}
                     >
+
                       <div className="flex flex-col">
                         <div className="flex items-center gap-2">
                           <span className="font-bold text-foreground text-sm">{sale.sale_code}</span>
@@ -204,7 +216,13 @@ export function ClientDetailsModal({ client, isOpen, onClose }: ClientDetailsMod
             </div>
           </div>
         </ScrollArea>
+        <SaleDetailsModal 
+          saleId={selectedSaleId}
+          isOpen={isSaleDetailsOpen}
+          onClose={() => setIsSaleDetailsOpen(false)}
+        />
       </DialogContent>
+
     </Dialog>
   );
 }

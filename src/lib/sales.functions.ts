@@ -36,8 +36,27 @@ export const createSale = createServerFn({ method: "POST" })
   }).parse(data))
 
   .handler(async ({ data }) => {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { supabaseAdmin: admin } = await import("@/integrations/supabase/client.server");
+    
+    console.log("Creating sale with parameters:", JSON.stringify({
+      p_cashback_earned: data.cashback_earned,
+      p_cashback_used: data.cashback_used,
+      p_client_id: data.client_id,
+      p_created_at: data.created_at,
+      p_discount: data.discount,
+      p_financial_account_id: data.financial_account_id,
+      p_installments: data.installments,
+      p_is_debt: data.is_debt,
+      p_items: data.items,
+      p_notes: data.notes || '',
+      p_paid_amount: data.paid_amount,
+      p_payment_method: data.payment_method,
+      p_protection_method: data.protection_method,
+      p_sale_code: data.sale_code,
+      p_sale_type: data.sale_type,
+      p_total_amount: data.total_amount
+    }, null, 2));
+
     const { data: saleId, error } = await (admin.rpc as any)('create_complete_sale', {
       p_cashback_earned: data.cashback_earned,
       p_cashback_used: data.cashback_used,
@@ -56,6 +75,9 @@ export const createSale = createServerFn({ method: "POST" })
       p_sale_type: data.sale_type,
       p_total_amount: data.total_amount
     });
+
+
+
 
     if (error) throw new Error(`Erro ao criar venda: ${error.message}`);
     return { saleId: saleId as string };
@@ -158,4 +180,26 @@ export const updateInstallments = createServerFn({ method: "POST" })
       .eq("id", data.sale_id);
 
     return { success: true };
+  });
+
+export const getSaleDetails = createServerFn({ method: "GET" })
+  .inputValidator((data) => z.object({ sale_id: z.string() }).parse(data))
+  .handler(async ({ data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    
+    const [saleResult, itemsResult, paymentsResult, installmentsResult] = await Promise.all([
+      supabaseAdmin.from("sales").select("*").eq("id", data.sale_id).single(),
+      supabaseAdmin.from("sale_items").select("*, products(name)").eq("sale_id", data.sale_id),
+      supabaseAdmin.from("sale_payments").select("*, financial_accounts(name)").eq("sale_id", data.sale_id),
+      supabaseAdmin.from("sale_installments").select("*").eq("sale_id", data.sale_id).order("installment_number", { ascending: true })
+    ]);
+
+    if (saleResult.error) throw new Error(`Erro ao buscar venda: ${saleResult.error.message}`);
+    
+    return {
+      sale: saleResult.data,
+      items: itemsResult.data || [],
+      payments: paymentsResult.data || [],
+      installments: installmentsResult.data || []
+    };
   });
