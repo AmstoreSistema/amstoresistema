@@ -275,6 +275,24 @@ function AccountsPage() {
                           {account.active ? <XCircle className="size-4" /> : <CheckCircle2 className="size-4" />}
                           {account.active ? "Desativar Conta" : "Ativar Conta"}
                         </DropdownMenuItem>
+                        {!account.active && (
+                          <DropdownMenuItem 
+                            onClick={async () => {
+                              // Deactivate all others first
+                              const { data: allAccounts } = await supabase.from('financial_accounts').select('id');
+                              if (allAccounts) {
+                                for (const acc of allAccounts) {
+                                  await supabase.from('financial_accounts').update({ active: acc.id === account.id }).eq('id', acc.id);
+                                }
+                              }
+                              qc.invalidateQueries();
+                              toast.success(`Conta "${account.name}" definida como ativa.`);
+                            }}
+                            className="rounded-xl gap-2 text-gold font-bold"
+                          >
+                            <CheckCircle2 className="size-4" /> Tornar Única Ativa
+                          </DropdownMenuItem>
+                        )}
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </div>

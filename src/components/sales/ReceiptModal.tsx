@@ -165,7 +165,7 @@ export function ReceiptModal({
             {/* --- DADOS DA VENDA --- */}
             <div className="space-y-0.5">
               <div className="flex justify-between"><span>Cupom:</span><span>{sale.sale_code || sale.id?.slice(0, 8)}</span></div>
-              <div className="flex justify-between"><span>Data:</span><span>{dateTimeBR(new Date().toISOString())}</span></div>
+              <div className="flex justify-between"><span>Data:</span><span>{dateTimeBR(sale.created_at || new Date().toISOString())}</span></div>
               <div className="flex justify-between"><span>Cliente:</span><span className="font-bold">{(client?.name || "CONSUMIDOR").toUpperCase()}</span></div>
               <div className="flex justify-between"><span>Tipo:</span><span>{sale.sale_type || "Varejo"}</span></div>
             </div>
