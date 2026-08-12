@@ -92,7 +92,7 @@ export function POSModal({ open, onOpenChange }: { open: boolean; onOpenChange: 
   // Update sale code when client changes
   React.useEffect(() => {
     if (client) {
-      const initials = client.name
+      const initials = (client.name || "")
         .split(' ')
         .filter((n: string) => n.length > 0)
         .map((n: string) => n[0].toUpperCase())
@@ -100,11 +100,11 @@ export function POSModal({ open, onOpenChange }: { open: boolean; onOpenChange: 
         .slice(0, 3);
       
       setSaleCode(prev => {
-        const base = prev.split('-')[0];
+        const base = (prev || "").split('-')[0];
         return `${base}-${initials}`;
       });
     } else {
-      setSaleCode(prev => prev.split('-')[0]);
+      setSaleCode(prev => (prev || "").split('-')[0]);
     }
   }, [client]);
 
@@ -183,7 +183,7 @@ export function POSModal({ open, onOpenChange }: { open: boolean; onOpenChange: 
          financial_account_id: accountId,
          protection_method: protectionMethod,
          sale_code: saleCode,
-         created_at: new Date(saleDate).toISOString(),
+         created_at: new Date(saleDate || new Date()).toISOString(),
         items: items.map(i => ({
           stock_id: i.stock_id,
           product_id: i.product_id,
