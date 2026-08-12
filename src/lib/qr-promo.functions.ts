@@ -24,13 +24,16 @@ export const updateQrPromoConfig = createServerFn({ method: "POST" })
     awarded_message: z.string(),
   }).parse(data))
   .handler(async ({ data }) => {
+    const config = await getQrPromoConfig();
+    if (!config) throw new Error("Configuração não encontrada");
+
     const { error } = await supabaseAdmin
       .from("qr_promo_config")
       .update({
         ...data,
         updated_at: new Date().toISOString()
       })
-      .eq("id", (await getQrPromoConfig()).id);
+      .eq("id", config.id);
     
     if (error) throw error;
     return { success: true };
@@ -39,6 +42,8 @@ export const updateQrPromoConfig = createServerFn({ method: "POST" })
 export const resetQrPromoCounter = createServerFn({ method: "POST" })
   .handler(async () => {
     const config = await getQrPromoConfig();
+    if (!config) throw new Error("Configuração não encontrada");
+
     const { error } = await supabaseAdmin
       .from("qr_promo_config")
       .update({ current_counter: 0 })
