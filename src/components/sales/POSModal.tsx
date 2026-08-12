@@ -51,6 +51,9 @@ export function POSModal({ open, onOpenChange }: { open: boolean; onOpenChange: 
   const [cashbackToUse, setCashbackToUse] = React.useState(0);
   const [isDebt, setIsDebt] = React.useState(false);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const [installmentsCount, setInstallmentsCount] = React.useState(1);
+  const [installments, setInstallments] = React.useState<{ number: number; amount: number; due_date: string }[]>([]);
+
   
   const [receiptOpen, setReceiptOpen] = React.useState(false);
   const [lastSale, setLastSale] = React.useState<any>(null);
@@ -63,6 +66,25 @@ export function POSModal({ open, onOpenChange }: { open: boolean; onOpenChange: 
   
   // Cashback earn (example 5%)
   const cashbackEarned = Math.floor(finalTotal * 0.05);
+
+  React.useEffect(() => {
+    if (isDebt && finalTotal > 0) {
+      const baseAmount = Math.floor((finalTotal / installmentsCount) * 100) / 100;
+      const newInst = Array.from({ length: installmentsCount }, (_, i) => {
+        const date = new Date();
+        date.setMonth(date.getMonth() + i + 1);
+        return {
+          number: i + 1,
+          amount: i === installmentsCount - 1 ? finalTotal - (baseAmount * (installmentsCount - 1)) : baseAmount,
+          due_date: date.toISOString()
+        };
+      });
+      setInstallments(newInst);
+    } else {
+      setInstallments([]);
+    }
+  }, [isDebt, finalTotal, installmentsCount]);
+
 
   const addItem = (stock: any, size: string | null) => {
     const key = `${stock.id}-${size || 'default'}`;
@@ -114,8 +136,10 @@ export function POSModal({ open, onOpenChange }: { open: boolean; onOpenChange: 
           unit_price: i.price,
           numeracao: i.numeracao,
           discount: i.discount
-        }))
+        })),
+        installments: installments
       };
+
 
       const result = await createSale({ data: saleData });
       const saleId = (result as any).saleId;
@@ -309,12 +333,41 @@ export function POSModal({ open, onOpenChange }: { open: boolean; onOpenChange: 
                         id="is_debt" 
                         className="size-4 accent-gold"
                         checked={isDebt}
-                        onChange={e => setIsDebt(e.target.checked)}
+                        onChange={e => {
+                           setIsDebt(e.target.checked);
+                           if (!e.target.checked) setInstallmentsCount(1);
+                        }}
                      />
                      <Label htmlFor="is_debt" className="cursor-pointer font-bold select-none">Venda no Fiado</Label>
                   </div>
                   {isDebt && <Badge className="bg-destructive/10 text-destructive border-none">A receber</Badge>}
                </div>
+
+               {isDebt && (
+                  <div className="space-y-3 p-4 rounded-2xl bg-destructive/5 border border-destructive/10 animate-in fade-in slide-in-from-top-2">
+                     <div className="flex justify-between items-center">
+                        <Label className="text-[10px] uppercase font-bold text-destructive tracking-widest">Parcelas</Label>
+                        <select 
+                           className="bg-transparent border-none font-black text-destructive focus:ring-0 cursor-pointer text-sm"
+                           value={installmentsCount}
+                           onChange={(e) => setInstallmentsCount(Number(e.target.value))}
+                        >
+                           {[1, 2, 3, 4, 5, 6, 10, 12].map(n => (
+                              <option key={n} value={n} className="text-foreground">{n}x</option>
+                           ))}
+                        </select>
+                     </div>
+                     <div className="space-y-2">
+                        {installments.map((inst) => (
+                           <div key={inst.number} className="flex justify-between text-[11px] font-bold">
+                              <span className="text-muted-foreground">{inst.number}ª Parcela ({new Date(inst.due_date).toLocaleDateString('pt-BR')})</span>
+                              <span className="text-destructive">{brl(inst.amount)}</span>
+                           </div>
+                        ))}
+                     </div>
+                  </div>
+               )}
+
             </div>
 
             <Separator className="bg-border/40" />

@@ -21,8 +21,14 @@ export const createSale = createServerFn({ method: "POST" })
       numeracao: z.string().nullable().optional(),
       discount: z.number().default(0),
       stock_snapshot: z.any().optional()
-    }))
+    })),
+    installments: z.array(z.object({
+      number: z.number(),
+      amount: z.number(),
+      due_date: z.string()
+    })).optional().default([])
   }).parse(data))
+
   .handler(async ({ data }) => {
     // Type casting here to bypass strict generated types if needed, 
     // but the RPC requires the exact UUID type string.
@@ -36,8 +42,10 @@ export const createSale = createServerFn({ method: "POST" })
       p_cashback_used: data.cashback_used,
       p_cashback_earned: data.cashback_earned,
       p_notes: data.notes || '',
-      p_items: data.items
+      p_items: data.items,
+      p_installments: data.installments
     });
+
 
     if (error) throw new Error(`Erro ao criar venda: ${error.message}`);
     return { saleId: saleId as string };
