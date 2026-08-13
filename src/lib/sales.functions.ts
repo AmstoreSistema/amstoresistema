@@ -101,7 +101,6 @@ export const createSale = createServerFn({ method: "POST" })
     const saleParams = {
       p_cashback_earned: calculatedCashbackEarned,
       p_cashback_used: data.cashback_used,
-      p_created_at: data.created_at,
       p_discount: data.discount,
       p_installments: data.installments,
       p_is_debt: data.is_debt,
@@ -112,6 +111,7 @@ export const createSale = createServerFn({ method: "POST" })
       p_sale_type: data.sale_type,
       p_total_amount: data.total_amount,
       ...(data.client_id ? { p_client_id: data.client_id } : {}),
+      ...(data.created_at ? { p_created_at: data.created_at } : {}),
       ...(data.financial_account_id ? { p_financial_account_id: data.financial_account_id } : {}),
       ...(data.protection_method ? { p_protection_method: data.protection_method } : {}),
       ...(data.sale_code ? { p_sale_code: data.sale_code } : {}),
