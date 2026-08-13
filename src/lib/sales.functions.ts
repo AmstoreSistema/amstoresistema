@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 export const createSale = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((data) => z.object({
     client_id: z.string().nullable(),
     payment_method: z.string(),
@@ -35,7 +36,7 @@ export const createSale = createServerFn({ method: "POST" })
     })).optional().default([])
   }).parse(data))
 
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
     const { supabaseAdmin: admin } = await import("@/integrations/supabase/client.server");
     
     // Promo QR Logic
@@ -97,24 +98,25 @@ export const createSale = createServerFn({ method: "POST" })
       }
     }
 
-    const { data: saleId, error } = await (admin.rpc as any)('create_complete_sale', {
+    const saleParams = {
       p_cashback_earned: calculatedCashbackEarned,
       p_cashback_used: data.cashback_used,
-      p_client_id: data.client_id,
-      p_created_at: data.created_at,
       p_discount: data.discount,
-      p_financial_account_id: data.financial_account_id,
       p_installments: data.installments,
       p_is_debt: data.is_debt,
       p_items: data.items,
       p_notes: data.notes || '',
       p_paid_amount: data.paid_amount,
       p_payment_method: data.payment_method,
-      p_protection_method: data.protection_method,
-      p_sale_code: data.sale_code,
       p_sale_type: data.sale_type,
-      p_total_amount: data.total_amount
-    });
+      p_total_amount: data.total_amount,
+      ...(data.client_id ? { p_client_id: data.client_id } : {}),
+      ...(data.created_at ? { p_created_at: data.created_at } : {}),
+      ...(data.financial_account_id ? { p_financial_account_id: data.financial_account_id } : {}),
+      ...(data.protection_method ? { p_protection_method: data.protection_method } : {}),
+      ...(data.sale_code ? { p_sale_code: data.sale_code } : {}),
+    };
+    const { data: saleId, error } = await context.supabase.rpc('create_complete_sale', saleParams);
 
     if (error) throw new Error(`Erro ao criar venda: ${error.message}`);
 
