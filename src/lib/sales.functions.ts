@@ -98,7 +98,7 @@ export const createSale = createServerFn({ method: "POST" })
       }
     }
 
-    const { data: saleId, error } = await (context.supabase.rpc as any)('create_complete_sale', {
+    const { data: saleId, error } = await context.supabase.rpc('create_complete_sale', {
       p_cashback_earned: calculatedCashbackEarned,
       p_cashback_used: data.cashback_used,
       p_client_id: data.client_id,

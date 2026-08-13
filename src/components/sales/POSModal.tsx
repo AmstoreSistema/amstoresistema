@@ -193,6 +193,21 @@ export function POSModal({ open, onOpenChange }: { open: boolean; onOpenChange: 
       return;
     }
 
+    if (isDebt && !client) {
+      toast.error("Selecione um cliente para realizar uma venda fiada");
+      return;
+    }
+
+    if (!isDebt && !accountId) {
+      toast.error("Selecione a conta que receberá o pagamento");
+      return;
+    }
+
+    if (!Number.isFinite(finalTotal) || finalTotal < 0) {
+      toast.error("Confira os valores da venda antes de finalizar");
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       const saleData = {
