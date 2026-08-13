@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 export const createSale = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((data) => z.object({
     client_id: z.string().nullable(),
     payment_method: z.string(),
@@ -35,7 +36,7 @@ export const createSale = createServerFn({ method: "POST" })
     })).optional().default([])
   }).parse(data))
 
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
     const { supabaseAdmin: admin } = await import("@/integrations/supabase/client.server");
     
     // Promo QR Logic
@@ -97,7 +98,7 @@ export const createSale = createServerFn({ method: "POST" })
       }
     }
 
-    const { data: saleId, error } = await (admin.rpc as any)('create_complete_sale', {
+    const { data: saleId, error } = await (context.supabase.rpc as any)('create_complete_sale', {
       p_cashback_earned: calculatedCashbackEarned,
       p_cashback_used: data.cashback_used,
       p_client_id: data.client_id,
