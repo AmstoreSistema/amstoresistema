@@ -39,7 +39,8 @@ function PromotionsPage() {
   const [activeTab, setActiveTab] = useState("config");
   const { data: config, refetch: refetchConfig } = useRows<any>("qr_promo_config", { limit: 1 });
   const { data: history = [], refetch: refetchHistory } = useRows<any>("qr_promo_history", { 
-    order: { column: "created_at", ascending: false } 
+    order: { column: "created_at", ascending: false },
+    limit: 1000 // Aumentar limite para garantir que todas apareçam
   });
   
   const updateConfigFn = useServerFn(updateQrPromoConfig);
@@ -283,6 +284,9 @@ function PromotionsPage() {
                             <Badge className="bg-success text-white text-[10px] h-4">PREMIADO</Badge>
                           ) : (
                             <Badge variant="outline" className="text-muted-foreground text-[10px] h-4">PADRÃO</Badge>
+                          )}
+                          {item.status === 'cancelado' && (
+                            <Badge variant="destructive" className="text-[10px] h-4">CANCELADO</Badge>
                           )}
                         </div>
                         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-muted-foreground font-mono">
