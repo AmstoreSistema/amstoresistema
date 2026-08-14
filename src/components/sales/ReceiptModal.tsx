@@ -305,10 +305,6 @@ export function ReceiptModal({
               </div>
             )}
 
-            <div className="text-center text-[10px] my-4">
-              <p className="mt-2">Obrigado! Volte sempre!</p>
-              <p className="mt-1 font-bold">{new Date(displaySale?.created_at || new Date()).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
-            </div>
 
             {/* --- QR CODE PROMOCIONAL (CAIXA PONTILHADA) --- */}
             {!isPreview && !isCancelled && promoConfig && promoConfig.active && (
