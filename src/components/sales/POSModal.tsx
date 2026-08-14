@@ -140,7 +140,7 @@ export function POSModal({ open, onOpenChange }: { open: boolean; onOpenChange: 
         
         // Sincroniza o objeto client local para garantir que outros componentes usem o saldo real
         if (client.cashback_balance !== realBalance) {
-          setClient(prev => prev ? { ...prev, cashback_balance: realBalance } : null);
+          setClient((prev: any) => prev ? { ...prev, cashback_balance: realBalance } : null);
         }
       } else {
         setClientCashback(0);
