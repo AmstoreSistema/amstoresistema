@@ -128,13 +128,6 @@ function CatalogPage() {
           </Select>
         </div>
       </div>
-            </SelectTrigger>
-            <SelectContent>
-              {categories.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
 
       {isLoading ? (
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
