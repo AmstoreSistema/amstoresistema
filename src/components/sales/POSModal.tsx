@@ -571,14 +571,14 @@ export function POSModal({ open, onOpenChange }: { open: boolean; onOpenChange: 
                      />
                   </div>
                   
-                  {client && client.cashback_balance > 0 && (
+                  {client && clientCashback > 0 && (
                      <Button 
                         variant={cashbackToUse > 0 ? "default" : "outline"}
                         type="button"
                         className="h-11 rounded-xl gap-2 font-bold px-4 transition-all"
-                        onClick={() => setCashbackToUse(cashbackToUse > 0 ? 0 : Math.min(finalTotal, client.cashback_balance))}
+                        onClick={() => setCashbackToUse(cashbackToUse > 0 ? 0 : Math.min(finalTotal, clientCashback))}
                      >
-                        <Coins className="size-4" /> Cashback: {brl(client.cashback_balance)}
+                        <Coins className="size-4" /> Cashback: {brl(clientCashback)}
                      </Button>
                   )}
                </div>
