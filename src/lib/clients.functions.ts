@@ -6,7 +6,7 @@ export const getClientDetails = createServerFn({ method: "GET" })
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     
-    const [salesResult, installmentsResult, cashbackResult] = await Promise.all([
+    const [salesResult, installmentsResult, cashbackEntriesResult] = await Promise.all([
       supabaseAdmin
         .from("sales")
         .select(`
@@ -33,44 +33,37 @@ export const getClientDetails = createServerFn({ method: "GET" })
         `)
         .order("due_date", { ascending: true }),
       supabaseAdmin
-        .rpc("get_client_cashback_by_category", { p_client_id: data.client_id })
+        .from("cashback_entries")
+        .select("amount, kind, sales!inner(status, sale_items(quantity, unit_price, discount, products(category)))")
+        .eq("client_id", data.client_id)
+        .in("sales.status", ["paid", "completed", "finalizado", "ativo"])
     ]);
 
     if (salesResult.error) throw new Error(`Erro ao buscar vendas: ${salesResult.error.message}`);
     
     const sales = salesResult.data || [];
     const saleIds = sales.map(s => s.id);
+    const cashbackEntries = (cashbackEntriesResult.data || []) as any[];
 
     let installments: any[] = [];
     if (saleIds.length > 0) {
       installments = (installmentsResult.data || []).filter(i => saleIds.includes(i.sale_id));
     }
 
-    // Calculate totals based on transactions/entries for better accuracy
+    // Calculate totals
     const total_bought = sales.reduce((sum, s) => sum + Number(s.total_amount || 0), 0);
     const total_paid = sales.reduce((sum, s) => sum + Number(s.paid_amount || 0), 0);
     const pending_installments = installments.filter(i => i.status !== 'paid');
     const total_debt = pending_installments.reduce((sum, i) => sum + Number(i.amount || 0), 0);
     
-    // Fetch calculated cashback to ensure accuracy - only from finalized/active sales
-    const { data: cashbackEntries } = await supabaseAdmin
-      .from("cashback_entries")
-      .select(`
-        amount, 
-        kind,
-        sales!inner(status)
-      `)
-      .eq("client_id", data.client_id)
-      .in("sales.status", ["finalizado", "ativo"]);
-    
-    const calculated_cashback = (cashbackEntries || []).reduce((acc, entry) => {
+    const calculated_cashback = cashbackEntries.reduce((acc, entry) => {
       return acc + (entry.kind === 'earned' ? Number(entry.amount) : -Number(entry.amount));
     }, 0);
 
     return {
       sales,
       installments,
-      cashback_by_category: cashbackResult.data || [],
+      cashback_entries: cashbackEntries,
       stats: {
         sales_count: sales.length,
         total_bought,

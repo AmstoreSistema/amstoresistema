@@ -177,18 +177,50 @@ export function ClientDetailsModal({ client, isOpen, onClose }: ClientDetailsMod
                   <div className="col-span-full p-4 text-center text-muted-foreground bg-white rounded-2xl border border-dashed">
                     Carregando categorias...
                   </div>
-                ) : data?.cashback_by_category?.length === 0 ? (
+                ) : data?.cashback_entries?.length === 0 ? (
                   <div className="col-span-full p-4 text-center text-muted-foreground bg-white rounded-2xl border border-dashed">
                     Nenhuma categoria configurada.
                   </div>
                 ) : (
-                  data?.cashback_by_category?.map((cat: any) => (
-                    <div key={cat.category_name} className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex flex-col items-center text-center">
-                      <span className="text-[10px] font-bold uppercase text-muted-foreground mb-2">{cat.category_name}</span>
-                      <div className="text-lg font-black text-primary">{brl(cat.balance)}</div>
-                      <div className="text-[10px] text-muted-foreground mt-1">Acumulado: {brl(cat.total_earned)}</div>
-                    </div>
-                  ))
+                  (() => {
+                    const entries = data?.cashback_entries || [];
+                    const categoryTotals: Record<string, { balance: number, total_earned: number }> = {};
+                    
+                    entries.forEach((entry: any) => {
+                      const sale = entry.sales;
+                      if (!sale || !sale.sale_items) return;
+                      
+                      const items = sale.sale_items;
+                      const saleTotal = items.reduce((sum: number, it: any) => sum + (it.quantity * it.unit_price - (it.discount || 0)), 0);
+                      
+                      if (saleTotal <= 0) return;
+                      
+                      items.forEach((item: any) => {
+                        const category = item.products?.category || "Outros";
+                        const weight = (item.quantity * item.unit_price - (item.discount || 0)) / saleTotal;
+                        const distributedAmount = weight * Number(entry.amount);
+                        
+                        if (!categoryTotals[category]) {
+                          categoryTotals[category] = { balance: 0, total_earned: 0 };
+                        }
+                        
+                        if (entry.kind === 'earned') {
+                          categoryTotals[category].balance += distributedAmount;
+                          categoryTotals[category].total_earned += distributedAmount;
+                        } else {
+                          categoryTotals[category].balance -= distributedAmount;
+                        }
+                      });
+                    });
+
+                    return Object.entries(categoryTotals).map(([name, stats]: [string, any]) => (
+                      <div key={name} className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex flex-col items-center text-center">
+                        <span className="text-[10px] font-bold uppercase text-muted-foreground mb-2">{name}</span>
+                        <div className="text-lg font-black text-primary">{brl(stats.balance)}</div>
+                        <div className="text-[10px] text-muted-foreground mt-1">Acumulado: {brl(stats.total_earned)}</div>
+                      </div>
+                    ));
+                  })()
                 )}
               </div>
             </div>
@@ -216,9 +248,9 @@ export function ClientDetailsModal({ client, isOpen, onClose }: ClientDetailsMod
                           <span className="font-bold text-foreground text-sm">{sale.sale_code}</span>
                           <span className={cn(
                             "text-[10px] font-bold px-2 py-0.5 rounded uppercase",
-                            sale.status === 'paid' ? "bg-green-100 text-green-700" : "bg-orange-100 text-orange-700"
+                            (sale.status === 'paid' || sale.status === 'completed' || sale.status === 'finalizado' || Number(sale.paid_amount) >= Number(sale.total_amount)) ? "bg-green-100 text-green-700" : "bg-orange-100 text-orange-700"
                           )}>
-                            {sale.status === 'paid' ? 'pago' : 'parcial'}
+                            {(sale.status === 'paid' || sale.status === 'completed' || sale.status === 'finalizado' || Number(sale.paid_amount) >= Number(sale.total_amount)) ? 'pago' : 'parcial'}
                           </span>
                           {sale.payment_method === 'Fiado' && (
                             <span className="text-[10px] font-bold px-2 py-0.5 rounded uppercase bg-yellow-100 text-yellow-700">
