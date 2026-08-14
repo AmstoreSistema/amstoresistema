@@ -30,7 +30,7 @@ export const resetAllCashbacks = createServerFn({ method: "POST" })
     // 3. Reset QR promo history bonus usage
     const { error: promoError } = await supabaseAdmin
       .from("qr_promo_history")
-      .update({ available_bonus: false })
+      .update({ available_bonus: true })
       .eq("is_awarded", true);
 
     if (promoError) {
