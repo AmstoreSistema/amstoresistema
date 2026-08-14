@@ -89,7 +89,7 @@ function CatalogPage() {
       
       let matchesSize = selectedSizeFilter === "Todas";
       if (!matchesSize) {
-        const stockRecord = stockRecords.find(s => s.produto_id === p.id);
+        const stockRecord = stockMap.get(p.id);
         if (stockRecord?.numeracoes) {
           matchesSize = (stockRecord.numeracoes[selectedSizeFilter] || 0) > 0;
         }
@@ -97,7 +97,7 @@ function CatalogPage() {
 
       return matchesTerm && matchesCategory && matchesSize;
     });
-  }, [products, term, activeCategory, selectedSizeFilter, stockRecords]);
+  }, [products, term, activeCategory, selectedSizeFilter, stockMap]);
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
