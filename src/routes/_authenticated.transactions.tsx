@@ -136,6 +136,7 @@ function TransactionsPage() {
       qc.invalidateQueries();
     } catch (e: any) {
       toast.error(e.message);
+    }
   };
 
   const handleUpdateAccountBalance = async () => {
