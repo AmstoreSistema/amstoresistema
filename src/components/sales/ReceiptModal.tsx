@@ -193,7 +193,7 @@ export function ReceiptModal({
                 </div>
               ) : (
                 <h2 className="font-bold text-lg uppercase tracking-[0.2em] py-2">
-                  {getSetting("store_name") || "AMSTORE BAGSHOES"}
+                  AMSTORE BAGSHOES
                 </h2>
               )}
               <div className="text-[10px] space-y-0.5">
