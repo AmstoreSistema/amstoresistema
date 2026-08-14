@@ -81,13 +81,29 @@ function LabelsPage() {
   return (
     <div className="space-y-6">
       <div className="print:hidden">
-        <PageHeader title="Etiquetas" actions={
-          <div className="flex gap-2">
-            <Button onClick={() => setAddModalOpen(true)} className="bg-gold text-black font-bold">Adicionar</Button>
-            <Button variant="outline" onClick={async () => { await clearLabels(); qc.invalidateQueries({ queryKey: ["etiqueta_gerada"] }); }}>Limpar</Button>
-            <Button onClick={() => window.print()}><Printer className="size-4 mr-2" /> Imprimir</Button>
-          </div>
-        } />
+        <PageHeader 
+          title="Gerador de Etiquetas" 
+          description="Grade 3 colunas padrão Pimaco/A4"
+          icon={Tags}
+          actions={
+            <div className="flex gap-2">
+              <Button onClick={() => setAddModalOpen(true)} className="bg-gradient-gold border-none shadow-gold font-bold">
+                <Plus className="size-4 mr-2" /> Adicionar
+              </Button>
+              <Button variant="outline" onClick={async () => { 
+                if (!confirm("Limpar todas as etiquetas?")) return;
+                await clearLabels(); 
+                qc.invalidateQueries({ queryKey: ["etiqueta_gerada"] }); 
+                toast.success("Grade limpa");
+              }} className="text-destructive border-destructive/20">
+                <Trash2 className="size-4 mr-2" /> Limpar
+              </Button>
+              <Button onClick={() => window.print()} variant="secondary">
+                <Printer className="size-4 mr-2" /> Imprimir
+              </Button>
+            </div>
+          } 
+        />
         
         <div className="grid grid-cols-3 gap-4 mb-6">
           <Card><CardContent className="pt-6 text-center"><p className="text-sm font-bold">Folha</p><p className="text-2xl">{usedSlots}/30</p></CardContent></Card>
