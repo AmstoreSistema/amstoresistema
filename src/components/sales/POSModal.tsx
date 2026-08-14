@@ -684,14 +684,16 @@ export function POSModal({ open, onOpenChange }: { open: boolean; onOpenChange: 
             }
          }} 
          sale={receiptOpen ? lastSale : {
+            id: "PREVIA-" + Date.now(),
             sale_code: saleCode,
             total_amount: finalTotal,
-            discount: discount + itemsDiscount,
-            cashback_used: cashbackToUse,
-            cashback_earned: estimatedCashback,
+            discount: (discount || 0) + (itemsDiscount || 0),
+            cashback_used: cashbackToUse || 0,
+            cashback_earned: estimatedCashback || 0,
             payment_method: isDebt ? "Fiado" : paymentMethod,
             is_debt: isDebt,
-            installments: installments,
+            installments: installments || [],
+            created_at: new Date(saleDate || new Date()).toISOString(),
             items: items.map(i => ({
                name: i.name,
                quantity: i.quantity,
@@ -703,6 +705,7 @@ export function POSModal({ open, onOpenChange }: { open: boolean; onOpenChange: 
          client={client}
          isPreview={previewOpen}
       />
+
     </Dialog>
 
   );
