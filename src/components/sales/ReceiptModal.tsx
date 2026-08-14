@@ -134,7 +134,21 @@ export function ReceiptModal({
 
 
   const { data: promoConfigs = [] } = useRows<any>("qr_promo_config");
+  const { data: appSettings = [] } = useRows<any>("app_settings");
   const promoConfig = promoConfigs?.[0];
+
+  const getSetting = (key: string) => {
+    const setting = appSettings?.find((s: any) => s.key === key);
+    if (!setting) return null;
+    try {
+      return JSON.parse(setting.value);
+    } catch {
+      return setting.value;
+    }
+  };
+
+  const storeWebsite = getSetting("store_website");
+  const storeInstagram = getSetting("store_instagram");
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -265,6 +279,8 @@ export function ReceiptModal({
             <div className="text-center text-[9px] space-y-1 mt-2">
               <p>Obrigado pela preferência! 🌟</p>
               <p className="font-bold">AmStore Bagshoes</p>
+              {storeWebsite && <p>{storeWebsite}</p>}
+              {storeInstagram && <p>Instagram: {storeInstagram}</p>}
               <p>{new Date().toLocaleString('pt-BR')}</p>
             </div>
           </div>
