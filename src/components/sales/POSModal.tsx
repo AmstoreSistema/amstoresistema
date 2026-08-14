@@ -238,7 +238,9 @@ export function POSModal({ open, onOpenChange }: { open: boolean; onOpenChange: 
       };
 
 
+      const result = await createSale({ data: saleData });
       const saleId = result?.saleId;
+
       if (!saleId) throw new Error("Falha ao obter ID da venda processada.");
 
       toast.success("Venda realizada com sucesso!");
