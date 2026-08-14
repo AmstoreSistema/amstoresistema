@@ -15,8 +15,9 @@ import { toast } from "sonner";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { CheckCircle2, Info, Loader2 as Spinner } from "lucide-react";
+import { CheckCircle2, Info, Loader2 as Spinner, ImageIcon } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/_authenticated/settings")({
   head: () => ({
@@ -40,6 +41,7 @@ function SettingsPage() {
   const [selectedTables, setSelectedTables] = useState<string[]>([]);
   const [backupProgress, setBackupProgress] = useState<{ active: boolean; currentTable: string; percent: number }>({ active: false, currentTable: "", percent: 0 });
   const [importDialog, setImportDialog] = useState<{ open: boolean; payload: any; selected: string[] }>({ open: false, payload: null, selected: [] });
+  const [uploadingLogo, setUploadingLogo] = useState(false);
   
   const backupModules = [
     {
@@ -322,6 +324,44 @@ function SettingsPage() {
       setSaving(false);
     }
   };
+  
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingLogo(true);
+    try {
+      // Ensure bucket exists or handle error if it doesn't
+      const fileExt = file.name.split('.').pop();
+      const fileName = `store-logo-${Date.now()}.${fileExt}`;
+      const filePath = `public/${fileName}`;
+
+      const { data, error: uploadError } = await supabase.storage
+        .from('store_assets')
+        .upload(filePath, file);
+
+      if (uploadError) {
+        if (uploadError.message.includes('bucket not found')) {
+          toast.error("Bucket 'store_assets' não encontrado. Configure o bucket no Supabase.");
+        } else {
+          throw uploadError;
+        }
+        return;
+      }
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('store_assets')
+        .getPublicUrl(filePath);
+
+      handleLocalUpdate("store_logo", publicUrl);
+      toast.success("Logomarca carregada com sucesso!");
+    } catch (error: any) {
+      console.error("Erro no upload da logo:", error);
+      toast.error(`Erro ao carregar logomarca: ${error.message}`);
+    } finally {
+      setUploadingLogo(false);
+    }
+  };
 
   if (loading) {
     return <div className="flex h-96 items-center justify-center">Carregando...</div>;
@@ -367,22 +407,49 @@ function SettingsPage() {
                 <div className="space-y-4">
                   <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Logomarca da Loja</Label>
                   <div className="flex items-center gap-4">
-                    <div className="size-24 rounded-2xl bg-muted border-2 border-dashed border-border flex items-center justify-center overflow-hidden">
-                      {getSettingValue("store_logo") ? (
-                        <img src={getSettingValue("store_logo")} alt="Logo" className="max-h-full max-w-full object-contain" />
+                    <div className="size-24 rounded-2xl bg-muted border-2 border-dashed border-border flex items-center justify-center overflow-hidden shrink-0">
+                      {uploadingLogo ? (
+                        <Spinner className="size-8 animate-spin text-gold" />
+                      ) : getSettingValue("store_logo") ? (
+                        <img src={getSettingValue("store_logo")} alt="Logo" className="max-h-full max-w-full object-contain p-2" />
                       ) : (
                         <Store className="size-8 text-muted-foreground/40" />
                       )}
                     </div>
-                    <div className="space-y-2">
-                      <Input 
-                        type="text"
-                        placeholder="URL da Logomarca"
-                        value={getSettingValue("store_logo")}
-                        onChange={(e) => handleLocalUpdate("store_logo", e.target.value)}
-                        className="h-10 border-border/60 focus-visible:ring-gold"
-                      />
-                      <p className="text-[10px] text-muted-foreground">Insira a URL da imagem ou use o componente de upload se disponível.</p>
+                    <div className="space-y-3 flex-1">
+                      <div className="flex flex-col gap-2">
+                        <Input 
+                          id="logo-upload"
+                          type="file"
+                          accept="image/*"
+                          onChange={handleLogoUpload}
+                          className="hidden"
+                          disabled={uploadingLogo}
+                        />
+                        <Button 
+                          type="button" 
+                          variant="outline" 
+                          className="w-full gap-2 border-dashed border-gold/50 hover:border-gold hover:bg-gold/5"
+                          onClick={() => document.getElementById('logo-upload')?.click()}
+                          disabled={uploadingLogo}
+                        >
+                          {uploadingLogo ? (
+                            <Spinner className="size-4 animate-spin" />
+                          ) : (
+                            <Upload className="size-4" />
+                          )}
+                          Carregar Logomarca
+                        </Button>
+                        <Input 
+                          type="text"
+                          placeholder="Ou insira a URL da Logomarca"
+                          value={getSettingValue("store_logo")}
+                          onChange={(e) => handleLocalUpdate("store_logo", e.target.value)}
+                          className="h-10 border-border/60 focus-visible:ring-gold text-[10px]"
+                          disabled={uploadingLogo}
+                        />
+                      </div>
+                      <p className="text-[10px] text-muted-foreground">Recomendado: 500x500px, fundo transparente.</p>
                     </div>
                   </div>
                 </div>
