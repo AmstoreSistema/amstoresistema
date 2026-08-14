@@ -30,7 +30,6 @@ import { Route as AuthenticatedSalesRouteImport } from './routes/_authenticated.
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated.settings'
 import { Route as AuthenticatedStockRouteImport } from './routes/_authenticated.stock'
 import { Route as AuthenticatedTransactionsRouteImport } from './routes/_authenticated.transactions'
-import { Route as ApiPublicQrCheckRouteImport } from './routes/api/public/qr-check'
 import { Route as ApiPublicSorteioInfoRouteImport } from './routes/api/public/sorteio-info'
 
 const IndexRoute = IndexRouteImport.update({
@@ -138,11 +137,6 @@ const AuthenticatedTransactionsRoute =
     path: '/transactions',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
-const ApiPublicQrCheckRoute = ApiPublicQrCheckRouteImport.update({
-  id: '/api/public/qr-check',
-  path: '/api/public/qr-check',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const ApiPublicSorteioInfoRoute = ApiPublicSorteioInfoRouteImport.update({
   id: '/api/public/sorteio-info',
   path: '/api/public/sorteio-info',
@@ -170,7 +164,6 @@ export interface FileRoutesByFullPath {
   '/settings': typeof AuthenticatedSettingsRoute
   '/stock': typeof AuthenticatedStockRoute
   '/transactions': typeof AuthenticatedTransactionsRoute
-  '/api/public/qr-check': typeof ApiPublicQrCheckRoute
   '/api/public/sorteio-info': typeof ApiPublicSorteioInfoRoute
 }
 export interface FileRoutesByTo {
@@ -194,7 +187,6 @@ export interface FileRoutesByTo {
   '/settings': typeof AuthenticatedSettingsRoute
   '/stock': typeof AuthenticatedStockRoute
   '/transactions': typeof AuthenticatedTransactionsRoute
-  '/api/public/qr-check': typeof ApiPublicQrCheckRoute
   '/api/public/sorteio-info': typeof ApiPublicSorteioInfoRoute
 }
 export interface FileRoutesById {
@@ -220,7 +212,6 @@ export interface FileRoutesById {
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/_authenticated/stock': typeof AuthenticatedStockRoute
   '/_authenticated/transactions': typeof AuthenticatedTransactionsRoute
-  '/api/public/qr-check': typeof ApiPublicQrCheckRoute
   '/api/public/sorteio-info': typeof ApiPublicSorteioInfoRoute
 }
 export interface FileRouteTypes {
@@ -246,7 +237,6 @@ export interface FileRouteTypes {
     | '/settings'
     | '/stock'
     | '/transactions'
-    | '/api/public/qr-check'
     | '/api/public/sorteio-info'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -270,7 +260,6 @@ export interface FileRouteTypes {
     | '/settings'
     | '/stock'
     | '/transactions'
-    | '/api/public/qr-check'
     | '/api/public/sorteio-info'
   id:
     | '__root__'
@@ -295,7 +284,6 @@ export interface FileRouteTypes {
     | '/_authenticated/settings'
     | '/_authenticated/stock'
     | '/_authenticated/transactions'
-    | '/api/public/qr-check'
     | '/api/public/sorteio-info'
   fileRoutesById: FileRoutesById
 }
@@ -304,7 +292,6 @@ export interface RootRouteChildren {
   AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
   AuthRoute: typeof AuthRoute
   SorteioRoute: typeof SorteioRoute
-  ApiPublicQrCheckRoute: typeof ApiPublicQrCheckRoute
   ApiPublicSorteioInfoRoute: typeof ApiPublicSorteioInfoRoute
 }
 
@@ -457,13 +444,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedTransactionsRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
-    '/api/public/qr-check': {
-      id: '/api/public/qr-check'
-      path: '/api/public/qr-check'
-      fullPath: '/api/public/qr-check'
-      preLoaderRoute: typeof ApiPublicQrCheckRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/api/public/sorteio-info': {
       id: '/api/public/sorteio-info'
       path: '/api/public/sorteio-info'
@@ -523,7 +503,6 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRoute: AuthenticatedRouteWithChildren,
   AuthRoute: AuthRoute,
   SorteioRoute: SorteioRoute,
-  ApiPublicQrCheckRoute: ApiPublicQrCheckRoute,
   ApiPublicSorteioInfoRoute: ApiPublicSorteioInfoRoute,
 }
 export const routeTree = rootRouteImport
