@@ -129,8 +129,20 @@ function LabelsPage() {
               <div className="space-y-4">
                 <p className="font-bold">{selectedProduct.name}</p>
                 <div className="flex gap-2">
-                  <Button variant={type === 'CODE128' ? 'default' : 'outline'} onClick={() => setType('CODE128')}><Barcode className="mr-2 size-4"/>Barras</Button>
-                  <Button variant={type === 'QR' ? 'default' : 'outline'} onClick={() => setType('QR')}><QrCode className="mr-2 size-4"/>QR Code</Button>
+                  <Button 
+                    type="button"
+                    variant={type === 'CODE128' ? 'default' : 'outline'} 
+                    onClick={() => setType('CODE128')}
+                  >
+                    <Barcode className="mr-2 size-4"/>Barras
+                  </Button>
+                  <Button 
+                    type="button"
+                    variant={type === 'QR' ? 'default' : 'outline'} 
+                    onClick={() => setType('QR')}
+                  >
+                    <QrCode className="mr-2 size-4"/>QR Code
+                  </Button>
                 </div>
                 <div className="grid grid-cols-4 gap-2">
                   {['33', '34', '35', '36', '37', '38', '39', '40'].map(size => (
