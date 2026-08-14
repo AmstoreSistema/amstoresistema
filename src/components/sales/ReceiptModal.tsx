@@ -90,8 +90,8 @@ export function ReceiptModal({
       // Clear previous
       qrcodeRef.current.innerHTML = "";
       
-      const codigoUnico = displaySale.promo_qr || `QR-${Date.now()}-${Math.random().toString(36).substring(2, 10).toUpperCase()}`;
-      const checkUrl = `${window.location.origin}/api/public/qr-check?code=${codigoUnico}`;
+      const codigoUnico = displaySale.promo_qr || `QR-PROM-${new Date().getFullYear()}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
+      const checkUrl = `${window.location.origin}/sorteio?codigo=${codigoUnico}`;
       
       new window.QRCode(qrcodeRef.current, {
         text: checkUrl,
@@ -183,13 +183,21 @@ export function ReceiptModal({
 
             <div className="border-t border-dashed border-gray-300 my-2" />
 
+            {/* --- CASHBACK TOTAL (NOVO) --- */}
+            {displaySale?.cashback_earned > 0 && (
+              <div className="mb-4 bg-black text-white p-2 rounded-lg text-center border border-white/20">
+                <p className="text-[8px] uppercase tracking-widest font-bold opacity-70">Saldo Total Cashback</p>
+                <p className="text-base font-black">{brl(displaySale.cashback_earned)}</p>
+                <p className="text-[9px] font-bold italic">Use na próxima compra!</p>
+              </div>
+            )}
+
             {/* --- DADOS DA VENDA --- */}
             <div className="space-y-0.5">
               <div className="flex justify-between"><span>Cupom:</span><span>{displaySale?.sale_code || displaySale?.id?.toString().slice(0, 8)}</span></div>
               <div className="flex justify-between"><span>Data:</span><span>{dateTimeBR(displaySale?.created_at || new Date().toISOString())}</span></div>
               <div className="flex justify-between"><span>Cliente:</span><span className="font-bold">{(displayClient?.name || "CONSUMIDOR").toUpperCase()}</span></div>
               <div className="flex justify-between"><span>Tipo:</span><span>{displaySale?.sale_type || "Varejo"}</span></div>
-
             </div>
 
             <div className="border-t border-dashed border-gray-300 my-2" />
@@ -240,23 +248,14 @@ export function ReceiptModal({
             {/* --- QR CODE PROMOCIONAL --- */}
             {!isPreview && !isCancelled && promoConfig && promoConfig.active && (
               <div className="text-center py-2">
-                <p className="font-bold mb-2 flex items-center justify-center gap-2">
+                <p className="font-bold mb-2 flex items-center justify-center gap-2 text-[10px]">
                    <Gift className="size-3" /> PROMOÇÃO: {promoConfig.name || "QR Code Premiado"}
                 </p>
                 <div className="flex justify-center my-3 min-h-[160px]">
                   {!qrLoaded ? <Loader2 className="size-8 animate-spin text-muted-foreground/20 self-center" /> : <div ref={qrcodeRef} id="qrcode-cupom" />}
                 </div>
-                <p className="text-[8px] text-muted-foreground mb-2 uppercase tracking-widest font-bold">{displaySale.promo_qr || "GERANDO..."}</p>
-                
-                {isAwarded ? (
-                  <p className="text-green-700 font-bold leading-tight px-2">
-                    {promoConfig.awarded_message || "PARABÉNS! Você foi sorteado!"}
-                  </p>
-                ) : (
-                  <p className="text-gray-500 text-[9px] leading-tight px-4">
-                    {promoConfig.standard_message || "Que pena! Continue comprando para concorrer."}
-                  </p>
-                )}
+                <p className="text-[10px] font-bold mb-1 uppercase tracking-tighter">Escaneie e veja sua surpresa!</p>
+                <p className="text-[10px] font-bold uppercase font-mono">Código: {displaySale.promo_qr || "QR-PROM-ERROR"}</p>
               </div>
             )}
 

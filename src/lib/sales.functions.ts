@@ -160,7 +160,8 @@ export const createSale = createServerFn({ method: "POST" })
     return { 
       saleId: saleId as string,
       promoQr: promoQr,
-      isAwarded: isAwarded
+      isAwarded: isAwarded,
+      cashbackEarned: calculatedCashbackEarned
     };
 
   });
