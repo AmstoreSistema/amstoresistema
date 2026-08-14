@@ -115,7 +115,7 @@ export function SaleDetailsModal({
                     <div>
                       <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1 block">Cliente</label>
                       <div className="font-bold text-foreground text-sm">
-                        {sale?.clients?.name || sale?.client_name || "Consumidor Final"}
+                        {(sale as any)?.client_name || "Consumidor Final"}
                       </div>
                     </div>
                     <div>
@@ -127,7 +127,7 @@ export function SaleDetailsModal({
                     <div>
                       <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1 block">Vendedor</label>
                       <div className="text-sm text-foreground">
-                        {sale?.profiles?.display_name || sale?.seller_name || "amstorebagshoes"}
+                        {(sale as any)?.seller_name || "amstorebagshoes"}
                       </div>
                     </div>
                     <div>
