@@ -210,17 +210,17 @@ export function SaleDetailsModal({
                     ) : payments.map((pay: any, i: number) => (
                       <div key={i} className="bg-white rounded-xl p-4 flex items-center justify-between border border-gray-100 shadow-sm">
                         <div>
-                          <div className="font-bold text-foreground text-xs uppercase">
-                            {pay.payment_method || "Dinheiro"}
+                          <div className="font-bold text-foreground text-sm uppercase leading-tight">
+                            {pay.payment_method || pay.description || "Pagamento"}
                           </div>
-                          <div className="text-[10px] text-muted-foreground mt-0.5">
+                          <div className="text-[11px] text-muted-foreground mt-0.5">
                             {dateTimeBR(pay.created_at)}
                           </div>
-                          <div className="text-[9px] text-muted-foreground mt-0.5 font-medium uppercase tracking-tighter">
+                          <div className="text-[11px] text-muted-foreground mt-1 font-medium">
                             Conta: {pay.financial_accounts?.name || "Caixa Principal"}
                           </div>
                         </div>
-                        <div className="font-bold text-green-600">{brl(pay.amount)}</div>
+                        <div className="font-bold text-green-600 text-lg">{brl(pay.amount)}</div>
                       </div>
                     ))}
                   </div>
