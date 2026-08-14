@@ -39,6 +39,7 @@ function LabelsPage() {
             JsBarcode(element, label.codigo_barras, { format: "CODE128", width: 1.5, height: 40, displayValue: true, fontSize: 10, margin: 0 });
           } catch (e) {}
         }
+        return;
       }
     });
   }, [labels]);
