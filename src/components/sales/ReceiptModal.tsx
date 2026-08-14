@@ -149,7 +149,7 @@ export function ReceiptModal({
 
   const storeWebsite = getSetting("store_website");
   const storeInstagram = getSetting("store_instagram");
-  const storeLogo = getSetting("store_logo");
+  const storeLogo = getSetting("store_logo") || logoAsset.url;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -187,9 +187,9 @@ export function ReceiptModal({
           >
             {/* --- CABEÇALHO DA LOJA --- */}
             <div className="text-center space-y-2 mb-4">
-              {storeLogo || logoAsset.url ? (
+              {storeLogo ? (
                 <div className="flex justify-center mb-2">
-                  <img src={storeLogo || logoAsset.url} alt="Logo" className="h-20 w-auto object-contain" />
+                  <img src={storeLogo} alt="Logo" className="h-16 w-auto object-contain" />
                 </div>
               ) : (
                 <h2 className="font-bold text-lg uppercase tracking-[0.2em] py-2">
@@ -309,8 +309,8 @@ export function ReceiptModal({
             {/* --- QR CODE PROMOCIONAL (CAIXA PONTILHADA) --- */}
             {!isPreview && !isCancelled && promoConfig && promoConfig.active && (
               <div className="border-2 border-dashed border-[#D53F8C] bg-[#FDF2F8] p-4 rounded-2xl text-center space-y-2">
-                <div className="flex items-center justify-center gap-1 font-bold text-[#D53F8C]">
-                  <Gift className="size-4" /> PROMOÇÃO AMSTORE
+                <div className="flex items-center justify-center gap-1 font-bold text-[#D53F8C] uppercase">
+                  <Gift className="size-4" /> {promoConfig.name || "PROMOÇÃO AMSTORE"}
                 </div>
                 <div className="flex justify-center my-2">
                   {!qrLoaded ? (

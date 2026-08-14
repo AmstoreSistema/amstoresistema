@@ -353,7 +353,10 @@ function SettingsPage() {
         .from('store_assets')
         .getPublicUrl(filePath);
 
+      // Salvar imediatamente no banco e atualizar estado local
+      setLocalSettings(prev => ({ ...prev, store_logo: publicUrl }));
       await saveSettingsBatch({ data: [{ key: "store_logo", value: publicUrl }] });
+      
       toast.success("Logomarca carregada e salva com sucesso!");
       await loadData();
     } catch (error: any) {
