@@ -139,9 +139,9 @@ export function ReceiptModal({
   };
 
   const items = sale.items || [];
-  const subtotal = sale.total_amount + (sale.discount || 0) + (sale.cashback_used || 0);
-  const isCancelled = sale.status === 'cancelado';
-  const isAwarded = sale.is_awarded === true;
+  const subtotal = (sale?.total_amount || 0) + (sale?.discount || 0) + (sale?.cashback_used || 0);
+  const isCancelled = sale?.status === 'cancelado';
+  const isAwarded = sale?.is_awarded === true;
 
   const { data: promoConfigs = [] } = useRows<any>("qr_promo_config");
   const promoConfig = promoConfigs?.[0];
@@ -195,10 +195,10 @@ export function ReceiptModal({
 
             {/* --- DADOS DA VENDA --- */}
             <div className="space-y-0.5">
-              <div className="flex justify-between"><span>Cupom:</span><span>{sale.sale_code || sale.id?.slice(0, 8)}</span></div>
-              <div className="flex justify-between"><span>Data:</span><span>{dateTimeBR(sale.created_at || new Date().toISOString())}</span></div>
+              <div className="flex justify-between"><span>Cupom:</span><span>{sale?.sale_code || sale?.id?.slice(0, 8)}</span></div>
+              <div className="flex justify-between"><span>Data:</span><span>{dateTimeBR(sale?.created_at || new Date().toISOString())}</span></div>
               <div className="flex justify-between"><span>Cliente:</span><span className="font-bold">{(client?.name || "CONSUMIDOR").toUpperCase()}</span></div>
-              <div className="flex justify-between"><span>Tipo:</span><span>{sale.sale_type || "Varejo"}</span></div>
+              <div className="flex justify-between"><span>Tipo:</span><span>{sale?.sale_type || "Varejo"}</span></div>
             </div>
 
             <div className="border-t border-dashed border-gray-300 my-2" />
@@ -208,10 +208,10 @@ export function ReceiptModal({
               {items.map((item: any, i: number) => (
                 <div key={i}>
                   <div className="flex justify-between">
-                    <span className="flex-1 truncate pr-2">{(item.name || item.product_name).toUpperCase()} {item.numeracao ? `- TAM ${item.numeracao}` : ''}</span>
-                    <span>{brl(item.quantity * item.unit_price)}</span>
+                    <span className="flex-1 truncate pr-2">{(item.name || item.product_name || "PRODUTO").toUpperCase()} {item.numeracao ? `- TAM ${item.numeracao}` : ''}</span>
+                    <span>{brl((item.quantity || 0) * (item.unit_price || 0))}</span>
                   </div>
-                  <div className="text-[10px] pl-2">{item.quantity}x {brl(item.unit_price)}</div>
+                  <div className="text-[10px] pl-2">{item.quantity || 0}x {brl(item.unit_price || 0)}</div>
                 </div>
               ))}
             </div>
@@ -219,26 +219,26 @@ export function ReceiptModal({
             <div className="border-t border-dashed border-gray-300 my-2" />
             
             <div className="space-y-0.5">
-              <div className="flex justify-between"><span>Subtotal:</span><span>{brl(subtotal)}</span></div>
-              {sale.discount > 0 && <div className="flex justify-between"><span>Desconto:</span><span>-{brl(sale.discount)}</span></div>}
-              {sale.cashback_used > 0 && <div className="flex justify-between"><span>Cashback:</span><span>-{brl(sale.cashback_used)}</span></div>}
-              <div className="flex justify-between font-bold text-sm pt-1"><span>TOTAL:</span><span>{brl(sale.total_amount)}</span></div>
-              <div className="flex justify-between"><span>Pago:</span><span>{brl(sale.paid_amount ?? (sale.is_debt ? 0 : sale.total_amount))}</span></div>
-              {sale.is_debt && sale.installments && sale.installments.length > 0 && (
+              <div className="flex justify-between"><span>Subtotal:</span><span>{brl(subtotal || 0)}</span></div>
+              {(sale?.discount > 0) && <div className="flex justify-between"><span>Desconto:</span><span>-{brl(sale.discount)}</span></div>}
+              {(sale?.cashback_used > 0) && <div className="flex justify-between"><span>Cashback:</span><span>-{brl(sale.cashback_used)}</span></div>}
+              <div className="flex justify-between font-bold text-sm pt-1"><span>TOTAL:</span><span>{brl(sale?.total_amount || 0)}</span></div>
+              <div className="flex justify-between"><span>Pago:</span><span>{brl(sale?.paid_amount ?? (sale?.is_debt ? 0 : (sale?.total_amount || 0)))}</span></div>
+              {sale?.is_debt && sale?.installments && Array.isArray(sale.installments) && sale.installments.length > 0 && (
                 <div className="mt-2 space-y-1 border-t border-dashed border-gray-200 pt-1">
                   <div className="text-[9px] font-bold text-gray-500 uppercase">Detalhamento das Parcelas (Fiado)</div>
                   {sale.installments.map((inst: any, idx: number) => (
                     <div key={idx} className="flex justify-between text-[10px]">
-                      <span>{inst.number}ª Parcela ({new Date(inst.due_date).toLocaleDateString('pt-BR')})</span>
-                      <span>{brl(inst.amount)}</span>
+                      <span>{inst.number}ª Parcela ({inst.due_date ? new Date(inst.due_date).toLocaleDateString('pt-BR') : 'N/A'})</span>
+                      <span>{brl(inst.amount || 0)}</span>
                     </div>
                   ))}
                 </div>
               )}
-              {(sale.total_amount - (sale.paid_amount ?? (sale.is_debt ? 0 : sale.total_amount))) > 0 && !sale.is_debt && (
-                <div className="flex justify-between font-bold"><span>Restante:</span><span>{brl(sale.total_amount - (sale.paid_amount ?? sale.total_amount))}</span></div>
+              {((sale?.total_amount || 0) - (sale?.paid_amount ?? (sale?.is_debt ? 0 : (sale?.total_amount || 0)))) > 0.01 && !sale?.is_debt && (
+                <div className="flex justify-between font-bold"><span>Restante:</span><span>{brl((sale.total_amount || 0) - (sale.paid_amount ?? (sale.total_amount || 0)))}</span></div>
               )}
-              <div className="flex justify-between"><span>Forma Pagto:</span><span>{sale.payment_method?.toUpperCase()}</span></div>
+              <div className="flex justify-between"><span>Forma Pagto:</span><span>{sale?.payment_method?.toUpperCase() || "N/A"}</span></div>
             </div>
 
             <div className="border-t border-dashed border-gray-300 my-2" />
