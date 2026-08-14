@@ -54,19 +54,41 @@ function CatalogPage() {
   
   const [term, setTerm] = useState("");
   const [activeCategory, setActiveCategory] = useState("Todos");
+  const [selectedSizeFilter, setSelectedSizeFilter] = useState("Todas");
   const [sizeDetailOpen, setSizeDetailOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [selectedSizeInfo, setSelectedSizeInfo] = useState<{ size: string; quantity: number } | null>(null);
 
   const categories = useMemo(() => ["Todos", ...new Set(products.map(p => p.category))], [products]);
 
+  const allAvailableSizes = useMemo(() => {
+    const sizes = new Set<string>();
+    stockRecords.forEach(record => {
+      if (record.numeracoes) {
+        Object.entries(record.numeracoes).forEach(([size, qty]) => {
+          if (Number(qty) > 0) sizes.add(size);
+        });
+      }
+    });
+    return ["Todas", ...Array.from(sizes).sort((a, b) => a.localeCompare(b))];
+  }, [stockRecords]);
+
   const filtered = useMemo(() => {
     return products.filter(p => {
       const matchesTerm = (p.name || "").toLowerCase().includes(term.toLowerCase()) || (p.sku?.toLowerCase().includes(term.toLowerCase()));
       const matchesCategory = activeCategory === "Todos" || p.category === activeCategory;
-      return matchesTerm && matchesCategory;
+      
+      let matchesSize = selectedSizeFilter === "Todas";
+      if (!matchesSize) {
+        const stockRecord = stockRecords.find(s => s.produto_id === p.id);
+        if (stockRecord?.numeracoes) {
+          matchesSize = (stockRecord.numeracoes[selectedSizeFilter] || 0) > 0;
+        }
+      }
+
+      return matchesTerm && matchesCategory && matchesSize;
     });
-  }, [products, term, activeCategory]);
+  }, [products, term, activeCategory, selectedSizeFilter, stockRecords]);
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -86,13 +108,22 @@ function CatalogPage() {
             onChange={e => setTerm(e.target.value)}
           />
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Select value={activeCategory} onValueChange={setActiveCategory}>
             <SelectTrigger className="w-[180px] h-11 rounded-xl">
               <SelectValue placeholder="Todas as categorias" />
             </SelectTrigger>
             <SelectContent>
               {categories.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+            </SelectContent>
+          </Select>
+
+          <Select value={selectedSizeFilter} onValueChange={setSelectedSizeFilter}>
+            <SelectTrigger className="w-[150px] h-11 rounded-xl">
+              <SelectValue placeholder="Tamanho" />
+            </SelectTrigger>
+            <SelectContent>
+              {allAvailableSizes.map(s => <SelectItem key={s} value={s}>{s === "Todas" ? "Todos Tamanhos" : `Tamanho ${s}`}</SelectItem>)}
             </SelectContent>
           </Select>
         </div>
