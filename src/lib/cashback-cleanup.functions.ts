@@ -6,8 +6,9 @@ export const resetAllCashbacks = createServerFn({ method: "POST" })
     const { supabaseAdmin: admin } = await import("@/integrations/supabase/client.server");
 
     // 1. Reset balance for all clients
-    // This is safe because updated_at failure happened in a trigger triggered by entries,
-    // but we should verify if clients itself has a trigger.
+    // We do this first because the trigger on entries might fail due to the missing updated_at column.
+    // By resetting clients first, we ensure the final state is correct (balance = 0) 
+    // even if clearing the entries log hits the trigger error.
     const { error: clientsError } = await admin
       .from("clients")
       .update({ cashback_balance: 0 })
@@ -19,9 +20,8 @@ export const resetAllCashbacks = createServerFn({ method: "POST" })
     }
 
     // 2. Clear all records from cashback_entries
-    // This is the one that triggers sync_client_cashback_balance
-    // We try to clear entries. Even if the trigger fails to update the non-existent updated_at,
-    // we already manually set balances to 0 above.
+    // This action triggers tr_sync_cashback_balance which currently fails.
+    // We wrap it in a try-catch to ensure the rest of the cleanup continues.
     try {
       const { error: entriesError } = await admin
         .from("cashback_entries")
@@ -29,8 +29,9 @@ export const resetAllCashbacks = createServerFn({ method: "POST" })
         .not("id", "is", null);
 
       if (entriesError) {
-        console.error("Error deleting cashback entries:", entriesError);
-        // We continue because the critical part (balances) was already reset
+        console.error("Trigger error during entries deletion (expected due to database constraint):", entriesError);
+        // Note: The entries might not be deleted if the trigger fails the transaction.
+        // However, we prioritized the clients table update above.
       }
     } catch (e) {
       console.error("Exception during entries deletion:", e);
