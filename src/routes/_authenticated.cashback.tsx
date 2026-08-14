@@ -9,7 +9,8 @@ import {
   Power,
   Coins,
   TrendingUp,
-  BarChart3
+  BarChart3,
+  Eraser
 } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { StatCard } from "@/components/stat-card";
@@ -37,6 +38,9 @@ import {
 import { useRows, useSaveRow, useDeleteRow } from "@/lib/data";
 import { useState, useMemo } from "react";
 import { toast } from "sonner";
+import { useServerFn } from "@tanstack/react-start";
+import { resetAllCashbacks } from "@/lib/cashback-cleanup.functions";
+import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/_authenticated/cashback")({
@@ -55,6 +59,9 @@ function CashbackPage() {
     order: { column: "material_categories(name)", ascending: true }
   });
   const { data: categories = [] } = useRows<any>("material_categories");
+  
+  const queryClient = useQueryClient();
+  const resetAllCashbacksFn = useServerFn(resetAllCashbacks);
   
   const save = useSaveRow("cashback_config", "Configuração de Cashback");
   const remove = useDeleteRow("cashback_config", "Configuração de Cashback");
@@ -126,6 +133,18 @@ function CashbackPage() {
     } catch (error) {}
   };
 
+  const handleResetAllCashbacks = async () => {
+    if (!confirm("ATENÇÃO: Isso irá zerar o saldo de cashback de TODOS os clientes e limpar o histórico de movimentações. Esta operação é IRREVERSÍVEL. Tem certeza?")) return;
+    try {
+      await resetAllCashbacksFn();
+      toast.success("Todos os cashbacks foram zerados");
+      queryClient.invalidateQueries({ queryKey: ["clients"] });
+    } catch (error) {
+      console.error("Erro ao zerar cashbacks:", error);
+      toast.error("Erro ao zerar cashbacks");
+    }
+  };
+
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       <div className="flex flex-wrap items-center justify-between gap-4">
@@ -140,6 +159,13 @@ function CashbackPage() {
         </div>
         
         <div className="flex gap-2">
+          <Button 
+            variant="destructive" 
+            onClick={handleResetAllCashbacks}
+            className="bg-red-600 hover:bg-red-700 font-bold gap-2 shadow-lg shadow-red-500/20"
+          >
+            <Eraser className="size-4" /> Zerar Todos os Cashbacks
+          </Button>
           <Button variant="outline" className="gap-2 border-success/30 text-success hover:bg-success/5">
             <Bell className="size-4" /> Notificar Clientes
           </Button>

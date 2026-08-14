@@ -27,15 +27,26 @@ export const resetAllCashbacks = createServerFn({ method: "POST" })
       throw clientsError;
     }
 
-    // 3. Reset QR promo history bonus usage
+    // 3. Clear all records from qr_promo_history
     const { error: promoError } = await supabaseAdmin
       .from("qr_promo_history")
-      .update({ available_bonus: false })
-      .eq("is_awarded", true);
+      .delete()
+      .not("id", "is", null);
 
     if (promoError) {
-      console.error("Error resetting qr promo bonus:", promoError);
+      console.error("Error clearing qr promo history:", promoError);
       throw promoError;
+    }
+
+    // 4. Reset counter in qr_promo_config
+    const { error: configError } = await supabaseAdmin
+      .from("qr_promo_config")
+      .update({ current_counter: 0 })
+      .not("id", "is", null);
+
+    if (configError) {
+      console.error("Error resetting qr promo counter:", configError);
+      throw configError;
     }
 
     return { success: true };
