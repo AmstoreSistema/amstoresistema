@@ -324,6 +324,44 @@ function SettingsPage() {
       setSaving(false);
     }
   };
+  
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingLogo(true);
+    try {
+      // Ensure bucket exists or handle error if it doesn't
+      const fileExt = file.name.split('.').pop();
+      const fileName = `store-logo-${Date.now()}.${fileExt}`;
+      const filePath = `public/${fileName}`;
+
+      const { data, error: uploadError } = await supabase.storage
+        .from('store_assets')
+        .upload(filePath, file);
+
+      if (uploadError) {
+        if (uploadError.message.includes('bucket not found')) {
+          toast.error("Bucket 'store_assets' não encontrado. Configure o bucket no Supabase.");
+        } else {
+          throw uploadError;
+        }
+        return;
+      }
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('store_assets')
+        .getPublicUrl(filePath);
+
+      handleLocalUpdate("store_logo", publicUrl);
+      toast.success("Logomarca carregada com sucesso!");
+    } catch (error: any) {
+      console.error("Erro no upload da logo:", error);
+      toast.error(`Erro ao carregar logomarca: ${error.message}`);
+    } finally {
+      setUploadingLogo(false);
+    }
+  };
 
   if (loading) {
     return <div className="flex h-96 items-center justify-center">Carregando...</div>;
