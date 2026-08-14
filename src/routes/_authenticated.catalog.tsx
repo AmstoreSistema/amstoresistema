@@ -59,6 +59,15 @@ function CatalogPage() {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [selectedSizeInfo, setSelectedSizeInfo] = useState<{ size: string; quantity: number } | null>(null);
 
+  // Indexing stock records by produto_id for O(1) lookup
+  const stockMap = useMemo(() => {
+    const map = new Map<string, StockRecord>();
+    stockRecords.forEach(record => {
+      map.set(record.produto_id, record);
+    });
+    return map;
+  }, [stockRecords]);
+
   const categories = useMemo(() => ["Todos", ...new Set(products.map(p => p.category))], [products]);
 
   const allAvailableSizes = useMemo(() => {
@@ -80,7 +89,7 @@ function CatalogPage() {
       
       let matchesSize = selectedSizeFilter === "Todas";
       if (!matchesSize) {
-        const stockRecord = stockRecords.find(s => s.produto_id === p.id);
+        const stockRecord = stockMap.get(p.id);
         if (stockRecord?.numeracoes) {
           matchesSize = (stockRecord.numeracoes[selectedSizeFilter] || 0) > 0;
         }
@@ -88,7 +97,7 @@ function CatalogPage() {
 
       return matchesTerm && matchesCategory && matchesSize;
     });
-  }, [products, term, activeCategory, selectedSizeFilter, stockRecords]);
+  }, [products, term, activeCategory, selectedSizeFilter, stockMap]);
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -136,7 +145,7 @@ function CatalogPage() {
       ) : (
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {filtered.map(p => {
-            const stockRecord = stockRecords.find(s => s.produto_id === p.id);
+            const stockRecord = stockMap.get(p.id);
             const numeracoes = stockRecord?.numeracoes || {};
             const allSizes = Object.entries(numeracoes as Record<string, number>)
               .map(([size, qty]) => ({ size, qty: Number(qty) }))
