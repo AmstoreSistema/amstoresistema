@@ -246,7 +246,7 @@ export function ReceiptModal({
                 <div className="flex justify-center my-3 min-h-[160px]">
                   {!qrLoaded ? <Loader2 className="size-8 animate-spin text-muted-foreground/20 self-center" /> : <div ref={qrcodeRef} id="qrcode-cupom" />}
                 </div>
-                <p className="text-[8px] text-muted-foreground mb-2">Código: {displaySale.promo_qr || "GERANDO..."}</p>
+                <p className="text-[8px] text-muted-foreground mb-2 uppercase tracking-widest font-bold">{displaySale.promo_qr || "GERANDO..."}</p>
                 
                 {isAwarded ? (
                   <p className="text-green-700 font-bold leading-tight px-2">
