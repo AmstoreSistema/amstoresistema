@@ -239,41 +239,49 @@ export function POSModal({ open, onOpenChange }: { open: boolean; onOpenChange: 
 
 
       const result = await createSale({ data: saleData });
-      const saleId = (result as any).saleId;
+      const saleId = result?.saleId;
+
+      if (!saleId) throw new Error("Falha ao obter ID da venda processada.");
+
       toast.success("Venda realizada com sucesso!");
 
-      // Find client info to pass to receipt
-      const { data: clientData } = await supabase.from("clients").select("*").eq("id", client?.id || "").maybeSingle();
-      
-      // Prepare for receipt
-      setLastSale({
-         id: saleId,
-         ...saleData
-      });
-      setClient(clientData || client); // Use fetched client or current state
-      setReceiptOpen(true);
+      try {
+        // Prepare for receipt - handle missing client data gracefully
+        let clientInfo = client;
+        if (client?.id) {
+          const { data: clientData } = await supabase.from("clients").select("*").eq("id", client.id).maybeSingle();
+          if (clientData) clientInfo = clientData;
+        }
+        
+        setLastSale({
+           id: saleId,
+           ...saleData
+        });
+        setClient(clientInfo);
+        setReceiptOpen(true);
+      } catch (receiptErr) {
+        console.error("Erro ao preparar recibo:", receiptErr);
+        toast.warning("Venda salva, mas houve um erro ao carregar o recibo.");
+      }
 
       // Reset POS
       setItems([]);
-
-      setClient(null);
       setDiscount(0);
       setCashbackToUse(0);
       setIsDebt(false);
-      // Don't close POS modal here yet, let receipt handle it or close after receipt
-      qc.invalidateQueries();
-      
-      // Reset High-Fidelity states
-      setSaleType("Varejo");
-      setAccountId(accounts.find((a: any) => a.active)?.id || null);
-      setProtectionMethod("Padrão");
       setNotes("");
+      setSaleType("Varejo");
+      
+      // Invalidate queries to refresh stock and history
+      await qc.invalidateQueries();
+      
     } catch (error: any) {
-
-      toast.error(error.message || "Erro ao processar venda");
+      console.error("Erro crítico na finalização da venda:", error);
+      toast.error(error.message || "Erro ao processar venda. Verifique os dados e tente novamente.");
     } finally {
       setIsSubmitting(false);
     }
+
   };
 
   return (
