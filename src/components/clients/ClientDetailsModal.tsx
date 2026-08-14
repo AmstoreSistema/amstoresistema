@@ -98,7 +98,7 @@ export function ClientDetailsModal({ client, isOpen, onClose }: ClientDetailsMod
     },
     {
       label: "Cashback Disponível",
-      value: brl(client.cashback_balance || 0),
+      value: brl(data?.stats.cashback_balance || 0),
       icon: Coins,
       bgColor: "bg-yellow-50",
       textColor: "text-yellow-600",
