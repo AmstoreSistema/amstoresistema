@@ -33,7 +33,10 @@ export const getClientDetails = createServerFn({ method: "GET" })
         `)
         .order("due_date", { ascending: true }),
       supabaseAdmin
-        .rpc("get_client_cashback_by_category", { p_client_id: data.client_id })
+        .from("cashback_entries")
+        .select("amount, kind, sales!inner(status, sale_items(quantity, unit_price, discount, products(category)))")
+        .eq("client_id", data.client_id)
+        .in("sales.status", ["paid", "completed", "finalizado", "ativo"])
     ]);
 
     if (salesResult.error) throw new Error(`Erro ao buscar vendas: ${salesResult.error.message}`);
@@ -70,7 +73,8 @@ export const getClientDetails = createServerFn({ method: "GET" })
     return {
       sales,
       installments,
-      cashback_by_category: cashbackResult.data || [],
+      cashback_by_category: [], // Temporário, será processado no handler abaixo se necessário ou mantido vazio para ajuste no front
+      cashback_entries: (cashbackEntries || []) as any,
       stats: {
         sales_count: sales.length,
         total_bought,
