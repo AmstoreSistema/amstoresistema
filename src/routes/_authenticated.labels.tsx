@@ -176,6 +176,25 @@ function LabelsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <style>{`
+        @media print {
+          body * { visibility: hidden; }
+          .print-grid, .print-grid * { visibility: visible; }
+          .print-grid {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 210mm;
+            border: none !important;
+            padding: 0 !important;
+            margin: 0 !important;
+          }
+          @page {
+            size: A4;
+            margin: 0;
+          }
+        }
+      `}</style>
     </div>
   );
 }
