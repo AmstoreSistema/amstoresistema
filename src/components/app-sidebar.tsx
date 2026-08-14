@@ -71,6 +71,7 @@ const menuGroups: { label: string; items: Item[] }[] = [
       { title: "Estoque", url: "/stock", icon: Warehouse },
       { title: "Relatórios", url: "/reports", icon: PieChart },
       { title: "Etiquetas", url: "/labels", icon: Tags },
+
     ],
   },
   {
