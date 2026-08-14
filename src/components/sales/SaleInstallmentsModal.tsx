@@ -313,7 +313,7 @@ export function SaleInstallmentsModal({
                onClick={() => setSecretaryOpen(true)}
                disabled={unpaidInstallments.length === 0}
              >
-               <Banknote className="size-4" /> Secretário de Pagamento
+               <Banknote className="size-4" /> Registrar Pagamento
              </Button>
              <Button variant="outline" className="flex-1 rounded-xl" onClick={() => onOpenChange(false)}>Fechar</Button>
           </div>

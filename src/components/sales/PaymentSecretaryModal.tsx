@@ -79,7 +79,7 @@ export function PaymentSecretaryModal({
       <DialogContent className="max-w-md p-0 overflow-hidden rounded-[2rem] border-none shadow-2xl">
         <DialogHeader className="p-6 bg-card border-b border-border/40">
            <DialogTitle className="font-display font-black text-xl flex items-center gap-2">
-              <Receipt className="size-5 text-gold" /> Secretário de Pagamento
+              <Receipt className="size-5 text-gold" /> Registrar Pagamento
            </DialogTitle>
         </DialogHeader>
 
