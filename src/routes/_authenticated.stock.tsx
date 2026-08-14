@@ -7,7 +7,7 @@ import {
   Plus,
   History,
   AlertTriangle,
-  Warehouse as WarehouseIcon,
+  Warehouse,
   Barcode,
   Calendar,
   Pencil,
@@ -179,7 +179,7 @@ function StockPage() {
       <PageHeader 
         title="Estoque" 
         description="Produtos acabados prontos para venda"
-        icon={WarehouseIcon}
+        icon={Warehouse}
         actions={
           <div className="flex gap-2">
              <Button variant="outline" className="gap-2">
@@ -477,30 +477,6 @@ function StockPage() {
     </div>
   );
 }
-
-function WarehouseIcon(props: any) {
-   return (
-      <svg
-        {...props}
-        xmlns="http://www.w3.org/2000/svg"
-        width="24"
-        height="24"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        <path d="M22 10v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V10" />
-        <path d="M2 10l10-8 10 8" />
-        <path d="M6 22V10" />
-        <path d="M14 22V10" />
-        <path d="M18 22V10" />
-      </svg>
-   )
-}
-
 
 function cn(...inputs: any[]) {
   return inputs.filter(Boolean).join(" ");
