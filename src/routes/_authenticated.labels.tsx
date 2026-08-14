@@ -108,7 +108,10 @@ function LabelsPage() {
         </div>
       </div>
 
-      <Dialog open={addModalOpen} onOpenChange={setAddModalOpen}>
+      <Dialog open={addModalOpen} onOpenChange={(open) => {
+        setAddModalOpen(open);
+        if (!open) setSelectedProduct(null);
+      }}>
         <DialogContent className="max-w-xl">
           <DialogHeader><DialogTitle>Adicionar Etiquetas</DialogTitle></DialogHeader>
           <div className="space-y-4">
