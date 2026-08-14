@@ -114,8 +114,8 @@ export function ClientCard({ client, onViewDetails, onEdit, onDelete }: ClientCa
               <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-green-100 text-green-700">
                 R$ {client.total_spent?.toFixed(2) || "0.00"}
               </span>
-              <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-purple-100 text-purple-700">
-                CB: R$ {(client.cashback_balance || 0).toFixed(2)}
+              <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-purple-100 text-purple-700" title="Saldo Total acumulado">
+                SALDO CB: {brl(client.cashback_balance || 0)}
               </span>
               {client.has_qr_bonus && (
                 <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-gold/10 text-gold border border-gold/20">

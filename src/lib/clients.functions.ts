@@ -17,7 +17,8 @@ export const getClientDetails = createServerFn({ method: "GET" })
           status,
           payment_method,
           created_at,
-          discount
+          discount,
+          cashback_earned
         `)
         .eq("client_id", data.client_id)
         .order("created_at", { ascending: false }),
