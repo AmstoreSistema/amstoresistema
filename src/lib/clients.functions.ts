@@ -6,7 +6,7 @@ export const getClientDetails = createServerFn({ method: "GET" })
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     
-    const [salesResult, installmentsResult, cashbackEntriesResult] = await Promise.all([
+    const [salesResult, installmentsResult, cashbackEntriesResult, clientResult] = await Promise.all([
       supabaseAdmin
         .from("sales")
         .select(`
@@ -35,16 +35,24 @@ export const getClientDetails = createServerFn({ method: "GET" })
         .order("due_date", { ascending: true }),
       supabaseAdmin
         .from("cashback_entries")
-        .select("amount, kind, sales!inner(status, sale_items(quantity, unit_price, discount, products(category)))")
-        .eq("client_id", data.client_id)
-        .in("sales.status", ["paid", "completed", "finalizado", "ativo"])
+        .select("amount, kind, sale_id, sales(status, sale_items(quantity, unit_price, discount, products(category)))")
+        .eq("client_id", data.client_id),
+      supabaseAdmin
+        .from("clients")
+        .select("cashback_balance")
+        .eq("id", data.client_id)
+        .single()
     ]);
 
     if (salesResult.error) throw new Error(`Erro ao buscar vendas: ${salesResult.error.message}`);
     
     const sales = salesResult.data || [];
     const saleIds = sales.map(s => s.id);
-    const cashbackEntries = (cashbackEntriesResult.data || []) as any[];
+    // Filter cashback entries that are either NOT linked to a sale (bonus) 
+    // or linked to a sale that still exists
+    const cashbackEntries = (cashbackEntriesResult.data || []).filter((entry: any) => 
+      !entry.sale_id || (entry.sales && entry.sales.status)
+    ) as any[];
 
     let installments: any[] = [];
     if (saleIds.length > 0) {
@@ -57,9 +65,7 @@ export const getClientDetails = createServerFn({ method: "GET" })
     const pending_installments = installments.filter(i => i.status !== 'paid');
     const total_debt = pending_installments.reduce((sum, i) => sum + Number(i.amount || 0), 0);
     
-    const calculated_cashback = cashbackEntries.reduce((acc, entry) => {
-      return acc + (entry.kind === 'earned' ? Number(entry.amount) : -Number(entry.amount));
-    }, 0);
+    const cashback_balance = Number(clientResult.data?.cashback_balance || 0);
 
     return {
       sales,
@@ -70,7 +76,7 @@ export const getClientDetails = createServerFn({ method: "GET" })
         total_bought,
         total_paid,
         total_debt,
-        cashback_balance: Math.max(0, calculated_cashback)
+        cashback_balance
       }
     };
   });
