@@ -181,109 +181,164 @@ export function ReceiptModal({
 
           <div 
             ref={receiptRef}
-            className="print-only bg-white text-black p-4 sm:p-6 border-2 border-dashed border-gray-400 font-mono text-[11px] leading-tight mx-auto max-w-[400px] print:border-none"
+            className="print-only bg-white text-black p-4 sm:p-6 border border-gray-300 font-mono text-[11px] leading-tight mx-auto max-w-[400px] print:border-none"
             style={{ fontFamily: "'Courier New', Courier, monospace" }}
           >
             {/* --- CABEÇALHO DA LOJA --- */}
-            <div className="text-center space-y-1 mb-4">
-              <h2 className="font-bold text-base uppercase">AMSTORE BAGSHOES</h2>
-              <div className="text-[9px]">
-                <p>CNPJ: XX.XXX.XXX/XXXX-XX</p>
-                <p>Tel: (73) 99120-0426</p>
-                <p>Rua Waldeiza Rosa, 42 - A - Jequié - BA</p>
+            <div className="text-center space-y-2 mb-4">
+              {logoAsset?.url && (
+                <div className="flex justify-center mb-2">
+                  <img src={logoAsset.url} alt="Logo" className="h-12 object-contain" />
+                </div>
+              )}
+              <h2 className="font-bold text-sm uppercase tracking-widest">AMSTORE BAGSHOES</h2>
+              <div className="text-[10px] space-y-0.5">
+                <p>Rua Medeiros Neto, 12-A - Centro</p>
+                <p>Jequié - Ba</p>
+                <p>Telefone: {getSetting("store_phone") || "73999269136"}</p>
               </div>
+              
+              <div className="border-t border-black my-2" />
+              <h3 className="font-bold text-[11px] uppercase">CUPOM FISCAL</h3>
+              <div className="border-t border-black my-2" />
+              
               {isCancelled && <p className="text-destructive font-bold text-lg border-2 border-destructive py-1 my-2 rotate-[-5deg]">CANCELADA</p>}
             </div>
 
-            <div className="border-t border-dashed border-gray-300 my-2" />
-
-            {/* --- CASHBACK TOTAL (NOVO) --- */}
-            {displaySale?.cashback_earned > 0 && (
-              <div className="mb-4 bg-black text-white p-2 rounded-lg text-center border border-white/20">
-                <p className="text-[8px] uppercase tracking-widest font-bold opacity-70">Saldo Total Cashback</p>
-                <p className="text-base font-black">{brl(displaySale.cashback_earned)}</p>
-                <p className="text-[9px] font-bold italic">Use na próxima compra!</p>
-              </div>
-            )}
-
             {/* --- DADOS DA VENDA --- */}
-            <div className="space-y-0.5">
-              <div className="flex justify-between"><span>Cupom:</span><span>{displaySale?.sale_code || displaySale?.id?.toString().slice(0, 8)}</span></div>
-              <div className="flex justify-between"><span>Data:</span><span>{dateTimeBR(displaySale?.created_at || new Date().toISOString())}</span></div>
-              <div className="flex justify-between"><span>Cliente:</span><span className="font-bold">{(displayClient?.name || "CONSUMIDOR").toUpperCase()}</span></div>
-              <div className="flex justify-between"><span>Tipo:</span><span>{displaySale?.sale_type || "Varejo"}</span></div>
+            <div className="space-y-1 mb-4">
+              <div className="flex justify-between">
+                <span className="w-20">Pedido:</span>
+                <span className="flex-1 text-right">{displaySale?.sale_code || displaySale?.id?.toString().slice(0, 8)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="w-20">Data:</span>
+                <span className="flex-1 text-right">{dateTimeBR(displaySale?.created_at || new Date().toISOString())}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="w-20">Cliente:</span>
+                <span className="flex-1 text-right font-bold truncate">{(displayClient?.name || "CONSUMIDOR").toUpperCase()}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="w-20">Vendedor:</span>
+                <span className="flex-1 text-right">{displaySale?.seller_name || "amstorebagshoes"}</span>
+              </div>
             </div>
 
-            <div className="border-t border-dashed border-gray-300 my-2" />
-            <div className="font-bold mb-1">ITENS</div>
+            <div className="border-t border-black my-2" />
+            <div className="text-center font-bold mb-2">ITENS</div>
             
-            <div className="space-y-2">
+            <div className="space-y-3 mb-4">
               {items.map((item: any, i: number) => (
-                <div key={i}>
-                  <div className="flex justify-between">
-                    <span className="flex-1 truncate pr-2">{(item.name || item.product_name || "PRODUTO").toUpperCase()} {item.numeracao ? `- TAM ${item.numeracao}` : ''}</span>
-                    <span>{brl((item.quantity || 0) * (item.unit_price || 0))}</span>
+                <div key={i} className="space-y-1">
+                  <div className="flex justify-between font-bold">
+                    <span className="flex-1 truncate pr-2">
+                      {item.quantity || 0} x {(item.name || item.product_name || "PRODUTO").toUpperCase()} 
+                      {item.numeracao ? ` (Nº ${item.numeracao} )` : ''}
+                    </span>
                   </div>
-                  <div className="text-[10px] pl-2">{item.quantity || 0}x {brl(item.unit_price || 0)}</div>
+                  <div className="flex justify-between text-[10px]">
+                    <span>({brl(item.unit_price || 0)} )</span>
+                    <span className="font-bold">{brl((item.quantity || 0) * (item.unit_price || 0))}</span>
+                  </div>
                 </div>
               ))}
             </div>
 
-            <div className="border-t border-dashed border-gray-300 my-2" />
+            <div className="border-t border-black my-2" />
             
-            <div className="space-y-0.5">
-              <div className="flex justify-between"><span>Subtotal:</span><span>{brl(subtotal || 0)}</span></div>
-              {(displaySale?.discount > 0) && <div className="flex justify-between"><span>Desconto:</span><span>-{brl(displaySale.discount)}</span></div>}
-              {(displaySale?.cashback_used > 0) && <div className="flex justify-between"><span>Cashback:</span><span>-{brl(displaySale.cashback_used)}</span></div>}
-              <div className="flex justify-between font-bold text-sm pt-1"><span>TOTAL:</span><span>{brl(displaySale?.total_amount || 0)}</span></div>
-              <div className="flex justify-between"><span>Pago:</span><span>{brl(displaySale?.paid_amount ?? (displaySale?.is_debt ? 0 : (displaySale?.total_amount || 0)))}</span></div>
-              {displaySale?.is_debt && displaySale?.installments && Array.isArray(displaySale.installments) && displaySale.installments.length > 0 && (
-
-                <div className="mt-2 space-y-1 border-t border-dashed border-gray-200 pt-1">
-                  <div className="text-[9px] font-bold text-gray-500 uppercase">Detalhamento das Parcelas (Fiado)</div>
-                  {displaySale.installments.map((inst: any, idx: number) => (
-
-                    <div key={idx} className="flex justify-between text-[10px]">
-                      <span>{inst.number}ª Parcela ({inst.due_date ? new Date(inst.due_date).toLocaleDateString('pt-BR') : 'N/A'})</span>
-                      <span>{brl(inst.amount || 0)}</span>
-                    </div>
-                  ))}
+            <div className="space-y-1 mb-4">
+              <div className="flex justify-between font-bold">
+                <span>Subtotal:</span>
+                <span>{brl(subtotal || 0)}</span>
+              </div>
+              {(displaySale?.discount > 0) && (
+                <div className="flex justify-between font-bold">
+                  <span>Desconto:</span>
+                  <span>{brl(displaySale.discount)}</span>
                 </div>
               )}
-              {((displaySale?.total_amount || 0) - (displaySale?.paid_amount ?? (displaySale?.is_debt ? 0 : (displaySale?.total_amount || 0)))) > 0.01 && !displaySale?.is_debt && (
-                <div className="flex justify-between font-bold"><span>Restante:</span><span>{brl((displaySale.total_amount || 0) - (displaySale.paid_amount ?? (displaySale.total_amount || 0)))}</span></div>
-              )}
-              <div className="flex justify-between"><span>Forma Pagto:</span><span>{displaySale?.payment_method?.toUpperCase() || "N/A"}</span></div>
-
+              <div className="flex justify-between font-bold text-sm pt-1">
+                <span>TOTAL:</span>
+                <span>{brl(displaySale?.total_amount || 0)}</span>
+              </div>
+              <div className="flex justify-between text-[10px]">
+                <span>Qtadd:</span>
+                <span>{items.reduce((acc: number, item: any) => acc + (item.quantity || 0), 0)} itens</span>
+              </div>
             </div>
 
-            <div className="border-t border-dashed border-gray-300 my-2" />
+            <div className="border-t border-black my-2" />
+            <div className="text-center font-bold mb-2">PAGAMENTO</div>
+            <div className="border-t border-black my-2" />
 
-            {/* --- QR CODE PROMOCIONAL --- */}
-            {!isPreview && !isCancelled && promoConfig && promoConfig.active && (
-              <div className="text-center py-2">
-                <p className="font-bold mb-2 flex items-center justify-center gap-2 text-[10px]">
-                   <Gift className="size-3" /> PROMOÇÃO: {promoConfig.name || "QR Code Premiado"}
-                </p>
-                <div className="flex justify-center my-3 min-h-[160px]">
-                  {!qrLoaded ? <Loader2 className="size-8 animate-spin text-muted-foreground/20 self-center" /> : <div ref={qrcodeRef} id="qrcode-cupom" />}
+            <div className="space-y-1 mb-4">
+              <p className="font-bold">Pagamentos Realizados:</p>
+              <div className="flex justify-between text-[10px]">
+                <span>Data:</span>
+                <span>{new Date(displaySale?.created_at || new Date()).toLocaleDateString('pt-BR')}</span>
+              </div>
+              <div className="flex justify-between font-bold">
+                <span>{displaySale?.payment_method?.toUpperCase() || "DINHEIRO"} :</span>
+                <span>{brl(displaySale?.total_amount || 0)}</span>
+              </div>
+              
+              <div className="border-t border-gray-300 my-1" />
+              <div className="flex justify-between font-bold">
+                <span>Total Pago:</span>
+                <span>{brl(displaySale?.total_amount || 0)}</span>
+              </div>
+            </div>
+
+            <div className="border-t border-black my-2" />
+
+            {/* --- CASHBACK DISPONÍVEL --- */}
+            {displaySale?.cashback_earned > 0 && (
+              <div className="text-center py-2 space-y-2">
+                <div className="flex items-center justify-center gap-1 font-bold">
+                  <Gift className="size-3 text-orange-500" /> CASHBACK DISPONÍVEL
                 </div>
-                <p className="text-[10px] font-bold mb-1 uppercase tracking-tighter">Escaneie e veja sua surpresa!</p>
-                <p className="text-[10px] font-bold uppercase font-mono">Código: {displaySale.promo_qr || "QR-PROM-ERROR"}</p>
+                <div className="font-bold text-xs">{brl(displaySale.cashback_earned)}</div>
+                
+                <div className="bg-[#FFF9C4] border border-[#FBC02D] p-3 rounded-md text-center">
+                  <div className="flex items-center justify-center gap-1 font-bold text-[10px]">
+                    <Gift className="size-3 text-orange-500" /> SALDO TOTAL CASHBACK
+                  </div>
+                  <div className="text-sm font-black my-1">{brl(displaySale.cashback_earned)}</div>
+                  <p className="text-[9px] font-bold">Use na próxima compra!</p>
+                </div>
               </div>
             )}
 
-            <div className="border-t border-dashed border-gray-300 my-2" />
+            <div className="text-center text-[10px] my-4">
+              <p>{new Date().toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
+              <p className="mt-2">Obrigado! Volte sempre!</p>
+            </div>
 
-            {/* --- RODAPÉ --- */}
-            <div className="text-center text-[9px] space-y-1 mt-2">
-              <p>Obrigado pela preferência! 🌟</p>
-              <p className="font-bold">AmStore Bagshoes</p>
-              {storeWebsite && <p>{storeWebsite}</p>}
-              {storeInstagram && <p>Instagram: {storeInstagram}</p>}
-              <p>{new Date().toLocaleString('pt-BR')}</p>
+            {/* --- QR CODE PROMOCIONAL (CAIXA PONTILHADA) --- */}
+            {!isPreview && !isCancelled && promoConfig && promoConfig.active && (
+              <div className="border-2 border-dashed border-[#D53F8C] bg-[#FDF2F8] p-4 rounded-2xl text-center space-y-2">
+                <div className="flex items-center justify-center gap-1 font-bold text-[#D53F8C]">
+                  <Gift className="size-4" /> PROMOÇÃO AMSTORE
+                </div>
+                <div className="flex justify-center my-2">
+                  {!qrLoaded ? (
+                    <Loader2 className="size-8 animate-spin text-muted-foreground/20" />
+                  ) : (
+                    <div ref={qrcodeRef} className="bg-white p-2 rounded-lg" />
+                  )}
+                </div>
+                <p className="text-[10px] font-bold text-black">Escaneie e veja sua surpresa!</p>
+                <p className="text-[9px] font-mono text-gray-600">código: {displaySale.promo_qr || "QR-PROM-ERROR"}</p>
+              </div>
+            )}
+
+            {/* --- RODAPÉ FINAL --- */}
+            <div className="mt-4 pt-2 border-t border-black text-center">
+              <p className="text-[10px] font-bold">{storeWebsite || "www.amstorebagshoes.com.br"}</p>
             </div>
           </div>
+
         </div>
 
         <style dangerouslySetInnerHTML={{ __html: `
