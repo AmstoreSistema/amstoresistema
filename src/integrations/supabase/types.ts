@@ -259,6 +259,7 @@ export type Database = {
           is_sample: boolean | null
           linha: number
           numeracao: string | null
+          order_id: string | null
           produto_id: string | null
           produto_nome: string
           quantidade: number
@@ -280,6 +281,7 @@ export type Database = {
           is_sample?: boolean | null
           linha: number
           numeracao?: string | null
+          order_id?: string | null
           produto_id?: string | null
           produto_nome: string
           quantidade?: number
@@ -301,6 +303,7 @@ export type Database = {
           is_sample?: boolean | null
           linha?: number
           numeracao?: string | null
+          order_id?: string | null
           produto_id?: string | null
           produto_nome?: string
           quantidade?: number
@@ -310,6 +313,13 @@ export type Database = {
           variacao_nome?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "etiqueta_gerada_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "production_orders"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "etiqueta_gerada_produto_id_fkey"
             columns: ["produto_id"]
@@ -566,6 +576,48 @@ export type Database = {
           reference_type?: string | null
           title?: string
           type?: string | null
+        }
+        Relationships: []
+      }
+      print_settings: {
+        Row: {
+          column_spacing: number | null
+          created_at: string | null
+          id: string
+          label_height: number | null
+          label_width: number | null
+          margin_left: number | null
+          margin_top: number | null
+          page_size: string | null
+          row_spacing: number | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          column_spacing?: number | null
+          created_at?: string | null
+          id?: string
+          label_height?: number | null
+          label_width?: number | null
+          margin_left?: number | null
+          margin_top?: number | null
+          page_size?: string | null
+          row_spacing?: number | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          column_spacing?: number | null
+          created_at?: string | null
+          id?: string
+          label_height?: number | null
+          label_width?: number | null
+          margin_left?: number | null
+          margin_top?: number | null
+          page_size?: string | null
+          row_spacing?: number | null
+          updated_at?: string | null
+          user_id?: string
         }
         Relationships: []
       }
