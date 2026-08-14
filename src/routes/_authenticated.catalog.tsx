@@ -129,6 +129,8 @@ function CatalogPage() {
 
       return matchesTerm && matchesCategory && matchesSize;
     });
+  }, [products, term, activeCategory, selectedSizeFilter, stockMap]);
+
   const paginatedItems = useMemo(() => {
     return filtered.slice(0, visibleItems);
   }, [filtered, visibleItems]);
