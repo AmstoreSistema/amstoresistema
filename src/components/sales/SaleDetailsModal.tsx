@@ -79,9 +79,9 @@ export function SaleDetailsModal({
                     <div className="flex gap-2">
                       <span className={cn(
                         "text-[10px] font-bold px-2 py-0.5 rounded uppercase",
-                        sale.status === 'paid' ? "bg-green-100 text-green-700" : "bg-orange-100 text-orange-700"
+                        sale.status === 'paid' || sale.status === 'completed' || sale.status === 'finalizado' ? "bg-green-100 text-green-700" : "bg-orange-100 text-orange-700"
                       )}>
-                        {sale.status === 'paid' ? 'Pago' : 'Pendente'}
+                        {sale.status === 'paid' || sale.status === 'completed' || sale.status === 'finalizado' ? 'Pago' : sale.payment_method === 'Fiado' ? 'Pendente / Fiado' : 'Pendente'}
                       </span>
                       <span className="text-[10px] font-bold px-2 py-0.5 rounded uppercase bg-blue-100 text-blue-700">
                         {sale.sale_type || 'Varejo'}
@@ -200,29 +200,58 @@ export function SaleDetailsModal({
                   <h3 className="text-sm font-bold text-foreground mb-4 flex items-center gap-2 uppercase tracking-tight">
                     Histórico de Pagamentos
                   </h3>
-                  <div className="space-y-2">
-                    {isLoading ? (
-                      <div className="py-4 text-center text-muted-foreground">Carregando...</div>
-                    ) : payments.length === 0 ? (
-                      <div className="py-6 text-center text-muted-foreground bg-white rounded-2xl border border-dashed text-xs">
-                        Nenhum pagamento registrado.
-                      </div>
-                    ) : payments.map((pay: any, i: number) => (
-                      <div key={i} className="bg-white rounded-xl p-4 flex items-center justify-between border border-gray-100 shadow-sm">
-                        <div>
-                          <div className="font-bold text-foreground text-sm uppercase leading-tight">
-                            {pay.payment_method || pay.description || "Pagamento"}
-                          </div>
-                          <div className="text-[11px] text-muted-foreground mt-0.5">
-                            {dateTimeBR(pay.created_at)}
-                          </div>
-                          <div className="text-[11px] text-muted-foreground mt-1 font-medium">
-                            Conta: {pay.financial_accounts?.name || "Caixa Principal"}
-                          </div>
+                  <div className="space-y-4">
+                    {/* Installments for Credit Sales */}
+                    {installments.length > 0 && (
+                      <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm">
+                        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-3 block">Plano de Parcelamento</p>
+                        <div className="space-y-2">
+                          {installments.map((inst: any, i: number) => (
+                            <div key={i} className="flex items-center justify-between py-2 border-b border-gray-50 last:border-0">
+                              <div className="flex items-center gap-2">
+                                <div className={cn(
+                                  "size-6 rounded-full flex items-center justify-center text-[10px] font-bold",
+                                  inst.status === 'paid' || inst.status === 'pago' ? "bg-green-100 text-green-700" : "bg-orange-100 text-orange-700"
+                                )}>
+                                  {inst.installment_number}
+                                </div>
+                                <div className="text-[11px]">
+                                  <span className="font-bold block">Vence em {new Date(inst.due_date).toLocaleDateString('pt-BR')}</span>
+                                  <span className="text-muted-foreground uppercase">{inst.status === 'paid' || inst.status === 'pago' ? 'Paga' : 'Pendente'}</span>
+                                </div>
+                              </div>
+                              <div className="font-bold text-sm">{brl(inst.amount)}</div>
+                            </div>
+                          ))}
                         </div>
-                        <div className="font-bold text-green-600 text-lg">{brl(pay.amount)}</div>
                       </div>
-                    ))}
+                    )}
+
+                    <div className="space-y-2">
+                      <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Transações Realizadas</p>
+                      {isLoading ? (
+                        <div className="py-4 text-center text-muted-foreground">Carregando...</div>
+                      ) : payments.length === 0 ? (
+                        <div className="py-6 text-center text-muted-foreground bg-white rounded-2xl border border-dashed text-xs">
+                          Nenhum pagamento registrado.
+                        </div>
+                      ) : payments.map((pay: any, i: number) => (
+                        <div key={i} className="bg-white rounded-xl p-4 flex items-center justify-between border border-gray-100 shadow-sm">
+                          <div>
+                            <div className="font-bold text-foreground text-sm uppercase leading-tight">
+                              {pay.payment_method || pay.description || "Pagamento"}
+                            </div>
+                            <div className="text-[11px] text-muted-foreground mt-0.5">
+                              {dateTimeBR(pay.created_at)}
+                            </div>
+                            <div className="text-[11px] text-muted-foreground mt-1 font-medium">
+                              Conta: {pay.financial_accounts?.name || "Caixa Principal"}
+                            </div>
+                          </div>
+                          <div className="font-bold text-green-600 text-lg">{brl(pay.amount)}</div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </div>
               </div>

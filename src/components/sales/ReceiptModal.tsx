@@ -267,21 +267,47 @@ export function ReceiptModal({
             <div className="border-t border-black my-2" />
 
             <div className="space-y-1 mb-4">
-              <p className="font-bold">Pagamentos Realizados:</p>
-              <div className="flex justify-between text-[10px]">
-                <span>Data:</span>
-                <span>{new Date(displaySale?.created_at || new Date()).toLocaleDateString('pt-BR')}</span>
-              </div>
-              <div className="flex justify-between font-bold">
-                <span>{displaySale?.payment_method?.toUpperCase() || "DINHEIRO"} :</span>
-                <span>{brl(displaySale?.total_amount || 0)}</span>
-              </div>
+              <p className="font-bold">Pagamento:</p>
               
-              <div className="border-t border-gray-300 my-1" />
-              <div className="flex justify-between font-bold">
-                <span>Total Pago:</span>
-                <span>{brl(displaySale?.total_amount || 0)}</span>
-              </div>
+              {displaySale?.payment_method === 'Fiado' ? (
+                <>
+                  <div className="flex justify-between font-bold border-2 border-black p-1 text-center my-1">
+                    <span className="w-full">VENDA A PRAZO (FIADO)</span>
+                  </div>
+                  <div className="flex justify-between text-[10px]">
+                    <span>Status:</span>
+                    <span className="font-bold">PENDENTE</span>
+                  </div>
+                  {displaySale.installments?.length > 0 && (
+                    <div className="mt-2 space-y-1 border-t border-dashed border-black pt-1">
+                      <p className="font-bold text-[9px]">PLANILHA DE PARCELAS:</p>
+                      {displaySale.installments.map((inst: any, idx: number) => (
+                        <div key={idx} className="flex justify-between text-[9px]">
+                          <span>{inst.installment_number || inst.number}ª Parcela ({new Date(inst.due_date).toLocaleDateString('pt-BR')}):</span>
+                          <span>{brl(inst.amount)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </>
+              ) : (
+                <>
+                  <div className="flex justify-between text-[10px]">
+                    <span>Data:</span>
+                    <span>{new Date(displaySale?.created_at || new Date()).toLocaleDateString('pt-BR')}</span>
+                  </div>
+                  <div className="flex justify-between font-bold">
+                    <span>{displaySale?.payment_method?.toUpperCase() || "DINHEIRO"} :</span>
+                    <span>{brl(displaySale?.total_amount || 0)}</span>
+                  </div>
+                  
+                  <div className="border-t border-gray-300 my-1" />
+                  <div className="flex justify-between font-bold">
+                    <span>Total Pago:</span>
+                    <span>{brl(displaySale?.total_amount || 0)}</span>
+                  </div>
+                </>
+              )}
             </div>
 
             <div className="border-t border-black my-2" />
