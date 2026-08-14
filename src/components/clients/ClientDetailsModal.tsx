@@ -248,12 +248,16 @@ export function ClientDetailsModal({ client, isOpen, onClose }: ClientDetailsMod
                           <span className="font-bold text-foreground text-sm">{sale.sale_code}</span>
                           <span className={cn(
                             "text-[10px] font-bold px-2 py-0.5 rounded uppercase",
-                            (sale.status === 'paid' || sale.status === 'completed' || sale.status === 'finalizado' || Number(sale.paid_amount) >= Number(sale.total_amount)) ? "bg-green-100 text-green-700" : "bg-orange-100 text-orange-700"
+                            (sale.status === 'paid' || sale.status === 'completed' || sale.status === 'finalizado' || Number(sale.paid_amount) >= Number(sale.total_amount)) 
+                              ? "bg-green-100 text-green-700" 
+                              : sale.payment_method === 'Fiado' ? "bg-orange-100 text-orange-700" : "bg-orange-100 text-orange-700"
                           )}>
-                            {(sale.status === 'paid' || sale.status === 'completed' || sale.status === 'finalizado' || Number(sale.paid_amount) >= Number(sale.total_amount)) ? 'pago' : 'parcial'}
+                            {(sale.status === 'paid' || sale.status === 'completed' || sale.status === 'finalizado' || Number(sale.paid_amount) >= Number(sale.total_amount)) 
+                              ? 'pago' 
+                              : sale.payment_method === 'Fiado' ? 'pendente / fiado' : 'pendente'}
                           </span>
                           {sale.payment_method === 'Fiado' && (
-                            <span className="text-[10px] font-bold px-2 py-0.5 rounded uppercase bg-yellow-100 text-yellow-700">
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded uppercase bg-blue-100 text-blue-700">
                               Fiado
                             </span>
                           )}
