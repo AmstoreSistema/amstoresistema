@@ -142,13 +142,6 @@ function ClientsPage() {
         description="Gerencie sua base de clientes"
         actions={
           <div className="flex gap-2">
-            <Button 
-              variant="destructive" 
-              onClick={handleResetAllCashbacks}
-              className="bg-red-600 hover:bg-red-700 font-bold gap-2 shadow-lg shadow-red-500/20"
-            >
-              <Eraser className="size-4" /> Zerar Todos os Cashbacks
-            </Button>
             <Button onClick={handleNew} className="gap-2 bg-primary shadow-lg shadow-primary/20">
               <Plus className="size-4" /> Novo Cliente
             </Button>
