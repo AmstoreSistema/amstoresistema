@@ -44,6 +44,7 @@ import {
   deleteProductionOrder, 
   startProduction
 } from "@/lib/production.functions";
+import { generateLabelGrid } from "@/lib/labels.functions";
 import { ProductionDocument } from "@/components/production/ProductionDocument";
 
 
@@ -77,7 +78,7 @@ type ProductionOrder = {
   materiais_baixados: boolean;
 };
 
-type Product = { id: string; name: string; category: string; image_url: string | null };
+type Product = { id: string; name: string; category: string; image_url: string | null; sku?: string | null };
 
 function ProductionPage() {
   const qc = useQueryClient();
@@ -110,6 +111,8 @@ function ProductionPage() {
   const [orderComposition, setOrderComposition] = useState<any[]>([]);
   const [nextCode, setNextCode] = useState("");
   const [processingOrderId, setProcessingOrderId] = useState<string | null>(null);
+  const [labelsConfirmOpen, setLabelsConfirmOpen] = useState(false);
+  const [completedOrder, setCompletedOrder] = useState<ProductionOrder | null>(null);
 
   const openNewOrder = () => {
     setNextCode(`OP-${Date.now()}`);
@@ -211,6 +214,8 @@ function ProductionPage() {
         setSelectedOrderDoc({ ...order, status: 'completed', completed_at: new Date().toISOString() });
         setOrderComposition(composition || []);
         setDocumentOpen(true);
+        setCompletedOrder(order);
+        setLabelsConfirmOpen(true);
         toast.success(`Produção de ${order.quantity} unidade(s) concluída e lançada no estoque.`);
       } catch (error: any) {
         console.error(error);
@@ -309,6 +314,32 @@ function ProductionPage() {
       "Urgente": "bg-red-100 text-red-600",
     };
     return <Badge className={`border-none ${colors[p] || colors['Normal']}`}>{p}</Badge>;
+  };
+
+  const handleGenerateLabels = async () => {
+    if (!completedOrder) return;
+    const loadingToast = toast.loading("Gerando etiquetas...");
+    try {
+      const product = productById.get(completedOrder.product_id as string);
+      await generateLabelGrid({
+        data: {
+          products: [{
+            id: completedOrder.product_id as string,
+            name: completedOrder.produto_nome || "Produto",
+            sku: product?.sku || completedOrder.codigo_ordem || "SKU",
+            quantity: completedOrder.quantity,
+            tipo_codigo: 'CODE128'
+          }],
+          orderId: completedOrder.id
+        }
+      });
+      toast.success("Etiquetas geradas com sucesso!");
+      setLabelsConfirmOpen(false);
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao gerar etiquetas");
+    } finally {
+      toast.dismiss(loadingToast);
+    }
   };
 
   return (
@@ -603,6 +634,20 @@ function ProductionPage() {
             >
               Confirmar Exclusão
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={labelsConfirmOpen} onOpenChange={setLabelsConfirmOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Gerar Etiquetas?</DialogTitle>
+            <DialogDescription>
+              A produção foi concluída. Deseja gerar as etiquetas para os produtos produzidos agora?
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setLabelsConfirmOpen(false)}>Agora não</Button>
+            <Button onClick={handleGenerateLabels} className="bg-gradient-gold border-none shadow-gold font-bold">Gerar Etiquetas</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
