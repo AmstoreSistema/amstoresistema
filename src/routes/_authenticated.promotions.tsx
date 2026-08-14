@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { BadgePercent, QrCode, History, Receipt, Save, RefreshCcw, Trash2, Gift, Trophy, Star, Settings } from "lucide-react";
+import { BadgePercent, QrCode, History, Receipt, Save, RefreshCcw, Trash2, Gift, Trophy, Star, Settings, Eraser } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useRows } from "@/lib/data";
 import { useServerFn } from "@tanstack/react-start";
@@ -9,6 +9,7 @@ import {
   resetQrPromoCounter, 
   deleteQrPromoHistoryItem 
 } from "@/lib/qr-promo.functions";
+import { resetAllCashbacks } from "@/lib/cashback-cleanup.functions";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -46,6 +47,7 @@ function PromotionsPage() {
   const updateConfigFn = useServerFn(updateQrPromoConfig);
   const resetCounterFn = useServerFn(resetQrPromoCounter);
   const deleteHistoryItemFn = useServerFn(deleteQrPromoHistoryItem);
+  const resetAllCashbacksFn = useServerFn(resetAllCashbacks);
 
   const currentConfig = config?.[0];
 
@@ -98,6 +100,17 @@ function PromotionsPage() {
     }
   };
 
+  const handleResetAllCashbacks = async () => {
+    if (!confirm("ATENÇÃO: Isso irá zerar o saldo de cashback de TODOS os clientes e limpar o histórico de movimentações. Esta operação é IRREVERSÍVEL. Tem certeza?")) return;
+    try {
+      await resetAllCashbacksFn();
+      toast.success("Todos os cashbacks foram zerados");
+      refetchConfig(); // To refresh UI
+    } catch (error) {
+      toast.error("Erro ao zerar cashbacks");
+    }
+  };
+
   if (!formData) return null;
 
   return (
@@ -112,6 +125,13 @@ function PromotionsPage() {
             <p className="text-sm text-muted-foreground">Configure e acompanhe os sorteios automáticos no PDV.</p>
           </div>
         </div>
+        <Button 
+          variant="destructive" 
+          onClick={handleResetAllCashbacks}
+          className="bg-red-600 hover:bg-red-700 font-bold gap-2 shadow-lg shadow-red-500/20"
+        >
+          <Eraser className="size-4" /> Zerar Todos os Cashbacks
+        </Button>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-3">

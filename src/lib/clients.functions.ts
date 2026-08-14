@@ -52,11 +52,16 @@ export const getClientDetails = createServerFn({ method: "GET" })
     const pending_installments = installments.filter(i => i.status !== 'paid');
     const total_debt = pending_installments.reduce((sum, i) => sum + Number(i.amount || 0), 0);
     
-    // Fetch calculated cashback to ensure accuracy
+    // Fetch calculated cashback to ensure accuracy - only from finalized/active sales
     const { data: cashbackEntries } = await supabaseAdmin
       .from("cashback_entries")
-      .select("amount, kind")
-      .eq("client_id", data.client_id);
+      .select(`
+        amount, 
+        kind,
+        sales!inner(status)
+      `)
+      .eq("client_id", data.client_id)
+      .in("sales.status", ["finalizado", "ativo"]);
     
     const calculated_cashback = (cashbackEntries || []).reduce((acc, entry) => {
       return acc + (entry.kind === 'earned' ? Number(entry.amount) : -Number(entry.amount));
