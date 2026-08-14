@@ -85,13 +85,25 @@ export function ReceiptModal({
 
   if (!sale || !sale.id) {
     if (open) {
-      console.warn("ReceiptModal: Venda não encontrada ou incompleta.");
+      console.error("ReceiptModal Error: Venda não encontrada ou incompleta.", { sale });
       return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-          <DialogContent className="p-10 text-center">
-            <h3 className="text-lg font-bold">Erro ao carregar recibo</h3>
-            <p className="text-sm text-muted-foreground mt-2">Os dados da venda não puderam ser recuperados.</p>
-            <Button className="mt-4" onClick={() => onOpenChange(false)}>Fechar</Button>
+          <DialogContent className="max-w-md p-10 text-center bg-background rounded-[2rem]">
+            <div className="flex flex-col items-center gap-4">
+              <div className="size-12 rounded-full bg-destructive/10 flex items-center justify-center">
+                <X className="size-6 text-destructive" />
+              </div>
+              <h3 className="text-lg font-black font-display">Erro ao Carregar Recibo</h3>
+              <p className="text-sm text-muted-foreground">
+                A venda foi processada com sucesso, mas os dados para exibição do cupom estão incompletos ou não puderam ser carregados.
+              </p>
+              <Button 
+                className="mt-2 w-full font-bold rounded-xl" 
+                onClick={() => onOpenChange(false)}
+              >
+                Voltar ao PDV
+              </Button>
+            </div>
           </DialogContent>
         </Dialog>
       );
