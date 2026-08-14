@@ -113,7 +113,7 @@ function LabelsPage() {
       </div>
 
       <div className="bg-white p-8 rounded-xl shadow-inner min-h-[800px] print:p-0">
-        <div className="grid grid-cols-3 gap-0 w-[210mm]">
+        <div className="grid grid-cols-3 gap-0 w-[210mm] print-grid">
           {labels.map(l => (
             <div key={l.id} className="border border-slate-200 p-2 flex flex-col items-center justify-center h-[38mm]">
               <span className="text-[10px] font-bold uppercase truncate w-full">{l.produto_nome}</span>
