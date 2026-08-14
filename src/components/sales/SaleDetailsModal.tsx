@@ -197,10 +197,19 @@ export function SaleDetailsModal({
 
                 {/* Payments History */}
                 <div>
-                  <h3 className="text-sm font-bold text-foreground mb-4 flex items-center gap-2 uppercase tracking-tight">
-                    Histórico de Pagamentos
-                  </h3>
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-sm font-bold text-foreground flex items-center gap-2 uppercase tracking-tight">
+                      Histórico de Pagamentos
+                    </h3>
+                    {sale?.payment_method === 'Fiado' && (
+                      <div className="text-right">
+                        <div className="text-[10px] font-bold text-muted-foreground uppercase">Saldo Devedor</div>
+                        <div className="text-lg font-black text-gold">{brl(Number(sale.total_amount) - Number(sale.paid_amount))}</div>
+                      </div>
+                    )}
+                  </div>
                   <div className="space-y-4">
+
                     {/* Installments for Credit Sales */}
                     {installments.length > 0 && (
                       <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm">
