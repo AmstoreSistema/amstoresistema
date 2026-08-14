@@ -258,11 +258,14 @@ export type Database = {
           impressa: boolean
           is_sample: boolean | null
           linha: number
+          numeracao: string | null
           produto_id: string | null
           produto_nome: string
           quantidade: number
+          status: string | null
           tipo_codigo: string
           updated_date: string
+          variacao_nome: string | null
         }
         Insert: {
           codigo_barras: string
@@ -276,11 +279,14 @@ export type Database = {
           impressa?: boolean
           is_sample?: boolean | null
           linha: number
+          numeracao?: string | null
           produto_id?: string | null
           produto_nome: string
           quantidade?: number
+          status?: string | null
           tipo_codigo?: string
           updated_date?: string
+          variacao_nome?: string | null
         }
         Update: {
           codigo_barras?: string
@@ -294,11 +300,14 @@ export type Database = {
           impressa?: boolean
           is_sample?: boolean | null
           linha?: number
+          numeracao?: string | null
           produto_id?: string | null
           produto_nome?: string
           quantidade?: number
+          status?: string | null
           tipo_codigo?: string
           updated_date?: string
+          variacao_nome?: string | null
         }
         Relationships: [
           {
