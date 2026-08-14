@@ -54,11 +54,24 @@ function CatalogPage() {
   
   const [term, setTerm] = useState("");
   const [activeCategory, setActiveCategory] = useState("Todos");
+  const [selectedSizeFilter, setSelectedSizeFilter] = useState("Todas");
   const [sizeDetailOpen, setSizeDetailOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [selectedSizeInfo, setSelectedSizeInfo] = useState<{ size: string; quantity: number } | null>(null);
 
   const categories = useMemo(() => ["Todos", ...new Set(products.map(p => p.category))], [products]);
+
+  const allAvailableSizes = useMemo(() => {
+    const sizes = new Set<string>();
+    stockRecords.forEach(record => {
+      if (record.numeracoes) {
+        Object.entries(record.numeracoes).forEach(([size, qty]) => {
+          if (Number(qty) > 0) sizes.add(size);
+        });
+      }
+    });
+    return ["Todas", ...Array.from(sizes).sort((a, b) => a.localeCompare(b))];
+  }, [stockRecords]);
 
   const filtered = useMemo(() => {
     return products.filter(p => {
