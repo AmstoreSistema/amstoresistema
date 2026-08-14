@@ -16,7 +16,7 @@ import {
 import { toPng } from 'html-to-image';
 import { toast } from "sonner";
 import { useRows } from "@/lib/data";
-import logoAsset from "@/assets/amstore-logo-receipt.png.asset.json";
+import logoAsset from "@/assets/store-logo.png.asset.json";
 
 declare global {
   interface Window {
@@ -187,9 +187,9 @@ export function ReceiptModal({
           >
             {/* --- CABEÇALHO DA LOJA --- */}
             <div className="text-center space-y-2 mb-4">
-              {storeLogo ? (
+              {storeLogo || logoAsset.url ? (
                 <div className="flex justify-center mb-2">
-                  <img src={storeLogo} alt="Logo" className="h-16 w-auto object-contain" />
+                  <img src={storeLogo || logoAsset.url} alt="Logo" className="h-20 w-auto object-contain" />
                 </div>
               ) : (
                 <h2 className="font-bold text-lg uppercase tracking-[0.2em] py-2">

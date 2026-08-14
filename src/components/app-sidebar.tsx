@@ -27,6 +27,8 @@ import {
   Warehouse,
 } from "lucide-react";
 import * as React from "react";
+import { useRows } from "@/lib/data";
+import logoAsset from "@/assets/store-logo.png.asset.json";
 
 import {
   Sidebar,
@@ -139,13 +141,28 @@ export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const pathname = useRouterState({ select: (r) => r.location.pathname });
+  const { data: settings = [] } = useRows<any>("app_settings");
+
+  const storeLogo = React.useMemo(() => {
+    const setting = settings.find((s: any) => s.key === "store_logo");
+    if (!setting) return logoAsset.url;
+    try {
+      return JSON.parse(setting.value) || logoAsset.url;
+    } catch {
+      return setting.value || logoAsset.url;
+    }
+  }, [settings]);
 
   return (
     <Sidebar collapsible="icon" className="border-sidebar-border scrollbar-hide [&_[data-sidebar=sidebar]]:scrollbar-hide">
       <SidebarHeader className="border-b border-sidebar-border">
         <div className="flex items-center gap-3 px-1 py-2">
-          <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-gradient-gold text-sidebar-primary-foreground shadow-gold">
-            <Store className="size-5" />
+          <div className="flex size-9 shrink-0 items-center justify-center rounded-xl overflow-hidden bg-gradient-gold text-sidebar-primary-foreground shadow-gold border border-gold/20">
+            {storeLogo ? (
+              <img src={storeLogo} alt="Logo" className="size-full object-cover" />
+            ) : (
+              <Store className="size-5" />
+            )}
           </div>
           {!collapsed && (
             <div className="min-w-0">
