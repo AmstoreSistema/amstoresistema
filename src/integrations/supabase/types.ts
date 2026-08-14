@@ -245,6 +245,71 @@ export type Database = {
           },
         ]
       }
+      etiqueta_gerada: {
+        Row: {
+          codigo_barras: string
+          codigo_interno: string | null
+          coluna: number
+          created_by_id: string | null
+          created_date: string
+          data_geracao: string
+          id: number
+          imagem_barcode: string | null
+          impressa: boolean
+          is_sample: boolean | null
+          linha: number
+          produto_id: string | null
+          produto_nome: string
+          quantidade: number
+          tipo_codigo: string
+          updated_date: string
+        }
+        Insert: {
+          codigo_barras: string
+          codigo_interno?: string | null
+          coluna: number
+          created_by_id?: string | null
+          created_date?: string
+          data_geracao?: string
+          id?: number
+          imagem_barcode?: string | null
+          impressa?: boolean
+          is_sample?: boolean | null
+          linha: number
+          produto_id?: string | null
+          produto_nome: string
+          quantidade?: number
+          tipo_codigo?: string
+          updated_date?: string
+        }
+        Update: {
+          codigo_barras?: string
+          codigo_interno?: string | null
+          coluna?: number
+          created_by_id?: string | null
+          created_date?: string
+          data_geracao?: string
+          id?: number
+          imagem_barcode?: string | null
+          impressa?: boolean
+          is_sample?: boolean | null
+          linha?: number
+          produto_id?: string | null
+          produto_nome?: string
+          quantidade?: number
+          tipo_codigo?: string
+          updated_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "etiqueta_gerada_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       financial_accounts: {
         Row: {
           account_number: string | null
