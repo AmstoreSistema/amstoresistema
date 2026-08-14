@@ -65,11 +65,11 @@ export function ReceiptModal({
 
   // Generate QR Code once library is loaded and sale exists
   React.useEffect(() => {
-    if (qrLoaded && qrcodeRef.current && sale && !isPreview && sale.status !== 'cancelado') {
+    if (qrLoaded && qrcodeRef.current && displaySale && !isPreview && displaySale.status !== 'cancelado') {
       // Clear previous
       qrcodeRef.current.innerHTML = "";
       
-      const codigoUnico = sale.promo_qr || `QR-${Date.now()}-${Math.random().toString(36).substring(2, 10).toUpperCase()}`;
+      const codigoUnico = displaySale.promo_qr || `QR-${Date.now()}-${Math.random().toString(36).substring(2, 10).toUpperCase()}`;
       const checkUrl = `${window.location.origin}/api/public/qr-check?code=${codigoUnico}`;
       
       new window.QRCode(qrcodeRef.current, {
@@ -81,7 +81,7 @@ export function ReceiptModal({
         correctLevel: window.QRCode.CorrectLevel.M
       });
     }
-  }, [qrLoaded, sale, isPreview]);
+  }, [qrLoaded, displaySale, isPreview]);
 
   // If no sale object, we might be in a preview or something went wrong.
   // We provide a basic fallback structure to avoid the error screen.

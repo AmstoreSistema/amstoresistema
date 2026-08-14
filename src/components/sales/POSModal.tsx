@@ -282,6 +282,8 @@ export function POSModal({ open, onOpenChange }: { open: boolean; onOpenChange: 
         const lastSaleData = {
            id: saleId,
            ...saleData,
+           promo_qr: result.promoQr,
+           is_awarded: result.isAwarded,
            items: (saleData.items || []).map(item => ({
              ...item,
              name: items.find(i => i.stock_id === item.stock_id)?.name || "Produto"
