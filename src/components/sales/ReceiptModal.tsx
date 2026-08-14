@@ -328,6 +328,11 @@ export function ReceiptModal({
             <div className="mt-4 pt-2 border-t border-black text-center">
               <p className="text-[10px] font-bold">{storeWebsite || "www.amstorebagshoes.com.br"}</p>
               {storeInstagram && <p className="text-[10px] font-bold mt-0.5">{storeInstagram}</p>}
+              
+              <div className="mt-6 text-[10px]">
+                <p>Obrigado! Volte sempre!</p>
+                <p className="mt-1 font-bold">{new Date(displaySale?.created_at || new Date()).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
+              </div>
             </div>
           </div>
 
