@@ -13,7 +13,10 @@ export const generateLabelGrid = createServerFn({ method: "POST" })
       id: z.string().uuid(),
       name: z.string(),
       sku: z.string(),
+      variacao_nome: z.string().optional(),
+      numeracao: z.string().optional(),
       quantity: z.number().min(1),
+      tipo_codigo: z.enum(['CODE128', 'QR']).default('CODE128'),
     })),
     startLine: z.number().default(1),
     startColumn: z.number().min(1).max(3).default(1),
@@ -28,11 +31,12 @@ export const generateLabelGrid = createServerFn({ method: "POST" })
         labels.push({
           produto_id: p.id,
           produto_nome: p.name,
-          codigo_barras: p.sku, // Usando SKU como padrão para código de barras
-          codigo_interno: p.sku,
+          codigo_barras: p.sku, 
+          variacao_nome: p.variacao_nome,
+          numeracao: p.numeracao,
           linha: currentLine,
           coluna: currentColumn,
-          tipo_codigo: 'CODE128',
+          tipo_codigo: p.tipo_codigo,
           created_by_id: context.userId
         });
 
