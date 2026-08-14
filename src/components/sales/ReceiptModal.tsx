@@ -187,15 +187,9 @@ export function ReceiptModal({
           >
             {/* --- CABEÇALHO DA LOJA --- */}
             <div className="text-center space-y-2 mb-4">
-              {storeLogo ? (
-                <div className="flex justify-center mb-2">
-                  <img src={storeLogo} alt="Logo" className="h-16 w-auto object-contain" />
-                </div>
-              ) : (
-                <h2 className="font-bold text-lg uppercase tracking-[0.2em] py-2">
-                  {getSetting("store_name") || "AMSTORE BAGSHOES"}
-                </h2>
-              )}
+              <h2 className="font-bold text-lg uppercase tracking-[0.2em] py-2">
+                AMSTORE BAGSHOES
+              </h2>
               <div className="text-[10px] space-y-0.5">
                 <p>Rua Medeiros Neto, 12-A - Centro</p>
                 <p>Jequié - Ba</p>
