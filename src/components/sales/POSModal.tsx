@@ -126,21 +126,14 @@ export function POSModal({ open, onOpenChange }: { open: boolean; onOpenChange: 
   React.useEffect(() => {
     const fetchRealCashback = async () => {
       if (client?.id) {
-        const { data: entries } = await supabase
-          .from("cashback_entries")
-          .select(`
-            amount, 
-            kind,
-            sales!inner(status)
-          `)
-          .eq("client_id", client.id)
-          .in("sales.status", ["finalizado", "ativo"]);
+        // Fetch client directly to get the synchronized balance from the database
+        const { data: clientData } = await supabase
+          .from("clients")
+          .select("cashback_balance")
+          .eq("id", client.id)
+          .single();
         
-        const total = (entries || []).reduce((acc, entry) => {
-          return acc + (entry.kind === 'earned' ? Number(entry.amount) : -Number(entry.amount));
-        }, 0);
-        
-        const realBalance = Math.max(0, total);
+        const realBalance = Number(clientData?.cashback_balance || 0);
         setClientCashback(realBalance);
         
         // Sincroniza o objeto client local para garantir que outros componentes usem o saldo real
