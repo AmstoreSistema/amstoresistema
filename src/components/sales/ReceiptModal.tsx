@@ -149,7 +149,7 @@ export function ReceiptModal({
 
   const storeWebsite = getSetting("store_website");
   const storeInstagram = getSetting("store_instagram");
-  const storeLogo = getSetting("store_logo") || logoAsset.url;
+  const storeLogo = getSetting("store_logo");
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
