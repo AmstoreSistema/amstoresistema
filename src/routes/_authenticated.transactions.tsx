@@ -255,6 +255,13 @@ function TransactionsPage() {
       />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <StatCard title="Entradas (Pagas)" value={brl(stats.inflow)} icon={TrendingUp} tone="success" />
+        <StatCard title="Saídas (Pagas)" value={brl(stats.outflow)} icon={TrendingDown} tone="destructive" />
+        <StatCard title="Total Pendente" value={brl(stats.pending)} icon={Clock} tone="warning" />
+        <StatCard title="Saldo Consolidado" value={brl(stats.balance)} icon={DollarSign} tone="gold" />
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {accounts.map((acc: any) => {
           const accTransactions = (transactions as any[]).filter(t => t.account_id === acc.id && t.status === 'pago');
           const inflow = accTransactions.filter(t => t.type === 'entrada').reduce((s, t) => s + Number(t.amount), 0);
@@ -277,14 +284,6 @@ function TransactionsPage() {
             </Card>
           );
         })}
-        {accounts.length === 0 && (
-          <>
-            <StatCard title="Entradas (Pagas)" value={brl(stats.inflow)} icon={TrendingUp} tone="success" />
-            <StatCard title="Saídas (Pagas)" value={brl(stats.outflow)} icon={TrendingDown} tone="destructive" />
-            <StatCard title="Total Pendente" value={brl(stats.pending)} icon={Clock} tone="warning" />
-            <StatCard title="Saldo Consolidado" value={brl(stats.balance)} icon={DollarSign} tone="gold" />
-          </>
-        )}
       </div>
 
       <div className="flex gap-2">
