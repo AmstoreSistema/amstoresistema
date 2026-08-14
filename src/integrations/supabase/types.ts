@@ -1497,50 +1497,28 @@ export type Database = {
       cancel_complete_sale: { Args: { p_sale_id: string }; Returns: undefined }
       check_sale_installments_alerts: { Args: never; Returns: undefined }
       complete_production_order: { Args: { _order_id: string }; Returns: Json }
-      create_complete_sale:
-        | {
-            Args: {
-              p_cashback_earned?: number
-              p_cashback_used?: number
-              p_client_id?: string
-              p_created_at?: string
-              p_discount?: number
-              p_discount_amount?: number
-              p_financial_account_id?: string
-              p_installments?: Json
-              p_is_debt?: boolean
-              p_items?: Json
-              p_notes?: string
-              p_paid_amount?: number
-              p_payment_method?: string
-              p_protection_method?: string
-              p_sale_code?: string
-              p_sale_type?: string
-              p_total_amount?: number
-            }
-            Returns: string
-          }
-        | {
-            Args: {
-              p_cashback_earned?: number
-              p_cashback_used?: number
-              p_client_id?: string
-              p_created_at?: string
-              p_discount?: number
-              p_financial_account_id?: string
-              p_installments?: Json
-              p_is_debt?: boolean
-              p_items?: Json
-              p_notes?: string
-              p_paid_amount?: number
-              p_payment_method?: string
-              p_protection_method?: string
-              p_sale_code?: string
-              p_sale_type?: string
-              p_total_amount?: number
-            }
-            Returns: string
-          }
+      create_complete_sale: {
+        Args: {
+          p_cashback_earned?: number
+          p_cashback_used?: number
+          p_client_id?: string
+          p_created_at?: string
+          p_discount?: number
+          p_discount_amount?: number
+          p_financial_account_id?: string
+          p_installments?: Json
+          p_is_debt: boolean
+          p_items: Json
+          p_notes?: string
+          p_paid_amount: number
+          p_payment_method: string
+          p_protection_method?: string
+          p_sale_code?: string
+          p_sale_type?: string
+          p_total_amount: number
+        }
+        Returns: string
+      }
       delete_production_order: { Args: { _order_id: string }; Returns: Json }
       get_cashback_percent_by_category: {
         Args: { p_category_name: string }
