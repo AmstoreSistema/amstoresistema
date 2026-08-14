@@ -102,7 +102,7 @@ export function PaymentSecretaryModal({
                    <div key={inst.id} className="flex items-center gap-3 p-3 rounded-xl border bg-card hover:bg-muted/10">
                       <Checkbox 
                         checked={selectedInstIds.includes(inst.id)}
-                        onCheckedChange={(checked) => {
+                        onCheckedChange={(checked: boolean) => {
                           setSelectedInstIds(checked ? [...selectedInstIds, inst.id] : selectedInstIds.filter(id => id !== inst.id));
                         }}
                       />
@@ -123,7 +123,7 @@ export function PaymentSecretaryModal({
            <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                  <Label className="text-[10px] uppercase font-bold text-muted-foreground ml-1">Forma</Label>
-                 <Input value={paymentMethod} onChange={e => setPaymentMethod(e.target.value)} className="h-10 rounded-xl" />
+                 <Input value={paymentMethod} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPaymentMethod(e.target.value)} className="h-10 rounded-xl" />
               </div>
               <div className="space-y-2">
                  <Label className="text-[10px] uppercase font-bold text-muted-foreground ml-1">Data</Label>
