@@ -83,7 +83,22 @@ export function ReceiptModal({
     }
   }, [qrLoaded, sale, isPreview]);
 
-  if (!sale) return null;
+  if (!sale || !sale.id) {
+    if (open) {
+      console.warn("ReceiptModal: Venda não encontrada ou incompleta.");
+      return (
+        <Dialog open={open} onOpenChange={onOpenChange}>
+          <DialogContent className="p-10 text-center">
+            <h3 className="text-lg font-bold">Erro ao carregar recibo</h3>
+            <p className="text-sm text-muted-foreground mt-2">Os dados da venda não puderam ser recuperados.</p>
+            <Button className="mt-4" onClick={() => onOpenChange(false)}>Fechar</Button>
+          </DialogContent>
+        </Dialog>
+      );
+    }
+    return null;
+  }
+
 
   const handlePrint = () => {
     window.print();
