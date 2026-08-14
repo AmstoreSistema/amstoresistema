@@ -190,6 +190,10 @@ function LabelsPage() {
             border: none !important;
             padding: 0 !important;
             margin: 0 !important;
+            background: white !important;
+          }
+          .print-grid > div {
+            border: none !important;
           }
           @page {
             size: A4;
