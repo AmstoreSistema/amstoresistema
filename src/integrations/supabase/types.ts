@@ -138,6 +138,7 @@ export type Database = {
           description: string | null
           id: string
           kind: string
+          sale_id: string | null
         }
         Insert: {
           amount?: number
@@ -146,6 +147,7 @@ export type Database = {
           description?: string | null
           id?: string
           kind?: string
+          sale_id?: string | null
         }
         Update: {
           amount?: number
@@ -154,6 +156,7 @@ export type Database = {
           description?: string | null
           id?: string
           kind?: string
+          sale_id?: string | null
         }
         Relationships: [
           {
@@ -161,6 +164,13 @@ export type Database = {
             columns: ["client_id"]
             isOneToOne: false
             referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cashback_entries_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
+            referencedRelation: "sales"
             referencedColumns: ["id"]
           },
         ]
