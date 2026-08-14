@@ -70,7 +70,8 @@ export const getClientDetails = createServerFn({ method: "GET" })
         sales_count: sales.length,
         total_bought,
         total_paid,
-        total_debt
+        total_debt,
+        cashback_balance: Math.max(0, calculated_cashback)
       }
     };
   });
