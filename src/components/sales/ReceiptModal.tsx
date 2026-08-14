@@ -41,48 +41,6 @@ export function ReceiptModal({
   const qrcodeRef = React.useRef<HTMLDivElement>(null);
   const [qrLoaded, setQrLoaded] = React.useState(false);
 
-  // Load QR Library dynamically
-  React.useEffect(() => {
-    if (!open || isPreview || sale?.status === 'cancelado') return;
-
-    const loadQRLibrary = () => {
-      return new Promise<void>((resolve, reject) => {
-        if (window.QRCode) { resolve(); return; }
-        const script = document.createElement('script');
-        script.src = 'https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js';
-        script.onload = () => resolve();
-        script.onerror = reject;
-        document.head.appendChild(script);
-      });
-    };
-
-    loadQRLibrary().then(() => {
-      setQrLoaded(true);
-    }).catch(err => {
-      console.error("Failed to load QR library", err);
-    });
-  }, [open, isPreview, sale?.status]);
-
-  // Generate QR Code once library is loaded and sale exists
-  React.useEffect(() => {
-    if (qrLoaded && qrcodeRef.current && sale && !isPreview && sale.status !== 'cancelado') {
-      // Clear previous
-      qrcodeRef.current.innerHTML = "";
-      
-      const codigoUnico = sale.promo_qr || `QR-${Date.now()}-${Math.random().toString(36).substring(2, 10).toUpperCase()}`;
-      const checkUrl = `${window.location.origin}/api/public/qr-check?code=${codigoUnico}`;
-      
-      new window.QRCode(qrcodeRef.current, {
-        text: checkUrl,
-        width: 160,
-        height: 160,
-        colorDark: "#000000",
-        colorLight: "#ffffff",
-        correctLevel: window.QRCode.CorrectLevel.M
-      });
-    }
-  }, [qrLoaded, sale, isPreview]);
-
   // If no sale object, we might be in a preview or something went wrong.
   // We provide a basic fallback structure to avoid the error screen.
   const displaySale = sale || {
@@ -103,6 +61,48 @@ export function ReceiptModal({
   const subtotal = (displaySale?.total_amount || 0) + (displaySale?.discount || 0) + (displaySale?.cashback_used || 0);
   const isCancelled = displaySale?.status === 'cancelado';
   const isAwarded = displaySale?.is_awarded === true;
+
+  // Load QR Library dynamically
+  React.useEffect(() => {
+    if (!open || isPreview || isCancelled) return;
+
+    const loadQRLibrary = () => {
+      return new Promise<void>((resolve, reject) => {
+        if (window.QRCode) { resolve(); return; }
+        const script = document.createElement('script');
+        script.src = 'https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js';
+        script.onload = () => resolve();
+        script.onerror = reject;
+        document.head.appendChild(script);
+      });
+    };
+
+    loadQRLibrary().then(() => {
+      setQrLoaded(true);
+    }).catch(err => {
+      console.error("Failed to load QR library", err);
+    });
+  }, [open, isPreview, isCancelled]);
+
+  // Generate QR Code once library is loaded and sale exists
+  React.useEffect(() => {
+    if (qrLoaded && qrcodeRef.current && displaySale && !isPreview && !isCancelled) {
+      // Clear previous
+      qrcodeRef.current.innerHTML = "";
+      
+      const codigoUnico = displaySale.promo_qr || `QR-${Date.now()}-${Math.random().toString(36).substring(2, 10).toUpperCase()}`;
+      const checkUrl = `${window.location.origin}/api/public/qr-check?code=${codigoUnico}`;
+      
+      new window.QRCode(qrcodeRef.current, {
+        text: checkUrl,
+        width: 160,
+        height: 160,
+        colorDark: "#000000",
+        colorLight: "#ffffff",
+        correctLevel: window.QRCode.CorrectLevel.M
+      });
+    }
+  }, [qrLoaded, displaySale, isPreview, isCancelled]);
 
 
 

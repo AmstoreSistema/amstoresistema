@@ -139,7 +139,7 @@ export const createSale = createServerFn({ method: "POST" })
         status: isAwarded ? 'premiado' : 'padrao'
       });
 
-      // If awarded, apply bonus as cashback balance (optional, based on logic)
+      // If awarded, apply bonus as cashback balance
       if (isAwarded && data.client_id) {
          const { data: client } = await admin.from("clients").select("cashback_balance").eq("id", data.client_id).single();
          if (client) {
@@ -157,7 +157,11 @@ export const createSale = createServerFn({ method: "POST" })
       }
     }
 
-    return { saleId: saleId as string };
+    return { 
+      saleId: saleId as string,
+      promoQr: promoQr,
+      isAwarded: isAwarded
+    };
 
   });
 
