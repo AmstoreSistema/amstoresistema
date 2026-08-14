@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import { useRows } from "@/lib/data";
 import { generateLabelGrid, clearLabels, getPrintSettings, savePrintSettings } from "@/lib/labels.functions";
 
@@ -46,8 +47,8 @@ function LabelsPage() {
   useEffect(() => {
     const loadSettings = async () => {
       try {
-        const settings = await getPrintSettings();
-        if (settings) {
+        const settings = await getPrintSettings() as any;
+        if (settings && typeof settings === 'object' && !('error' in settings)) {
           setPrintSettings({
             margin_top: Number(settings.margin_top || 0),
             margin_left: Number(settings.margin_left || 0),
