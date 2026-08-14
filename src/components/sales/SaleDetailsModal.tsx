@@ -101,9 +101,7 @@ export function SaleDetailsModal({
                 <Printer className="size-4" /> Cupom
               </Button>
             </div>
-            <DialogClose className="absolute right-4 top-4 p-2 rounded-full hover:bg-muted transition-colors">
-              <X className="size-4" />
-            </DialogClose>
+            {/* Removed redundant DialogClose here as standard DialogContent includes one */}
           </div>
 
           <div className="flex-1 overflow-hidden flex flex-col sm:flex-row">

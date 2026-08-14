@@ -160,7 +160,7 @@ export function ReceiptModal({
             <h3 className="font-bold text-sm">{isPreview ? "Prévia do Cupom" : "Cupom de Venda"}</h3>
             <span className="text-[10px] text-muted-foreground uppercase font-medium font-mono tracking-tighter">Padrao Fiscal 80mm</span>
           </div>
-          <Button variant="ghost" size="icon" onClick={() => onOpenChange(false)}>
+          <Button variant="ghost" size="icon" onClick={() => onOpenChange(false)} className="rounded-full">
             <X className="size-4" />
           </Button>
         </div>
