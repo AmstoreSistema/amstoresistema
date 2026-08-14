@@ -149,6 +149,7 @@ export function ReceiptModal({
 
   const storeWebsite = getSetting("store_website");
   const storeInstagram = getSetting("store_instagram");
+  const storeLogo = getSetting("store_logo");
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -186,12 +187,15 @@ export function ReceiptModal({
           >
             {/* --- CABEÇALHO DA LOJA --- */}
             <div className="text-center space-y-2 mb-4">
-              {logoAsset?.url && (
+              {storeLogo ? (
                 <div className="flex justify-center mb-2">
-                  <img src={logoAsset.url} alt="Logo" className="h-12 object-contain" />
+                  <img src={storeLogo} alt="Logo" className="h-16 w-auto object-contain" />
                 </div>
+              ) : (
+                <h2 className="font-bold text-lg uppercase tracking-[0.2em] py-2">
+                  {getSetting("store_name") || "AMSTORE BAGSHOES"}
+                </h2>
               )}
-              <h2 className="font-bold text-sm uppercase tracking-widest">AMSTORE BAGSHOES</h2>
               <div className="text-[10px] space-y-0.5">
                 <p>Rua Medeiros Neto, 12-A - Centro</p>
                 <p>Jequié - Ba</p>
@@ -210,10 +214,6 @@ export function ReceiptModal({
               <div className="flex justify-between">
                 <span className="w-20">Pedido:</span>
                 <span className="flex-1 text-right">{displaySale?.sale_code || displaySale?.id?.toString().slice(0, 8)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="w-20">Data:</span>
-                <span className="flex-1 text-right">{dateTimeBR(displaySale?.created_at || new Date().toISOString())}</span>
               </div>
               <div className="flex justify-between">
                 <span className="w-20">Cliente:</span>
@@ -295,11 +295,6 @@ export function ReceiptModal({
             {/* --- CASHBACK DISPONÍVEL --- */}
             {displaySale?.cashback_earned > 0 && (
               <div className="text-center py-2 space-y-2">
-                <div className="flex items-center justify-center gap-1 font-bold">
-                  <Gift className="size-3 text-orange-500" /> CASHBACK DISPONÍVEL
-                </div>
-                <div className="font-bold text-xs">{brl(displaySale.cashback_earned)}</div>
-                
                 <div className="bg-[#FFF9C4] border border-[#FBC02D] p-3 rounded-md text-center">
                   <div className="flex items-center justify-center gap-1 font-bold text-[10px]">
                     <Gift className="size-3 text-orange-500" /> SALDO TOTAL CASHBACK
@@ -311,8 +306,8 @@ export function ReceiptModal({
             )}
 
             <div className="text-center text-[10px] my-4">
-              <p>{new Date().toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
               <p className="mt-2">Obrigado! Volte sempre!</p>
+              <p className="mt-1 font-bold">{new Date(displaySale?.created_at || new Date()).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
             </div>
 
             {/* --- QR CODE PROMOCIONAL (CAIXA PONTILHADA) --- */}
@@ -336,6 +331,7 @@ export function ReceiptModal({
             {/* --- RODAPÉ FINAL --- */}
             <div className="mt-4 pt-2 border-t border-black text-center">
               <p className="text-[10px] font-bold">{storeWebsite || "www.amstorebagshoes.com.br"}</p>
+              {storeInstagram && <p className="text-[10px] font-bold mt-0.5">{storeInstagram}</p>}
             </div>
           </div>
 
