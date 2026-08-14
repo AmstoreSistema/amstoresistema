@@ -26,7 +26,7 @@ export const createSale = createServerFn({ method: "POST" })
       product_id: z.string(),
       quantity: z.number(),
       unit_price: z.number(),
-      numeracao: z.string().nullable().optional(),
+      numeracao: z.string().nullable().optional().or(z.literal("")),
       discount: z.number().default(0),
       stock_snapshot: z.any().optional()
     })),
