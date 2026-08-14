@@ -64,8 +64,8 @@ export function SaleDetailsModal({
   return (
     <>
       <Dialog open={isModalOpen} onOpenChange={(o) => !o && handleClose()}>
-        <DialogContent className="max-w-2xl p-0 overflow-hidden bg-[#F8F9FB] border-none shadow-2xl">
-          <div className="flex items-center justify-between p-6 bg-white border-b relative">
+        <DialogContent className="max-w-4xl p-0 overflow-hidden bg-[#F8F9FB] border-none shadow-2xl flex flex-col h-[90vh] sm:rounded-[2rem]">
+          <div className="flex items-center justify-between p-6 bg-white border-b relative shrink-0">
             <div className="flex items-center gap-4">
               <div className="size-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
                 <ShoppingBag className="size-5" />
@@ -73,112 +73,163 @@ export function SaleDetailsModal({
               <div>
                 <div className="flex items-center gap-2">
                   <DialogTitle className="text-lg font-bold text-foreground">
-                    Detalhes da Venda {sale?.sale_code}
+                    Venda # {sale?.sale_code || saleId?.slice(0, 8)}
                   </DialogTitle>
                   {sale && (
-                    <span className={cn(
-                      "text-[10px] font-bold px-2 py-0.5 rounded uppercase",
-                      sale.status === 'paid' ? "bg-green-100 text-green-700" : "bg-orange-100 text-orange-700"
-                    )}>
-                      {sale.status === 'paid' ? 'pago' : 'parcial'}
-                    </span>
+                    <div className="flex gap-2">
+                      <span className={cn(
+                        "text-[10px] font-bold px-2 py-0.5 rounded uppercase",
+                        sale.status === 'paid' ? "bg-green-100 text-green-700" : "bg-orange-100 text-orange-700"
+                      )}>
+                        {sale.status === 'paid' ? 'Pago' : 'Pendente'}
+                      </span>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded uppercase bg-blue-100 text-blue-700">
+                        {sale.sale_type || 'Varejo'}
+                      </span>
+                    </div>
                   )}
                 </div>
-                <p className="text-xs text-muted-foreground">ID: {saleId}</p>
               </div>
+            </div>
+            <div className="flex items-center gap-2 mr-8">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="rounded-xl font-bold h-9 gap-2 shadow-sm"
+                onClick={() => setReceiptOpen(true)}
+              >
+                <Printer className="size-4" /> Cupom
+              </Button>
             </div>
             <DialogClose className="absolute right-4 top-4 p-2 rounded-full hover:bg-muted transition-colors">
               <X className="size-4" />
             </DialogClose>
           </div>
 
-          <ScrollArea className="max-h-[80vh]">
-            <div className="p-6 space-y-6">
-              {/* Payment Info */}
-              <div>
-                <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-2 block">Forma de Pagamento</label>
-                <div className="font-medium text-foreground capitalize flex items-center gap-2">
-                  <CreditCard className="size-4 text-muted-foreground" />
-                  {sale?.payment_method || "—"}
-                </div>
-              </div>
-
-              {/* Items Section */}
-              <div>
-                <h3 className="text-sm font-bold text-foreground mb-4 flex items-center gap-2">
-                  <ShoppingBag className="size-4" /> Itens da Venda
-                </h3>
-                <div className="space-y-2">
-                  {isLoading ? (
-                    <div className="py-4 text-center text-muted-foreground">Carregando itens...</div>
-                  ) : items.map((item: any, i: number) => (
-                    <div key={i} className="bg-white rounded-xl p-4 flex items-center justify-between shadow-sm border border-gray-50">
-                      <div>
-                        <div className="font-bold text-foreground text-sm">{item.products?.name || "Produto Removido"}</div>
-                        <div className="text-[11px] text-muted-foreground mt-0.5">
-                          {item.quantity}x {brl(item.unit_price)}
-                        </div>
+          <div className="flex-1 overflow-hidden flex flex-col sm:flex-row">
+            <ScrollArea className="flex-1">
+              <div className="p-6 space-y-8">
+                {/* Sale Info Grid */}
+                <div className="grid grid-cols-2 gap-8">
+                  <div className="space-y-4">
+                    <div>
+                      <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1 block">Cliente</label>
+                      <div className="font-bold text-foreground text-sm">
+                        {sale?.client_name || "Consumidor Final"}
                       </div>
-                      <div className="font-bold text-green-600">{brl(item.quantity * item.unit_price)}</div>
                     </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Payments Made Section */}
-              <div>
-                <h3 className="text-sm font-bold text-foreground mb-4 flex items-center gap-2">
-                  <History className="size-4" /> Pagamentos Realizados
-                </h3>
-                <div className="space-y-2">
-                  {isLoading ? (
-                    <div className="py-4 text-center text-muted-foreground">Carregando pagamentos...</div>
-                  ) : payments.length === 0 ? (
-                    <div className="py-4 text-center text-muted-foreground bg-white rounded-xl border border-dashed text-xs">Nenhum pagamento registrado.</div>
-                  ) : payments.map((pay: any, i: number) => (
-                    <div key={i} className="bg-green-50/50 rounded-xl p-4 flex items-center justify-between border border-green-100">
-                      <div>
-                        <div className="flex items-center gap-2 text-green-700 font-bold text-xs">
-                          <Calendar className="size-3" />
-                          {dateTimeBR(pay.created_at)}
-                        </div>
-                        <div className="text-[11px] text-muted-foreground mt-0.5 uppercase tracking-tighter">
-                          {pay.payment_method} - {pay.financial_accounts?.name || "Caixa Principal"}
-                        </div>
+                    <div>
+                      <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1 block">Data da Venda</label>
+                      <div className="text-sm flex items-center gap-2 text-foreground">
+                        {sale?.created_at ? dateTimeBR(sale.created_at) : "—"}
                       </div>
-                      <div className="font-bold text-green-700">{brl(pay.amount)}</div>
                     </div>
-                  ))}
-                </div>
-              </div>
+                    <div>
+                      <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1 block">Vendedor</label>
+                      <div className="text-sm text-foreground">
+                        {sale?.seller_name || "amstorebagshoes"}
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1 block">Produtos</label>
+                      <div className="text-sm text-foreground">
+                        {items.length} {items.length === 1 ? 'produto' : 'produtos'}
+                      </div>
+                    </div>
+                  </div>
 
-              {/* Financial Summary */}
-              <div className="bg-[#EEF2FF] rounded-2xl p-6 space-y-3">
-                <div className="flex justify-between items-center text-sm">
-                  <span className="text-muted-foreground">Subtotal:</span>
-                  <span className="font-bold text-foreground">{brl(subtotal)}</span>
+                  <div className="space-y-3">
+                    <div className="bg-blue-50/50 p-4 rounded-xl flex justify-between items-center border border-blue-100">
+                      <span className="text-sm text-blue-700 font-medium">Subtotal</span>
+                      <span className="font-bold text-blue-900 text-lg">{brl(subtotal)}</span>
+                    </div>
+                    <div className="bg-purple-50/50 p-4 rounded-xl flex justify-between items-center border border-purple-100">
+                      <span className="text-sm text-purple-700 font-medium">desconto</span>
+                      <span className="font-bold text-purple-900 text-lg">{brl(Number(sale?.discount || 0) + Number(sale?.cashback_used || 0))}</span>
+                    </div>
+                    <div className="bg-green-50 p-4 rounded-xl flex justify-between items-center border border-green-200">
+                      <span className="text-sm text-green-700 font-bold">Valor Total</span>
+                      <span className="font-black text-green-900 text-2xl">{brl(sale?.total_amount || 0)}</span>
+                    </div>
+                    <div className="bg-yellow-50/50 p-4 rounded-xl flex justify-between items-center border border-yellow-100">
+                      <div className="flex items-center gap-2 text-yellow-700 text-sm font-medium">
+                        <History className="size-4" /> Cashback Gerado
+                      </div>
+                      <span className="font-bold text-yellow-900 text-lg">{brl(sale?.cashback_earned || 0)}</span>
+                    </div>
+                    <div className="bg-cyan-50/50 p-4 rounded-xl flex justify-between items-center border border-cyan-100">
+                      <span className="text-sm text-cyan-700 font-medium">Valor Pago</span>
+                      <span className="font-bold text-cyan-900 text-lg">{brl(sale?.paid_amount || 0)}</span>
+                    </div>
+                  </div>
                 </div>
-                <div className="flex justify-between items-center text-sm">
-                  <span className="text-muted-foreground">Desconto:</span>
-                  <span className="font-bold text-orange-600">- {brl(Number(sale?.discount || 0) + Number(sale?.cashback_used || 0))}</span>
-                </div>
-                <div className="pt-3 border-t border-blue-200/50 flex justify-between items-center">
-                  <span className="text-lg font-bold text-foreground">Total:</span>
-                  <span className="text-3xl font-black text-green-600">{brl(sale?.total_amount || 0)}</span>
-                </div>
-              </div>
 
-              <div className="pt-2">
-                <Button 
-                  variant="outline" 
-                  className="w-full h-12 rounded-xl bg-white hover:bg-gray-50 border-gray-200 text-primary font-bold shadow-sm"
-                  onClick={() => setReceiptOpen(true)}
-                >
-                  <Printer className="size-4 mr-2" /> Ver Cupom Fiscal
-                </Button>
+                {/* Items Table-like View */}
+                <div>
+                  <h3 className="text-sm font-bold text-foreground mb-4 flex items-center gap-2 uppercase tracking-tight">
+                    Itens da Venda
+                  </h3>
+                  <div className="bg-white rounded-2xl overflow-hidden border border-gray-100 shadow-sm">
+                    {isLoading ? (
+                      <div className="py-8 text-center text-muted-foreground">Carregando itens...</div>
+                    ) : items.length === 0 ? (
+                      <div className="py-8 text-center text-muted-foreground">Nenhum item encontrado.</div>
+                    ) : (
+                      <div className="divide-y divide-gray-50">
+                        {items.map((item: any, i: number) => (
+                          <div key={i} className="p-4 flex items-center justify-between hover:bg-gray-50 transition-colors">
+                            <div className="flex-1">
+                              <div className="font-bold text-foreground text-sm uppercase">{item.products?.name || "Produto"}</div>
+                              {item.numeracao && (
+                                <div className="text-[10px] font-bold text-blue-600 mt-0.5">Nº {item.numeracao}</div>
+                              )}
+                              <div className="text-[11px] text-muted-foreground mt-0.5">
+                                {item.quantity} x {brl(item.unit_price)}
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <div className="font-bold text-foreground">{brl(item.quantity * item.unit_price)}</div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Payments History */}
+                <div>
+                  <h3 className="text-sm font-bold text-foreground mb-4 flex items-center gap-2 uppercase tracking-tight">
+                    Histórico de Pagamentos
+                  </h3>
+                  <div className="space-y-2">
+                    {isLoading ? (
+                      <div className="py-4 text-center text-muted-foreground">Carregando...</div>
+                    ) : payments.length === 0 ? (
+                      <div className="py-6 text-center text-muted-foreground bg-white rounded-2xl border border-dashed text-xs">
+                        Nenhum pagamento registrado.
+                      </div>
+                    ) : payments.map((pay: any, i: number) => (
+                      <div key={i} className="bg-white rounded-xl p-4 flex items-center justify-between border border-gray-100 shadow-sm">
+                        <div>
+                          <div className="font-bold text-foreground text-xs uppercase">
+                            {pay.payment_method || "Dinheiro"}
+                          </div>
+                          <div className="text-[10px] text-muted-foreground mt-0.5">
+                            {dateTimeBR(pay.created_at)}
+                          </div>
+                          <div className="text-[9px] text-muted-foreground mt-0.5 font-medium uppercase tracking-tighter">
+                            Conta: {pay.financial_accounts?.name || "Caixa Principal"}
+                          </div>
+                        </div>
+                        <div className="font-bold text-green-600">{brl(pay.amount)}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
-            </div>
-          </ScrollArea>
+            </ScrollArea>
+          </div>
         </DialogContent>
       </Dialog>
 
