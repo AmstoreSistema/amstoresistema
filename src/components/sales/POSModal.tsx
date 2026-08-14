@@ -128,8 +128,13 @@ export function POSModal({ open, onOpenChange }: { open: boolean; onOpenChange: 
       if (client?.id) {
         const { data: entries } = await supabase
           .from("cashback_entries")
-          .select("amount, kind")
-          .eq("client_id", client.id);
+          .select(`
+            amount, 
+            kind,
+            sales!inner(status)
+          `)
+          .eq("client_id", client.id)
+          .in("sales.status", ["finalizado", "ativo"]);
         
         const total = (entries || []).reduce((acc, entry) => {
           return acc + (entry.kind === 'earned' ? Number(entry.amount) : -Number(entry.amount));
