@@ -214,7 +214,8 @@ export function POSModal({ open, onOpenChange }: { open: boolean; onOpenChange: 
         client_id: client?.id || null,
         payment_method: paymentMethod,
         total_amount: finalTotal,
-        discount,
+        discount: 0, // Legacy field
+        discount_amount: discount, // New field
         paid_amount: isDebt ? 0 : finalTotal,
         is_debt: isDebt,
         cashback_used: cashbackToUse,
