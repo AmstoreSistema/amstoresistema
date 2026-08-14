@@ -7,6 +7,7 @@ import {
   Plus,
   History,
   AlertTriangle,
+  Warehouse as WarehouseIcon,
   Barcode,
   Calendar,
   Pencil,
