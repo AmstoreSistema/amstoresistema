@@ -1,0 +1,2 @@
+ALTER TABLE public.sale_installments DROP CONSTRAINT IF EXISTS sale_installments_status_check;
+ALTER TABLE public.sale_installments ADD CONSTRAINT sale_installments_status_check CHECK (status = ANY (ARRAY['pending'::text, 'paid'::text, 'overdue'::text, 'cancelled'::text, 'pendente'::text, 'pago'::text, 'aberto'::text, 'vencido'::text, 'parcial'::text]));
