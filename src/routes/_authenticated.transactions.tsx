@@ -61,7 +61,7 @@ import {
 } from "@/components/ui/select";
 import { brl, dateBR } from "@/lib/format";
 import { useRows } from "@/lib/data";
-import { createTransaction, updateTransactionStatus, deleteTransaction } from "@/lib/finance.functions.ts";
+import { createTransaction, updateTransactionStatus, deleteTransaction, updateAccountBalance } from "@/lib/finance.functions.ts";
 
 export const Route = createFileRoute("/_authenticated/transactions")({
   head: () => ({
@@ -90,6 +90,8 @@ function TransactionsPage() {
   
   const [term, setTerm] = useState("");
   const [open, setOpen] = useState(false);
+  const [editingAccount, setEditingAccount] = useState<any>(null);
+  const [newBalance, setNewBalance] = useState("");
 
   const form = useForm<z.infer<typeof transactionSchema>>({
     resolver: zodResolver(transactionSchema),
@@ -131,6 +133,17 @@ function TransactionsPage() {
     try {
       await deleteTransaction({ data: id });
       toast.success("Lançamento excluído");
+      qc.invalidateQueries();
+    } catch (e: any) {
+      toast.error(e.message);
+  };
+
+  const handleUpdateAccountBalance = async () => {
+    if (!editingAccount) return;
+    try {
+      await updateAccountBalance({ data: { id: editingAccount.id, initial_balance: Number(newBalance) } });
+      toast.success("Saldo inicial atualizado");
+      setEditingAccount(null);
       qc.invalidateQueries();
     } catch (e: any) {
       toast.error(e.message);
@@ -241,10 +254,36 @@ function TransactionsPage() {
       />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard title="Entradas (Pagas)" value={brl(stats.inflow)} icon={TrendingUp} tone="success" />
-        <StatCard title="Saídas (Pagas)" value={brl(stats.outflow)} icon={TrendingDown} tone="destructive" />
-        <StatCard title="Total Pendente" value={brl(stats.pending)} icon={Clock} tone="warning" />
-        <StatCard title="Saldo Consolidado" value={brl(stats.balance)} icon={DollarSign} tone="gold" />
+        {accounts.map((acc: any) => {
+          const accTransactions = (transactions as any[]).filter(t => t.account_id === acc.id && t.status === 'pago');
+          const inflow = accTransactions.filter(t => t.type === 'entrada').reduce((s, t) => s + Number(t.amount), 0);
+          const outflow = accTransactions.filter(t => t.type === 'saida').reduce((s, t) => s + Math.abs(Number(t.amount)), 0);
+          const currentBalance = (acc.initial_balance || 0) + inflow - outflow;
+          
+          return (
+            <Card key={acc.id} className="group overflow-hidden rounded-3xl border-border/40 bg-card hover:shadow-lg transition-all cursor-pointer relative" onClick={() => {
+              setEditingAccount(acc);
+              setNewBalance(String(acc.initial_balance || 0));
+            }}>
+              <CardContent className="p-5 flex flex-col items-center text-center gap-2">
+                <div className="size-10 rounded-2xl bg-gold/10 flex items-center justify-center text-gold mb-1">
+                  <DollarSign className="size-5" />
+                </div>
+                <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{acc.name}</p>
+                <h3 className="text-xl font-black font-display tracking-tight">{brl(currentBalance)}</h3>
+                <p className="text-[9px] text-muted-foreground font-bold uppercase opacity-0 group-hover:opacity-100 transition-opacity">Clique para editar saldo inicial</p>
+              </CardContent>
+            </Card>
+          );
+        })}
+        {accounts.length === 0 && (
+          <>
+            <StatCard title="Entradas (Pagas)" value={brl(stats.inflow)} icon={TrendingUp} tone="success" />
+            <StatCard title="Saídas (Pagas)" value={brl(stats.outflow)} icon={TrendingDown} tone="destructive" />
+            <StatCard title="Total Pendente" value={brl(stats.pending)} icon={Clock} tone="warning" />
+            <StatCard title="Saldo Consolidado" value={brl(stats.balance)} icon={DollarSign} tone="gold" />
+          </>
+        )}
       </div>
 
       <div className="flex gap-2">
@@ -519,6 +558,38 @@ function TransactionsPage() {
               </DialogFooter>
             </form>
           </Form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Account Initial Balance Modal */}
+      <Dialog open={!!editingAccount} onOpenChange={(open) => !open && setEditingAccount(null)}>
+        <DialogContent className="sm:max-w-md rounded-[2rem]">
+          <DialogHeader>
+            <DialogTitle>Editar Saldo da Conta</DialogTitle>
+            <DialogDescription>
+              Ajuste o saldo inicial da conta "{editingAccount?.name}". O saldo atual será recalculado com base nas transações.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-6 space-y-4">
+            <div className="space-y-2">
+              <label className="text-sm font-bold uppercase tracking-widest text-muted-foreground">Saldo Inicial</label>
+              <Input 
+                type="number" 
+                step="0.01" 
+                value={newBalance} 
+                onChange={(e) => setNewBalance(e.target.value)}
+                className="h-12 rounded-xl"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button 
+              onClick={handleUpdateAccountBalance}
+              className="w-full bg-gradient-gold border-none shadow-gold font-bold h-12 rounded-xl"
+            >
+              Salvar Novo Saldo
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
