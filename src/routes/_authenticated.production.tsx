@@ -78,7 +78,7 @@ type ProductionOrder = {
   materiais_baixados: boolean;
 };
 
-type Product = { id: string; name: string; category: string; image_url: string | null };
+type Product = { id: string; name: string; category: string; image_url: string | null; sku?: string | null };
 
 function ProductionPage() {
   const qc = useQueryClient();
