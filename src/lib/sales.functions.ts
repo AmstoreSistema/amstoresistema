@@ -37,6 +37,7 @@ export const createSale = createServerFn({ method: "POST" })
     })).optional().default([])
   }).parse(data))
 
+
   .handler(async ({ data, context }) => {
     const { supabaseAdmin: admin } = await import("@/integrations/supabase/client.server");
     
