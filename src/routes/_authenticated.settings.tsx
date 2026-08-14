@@ -353,8 +353,9 @@ function SettingsPage() {
         .from('store_assets')
         .getPublicUrl(filePath);
 
-      handleLocalUpdate("store_logo", publicUrl);
-      toast.success("Logomarca carregada com sucesso!");
+      await saveSettingsBatch({ data: [{ key: "store_logo", value: publicUrl }] });
+      toast.success("Logomarca carregada e salva com sucesso!");
+      await loadData();
     } catch (error: any) {
       console.error("Erro no upload da logo:", error);
       toast.error(`Erro ao carregar logomarca: ${error.message}`);
