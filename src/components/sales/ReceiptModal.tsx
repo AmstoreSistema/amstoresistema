@@ -265,6 +265,8 @@ export function ReceiptModal({
             <div className="text-center text-[9px] space-y-1 mt-2">
               <p>Obrigado pela preferência! 🌟</p>
               <p className="font-bold">AmStore Bagshoes</p>
+              {promoConfig?.store_website && <p>{promoConfig.store_website}</p>}
+              {promoConfig?.store_instagram && <p>Instagram: {promoConfig.store_instagram}</p>}
               <p>{new Date().toLocaleString('pt-BR')}</p>
             </div>
           </div>
