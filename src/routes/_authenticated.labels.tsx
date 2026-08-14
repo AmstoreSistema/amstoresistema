@@ -36,10 +36,18 @@ function LabelsPage() {
         const element = document.getElementById(`barcode-${label.id}`);
         if (element) {
           try {
-            JsBarcode(element, label.codigo_barras, { format: "CODE128", width: 1.5, height: 40, displayValue: true, fontSize: 10, margin: 0 });
-          } catch (e) {}
+            JsBarcode(element, label.codigo_barras, { 
+              format: "CODE128", 
+              width: 1.5, 
+              height: 40, 
+              displayValue: true, 
+              fontSize: 10, 
+              margin: 0 
+            });
+          } catch (e) {
+            console.error("Erro ao gerar barcode", e);
+          }
         }
-        return;
       }
     });
   }, [labels]);
