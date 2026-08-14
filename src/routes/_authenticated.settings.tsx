@@ -363,7 +363,29 @@ function SettingsPage() {
               <CardDescription>Informações que aparecem em recibos e documentos.</CardDescription>
             </CardHeader>
             <CardContent className="p-8 space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
+                <div className="space-y-4">
+                  <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Logomarca da Loja</Label>
+                  <div className="flex items-center gap-4">
+                    <div className="size-24 rounded-2xl bg-muted border-2 border-dashed border-border flex items-center justify-center overflow-hidden">
+                      {getSettingValue("store_logo") ? (
+                        <img src={getSettingValue("store_logo")} alt="Logo" className="max-h-full max-w-full object-contain" />
+                      ) : (
+                        <Store className="size-8 text-muted-foreground/40" />
+                      )}
+                    </div>
+                    <div className="space-y-2">
+                      <Input 
+                        type="text"
+                        placeholder="URL da Logomarca"
+                        value={getSettingValue("store_logo")}
+                        onChange={(e) => handleLocalUpdate("store_logo", e.target.value)}
+                        className="h-10 border-border/60 focus-visible:ring-gold"
+                      />
+                      <p className="text-[10px] text-muted-foreground">Insira a URL da imagem ou use o componente de upload se disponível.</p>
+                    </div>
+                  </div>
+                </div>
                 <div className="space-y-2">
                   <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Nome da Loja</Label>
                   <Input 
