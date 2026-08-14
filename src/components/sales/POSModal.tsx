@@ -116,10 +116,38 @@ export function POSModal({ open, onOpenChange }: { open: boolean; onOpenChange: 
   
   // Cashback earned is now handled server-side in createSale, but we can show an estimate
   const [estimatedCashback, setEstimatedCashback] = React.useState(0);
+  const [clientCashback, setClientCashback] = React.useState(0);
   const { data: stockItemsData = [] } = useRows<any>("stock_products");
   const { data: cashbackConfigs = [] } = useRows<any>("cashback_config", {
     select: "*, material_categories(name)"
   });
+
+  // Dynamically fetch real-time cashback balance for the selected client
+  React.useEffect(() => {
+    const fetchRealCashback = async () => {
+      if (client?.id) {
+        const { data: entries } = await supabase
+          .from("cashback_entries")
+          .select("amount, kind")
+          .eq("client_id", client.id);
+        
+        const total = (entries || []).reduce((acc, entry) => {
+          return acc + (entry.kind === 'earned' ? Number(entry.amount) : -Number(entry.amount));
+        }, 0);
+        
+        const realBalance = Math.max(0, total);
+        setClientCashback(realBalance);
+        
+        // Sincroniza o objeto client local para garantir que outros componentes usem o saldo real
+        if (client.cashback_balance !== realBalance) {
+          setClient((prev: any) => prev ? { ...prev, cashback_balance: realBalance } : null);
+        }
+      } else {
+        setClientCashback(0);
+      }
+    };
+    fetchRealCashback();
+  }, [client?.id]);
 
   React.useEffect(() => {
     if (items.length > 0 && cashbackConfigs.length > 0) {
@@ -549,14 +577,14 @@ export function POSModal({ open, onOpenChange }: { open: boolean; onOpenChange: 
                      />
                   </div>
                   
-                  {client && client.cashback_balance > 0 && (
+                  {client && clientCashback > 0 && (
                      <Button 
                         variant={cashbackToUse > 0 ? "default" : "outline"}
                         type="button"
                         className="h-11 rounded-xl gap-2 font-bold px-4 transition-all"
-                        onClick={() => setCashbackToUse(cashbackToUse > 0 ? 0 : Math.min(finalTotal, client.cashback_balance))}
+                        onClick={() => setCashbackToUse(cashbackToUse > 0 ? 0 : Math.min(finalTotal, clientCashback))}
                      >
-                        <Coins className="size-4" /> Cashback: {brl(client.cashback_balance)}
+                        <Coins className="size-4" /> Cashback: {brl(clientCashback)}
                      </Button>
                   )}
                </div>

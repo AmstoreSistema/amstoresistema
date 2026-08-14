@@ -46,11 +46,21 @@ export const getClientDetails = createServerFn({ method: "GET" })
       installments = (installmentsResult.data || []).filter(i => saleIds.includes(i.sale_id));
     }
 
-    // Calculate totals
+    // Calculate totals based on transactions/entries for better accuracy
     const total_bought = sales.reduce((sum, s) => sum + Number(s.total_amount || 0), 0);
     const total_paid = sales.reduce((sum, s) => sum + Number(s.paid_amount || 0), 0);
     const pending_installments = installments.filter(i => i.status !== 'paid');
     const total_debt = pending_installments.reduce((sum, i) => sum + Number(i.amount || 0), 0);
+    
+    // Fetch calculated cashback to ensure accuracy
+    const { data: cashbackEntries } = await supabaseAdmin
+      .from("cashback_entries")
+      .select("amount, kind")
+      .eq("client_id", data.client_id);
+    
+    const calculated_cashback = (cashbackEntries || []).reduce((acc, entry) => {
+      return acc + (entry.kind === 'earned' ? Number(entry.amount) : -Number(entry.amount));
+    }, 0);
 
     return {
       sales,
@@ -60,7 +70,8 @@ export const getClientDetails = createServerFn({ method: "GET" })
         sales_count: sales.length,
         total_bought,
         total_paid,
-        total_debt
+        total_debt,
+        cashback_balance: Math.max(0, calculated_cashback)
       }
     };
   });
