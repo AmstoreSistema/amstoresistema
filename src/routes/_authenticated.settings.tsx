@@ -441,16 +441,10 @@ function SettingsPage() {
                           )}
                           Carregar Logomarca
                         </Button>
-                        <Input 
-                          type="text"
-                          placeholder="Ou insira a URL da Logomarca"
-                          value={getSettingValue("store_logo")}
-                          onChange={(e) => handleLocalUpdate("store_logo", e.target.value)}
-                          className="h-10 border-border/60 focus-visible:ring-gold text-[10px]"
-                          disabled={uploadingLogo}
-                        />
                       </div>
-                      <p className="text-[10px] text-muted-foreground">Recomendado: 500x500px, fundo transparente.</p>
+                      <p className="text-[10px] text-muted-foreground italic">
+                        Recomendado: PNG ou JPG com fundo transparente.
+                      </p>
                     </div>
                   </div>
                 </div>
