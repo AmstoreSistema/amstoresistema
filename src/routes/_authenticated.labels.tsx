@@ -62,7 +62,10 @@ function LabelsPage() {
       tipo_codigo: type
     }));
 
-    if (prodItems.length === 0) return toast.error("Selecione quantidades");
+    if (prodItems.length === 0) {
+      toast.error("Selecione quantidades");
+      return;
+    }
 
     try {
       await generateLabelGrid({ data: { products: prodItems } });
