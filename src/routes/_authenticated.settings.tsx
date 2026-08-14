@@ -41,6 +41,7 @@ function SettingsPage() {
   const [selectedTables, setSelectedTables] = useState<string[]>([]);
   const [backupProgress, setBackupProgress] = useState<{ active: boolean; currentTable: string; percent: number }>({ active: false, currentTable: "", percent: 0 });
   const [importDialog, setImportDialog] = useState<{ open: boolean; payload: any; selected: string[] }>({ open: false, payload: null, selected: [] });
+  const [uploadingLogo, setUploadingLogo] = useState(false);
   
   const backupModules = [
     {
