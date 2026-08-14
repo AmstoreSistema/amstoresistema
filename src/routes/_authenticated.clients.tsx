@@ -1,7 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Users, Plus, Search, X } from "lucide-react";
+import { Users, Plus, Search, X, Eraser } from "lucide-react";
 import { useState, useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { resetAllCashbacks } from "@/lib/cashback-cleanup.functions";
+import { toast } from "sonner";
 
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
@@ -45,7 +48,10 @@ function ClientsPage() {
   const [isCrudOpen, setIsCrudOpen] = useState(false);
   const [editingClient, setEditingClient] = useState<any | null>(null);
 
-  const { data: clientsData = [], isLoading } = useRows<any>("clients", {
+  const queryClient = useQueryClient();
+  const resetAllCashbacksFn = useServerFn(resetAllCashbacks);
+  
+  const { data: clientsData = [], isLoading, refetch: refetchClients } = useRows<any>("clients", {
     order: { column: "name", ascending: true }
   });
 
@@ -116,15 +122,37 @@ function ClientsPage() {
     setIsCrudOpen(true);
   };
 
+  const handleResetAllCashbacks = async () => {
+    if (!confirm("ATENÇÃO: Isso irá zerar o saldo de cashback de TODOS os clientes e limpar o histórico de movimentações. Esta operação é IRREVERSÍVEL. Tem certeza?")) return;
+    try {
+      await resetAllCashbacksFn();
+      toast.success("Todos os cashbacks foram zerados");
+      refetchClients();
+      queryClient.invalidateQueries({ queryKey: ['clients-sales-total'] });
+    } catch (error) {
+      console.error("Erro ao zerar cashbacks:", error);
+      toast.error("Erro ao zerar cashbacks");
+    }
+  };
+
   return (
     <div className="space-y-6">
       <PageHeader
         title="Clientes"
         description="Gerencie sua base de clientes"
         actions={
-          <Button onClick={handleNew} className="gap-2 bg-primary shadow-lg shadow-primary/20">
-            <Plus className="size-4" /> Novo Cliente
-          </Button>
+          <div className="flex gap-2">
+            <Button 
+              variant="destructive" 
+              onClick={handleResetAllCashbacks}
+              className="bg-red-600 hover:bg-red-700 font-bold gap-2 shadow-lg shadow-red-500/20"
+            >
+              <Eraser className="size-4" /> Zerar Todos os Cashbacks
+            </Button>
+            <Button onClick={handleNew} className="gap-2 bg-primary shadow-lg shadow-primary/20">
+              <Plus className="size-4" /> Novo Cliente
+            </Button>
+          </div>
         }
       />
 
