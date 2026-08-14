@@ -4,12 +4,8 @@ import {
   Package, 
   Search,
   ArrowRight,
-  TrendingUp,
-  Tag,
-  AlertTriangle,
-  Boxes,
-  Layers,
-  ShoppingBag
+  ShoppingBag,
+  Barcode
 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
@@ -18,7 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
-import { brl, num } from "@/lib/format";
+import { brl } from "@/lib/format";
 import { useRows } from "@/lib/data";
 
 export const Route = createFileRoute("/_authenticated/catalog")({
@@ -39,10 +35,18 @@ type Product = {
   sale_price: number;
   current_stock: number;
   image_url: string | null;
+  color: string | null;
+};
+
+type StockRecord = {
+  id: string;
+  produto_id: string;
+  numeracoes: Record<string, number> | null;
 };
 
 function CatalogPage() {
   const { data: products = [], isLoading } = useRows<Product>("products", { order: { column: "name", ascending: true } });
+  const { data: stockRecords = [] } = useRows<StockRecord>("stock_products");
   
   const [term, setTerm] = useState("");
   const [activeCategory, setActiveCategory] = useState("Todos");
@@ -51,7 +55,7 @@ function CatalogPage() {
 
   const filtered = useMemo(() => {
     return products.filter(p => {
-      const matchesTerm = p.name.toLowerCase().includes(term.toLowerCase()) || (p.sku?.toLowerCase().includes(term.toLowerCase()));
+      const matchesTerm = (p.name || "").toLowerCase().includes(term.toLowerCase()) || (p.sku?.toLowerCase().includes(term.toLowerCase()));
       const matchesCategory = activeCategory === "Todos" || p.category === activeCategory;
       return matchesTerm && matchesCategory;
     });
@@ -61,111 +65,103 @@ function CatalogPage() {
     <div className="space-y-6 animate-in fade-in duration-500">
       <PageHeader 
         title="Catálogo de Produtos" 
-        description="Navegue pelos produtos com promoções ativas"
+        description="Navegue pelos produtos com estoque atualizado"
         icon={ShoppingBag}
       />
 
-      <Card className="rounded-3xl border-border/40 bg-card/50 backdrop-blur-sm p-6 mb-6">
-        <div className="flex flex-col gap-6">
-          <div className="flex flex-col md:flex-row gap-4 items-center">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-              <Input 
-                placeholder="Buscar por nome ou código..." 
-                className="pl-10 h-11 rounded-xl bg-background border-border/40"
-                value={term}
-                onChange={e => setTerm(e.target.value)}
-              />
-            </div>
-            <div className="flex gap-2">
-              <Select value={activeCategory} onValueChange={setActiveCategory}>
-                <SelectTrigger className="w-[180px] h-11 rounded-xl">
-                  <SelectValue placeholder="Todas as categorias" />
-                </SelectTrigger>
-                <SelectContent>
-                  {categories.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-                </SelectContent>
-              </Select>
-              <Select defaultValue="Todas as numerações">
-                <SelectTrigger className="w-[180px] h-11 rounded-xl">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Todas as numerações">Todas as numerações</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <div className="flex items-center gap-4 bg-muted/20 p-4 rounded-2xl border border-border/40">
-            <div className="size-10 rounded-xl bg-blue-500/10 flex items-center justify-center">
-              <Package className="size-5 text-blue-500" />
-            </div>
-            <div>
-               <p className="text-xs text-muted-foreground">Todos os produtos</p>
-               <p className="text-lg font-black tracking-tight"><span className="text-blue-500">{products.reduce((s, p) => s + Number(p.current_stock), 0)}</span> unidades em {products.length} produto(s)</p>
-            </div>
-          </div>
+      <div className="flex flex-col md:flex-row gap-4 items-center">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Input 
+            placeholder="Buscar por nome ou código..." 
+            className="pl-10 h-11 rounded-xl bg-card border-border/40"
+            value={term}
+            onChange={e => setTerm(e.target.value)}
+          />
         </div>
-      </Card>
+        <div className="flex gap-2">
+          <Select value={activeCategory} onValueChange={setActiveCategory}>
+            <SelectTrigger className="w-[180px] h-11 rounded-xl">
+              <SelectValue placeholder="Todas as categorias" />
+            </SelectTrigger>
+            <SelectContent>
+              {categories.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
 
       {isLoading ? (
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-          {[1, 2, 3, 4, 5, 6, 7, 8].map(i => <div key={i} className="h-80 animate-pulse rounded-3xl bg-card" />)}
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {[1, 2, 3, 4].map(i => <div key={i} className="h-96 animate-pulse rounded-[2rem] bg-card" />)}
         </div>
       ) : (
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {filtered.map(p => (
-            <Card key={p.id} className="group overflow-hidden rounded-[2.5rem] border-border/30 bg-card transition-all hover:shadow-2xl hover:shadow-gold/10 hover:-translate-y-1">
-              <div className="relative aspect-square overflow-hidden bg-muted/30">
-                {p.image_url ? (
-                  <img 
-                    src={p.image_url} 
-                    alt={p.name} 
-                    className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110" 
-                  />
-                ) : (
-                  <div className="flex h-full w-full items-center justify-center text-muted-foreground/10">
-                    <Package className="size-24" />
-                  </div>
-                )}
-                <div className="absolute top-4 left-4">
-                   <Badge className="bg-white/80 text-black border-none backdrop-blur-md px-3 py-1 font-bold text-xs uppercase tracking-wider">
-                      {p.category}
-                   </Badge>
+          {filtered.map(p => {
+            const stockRecord = stockRecords.find(s => s.produto_id === p.id);
+            const numeracoes = stockRecord?.numeracoes || {};
+            const allSizes = Object.entries(numeracoes as Record<string, number>)
+              .map(([size, qty]) => ({ size, qty: Number(qty) }))
+              .sort((a, b) => a.size.localeCompare(b.size));
+            const availableSizes = allSizes.filter(s => s.qty > 0);
+
+            return (
+              <Card key={p.id} className="group overflow-hidden rounded-[2rem] border-border/30 bg-card transition-all hover:shadow-xl shadow-elegant flex flex-col">
+                <div className="relative aspect-square overflow-hidden bg-muted/20 shrink-0">
+                  {p.image_url ? (
+                    <img 
+                      src={p.image_url} 
+                      alt={p.name} 
+                      className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105" 
+                    />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center text-muted-foreground/10">
+                      <Package className="size-20" />
+                    </div>
+                  )}
                 </div>
-                {p.current_stock <= 2 && (
-                   <div className="absolute top-4 right-4">
-                      <Badge variant="destructive" className="animate-pulse">
-                         Últimas peças
+                
+                <CardContent className="p-5 flex-1 flex flex-col">
+                  <div className="mb-4">
+                    <h3 className="line-clamp-1 font-display font-black text-lg leading-tight group-hover:text-gold transition-colors">{p.name}</h3>
+                    <div className="flex items-center gap-2 mt-2">
+                      <Badge variant="outline" className="text-[10px] uppercase font-bold text-muted-foreground border-border/40">
+                        {p.category}
                       </Badge>
-                   </div>
-                )}
-              </div>
-              <CardContent className="p-6">
-                <div className="mb-4">
-                   <h3 className="line-clamp-1 font-display text-lg font-extrabold group-hover:text-gold transition-colors">{p.name}</h3>
-                   <p className="text-[10px] uppercase tracking-widest text-muted-foreground mt-1">Ref: {p.sku || "—"}</p>
-                </div>
+                      <Badge variant="secondary" className="text-[10px] font-bold">
+                        Estoque: {p.current_stock}
+                      </Badge>
+                    </div>
+                  </div>
 
-                <div className="flex items-end justify-between mt-6">
-                   <div className="space-y-1">
-                      <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest">Estoque</p>
-                      <p className={(p.current_stock > 0 ? "text-success" : "text-destructive") + " text-sm font-bold"}>
-                         {p.current_stock} un disponíveis
-                      </p>
-                   </div>
-                   <div className="text-right">
-                      <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest">Valor Unitário</p>
-                      <p className="text-2xl font-black text-slate-800 font-display">{brl(p.sale_price)}</p>
-                   </div>
-                </div>
+                  <div className="space-y-4 flex-1">
+                    {p.category === "Sandália" && availableSizes.length > 0 && (
+                      <div className="space-y-2">
+                        <p className="text-[10px] uppercase font-black text-muted-foreground tracking-widest">Numerações:</p>
+                        <div className="flex flex-wrap gap-1">
+                          {availableSizes.map(({ size }) => (
+                            <Badge 
+                              key={size} 
+                              className="bg-black text-white px-2 py-0 h-6 text-xs font-black border-none"
+                            >
+                              {size}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
 
-                <Button className="w-full mt-6 rounded-2xl h-12 font-bold gap-2 group/btn bg-gradient-gold border-none shadow-gold hover:shadow-gold/40">
-                    Ver Detalhes <ArrowRight className="size-4 transition-transform group-hover/btn:translate-x-1" />
-                </Button>
-              </CardContent>
-            </Card>
-          ))}
+                    <div className="mt-auto pt-4 border-t border-border/30">
+                       <div className="bg-muted/30 rounded-2xl p-4 text-center">
+                          <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest mb-1">Valor de Varejo</p>
+                          <p className="text-2xl font-black text-slate-800 font-display">{brl(p.sale_price)}</p>
+                       </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
       )}
       
@@ -181,4 +177,5 @@ function CatalogPage() {
     </div>
   );
 }
+
 
