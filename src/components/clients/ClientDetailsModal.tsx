@@ -177,7 +177,7 @@ export function ClientDetailsModal({ client, isOpen, onClose }: ClientDetailsMod
                   <div className="col-span-full p-4 text-center text-muted-foreground bg-white rounded-2xl border border-dashed">
                     Carregando categorias...
                   </div>
-                ) : data?.cashback_by_category?.length === 0 ? (
+                ) : data?.cashback_entries?.length === 0 ? (
                   <div className="col-span-full p-4 text-center text-muted-foreground bg-white rounded-2xl border border-dashed">
                     Nenhuma categoria configurada.
                   </div>
