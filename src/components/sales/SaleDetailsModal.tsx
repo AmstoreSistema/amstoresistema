@@ -220,13 +220,19 @@ export function SaleDetailsModal({
                               <div className="flex items-center gap-2">
                                 <div className={cn(
                                   "size-6 rounded-full flex items-center justify-center text-[10px] font-bold",
-                                  inst.status === 'paid' || inst.status === 'pago' ? "bg-green-100 text-green-700" : "bg-orange-100 text-orange-700"
+                                  inst.status === 'paid' || inst.status === 'pago' ? "bg-green-100 text-green-700" : 
+                                  new Date(inst.due_date) < new Date() ? "bg-destructive/10 text-destructive" : "bg-warning/10 text-warning"
+
                                 )}>
                                   {inst.installment_number}
                                 </div>
                                 <div className="text-[11px]">
                                   <span className="font-bold block">Vence em {new Date(inst.due_date).toLocaleDateString('pt-BR')}</span>
-                                  <span className="text-muted-foreground uppercase">{inst.status === 'paid' || inst.status === 'pago' ? 'Paga' : 'Pendente'}</span>
+                                  <span className="text-muted-foreground uppercase">
+                                    {inst.status === 'paid' || inst.status === 'pago' ? 'Paga' : 
+                                     new Date(inst.due_date) < new Date() ? 'Atrasada' : 'Pendente'}
+                                  </span>
+
                                 </div>
                               </div>
                               <div className="font-bold text-sm">{brl(inst.amount)}</div>
