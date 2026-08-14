@@ -124,8 +124,8 @@ export function POSModal({ open, onOpenChange }: { open: boolean; onOpenChange: 
 
   // Dynamically fetch real-time cashback balance for the selected client
   React.useEffect(() => {
-    if (client?.id) {
-      const fetchRealCashback = async () => {
+    const fetchRealCashback = async () => {
+      if (client?.id) {
         const { data: entries } = await supabase
           .from("cashback_entries")
           .select("amount, kind")
@@ -135,13 +135,19 @@ export function POSModal({ open, onOpenChange }: { open: boolean; onOpenChange: 
           return acc + (entry.kind === 'earned' ? Number(entry.amount) : -Number(entry.amount));
         }, 0);
         
-        setClientCashback(Math.max(0, total));
-      };
-      fetchRealCashback();
-    } else {
-      setClientCashback(0);
-    }
-  }, [client]);
+        const realBalance = Math.max(0, total);
+        setClientCashback(realBalance);
+        
+        // Sincroniza o objeto client local para garantir que outros componentes usem o saldo real
+        if (client.cashback_balance !== realBalance) {
+          setClient(prev => prev ? { ...prev, cashback_balance: realBalance } : null);
+        }
+      } else {
+        setClientCashback(0);
+      }
+    };
+    fetchRealCashback();
+  }, [client?.id]);
 
   React.useEffect(() => {
     if (items.length > 0 && cashbackConfigs.length > 0) {
