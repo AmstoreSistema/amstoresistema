@@ -216,8 +216,8 @@ function PromotionsPage() {
                   <Button onClick={handleSave} className="flex-1 bg-gradient-gold text-white shadow-gold">
                     <Save className="mr-2 size-4" /> Salvar Configurações
                   </Button>
-                  <Button variant="outline" onClick={handleResetCounter} className="border-destructive/30 text-destructive hover:bg-destructive/10">
-                    <RefreshCcw className="mr-2 size-4" /> Zerar Contador
+                  <Button variant="destructive" onClick={handleResetCounter} className="font-bold gap-2 shadow-lg shadow-destructive/20 border-none px-6">
+                    <RefreshCcw className="size-4" /> Zerar Contagem
                   </Button>
                 </div>
               </CardContent>
@@ -254,60 +254,65 @@ function PromotionsPage() {
 
         <TabsContent value="history" className="mt-6">
           <Card className="border-sidebar-border/50 bg-sidebar/30 backdrop-blur-sm">
-            <CardHeader>
-              <CardTitle className="text-lg">Histórico de QR Codes Gerados</CardTitle>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle className="text-lg">Histórico de QR Codes</CardTitle>
+                <CardDescription>Todas as vendas vinculadas à promoção.</CardDescription>
+              </div>
             </CardHeader>
             <CardContent>
-              <div className="rounded-xl border border-sidebar-border/50 bg-muted/10 overflow-hidden">
-                <Table>
-                  <TableHeader className="bg-muted/30">
-                    <TableRow className="border-sidebar-border/50 hover:bg-transparent">
-                      <TableHead>Data/Hora</TableHead>
-                      <TableHead>Cliente</TableHead>
-                      <TableHead>Código QR</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Bônus</TableHead>
-                      <TableHead className="w-[100px]"></TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {history.length === 0 ? (
-                      <TableRow>
-                        <TableCell colSpan={6} className="h-32 text-center text-muted-foreground">
-                          Nenhum QR Code gerado ainda.
-                        </TableCell>
-                      </TableRow>
-                    ) : (
-                      history.map((item: any) => (
-                        <TableRow key={item.id} className="border-sidebar-border/30 hover:bg-sidebar/40">
-                          <TableCell className="text-xs text-muted-foreground">{dateTimeBR(item.created_at)}</TableCell>
-                          <TableCell className="font-medium text-white">{item.client_name || "CONSUMIDOR"}</TableCell>
-                          <TableCell className="font-mono text-[10px] text-sidebar-primary uppercase">{item.promo_qr}</TableCell>
-                          <TableCell>
-                            {item.is_awarded ? (
-                              <Badge className="bg-success/12 text-success border-success/20">PREMIADO</Badge>
-                            ) : (
-                              <Badge variant="outline" className="text-muted-foreground">PADRÃO</Badge>
-                            )}
-                          </TableCell>
-                          <TableCell className="text-gold font-bold">
-                            {item.is_awarded ? brl(item.bonus_value) : "—"}
-                          </TableCell>
-                          <TableCell>
-                            <Button 
-                              variant="ghost" 
-                              size="icon" 
-                              className="text-muted-foreground hover:text-destructive"
-                              onClick={() => handleDeleteHistory(item.id)}
-                            >
-                              <Trash2 className="size-4" />
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))
-                    )}
-                  </TableBody>
-                </Table>
+              <div className="grid gap-3">
+                {history.length === 0 ? (
+                  <div className="h-32 flex items-center justify-center text-muted-foreground border-2 border-dashed border-sidebar-border/30 rounded-2xl">
+                    Nenhum QR Code gerado ainda.
+                  </div>
+                ) : (
+                  history.map((item: any) => (
+                    <div 
+                      key={item.id} 
+                      className="group relative flex items-center gap-4 rounded-2xl border border-sidebar-border/50 bg-muted/10 p-4 transition-all hover:bg-muted/20 hover:border-sidebar-primary/30"
+                    >
+                      <div className={`flex size-12 shrink-0 items-center justify-center rounded-xl ${item.is_awarded ? 'bg-success/20 text-success' : 'bg-muted/30 text-muted-foreground'}`}>
+                        {item.is_awarded ? <Trophy className="size-6" /> : <QrCode className="size-6" />}
+                      </div>
+                      
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <h4 className="font-bold text-white truncate">{item.client_name || "CONSUMIDOR"}</h4>
+                          {item.is_awarded ? (
+                            <Badge className="bg-success text-white text-[10px] h-4">PREMIADO</Badge>
+                          ) : (
+                            <Badge variant="outline" className="text-muted-foreground text-[10px] h-4">PADRÃO</Badge>
+                          )}
+                        </div>
+                        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-muted-foreground font-mono">
+                          <span className="flex items-center gap-1"><Receipt className="size-3" /> {item.sale_code || item.promo_qr?.split('-')[1]}</span>
+                          <span className="flex items-center gap-1"><History className="size-3" /> {dateTimeBR(item.created_at)}</span>
+                          <span className="text-sidebar-primary font-bold uppercase">{item.promo_qr}</span>
+                          {item.counter_pos !== undefined && (
+                            <span className="bg-sidebar-primary/10 px-1.5 py-0.5 rounded border border-sidebar-primary/20 text-sidebar-primary">POS: {item.counter_pos}</span>
+                          )}
+                        </div>
+                      </div>
+
+                      {item.is_awarded && (
+                        <div className="text-right">
+                          <div className="text-gold font-bold text-sm">{brl(item.bonus_value)}</div>
+                          <div className="text-[9px] text-muted-foreground uppercase">{item.available_bonus ? 'Disponível' : 'Utilizado'}</div>
+                        </div>
+                      )}
+
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
+                        onClick={() => handleDeleteHistory(item.id)}
+                      >
+                        <Trash2 className="size-4" />
+                      </Button>
+                    </div>
+                  ))
+                )}
               </div>
             </CardContent>
           </Card>
