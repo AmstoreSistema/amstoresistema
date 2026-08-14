@@ -116,10 +116,32 @@ export function POSModal({ open, onOpenChange }: { open: boolean; onOpenChange: 
   
   // Cashback earned is now handled server-side in createSale, but we can show an estimate
   const [estimatedCashback, setEstimatedCashback] = React.useState(0);
+  const [clientCashback, setClientCashback] = React.useState(0);
   const { data: stockItemsData = [] } = useRows<any>("stock_products");
   const { data: cashbackConfigs = [] } = useRows<any>("cashback_config", {
     select: "*, material_categories(name)"
   });
+
+  // Dynamically fetch real-time cashback balance for the selected client
+  React.useEffect(() => {
+    if (client?.id) {
+      const fetchRealCashback = async () => {
+        const { data: entries } = await supabase
+          .from("cashback_entries")
+          .select("amount, kind")
+          .eq("client_id", client.id);
+        
+        const total = (entries || []).reduce((acc, entry) => {
+          return acc + (entry.kind === 'earned' ? Number(entry.amount) : -Number(entry.amount));
+        }, 0);
+        
+        setClientCashback(Math.max(0, total));
+      };
+      fetchRealCashback();
+    } else {
+      setClientCashback(0);
+    }
+  }, [client]);
 
   React.useEffect(() => {
     if (items.length > 0 && cashbackConfigs.length > 0) {
