@@ -407,22 +407,49 @@ function SettingsPage() {
                 <div className="space-y-4">
                   <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Logomarca da Loja</Label>
                   <div className="flex items-center gap-4">
-                    <div className="size-24 rounded-2xl bg-muted border-2 border-dashed border-border flex items-center justify-center overflow-hidden">
-                      {getSettingValue("store_logo") ? (
-                        <img src={getSettingValue("store_logo")} alt="Logo" className="max-h-full max-w-full object-contain" />
+                    <div className="size-24 rounded-2xl bg-muted border-2 border-dashed border-border flex items-center justify-center overflow-hidden shrink-0">
+                      {uploadingLogo ? (
+                        <Spinner className="size-8 animate-spin text-gold" />
+                      ) : getSettingValue("store_logo") ? (
+                        <img src={getSettingValue("store_logo")} alt="Logo" className="max-h-full max-w-full object-contain p-2" />
                       ) : (
                         <Store className="size-8 text-muted-foreground/40" />
                       )}
                     </div>
-                    <div className="space-y-2">
-                      <Input 
-                        type="text"
-                        placeholder="URL da Logomarca"
-                        value={getSettingValue("store_logo")}
-                        onChange={(e) => handleLocalUpdate("store_logo", e.target.value)}
-                        className="h-10 border-border/60 focus-visible:ring-gold"
-                      />
-                      <p className="text-[10px] text-muted-foreground">Insira a URL da imagem ou use o componente de upload se disponível.</p>
+                    <div className="space-y-3 flex-1">
+                      <div className="flex flex-col gap-2">
+                        <Input 
+                          id="logo-upload"
+                          type="file"
+                          accept="image/*"
+                          onChange={handleLogoUpload}
+                          className="hidden"
+                          disabled={uploadingLogo}
+                        />
+                        <Button 
+                          type="button" 
+                          variant="outline" 
+                          className="w-full gap-2 border-dashed border-gold/50 hover:border-gold hover:bg-gold/5"
+                          onClick={() => document.getElementById('logo-upload')?.click()}
+                          disabled={uploadingLogo}
+                        >
+                          {uploadingLogo ? (
+                            <Spinner className="size-4 animate-spin" />
+                          ) : (
+                            <Upload className="size-4" />
+                          )}
+                          Carregar Logomarca
+                        </Button>
+                        <Input 
+                          type="text"
+                          placeholder="Ou insira a URL da Logomarca"
+                          value={getSettingValue("store_logo")}
+                          onChange={(e) => handleLocalUpdate("store_logo", e.target.value)}
+                          className="h-10 border-border/60 focus-visible:ring-gold text-[10px]"
+                          disabled={uploadingLogo}
+                        />
+                      </div>
+                      <p className="text-[10px] text-muted-foreground">Recomendado: 500x500px, fundo transparente.</p>
                     </div>
                   </div>
                 </div>
