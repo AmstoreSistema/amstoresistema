@@ -265,21 +265,24 @@ export function POSModal({ open, onOpenChange }: { open: boolean; onOpenChange: 
         console.log("Preparando dados do recibo...");
         let clientInfo = client;
         if (client?.id) {
-          const { data: clientData, error: clientErr } = await supabase
-            .from("clients")
-            .select("*")
-            .eq("id", client.id)
-            .maybeSingle();
-          
-          if (clientErr) console.warn("Erro ao buscar detalhes do cliente para o recibo:", clientErr);
-          if (clientData) clientInfo = clientData;
+          try {
+            const { data: clientData, error: clientErr } = await supabase
+              .from("clients")
+              .select("*")
+              .eq("id", client.id)
+              .maybeSingle();
+            
+            if (clientErr) console.warn("Erro ao buscar detalhes do cliente para o recibo:", clientErr);
+            if (clientData) clientInfo = clientData;
+          } catch (cErr) {
+            console.error("Erro na busca de cliente:", cErr);
+          }
         }
         
         const lastSaleData = {
            id: saleId,
            ...saleData,
-           // Garantir campos para o ReceiptModal
-           items: saleData.items.map(item => ({
+           items: (saleData.items || []).map(item => ({
              ...item,
              name: items.find(i => i.stock_id === item.stock_id)?.name || "Produto"
            }))
