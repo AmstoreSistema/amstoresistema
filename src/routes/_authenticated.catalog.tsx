@@ -59,6 +59,15 @@ function CatalogPage() {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [selectedSizeInfo, setSelectedSizeInfo] = useState<{ size: string; quantity: number } | null>(null);
 
+  // Indexing stock records by produto_id for O(1) lookup
+  const stockMap = useMemo(() => {
+    const map = new Map<string, StockRecord>();
+    stockRecords.forEach(record => {
+      map.set(record.produto_id, record);
+    });
+    return map;
+  }, [stockRecords]);
+
   const categories = useMemo(() => ["Todos", ...new Set(products.map(p => p.category))], [products]);
 
   const allAvailableSizes = useMemo(() => {
