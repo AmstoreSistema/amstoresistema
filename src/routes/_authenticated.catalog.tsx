@@ -145,7 +145,7 @@ function CatalogPage() {
       ) : (
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {filtered.map(p => {
-            const stockRecord = stockRecords.find(s => s.produto_id === p.id);
+            const stockRecord = stockMap.get(p.id);
             const numeracoes = stockRecord?.numeracoes || {};
             const allSizes = Object.entries(numeracoes as Record<string, number>)
               .map(([size, qty]) => ({ size, qty: Number(qty) }))
