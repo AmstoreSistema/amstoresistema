@@ -112,13 +112,15 @@ function LabelsPage() {
         </div>
       </div>
 
-      <div className="bg-white p-8 rounded-xl shadow-inner min-h-[800px] print:p-0">
-        <div className="grid grid-cols-3 gap-0 w-[210mm] print-grid">
+      <div className="bg-white p-8 rounded-xl shadow-inner min-h-[800px] flex flex-col items-center overflow-x-auto print:p-0 print:shadow-none print:bg-transparent">
+        <div className="grid grid-cols-3 gap-0 w-[210mm] print-grid bg-white">
           {labels.map(l => (
-            <div key={l.id} className="border border-slate-200 p-2 flex flex-col items-center justify-center h-[38mm]">
-              <span className="text-[10px] font-bold uppercase truncate w-full">{l.produto_nome}</span>
-              {l.tipo_codigo === 'QR' ? <QRCodeSVG value={l.codigo_barras} size={40} /> : <svg id={`barcode-${l.id}`} />}
-              <span className="text-[8px] mt-1">{l.numeracao || ''}</span>
+            <div key={l.id} className="border border-slate-100 p-2 flex flex-col items-center justify-center h-[38mm] text-center">
+              <span className="text-[9px] font-bold uppercase truncate w-full mb-1">{l.produto_nome}</span>
+              <div className="flex items-center justify-center min-h-[45px] w-full overflow-hidden">
+                {l.tipo_codigo === 'QR' ? <QRCodeSVG value={l.codigo_barras} size={45} /> : <svg id={`barcode-${l.id}`} className="max-w-full" />}
+              </div>
+              <span className="text-[8px] mt-1 font-mono">{l.numeracao ? `TAM: ${l.numeracao}` : ''}</span>
             </div>
           ))}
         </div>
