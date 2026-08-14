@@ -1,11 +1,12 @@
-import { useState, useMemo } from "react";
-import { createFileRoute } from "@tanstack/react-router";
+import { useState, useMemo, useEffect } from "react";
+import { createFileRoute, useNavigate, useSearch } from "@tanstack/react-router";
 import { 
   Package, 
   Search,
   ArrowRight,
   ShoppingBag,
-  Barcode
+  Barcode,
+  Loader2
 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
@@ -21,7 +22,16 @@ import {
 import { brl } from "@/lib/format";
 import { useRows } from "@/lib/data";
 
+import { z } from "zod";
+
+const catalogSearchSchema = z.object({
+  size: z.string().optional().catch("Todas"),
+  category: z.string().optional().catch("Todos"),
+  term: z.string().optional().catch(""),
+});
+
 export const Route = createFileRoute("/_authenticated/catalog")({
+  validateSearch: (search) => catalogSearchSchema.parse(search),
   head: () => ({
     meta: [
       { title: "Catálogo — Amstore Gestão" },
@@ -49,15 +59,37 @@ type StockRecord = {
 };
 
 function CatalogPage() {
+  const navigate = useNavigate({ from: Route.fullPath });
+  const search = useSearch({ from: "/_authenticated/catalog" });
+
   const { data: products = [], isLoading } = useRows<Product>("products", { order: { column: "name", ascending: true } });
   const { data: stockRecords = [] } = useRows<StockRecord>("stock_products");
   
-  const [term, setTerm] = useState("");
-  const [activeCategory, setActiveCategory] = useState("Todos");
-  const [selectedSizeFilter, setSelectedSizeFilter] = useState("Todas");
+  const [term, setTerm] = useState(search.term || "");
+  const [activeCategory, setActiveCategory] = useState(search.category || "Todos");
+  const [selectedSizeFilter, setSelectedSizeFilter] = useState(search.size || "Todas");
   const [sizeDetailOpen, setSizeDetailOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [selectedSizeInfo, setSelectedSizeInfo] = useState<{ size: string; quantity: number } | null>(null);
+  
+  // Pagination state
+  const ITEMS_PER_PAGE = 12;
+  const [visibleItems, setVisibleItems] = useState(ITEMS_PER_PAGE);
+
+  // Sync filters with URL
+  useEffect(() => {
+    navigate({
+      search: (prev) => ({
+        ...prev,
+        term: term || undefined,
+        category: activeCategory !== "Todos" ? activeCategory : undefined,
+        size: selectedSizeFilter !== "Todas" ? selectedSizeFilter : undefined,
+      }),
+      replace: true,
+    });
+    // Reset pagination when filters change
+    setVisibleItems(ITEMS_PER_PAGE);
+  }, [term, activeCategory, selectedSizeFilter, navigate]);
 
   // Indexing stock records by produto_id for O(1) lookup
   const stockMap = useMemo(() => {
@@ -97,7 +129,15 @@ function CatalogPage() {
 
       return matchesTerm && matchesCategory && matchesSize;
     });
-  }, [products, term, activeCategory, selectedSizeFilter, stockMap]);
+  const paginatedItems = useMemo(() => {
+    return filtered.slice(0, visibleItems);
+  }, [filtered, visibleItems]);
+
+  const hasMore = visibleItems < filtered.length;
+
+  const loadMore = () => {
+    setVisibleItems(prev => prev + ITEMS_PER_PAGE);
+  };
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -144,7 +184,7 @@ function CatalogPage() {
         </div>
       ) : (
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {filtered.map(p => {
+          {paginatedItems.map(p => {
             const stockRecord = stockMap.get(p.id);
             const numeracoes = stockRecord?.numeracoes || {};
             const allSizes = Object.entries(numeracoes as Record<string, number>)
@@ -215,6 +255,19 @@ function CatalogPage() {
               </Card>
             );
           })}
+        </div>
+      )}
+
+      {hasMore && (
+        <div className="flex justify-center pt-8">
+          <Button 
+            variant="outline" 
+            className="rounded-2xl px-12 h-14 font-black uppercase tracking-widest border-border/40 hover:bg-gold hover:text-white transition-all gap-2"
+            onClick={loadMore}
+          >
+            Carregar Mais Produtos
+            <ArrowRight className="size-4" />
+          </Button>
         </div>
       )}
       
