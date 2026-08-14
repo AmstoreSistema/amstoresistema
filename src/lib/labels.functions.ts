@@ -47,7 +47,7 @@ export const generateLabelGrid = createServerFn({ method: "POST" })
 
     // Salva no banco de dados
     const { data: saved, error } = await context.supabase
-      .from("etiqueta_gerada")
+      .from("etiqueta_gerada" as any)
       .insert(labels)
       .select();
 
@@ -60,10 +60,11 @@ export const clearLabels = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { error } = await context.supabase
-      .from("etiqueta_gerada")
+      .from("etiqueta_gerada" as any)
       .delete()
-      .eq("created_by_id", context.userId);
+      .eq("created_by_id", context.userId as any);
 
     if (error) throw new Error(`Erro ao limpar etiquetas: ${error.message}`);
     return { success: true };
   });
+
