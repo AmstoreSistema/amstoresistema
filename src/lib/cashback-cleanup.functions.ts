@@ -3,11 +3,12 @@ import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
 export const resetAllCashbacks = createServerFn({ method: "POST" })
   .handler(async () => {
+    const { supabaseAdmin: admin } = await import("@/integrations/supabase/client.server");
+
     // 1. Reset balance for all clients
     // This is safe because updated_at failure happened in a trigger triggered by entries,
     // but we should verify if clients itself has a trigger.
-    // Based on previous check, it doesn't.
-    const { error: clientsError } = await supabaseAdmin
+    const { error: clientsError } = await admin
       .from("clients")
       .update({ cashback_balance: 0 })
       .not("id", "is", null);
@@ -19,21 +20,24 @@ export const resetAllCashbacks = createServerFn({ method: "POST" })
 
     // 2. Clear all records from cashback_entries
     // This is the one that triggers sync_client_cashback_balance
-    // We try to catch it or handle it.
-    const { error: entriesError } = await supabaseAdmin
-      .from("cashback_entries")
-      .delete()
-      .not("id", "is", null);
+    // We try to clear entries. Even if the trigger fails to update the non-existent updated_at,
+    // we already manually set balances to 0 above.
+    try {
+      const { error: entriesError } = await admin
+        .from("cashback_entries")
+        .delete()
+        .not("id", "is", null);
 
-    if (entriesError) {
-      console.error("Error deleting cashback entries:", entriesError);
-      // If the trigger fails, we already reset the balances to 0 above.
-      // The entries might still exist but the balances are correct.
-      // However, we want to try to clear entries if possible.
+      if (entriesError) {
+        console.error("Error deleting cashback entries:", entriesError);
+        // We continue because the critical part (balances) was already reset
+      }
+    } catch (e) {
+      console.error("Exception during entries deletion:", e);
     }
 
     // 3. Clear all records from qr_promo_history
-    const { error: promoError } = await supabaseAdmin
+    const { error: promoError } = await admin
       .from("qr_promo_history")
       .delete()
       .not("id", "is", null);
@@ -44,7 +48,7 @@ export const resetAllCashbacks = createServerFn({ method: "POST" })
     }
 
     // 4. Reset counter in qr_promo_config
-    const { error: configError } = await supabaseAdmin
+    const { error: configError } = await admin
       .from("qr_promo_config")
       .update({ current_counter: 0 })
       .not("id", "is", null);
