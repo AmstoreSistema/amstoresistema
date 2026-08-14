@@ -274,7 +274,7 @@ export const getSaleDetails = createServerFn({ method: "GET" })
     const [saleResult, itemsResult, paymentsResult, installmentsResult] = await Promise.all([
       supabaseAdmin.from("sales").select("*").eq("id", data.sale_id).single(),
       supabaseAdmin.from("sale_items").select("*, products(name)").eq("sale_id", data.sale_id),
-      supabaseAdmin.from("sale_payments").select("*, financial_accounts(name)").eq("sale_id", data.sale_id),
+      supabaseAdmin.from("transactions").select("*, financial_accounts(name)").eq("sale_id", data.sale_id).eq("type", "income"),
       supabaseAdmin.from("sale_installments").select("*").eq("sale_id", data.sale_id).order("installment_number", { ascending: true })
     ]);
 
