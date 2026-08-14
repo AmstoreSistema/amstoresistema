@@ -262,6 +262,12 @@ export function ClientDetailsModal({ client, isOpen, onClose }: ClientDetailsMod
                           <Calendar className="size-3" />
                           {format(new Date(sale.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
                         </div>
+                        {Number(sale.cashback_earned) > 0 && (
+                          <div className="flex items-center gap-1 text-[10px] text-yellow-600 font-bold mt-0.5">
+                            <Coins className="size-3" />
+                            +{brl(sale.cashback_earned)} cashback gerado
+                          </div>
+                        )}
                       </div>
                       <div className="text-right">
                         <div className="font-bold text-green-600">{brl(sale.total_amount)}</div>
