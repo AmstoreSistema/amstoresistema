@@ -10,9 +10,10 @@ import {
   User,
   Calendar,
   ChevronRight,
-  CreditCard,
   Plus,
-  FileText
+  FileText,
+  AlertCircle,
+  Clock
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -21,21 +22,13 @@ import { StatCard } from "@/components/stat-card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
-import { logAudit, useRows } from "@/lib/data";
+import { useRows } from "@/lib/data";
 import { brl, dateBR } from "@/lib/format";
 import { SaleDetailsModal } from "@/components/sales/SaleDetailsModal";
-import { SaleInstallmentsModal } from "@/components/sales/SaleInstallmentsModal";
+import { ClientDetailsModal } from "@/components/clients/ClientDetailsModal";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/credit")({
   head: () => ({
@@ -55,97 +48,92 @@ type Sale = {
   status: string | null;
   is_debt: boolean | null;
   created_at: string | null;
+  sale_code?: string;
 };
 type Client = { id: string; name: string; phone: string | null };
-type Payment = { id: string; sale_id: string; amount: number; created_at: string };
+type Installment = { id: string; sale_id: string; amount: number; due_date: string; status: string };
 
 function CreditPage() {
-  const qc = useQueryClient();
-  const { data: sales = [], isLoading } = useRows<Sale>("sales", {
-    order: { column: "created_at", ascending: false },
+  const { data: sales = [], isLoading: salesLoading } = useRows<Sale>("sales", {
     filters: [{ column: "is_debt", value: true }],
   });
   const { data: clients = [] } = useRows<Client>("clients");
-  const { data: payments = [] } = useRows<Payment>("debt_payments", { order: { column: "created_at", ascending: false } });
+  const { data: installments = [] } = useRows<Installment>("sale_installments" as any);
+
+  const [term, setTerm] = useState("");
+  const [filter, setFilter] = useState<'todos' | 'vencidos' | 'em_dia'>('todos');
+  const [selectedClient, setSelectedClient] = useState<any | null>(null);
+  const [clientDetailsOpen, setClientDetailsOpen] = useState(false);
+  const [selectedSaleId, setSelectedSaleId] = useState<string | null>(null);
+  const [saleDetailsOpen, setSaleDetailsOpen] = useState(false);
 
   const clientById = useMemo(() => new Map(clients.map((c) => [c.id, c])), [clients]);
-  const [target, setTarget] = useState<Sale | null>(null);
-  const [amount, setAmount] = useState("");
-  const [saving, setSaving] = useState(false);
-  const [term, setTerm] = useState("");
-  const [detailsOpen, setDetailsOpen] = useState(false);
-  const [installmentsOpen, setInstallmentsOpen] = useState(false);
+  
+  const clientStats = useMemo(() => {
+    const stats = new Map<string, {
+      name: string;
+      pendingCount: number;
+      totalDue: number;
+      isOverdue: boolean;
+      clientId: string;
+    }>();
 
-  const remaining = (s: Sale) => Number(s.total_amount) - Number(s.paid_amount);
+    sales.forEach(s => {
+      if (!s.client_id || s.status === 'paid') return;
+      
+      const client = clientById.get(s.client_id);
+      if (!client) return;
 
-  const openPayment = (sale: Sale) => {
-    setTarget(sale);
-    setAmount(String(remaining(sale).toFixed(2)));
-  };
+      const current = stats.get(s.client_id) || {
+        name: client.name,
+        pendingCount: 0,
+        totalDue: 0,
+        isOverdue: false,
+        clientId: s.client_id
+      };
 
-  const registerPayment = async () => {
-    if (!target) return;
-    const value = Number(amount || 0);
-    if (value <= 0) {
-      toast.error("Informe um valor válido");
-      return;
-    }
-    setSaving(true);
-    try {
-      const paid = Number(target.paid_amount) + value;
-      const settled = paid >= Number(target.total_amount) - 0.001;
-      const { error } = await supabase.from("debt_payments").insert({ sale_id: target.id, amount: value });
-      if (error) throw error;
-      const { error: saleError } = await supabase
-        .from("sales")
-        .update({ paid_amount: paid, status: settled ? "pago" : "pendente" })
-        .eq("id", target.id);
-      if (saleError) throw saleError;
-      const clientName = target.client_id ? clientById.get(target.client_id)?.name ?? "Cliente" : "Cliente";
-      const { error: txError } = await supabase.from("transactions").insert({
-        sale_id: target.id,
-        amount: value,
-        type: "entrada",
-        description: `Recebimento de fiado — ${clientName}`,
-      });
-      if (txError) throw txError;
-      await logAudit("recebimento_fiado", "sales", `Recebido ${brl(value)} de ${clientName}`, target.id);
-      toast.success(settled ? "Fiado quitado" : "Pagamento parcial registrado");
-      setTarget(null);
-      qc.invalidateQueries();
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Erro ao registrar o pagamento");
-    } finally {
-      setSaving(false);
-    }
-  };
+      current.pendingCount += 1;
+      current.totalDue += (Number(s.total_amount) - Number(s.paid_amount));
+      
+      // Check if any installment for this sale is overdue
+      const saleInstallments = installments.filter(i => i.sale_id === s.id && i.status !== 'paid');
+      const hasOverdue = saleInstallments.some(i => new Date(i.due_date) < new Date());
+      if (hasOverdue) current.isOverdue = true;
 
-  const filteredSales = useMemo(() => {
-     return (sales as Sale[]).filter(s => {
-        const clientName = (s.client_id ? clientById.get(s.client_id)?.name : "Consumidor") || "";
-        return clientName.toLowerCase().includes(term.toLowerCase()) || s.id.toLowerCase().includes(term.toLowerCase());
-     });
-  }, [sales, term, clientById]);
+      stats.set(s.client_id, current);
+    });
 
-  const openTotal = sales.filter((s) => s.status !== "pago").reduce((s, v) => s + remaining(v), 0);
-  const receivedTotal = payments.reduce((s, p) => s + Number(p.amount), 0);
+    return Array.from(stats.values());
+  }, [sales, clients, installments, clientById]);
+
+  const filteredClients = useMemo(() => {
+    return clientStats.filter(c => {
+      const matchesTerm = c.name.toLowerCase().includes(term.toLowerCase());
+      if (filter === 'vencidos') return matchesTerm && c.isOverdue;
+      if (filter === 'em_dia') return matchesTerm && !c.isOverdue;
+      return matchesTerm;
+    });
+  }, [clientStats, term, filter]);
+
+  const totalDueAll = clientStats.reduce((acc, c) => acc + c.totalDue, 0);
+  const overdueCount = clientStats.filter(c => c.isOverdue).length;
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       <PageHeader 
         title="Gestão de Fiado" 
-        description="Controle de vendas a prazo e recebimentos pendentes" 
+        description="Controle de vendas a prazo por cliente" 
         icon={HandCoins}
       />
 
       <div className="grid gap-4 sm:grid-cols-3">
-        <StatCard title="Total em Aberto" value={brl(openTotal)} icon={Wallet} tone="warning" />
-        <StatCard title="Total Já Recebido" value={brl(receivedTotal)} icon={CheckCircle2} tone="success" />
-        <StatCard title="Vendas no Fiado" value={sales.length} icon={HandCoins} tone="dark" />
+        <StatCard title="Total em Aberto" value={brl(totalDueAll)} icon={Wallet} tone="warning" />
+        <StatCard title="Clientes com Débito" value={clientStats.length} icon={User} tone="dark" />
+        <StatCard title="Clientes Atrasados" value={overdueCount} icon={AlertCircle} tone="destructive" />
       </div>
 
-      <div className="flex gap-2">
-        <div className="relative flex-1 max-w-md">
+      <div className="flex flex-col sm:flex-row gap-4">
+        <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input 
             placeholder="Buscar por cliente..." 
@@ -154,127 +142,88 @@ function CreditPage() {
             onChange={e => setTerm(e.target.value)}
           />
         </div>
-        <Button variant="outline" size="icon" className="h-11 w-11 rounded-xl"><Filter className="size-4" /></Button>
+        <div className="flex bg-muted/30 p-1 rounded-2xl gap-1">
+          {(['todos', 'vencidos', 'em_dia'] as const).map((f) => (
+            <Button
+              key={f}
+              variant="ghost"
+              size="sm"
+              className={cn(
+                "rounded-xl px-4 font-bold capitalize transition-all",
+                filter === f ? "bg-card text-gold shadow-sm" : "text-muted-foreground"
+              )}
+              onClick={() => setFilter(f)}
+            >
+              {f.replace('_', ' ')}
+            </Button>
+          ))}
+        </div>
       </div>
 
-      <div className="space-y-4">
-        <div className="flex items-center gap-3 px-2">
-           <Calendar className="size-4 text-gold" />
-           <h3 className="font-display font-black text-lg tracking-tight uppercase text-muted-foreground/80">Débitos Pendentes</h3>
-           <div className="h-px flex-1 bg-border/30 ml-2" />
-        </div>
-
-        {isLoading ? (
-           <div className="space-y-3">
-              {[1, 2, 3].map(i => <div key={i} className="h-24 bg-card animate-pulse rounded-3xl" />)}
-           </div>
-        ) : filteredSales.length === 0 ? (
-           <Card className="rounded-3xl border-dashed bg-muted/20 border-border/40">
-              <CardContent className="p-12 text-center text-muted-foreground">Nenhum débito encontrado.</CardContent>
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {salesLoading ? (
+           [1, 2, 3, 4, 5, 6].map(i => <div key={i} className="h-40 bg-card animate-pulse rounded-[2rem]" />)
+        ) : filteredClients.length === 0 ? (
+           <Card className="col-span-full rounded-[2rem] border-dashed bg-muted/20 border-border/40">
+              <CardContent className="p-12 text-center text-muted-foreground">Nenhum cliente encontrado com os filtros atuais.</CardContent>
            </Card>
         ) : (
-           <div className="space-y-3">
-             {filteredSales.map(sale => (
-               <Card key={sale.id} className="group overflow-hidden rounded-3xl border-border/40 bg-card hover:bg-muted/10 transition-all shadow-sm hover:shadow-md">
-                 <CardContent className="p-0">
-                    <div className="flex items-center p-4 gap-4">
-                       <div className="size-12 rounded-2xl bg-muted/50 flex items-center justify-center shrink-0">
-                          <User className="size-6 text-muted-foreground" />
-                       </div>
-
-                       <div className="flex-1 min-w-0">
-                          <div className="flex justify-between items-start">
-                             <div>
-                                <h4 className="font-bold truncate">{sale.client_id ? clientById.get(sale.client_id)?.name ?? "—" : "—"}</h4>
-                                <div className="flex items-center gap-2 mt-1">
-                                   <Badge className={sale.status === "pago" ? "bg-success/10 text-success border-none" : "bg-warning/10 text-warning border-none"}>
-                                      {sale.status === "pago" ? "Quitado" : "Pendente"}
-                                   </Badge>
-                                   <span className="text-[10px] text-muted-foreground font-bold uppercase">{dateBR(sale.created_at || "")}</span>
-                                </div>
-                             </div>
-                             <div className="text-right">
-                                <p className="font-black text-lg font-display text-gold">{brl(remaining(sale))}</p>
-                                <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Total: {brl(sale.total_amount)}</p>
-                             </div>
-                          </div>
-                       </div>
-
-                       <div className="flex items-center gap-2">
-                          {sale.status !== "pago" && (
-                             <Button size="sm" className="rounded-xl h-9 px-4 font-bold bg-gold/10 text-gold hover:bg-gold/20" onClick={() => openPayment(sale)}>
-                                 <Plus className="size-4 mr-1" /> Pagar
-                              </Button>
-                           )}
-                           <Button 
-                             size="sm" 
-                             variant="ghost" 
-                             className="rounded-xl h-9 px-3 font-bold text-muted-foreground hover:text-gold"
-                             onClick={() => {
-                               setTarget(sale);
-                               setDetailsOpen(true);
-                             }}
-                           >
-                              <FileText className="size-4 mr-1" /> Detalhes
-                           </Button>
-                           <ChevronRight 
-                             className="size-5 text-muted-foreground/30 group-hover:text-gold transition-colors cursor-pointer" 
-                             onClick={() => {
-                               setTarget(sale);
-                               setInstallmentsOpen(true);
-                             }}
-                           />
-                       </div>
+          filteredClients.map(c => (
+            <Card key={c.clientId} className="group overflow-hidden rounded-[2rem] border-border/40 bg-card hover:bg-muted/10 transition-all shadow-sm hover:shadow-md border-t-4 border-t-gold">
+              <CardContent className="p-6">
+                 <div className="flex justify-between items-start mb-4">
+                    <div className="size-12 rounded-2xl bg-muted/50 flex items-center justify-center shrink-0">
+                       <User className="size-6 text-muted-foreground" />
                     </div>
-                 </CardContent>
-               </Card>
-             ))}
-           </div>
+                    {c.isOverdue && (
+                      <Badge className="bg-destructive/10 text-destructive border-none font-black flex gap-1 items-center">
+                        <Clock className="size-3" /> VENCIDO
+                      </Badge>
+                    )}
+                 </div>
+
+                 <div className="space-y-4">
+                    <div>
+                       <h4 className="font-black text-lg truncate uppercase tracking-tight">{c.name}</h4>
+                       <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest mt-1">
+                          {c.pendingCount} {c.pendingCount === 1 ? 'Venda Pendente' : 'Vendas Pendentes'}
+                       </p>
+                    </div>
+
+                    <div className="bg-muted/30 p-4 rounded-2xl">
+                       <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest mb-1">Total Devido</p>
+                       <p className="text-2xl font-black text-gold font-display">{brl(c.totalDue)}</p>
+                    </div>
+
+                    <Button 
+                      className="w-full rounded-xl font-bold gap-2 text-gold bg-gold/5 hover:bg-gold/10"
+                      variant="ghost"
+                      onClick={() => {
+                        setSelectedClient(clientById.get(c.clientId));
+                        setClientDetailsOpen(true);
+                      }}
+                    >
+                       Ver Detalhes <ChevronRight className="size-4" />
+                    </Button>
+                 </div>
+              </CardContent>
+            </Card>
+          ))
         )}
       </div>
 
-      <Dialog open={!!target} onOpenChange={(o) => !o && setTarget(null)}>
-        <DialogContent className="rounded-3xl max-w-md">
-          <DialogHeader>
-            <DialogTitle className="font-display font-black text-2xl tracking-tight">Registrar Pagamento</DialogTitle>
-            <DialogDescription className="text-muted-foreground">
-              Saldo devedor total: <span className="font-bold text-gold">{target ? brl(remaining(target)) : ""}</span>
-            </DialogDescription>
-          </DialogHeader>
-          <div className="py-4 space-y-4">
-            <div className="space-y-2">
-               <Label className="text-sm font-bold ml-1">Valor Recebido (R$)</Label>
-               <div className="relative">
-                  <CreditCard className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-                  <Input 
-                    type="number" 
-                    step="0.01" 
-                    placeholder="0,00"
-                    className="h-12 pl-12 rounded-2xl bg-muted/50 border-none text-lg font-black"
-                    value={amount} 
-                    onChange={(e) => setAmount(e.target.value)} 
-                  />
-               </div>
-            </div>
-          </div>
-          <DialogFooter className="gap-2 sm:gap-0">
-            <Button variant="ghost" className="rounded-2xl h-12 flex-1 font-bold" onClick={() => setTarget(null)}>Cancelar</Button>
-            <Button className="rounded-2xl h-12 flex-1 font-bold bg-gradient-gold border-none shadow-gold" onClick={registerPayment} disabled={saving}>Confirmar Pagamento</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <SaleDetailsModal 
-        open={detailsOpen}
-        onOpenChange={setDetailsOpen}
-        saleId={target?.id || null}
+      <ClientDetailsModal 
+        isOpen={clientDetailsOpen}
+        onClose={() => setClientDetailsOpen(false)}
+        client={selectedClient}
       />
 
-      <SaleInstallmentsModal 
-        open={installmentsOpen}
-        onOpenChange={setInstallmentsOpen}
-        saleId={target?.id || null}
+      <SaleDetailsModal 
+        saleId={selectedSaleId}
+        isOpen={saleDetailsOpen}
+        onClose={() => setSaleDetailsOpen(false)}
       />
     </div>
   );
 }
+

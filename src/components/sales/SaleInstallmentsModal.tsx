@@ -34,6 +34,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { PaymentSecretaryModal } from "./PaymentSecretaryModal";
+
 
 export function SaleInstallmentsModal({ 
   open, 
@@ -62,6 +64,8 @@ export function SaleInstallmentsModal({
     inst: null,
     amount: ""
   });
+  const [secretaryOpen, setSecretaryOpen] = React.useState(false);
+
 
   React.useEffect(() => {
     if (isEditing && installments.length > 0) {
@@ -124,8 +128,12 @@ export function SaleInstallmentsModal({
 
   if (!saleId) return null;
 
+  const unpaidInstallments = installments.filter((i: any) => i.status !== 'paid');
+  const remainingTotal = unpaidInstallments.reduce((acc: number, curr: any) => acc + Number(curr.remaining_amount ?? curr.amount), 0);
+
   return (
     <>
+
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="max-w-2xl p-0 overflow-hidden rounded-[2rem] border-none shadow-2xl">
           <DialogHeader className="px-8 py-5 border-b border-border/40 bg-card/50 backdrop-blur-xl flex-row items-center justify-between">
@@ -300,8 +308,16 @@ export function SaleInstallmentsModal({
           </div>
           
           <div className="p-6 border-t border-border/40 bg-muted/5 flex gap-3">
+             <Button 
+               className="flex-1 rounded-xl bg-gold text-black font-black hover:bg-gold/90 gap-2"
+               onClick={() => setSecretaryOpen(true)}
+               disabled={unpaidInstallments.length === 0}
+             >
+               <Banknote className="size-4" /> Secretário de Pagamento
+             </Button>
              <Button variant="outline" className="flex-1 rounded-xl" onClick={() => onOpenChange(false)}>Fechar</Button>
           </div>
+
         </DialogContent>
       </Dialog>
 
@@ -339,6 +355,17 @@ export function SaleInstallmentsModal({
           </div>
         </DialogContent>
       </Dialog>
+
+      <PaymentSecretaryModal 
+        open={secretaryOpen}
+        onOpenChange={setSecretaryOpen}
+        saleId={saleId}
+        clientName={sale?.client_name || "Cliente"}
+        totalAmount={Number(sale?.total_amount || 0)}
+        remainingAmount={remainingTotal}
+        installments={installments}
+      />
     </>
   );
 }
+
