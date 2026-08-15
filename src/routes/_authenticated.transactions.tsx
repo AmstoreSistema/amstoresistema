@@ -61,7 +61,10 @@ export const Route = createFileRoute("/_authenticated/transactions")({
 
 function TransactionsPage() {
   const qc = useQueryClient();
-  const { data: transactions = [], isLoading } = useRows("transactions", { order: { column: "created_at", ascending: false } });
+  const { data: transactions = [], isLoading } = useRows("transactions", { 
+    select: "*, financial_accounts(name), clients(name)",
+    order: { column: "created_at", ascending: false } 
+  });
   const { data: accounts = [] } = useRows("financial_accounts", { filters: [{ column: "active", value: true }] });
   
   const [term, setTerm] = useState("");
