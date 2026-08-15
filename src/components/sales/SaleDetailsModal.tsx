@@ -225,7 +225,7 @@ export function SaleDetailsModal({
                     </h3>
                     {hasOutstandingDebt && (
                       <div className="flex items-center gap-2">
-                        {Number(sale.paid_amount) < Number(sale.total_amount) && (
+                        {remainingBalance > 0.009 && (
                           <Button 
                             size="sm" 
                             variant="outline"
