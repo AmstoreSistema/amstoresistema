@@ -141,28 +141,28 @@ export function AddProductDirectModal({ open, onOpenChange }: { open: boolean; o
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[95vh] overflow-y-auto p-0 rounded-[2rem] border-none shadow-2xl">
-        <DialogHeader className="bg-success p-6 text-white sticky top-0 z-10 rounded-t-[2rem]">
+      <DialogContent className="max-w-xl max-h-[90vh] overflow-hidden p-0 rounded-[1.5rem] border-none shadow-2xl flex flex-col">
+        <DialogHeader className="bg-success px-5 py-3 text-white shrink-0 z-10 rounded-t-[1.5rem]">
           <div className="flex items-center gap-3">
-             <div className="size-10 rounded-xl bg-white/20 flex items-center justify-center">
-                <Package className="size-6" />
+             <div className="size-8 rounded-lg bg-white/20 flex items-center justify-center">
+                <Package className="size-5" />
              </div>
-             <DialogTitle className="text-xl font-display font-black">Adicionar Produto Direto ao Estoque</DialogTitle>
+             <DialogTitle className="text-lg font-display font-black">Adicionar Produto Direto</DialogTitle>
           </div>
         </DialogHeader>
 
-        <div className="p-8 space-y-8">
-          <section className="space-y-4">
+        <div className="flex-1 overflow-y-auto p-5 space-y-5">
+          <section className="space-y-3">
              <div className="flex items-center gap-2 text-success">
                 <Info className="size-4" />
                 <h3 className="font-bold uppercase text-[10px] tracking-widest">Informações do Produto</h3>
              </div>
              
              {/* Upload de Imagem */}
-             <div className="space-y-2">
-                <Label className="text-xs font-bold pl-1 uppercase tracking-wider text-muted-foreground">Imagem do Produto</Label>
+             <div className="space-y-1.5">
+                <Label className="text-[10px] font-bold pl-1 uppercase tracking-wider text-muted-foreground">Imagem do Produto</Label>
                 <div 
-                  className="relative flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-muted-foreground/20 bg-muted/5 p-6 transition-colors hover:bg-muted/10 cursor-pointer"
+                  className="relative flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-muted-foreground/20 bg-muted/5 p-4 transition-colors hover:bg-muted/10 cursor-pointer"
                   onClick={() => document.getElementById('product-direct-image-upload')?.click()}
                 >
                   <input 
@@ -199,8 +199,8 @@ export function AddProductDirectModal({ open, onOpenChange }: { open: boolean; o
                     </div>
                   ) : (
                     <>
-                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-sm mb-2">
-                        <Upload className="size-5 text-muted-foreground" />
+                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white shadow-sm mb-1.5">
+                        <Upload className="size-4 text-muted-foreground" />
                       </div>
                       <p className="text-xs font-medium">Clique para fazer upload da imagem</p>
                     </>
@@ -209,35 +209,35 @@ export function AddProductDirectModal({ open, onOpenChange }: { open: boolean; o
              </div>
              
              <div className="grid grid-cols-1 gap-4">
-                <div className="space-y-2">
-                   <Label className="text-xs font-bold pl-1">Nome do Produto *</Label>
+                <div className="space-y-1.5">
+                   <Label className="text-[10px] font-bold pl-1">Nome do Produto *</Label>
                    <Input 
                       placeholder="Ex: Bolsa Marrom Importada" 
-                      className="rounded-xl h-11 bg-muted/30 border-none"
+                      className="rounded-xl h-10 bg-muted/30 border-none"
                       value={formData.name}
                       onChange={e => setFormData({...formData, name: e.target.value})}
                    />
                 </div>
              </div>
 
-             <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                   <Label className="text-xs font-bold pl-1">Código / SKU</Label>
+             <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                   <Label className="text-[10px] font-bold pl-1">Código / SKU</Label>
                    <div className="flex gap-2">
                       <Input 
                         value={sku} 
                         readOnly 
-                        className="rounded-xl h-11 bg-muted/50 border-none font-mono text-xs"
+                        className="rounded-xl h-10 bg-muted/50 border-none font-mono text-xs"
                       />
-                      <Button variant="outline" size="icon" className="shrink-0 h-11 w-11 rounded-xl" onClick={generateSku}>
+                      <Button variant="outline" size="icon" className="shrink-0 h-10 w-10 rounded-xl" onClick={generateSku}>
                          <RefreshCw className="size-4" />
                       </Button>
                    </div>
                 </div>
-                <div className="space-y-2">
-                   <Label className="text-xs font-bold pl-1">Categoria *</Label>
+                <div className="space-y-1.5">
+                   <Label className="text-[10px] font-bold pl-1">Categoria *</Label>
                    <Select value={formData.category} onValueChange={val => setFormData({...formData, category: val})}>
-                      <SelectTrigger className="rounded-xl h-11 bg-muted/30 border-none font-bold">
+                      <SelectTrigger className="rounded-xl h-10 bg-muted/30 border-none font-bold">
                          <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -247,11 +247,11 @@ export function AddProductDirectModal({ open, onOpenChange }: { open: boolean; o
                 </div>
              </div>
 
-             <div className="space-y-2">
-                <Label className="text-xs font-bold pl-1">Cor / Especificação</Label>
+             <div className="space-y-1.5">
+                <Label className="text-[10px] font-bold pl-1">Cor / Especificação</Label>
                 <Input 
                    placeholder="Ex: Marrom, Preto, Verniz..." 
-                   className="rounded-xl h-11 bg-muted/30 border-none"
+                   className="rounded-xl h-10 bg-muted/30 border-none"
                    value={formData.color}
                    onChange={e => setFormData({...formData, color: e.target.value})}
                 />
@@ -277,38 +277,38 @@ export function AddProductDirectModal({ open, onOpenChange }: { open: boolean; o
                 </div>
              )}
 
-             <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                   <Label className="text-xs font-bold pl-1">Data de Entrada *</Label>
+             <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                   <Label className="text-[10px] font-bold pl-1">Data de Entrada *</Label>
                    <Input 
                       type="date"
-                      className="rounded-xl h-11 bg-muted/30 border-none"
+                      className="rounded-xl h-10 bg-muted/30 border-none text-xs"
                       value={formData.data_entrada}
                       onChange={e => setFormData({...formData, data_entrada: e.target.value})}
                    />
                 </div>
-                <div className="space-y-2">
-                   <Label className="text-xs font-bold pl-1">Lote</Label>
+                <div className="space-y-1.5">
+                   <Label className="text-[10px] font-bold pl-1">Lote</Label>
                    <Input 
-                      className="rounded-xl h-11 bg-muted/30 border-none"
+                      className="rounded-xl h-10 bg-muted/30 border-none"
                       value={formData.lote}
                       onChange={e => setFormData({...formData, lote: e.target.value})}
                    />
                 </div>
              </div>
 
-             <div className="space-y-2">
-                <Label className="text-xs font-bold pl-1">Localização no Estoque</Label>
+             <div className="space-y-1.5">
+                <Label className="text-[10px] font-bold pl-1">Localização no Estoque</Label>
                 <Input 
                    placeholder="Ex: Prateleira A1, Seção B" 
-                   className="rounded-xl h-11 bg-muted/30 border-none"
+                   className="rounded-xl h-10 bg-muted/30 border-none"
                    value={formData.localizacao}
                    onChange={e => setFormData({...formData, localizacao: e.target.value})}
                 />
              </div>
 
-             <div className="space-y-2">
-                <Label className="text-xs font-bold pl-1">Observações</Label>
+             <div className="space-y-1.5">
+                <Label className="text-[10px] font-bold pl-1">Observações</Label>
                 <Textarea 
                    placeholder="Ex: Produto importado, origem..." 
                    className="rounded-xl bg-muted/30 border-none min-h-[80px]"
@@ -320,36 +320,36 @@ export function AddProductDirectModal({ open, onOpenChange }: { open: boolean; o
 
           <Separator className="bg-muted/50" />
 
-          <section className="space-y-4">
+          <section className="space-y-3">
              <div className="flex items-center gap-2 text-success">
                 <DollarSign className="size-4" />
                 <h3 className="font-bold uppercase text-[10px] tracking-widest">Precificação</h3>
              </div>
              
-             <div className="grid grid-cols-3 gap-4">
-                <div className="space-y-2">
-                   <Label className="text-xs font-bold pl-1">Preço de Custo</Label>
+             <div className="grid grid-cols-3 gap-3">
+                <div className="space-y-1.5">
+                   <Label className="text-[10px] font-bold pl-1">Preço de Custo</Label>
                    <Input 
                       type="number"
-                      className="rounded-xl h-11 bg-muted/30 border-none font-bold"
+                      className="rounded-xl h-10 bg-muted/30 border-none font-bold"
                       value={formData.preco_custo}
                       onChange={e => setFormData({...formData, preco_custo: Number(e.target.value)})}
                    />
                 </div>
-                <div className="space-y-2">
-                   <Label className="text-xs font-bold pl-1">Venda (Varejo)</Label>
+                <div className="space-y-1.5">
+                   <Label className="text-[10px] font-bold pl-1">Venda (Varejo)</Label>
                    <Input 
                       type="number"
-                      className="rounded-xl h-11 bg-muted/30 border-none font-bold text-success"
+                      className="rounded-xl h-10 bg-muted/30 border-none font-bold text-success"
                       value={formData.preco_venda}
                       onChange={e => setFormData({...formData, preco_venda: Number(e.target.value)})}
                    />
                 </div>
-                <div className="space-y-2">
-                   <Label className="text-xs font-bold pl-1">Venda (Atacado)</Label>
+                <div className="space-y-1.5">
+                   <Label className="text-[10px] font-bold pl-1">Venda (Atacado)</Label>
                    <Input 
                       type="number"
-                      className="rounded-xl h-11 bg-muted/30 border-none font-bold text-primary"
+                      className="rounded-xl h-10 bg-muted/30 border-none font-bold text-primary"
                       value={formData.preco_atacado}
                       onChange={e => setFormData({...formData, preco_atacado: Number(e.target.value)})}
                    />
@@ -365,10 +365,10 @@ export function AddProductDirectModal({ open, onOpenChange }: { open: boolean; o
           </section>
         </div>
 
-        <DialogFooter className="p-6 bg-muted/10 border-t border-muted/20 gap-3">
-           <Button variant="outline" className="rounded-xl h-12 px-8" onClick={() => onOpenChange(false)}>Cancelar</Button>
+        <DialogFooter className="p-4 bg-muted/10 border-t border-muted/20 gap-2">
+           <Button variant="outline" className="rounded-xl h-10 px-6 text-xs font-bold" onClick={() => onOpenChange(false)}>Cancelar</Button>
            <Button 
-              className="rounded-xl h-12 px-8 bg-success hover:bg-success/90 text-white font-bold gap-2 shadow-lg shadow-success/20"
+              className="rounded-xl h-10 px-6 bg-success hover:bg-success/90 text-white font-bold gap-2 shadow-lg shadow-success/20 text-xs"
               onClick={handleSave}
               disabled={loading}
            >
