@@ -98,6 +98,7 @@ export function POSModal({ open, onOpenChange }: { open: boolean; onOpenChange: 
   });
 
   const fetchClientDetails = useServerFn(getClientDetails);
+  const qc = useQueryClient();
 
   // Auto-update accountId based on active account
   React.useEffect(() => {
