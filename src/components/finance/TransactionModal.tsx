@@ -130,7 +130,7 @@ export function TransactionModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="sm:max-w-2xl p-0 overflow-hidden bg-white border-none shadow-2xl flex flex-col sm:rounded-[2rem]">
+      <DialogContent className="sm:max-w-2xl p-0 overflow-hidden bg-white border-none shadow-2xl flex flex-col sm:rounded-[2rem] max-h-[95vh]">
         <div className="flex items-center justify-between p-6 border-b shrink-0">
           <DialogTitle className="text-xl font-bold">
             {isEditing ? "Editar Transação" : "Nova Transação"}
@@ -138,7 +138,7 @@ export function TransactionModal({
         </div>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 overflow-y-auto p-6 space-y-6 max-h-[80vh]">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 overflow-y-auto p-6 space-y-6">
             <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
