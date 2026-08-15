@@ -86,7 +86,7 @@ export function TransactionModal({
         amount: Math.abs(transaction.amount),
         description: transaction.description || "",
         account_id: transaction.account_id || "",
-        category: transaction.category || "Vendas",
+        category: transaction.category || "Venda",
         status: transaction.status === 'pago' ? 'pago' : 'pendente',
         due_date: transaction.due_date ? transaction.due_date.split('T')[0] : (transaction.created_at ? transaction.created_at.split('T')[0] : ""),
         payment_method: transaction.payment_method || "Dinheiro",
@@ -177,6 +177,7 @@ export function TransactionModal({
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent className="rounded-xl z-[9999]" position="popper" sideOffset={5}>
+                          <SelectItem value="Venda">Venda</SelectItem>
                           <SelectItem value="Vendas">Vendas</SelectItem>
                           <SelectItem value="Equipamentos">Equipamentos</SelectItem>
                           <SelectItem value="Suprimentos">Suprimentos</SelectItem>
