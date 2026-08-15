@@ -162,7 +162,7 @@ export function AddProductDirectModal({ open, onOpenChange }: { open: boolean; o
              <div className="space-y-1.5">
                 <Label className="text-[10px] font-bold pl-1 uppercase tracking-wider text-muted-foreground">Imagem do Produto</Label>
                 <div 
-                  className="relative flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-muted-foreground/20 bg-muted/5 p-6 transition-colors hover:bg-muted/10 cursor-pointer"
+                  className="relative flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-muted-foreground/20 bg-muted/5 p-4 transition-colors hover:bg-muted/10 cursor-pointer"
                   onClick={() => document.getElementById('product-direct-image-upload')?.click()}
                 >
                   <input 
