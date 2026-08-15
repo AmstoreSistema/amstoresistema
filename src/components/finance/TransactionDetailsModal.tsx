@@ -133,18 +133,37 @@ export function TransactionDetailsModal({
                           {loadingSale ? (
                             <div className="p-4 text-center text-xs text-muted-foreground">Carregando itens...</div>
                           ) : items.map((item: any, i: number) => (
-                            <div key={i} className="p-3 flex justify-between items-center text-sm">
-                              <div>
-                                <div className="font-bold text-foreground uppercase text-xs">{item.products?.name}</div>
-                                <div className="text-[10px] text-muted-foreground">{item.quantity}x {brl(item.unit_price)}</div>
+                            <div key={i} className="p-3 space-y-1">
+                              <div className="flex justify-between items-center text-sm">
+                                <div>
+                                  <div className="font-bold text-foreground uppercase text-xs">
+                                    {item.products?.name}
+                                    {item.numeracao ? ` (Nº ${item.numeracao})` : ''}
+                                  </div>
+                                  <div className="text-[10px] text-muted-foreground">{item.quantity}x {brl(item.unit_price)}</div>
+                                </div>
+                                <span className="font-bold text-green-600">{brl((item.quantity * item.unit_price) - (item.discount || 0))}</span>
                               </div>
-                              <span className="font-bold text-green-600">{brl(item.quantity * item.unit_price)}</span>
+                              {item.discount > 0 && (
+                                <div className="flex justify-between text-[9px] text-muted-foreground italic px-1">
+                                  <span>Desconto Item:</span>
+                                  <span>- {brl(item.discount)}</span>
+                                </div>
+                              )}
                             </div>
                           ))}
                         </div>
-                        <div className="px-3 py-4 bg-gray-50 flex justify-between items-center border-t">
-                          <span className="text-xs font-bold uppercase text-foreground">Total da Venda:</span>
-                          <span className="text-lg font-black text-green-600">{brl(sale?.total_amount)}</span>
+                        <div className="px-3 py-4 bg-gray-50 flex flex-col gap-1 border-t">
+                          {(sale?.discount > 0 || sale?.cashback_used > 0) && (
+                            <div className="flex justify-between items-center text-[10px] font-bold text-muted-foreground uppercase">
+                              <span>Total Descontos:</span>
+                              <span>- {brl((sale?.discount || 0) + (sale?.cashback_used || 0))}</span>
+                            </div>
+                          )}
+                          <div className="flex justify-between items-center">
+                            <span className="text-xs font-bold uppercase text-foreground">Total Líquido:</span>
+                            <span className="text-lg font-black text-green-600">{brl(sale?.total_amount)}</span>
+                          </div>
                         </div>
                       </div>
                    </div>

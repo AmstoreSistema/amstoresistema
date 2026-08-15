@@ -174,19 +174,28 @@ export function SaleDetailsModal({
                       <div className="py-8 text-center text-muted-foreground">Nenhum item encontrado.</div>
                     ) : (
                       <div className="divide-y divide-gray-50">
-                        {items.map((item: any, i: number) => (
+                         {items.map((item: any, i: number) => (
                           <div key={i} className="p-4 flex items-center justify-between hover:bg-gray-50 transition-colors">
                             <div className="flex-1">
                               <div className="font-bold text-foreground text-sm uppercase">{item.products?.name || "Produto"}</div>
-                              {item.numeracao && (
-                                <div className="text-[10px] font-bold text-blue-600 mt-0.5">Nº {item.numeracao}</div>
-                              )}
-                              <div className="text-[11px] text-muted-foreground mt-0.5">
-                                {item.quantity} x {brl(item.unit_price)}
+                              <div className="flex items-center gap-2 mt-0.5">
+                                {item.numeracao && (
+                                  <div className="text-[10px] font-bold text-blue-600">Nº {item.numeracao}</div>
+                                )}
+                                <div className="text-[11px] text-muted-foreground">
+                                  {item.quantity} x {brl(item.unit_price)}
+                                </div>
                               </div>
+                              {item.discount > 0 && (
+                                <div className="text-[10px] text-muted-foreground italic mt-0.5">
+                                  Desconto Item: - {brl(item.discount)}
+                                </div>
+                              )}
                             </div>
                             <div className="text-right">
-                              <div className="font-bold text-foreground">{brl(item.quantity * item.unit_price)}</div>
+                              <div className="font-bold text-foreground">
+                                {brl((item.quantity * item.unit_price) - (item.discount || 0))}
+                              </div>
                             </div>
                           </div>
                         ))}
