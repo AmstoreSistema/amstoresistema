@@ -109,14 +109,14 @@ export function ClientDetailsModal({ client, isOpen, onClose }: ClientDetailsMod
 
   return (
     <Dialog open={isOpen} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-4xl p-0 overflow-hidden bg-[#F8F9FB] border-none shadow-2xl">
-        <div className="flex items-center justify-between p-6 bg-white border-b relative">
+      <DialogContent className="max-w-4xl p-0 overflow-hidden bg-[#F8F9FB] border-none shadow-2xl sm:rounded-[1.5rem]">
+        <div className="flex items-center justify-between p-4 bg-white border-b relative">
           <div className="flex items-center gap-4">
-            <div className="size-12 rounded-full bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center text-white text-lg font-bold">
+            <div className="size-10 rounded-full bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center text-white text-base font-bold">
               {initials}
             </div>
             <div>
-              <DialogTitle className="text-xl font-bold text-foreground">
+              <DialogTitle className="text-lg font-bold text-foreground">
                 {client.name}
               </DialogTitle>
               <p className="text-sm text-muted-foreground">{client.phone || "Sem telefone"}</p>
@@ -124,12 +124,12 @@ export function ClientDetailsModal({ client, isOpen, onClose }: ClientDetailsMod
           </div>
         </div>
 
-        <ScrollArea className="max-h-[80vh]">
-          <div className="p-6 space-y-6">
+        <ScrollArea className="max-h-[85vh]">
+          <div className="p-5 space-y-5">
             {/* Contact Info Section */}
-            <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-              <h3 className="text-sm font-bold text-foreground mb-4 uppercase tracking-wider">Informações do Cliente</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+              <h3 className="text-xs font-bold text-foreground mb-3 uppercase tracking-wider">Informações do Cliente</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs text-muted-foreground font-medium block mb-1">Telefone</label>
                   <div className="flex items-center gap-2 font-medium text-foreground">
@@ -153,14 +153,14 @@ export function ClientDetailsModal({ client, isOpen, onClose }: ClientDetailsMod
             </div>
 
             {/* Stats Grid */}
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
               {stats.map((stat, i) => (
-                <div key={i} className={cn("rounded-2xl p-4 shadow-sm border border-gray-100", stat.bgColor)}>
+                <div key={i} className={cn("rounded-xl p-3 shadow-sm border border-gray-100", stat.bgColor)}>
                   <div className="flex items-center gap-2 mb-2">
                     <stat.icon className={cn("size-4", stat.textColor)} />
                     <span className="text-[10px] font-bold uppercase text-muted-foreground truncate">{stat.label}</span>
                   </div>
-                  <div className={cn("text-lg font-bold", stat.valueColor)}>{stat.value}</div>
+                  <div className={cn("text-base font-bold", stat.valueColor)}>{stat.value}</div>
                   {stat.subValue && <div className="text-[10px] text-muted-foreground mt-1">{stat.subValue}</div>}
                 </div>
               ))}
@@ -168,11 +168,11 @@ export function ClientDetailsModal({ client, isOpen, onClose }: ClientDetailsMod
 
             {/* Cashback by Category */}
             <div>
-              <h3 className="text-sm font-bold text-foreground mb-4 uppercase tracking-wider flex items-center gap-2">
-                <PieChart className="size-4 text-primary" />
+              <h3 className="text-xs font-bold text-foreground mb-3 uppercase tracking-wider flex items-center gap-2">
+                <PieChart className="size-3.5 text-primary" />
                 Detalhamento de Cashback por Categoria
               </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
                 {isLoading ? (
                   <div className="col-span-full p-4 text-center text-muted-foreground bg-white rounded-2xl border border-dashed">
                     Carregando categorias...
@@ -214,9 +214,9 @@ export function ClientDetailsModal({ client, isOpen, onClose }: ClientDetailsMod
                     });
 
                     return Object.entries(categoryTotals).map(([name, stats]: [string, any]) => (
-                      <div key={name} className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex flex-col items-center text-center">
-                        <span className="text-[10px] font-bold uppercase text-muted-foreground mb-2">{name}</span>
-                        <div className="text-lg font-black text-primary">{brl(stats.balance)}</div>
+                      <div key={name} className="bg-white rounded-xl p-3 shadow-sm border border-gray-100 flex flex-col items-center text-center">
+                        <span className="text-[10px] font-bold uppercase text-muted-foreground mb-1.5">{name}</span>
+                        <div className="text-base font-black text-primary">{brl(stats.balance)}</div>
                         <div className="text-[10px] text-muted-foreground mt-1">Acumulado: {brl(stats.total_earned)}</div>
                       </div>
                     ));
@@ -227,7 +227,7 @@ export function ClientDetailsModal({ client, isOpen, onClose }: ClientDetailsMod
 
             {/* Sales History */}
             <div>
-              <h3 className="text-sm font-bold text-foreground mb-4 uppercase tracking-wider">Histórico Completo de Vendas</h3>
+              <h3 className="text-xs font-bold text-foreground mb-3 uppercase tracking-wider">Histórico Completo de Vendas</h3>
               <div className="space-y-2">
                 {isLoading ? (
                   <div className="p-10 text-center text-muted-foreground">Carregando histórico...</div>
@@ -239,7 +239,7 @@ export function ClientDetailsModal({ client, isOpen, onClose }: ClientDetailsMod
                   data?.sales.map((sale: any) => (
                     <div 
                       key={sale.id} 
-                      className="bg-white rounded-xl p-4 flex items-center justify-between shadow-sm border border-gray-50 hover:border-primary/20 hover:bg-gray-50 cursor-pointer transition-all active:scale-[0.98]"
+                      className="bg-white rounded-xl p-3 flex items-center justify-between shadow-sm border border-gray-50 hover:border-primary/20 hover:bg-gray-50 cursor-pointer transition-all active:scale-[0.98]"
                       onClick={() => handleSaleClick(sale.id)}
                     >
 
