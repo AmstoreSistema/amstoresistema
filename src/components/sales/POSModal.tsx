@@ -345,14 +345,14 @@ export function POSModal({ open, onOpenChange }: { open: boolean; onOpenChange: 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-7xl max-h-[98vh] p-0 flex flex-col gap-0 overflow-hidden rounded-[2.5rem] border-none shadow-2xl">
-        <DialogHeader className="px-8 py-5 border-b border-border/40 bg-card/50 backdrop-blur-xl flex flex-row items-center justify-between">
+      <DialogContent className="max-w-7xl max-h-[98vh] p-0 flex flex-col gap-0 overflow-hidden rounded-[1.5rem] border-none shadow-2xl">
+        <DialogHeader className="px-6 py-4 border-b border-border/40 bg-card/50 backdrop-blur-xl flex flex-row items-center justify-between">
           <div className="flex items-center gap-3">
-             <div className="size-10 rounded-2xl bg-gradient-gold flex items-center justify-center shadow-gold">
+             <div className="size-8 rounded-xl bg-gradient-gold flex items-center justify-center shadow-gold">
                 <ShoppingCart className="size-5 text-primary-foreground" />
              </div>
              <div>
-                <DialogTitle className="font-display font-black text-xl">PDV Amstore</DialogTitle>
+                <DialogTitle className="font-display font-black text-lg">PDV Amstore</DialogTitle>
                 <div className="flex items-center gap-2">
                   <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Ponto de Venda Inteligente</p>
                   <Badge variant="outline" className="h-4 text-[9px] font-mono border-gold/30 text-gold bg-gold/5">
@@ -392,10 +392,10 @@ export function POSModal({ open, onOpenChange }: { open: boolean; onOpenChange: 
         
         <div className="flex flex-1 overflow-hidden bg-background">
           {/* Main Area: Items selection and Cart */}
-          <div className="flex-1 flex flex-col overflow-hidden p-6 gap-6">
+          <div className="flex-1 flex flex-col overflow-hidden p-5 gap-5">
             <ProductSearch onAdd={addItem} />
             
-            <div className="flex-1 flex flex-col min-h-0 bg-card/40 rounded-[2rem] border border-border/40 overflow-hidden">
+            <div className="flex-1 flex flex-col min-h-0 bg-card/40 rounded-[1.5rem] border border-border/40 overflow-hidden">
                <div className="px-6 py-4 border-b border-border/40 flex items-center justify-between">
                   <h3 className="font-display font-black text-sm uppercase tracking-wider flex items-center gap-2">
                      <ReceiptText className="size-4 text-gold" /> Itens do Pedido
@@ -413,7 +413,7 @@ export function POSModal({ open, onOpenChange }: { open: boolean; onOpenChange: 
                            <p className="font-bold text-sm uppercase tracking-widest">Carrinho Vazio</p>
                         </div>
                      ) : items.map((item) => (
-                       <div key={item.id} className="group flex items-center gap-3 p-3 rounded-2xl border border-border/40 bg-card hover:bg-muted/5 transition-all shadow-sm">
+                       <div key={item.id} className="group flex items-center gap-3 p-2.5 rounded-xl border border-border/40 bg-card hover:bg-muted/5 transition-all shadow-sm">
                           {item.imagem_url ? (
                             <div className="size-10 rounded-xl overflow-hidden shrink-0 border border-border/20">
                               <img src={item.imagem_url} alt={item.name} className="w-full h-full object-cover" />
