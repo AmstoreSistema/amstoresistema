@@ -70,6 +70,7 @@ function TransactionsPage() {
   const [viewingTransaction, setViewingTransaction] = useState<any>(null);
   const [editingAccount, setEditingAccount] = useState<any>(null);
   const [newBalance, setNewBalance] = useState("");
+  const isOpenModal = isNewModalOpen || !!editingTransaction;
 
   const handleDeleteItem = async (id: string) => {
     if (!confirm("Deseja realmente excluir este lançamento? Esta ação pode afetar o saldo das contas.")) return;
@@ -351,14 +352,16 @@ function TransactionsPage() {
         transaction={viewingTransaction}
       />
 
-      <TransactionModal 
-        isOpen={isNewModalOpen || !!editingTransaction}
-        onClose={() => {
-            setIsNewModalOpen(false);
-            setEditingTransaction(null);
-        }}
-        transaction={editingTransaction}
-      />
+      {isOpenModal && (
+        <TransactionModal 
+          isOpen={isOpenModal}
+          onClose={() => {
+              setIsNewModalOpen(false);
+              setEditingTransaction(null);
+          }}
+          transaction={editingTransaction}
+        />
+      )}
     </div>
   );
 }

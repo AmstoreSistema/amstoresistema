@@ -135,9 +135,6 @@ export function TransactionModal({
           <DialogTitle className="text-xl font-bold">
             {isEditing ? "Editar Transação" : "Nova Transação"}
           </DialogTitle>
-          <Button variant="ghost" size="icon" className="rounded-full" onClick={onClose}>
-            <X className="size-5" />
-          </Button>
         </div>
 
         <Form {...form}>
@@ -264,7 +261,9 @@ export function TransactionModal({
               />
               <FormItem>
                 <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Data de Vencimento</FormLabel>
-                <Input type="date" className="h-12 rounded-xl border-gray-100 bg-gray-50/50" />
+                <FormControl>
+                  <Input type="date" className="h-12 rounded-xl border-gray-100 bg-gray-50/50" />
+                </FormControl>
               </FormItem>
             </div>
 
