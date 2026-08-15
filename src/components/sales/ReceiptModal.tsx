@@ -276,7 +276,7 @@ export function ReceiptModal({
             <div className="space-y-1 mb-4">
               <p className="font-bold">Pagamento:</p>
               
-              {displaySale?.payment_method === 'Fiado' ? (
+              {displaySale?.payment_method === 'Fiado' || displaySale?.is_debt ? (
                 <>
                   <div className="flex justify-between font-bold border-2 border-black p-1 text-center my-1">
                     <span className="w-full">VENDA A PRAZO (FIADO)</span>
@@ -285,12 +285,12 @@ export function ReceiptModal({
                     <span>Status:</span>
                     <span className="font-bold">PENDENTE</span>
                   </div>
-                  {displaySale.installments?.length > 0 && (
+                  {(displaySale.installments?.length > 0 || displaySale.parcelas?.length > 0) && (
                     <div className="mt-2 space-y-1 border-t border-dashed border-black pt-1">
-                      <p className="font-bold text-[9px]">PLANILHA DE PARCELAS:</p>
-                      {displaySale.installments.map((inst: any, idx: number) => (
+                      <p className="font-bold text-[9px]">PLANO DE PARCELAMENTO:</p>
+                      {(displaySale.installments || displaySale.parcelas).map((inst: any, idx: number) => (
                         <div key={idx} className="flex justify-between text-[9px]">
-                          <span>{inst.installment_number || inst.number}ª Parcela ({new Date(inst.due_date).toLocaleDateString('pt-BR')}):</span>
+                          <span>{inst.installment_number || inst.number || (idx + 1)}ª Parcela ({new Date(inst.due_date).toLocaleDateString('pt-BR')}):</span>
                           <span>{brl(inst.amount)}</span>
                         </div>
                       ))}
