@@ -130,7 +130,7 @@ export function TransactionModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="sm:max-w-2xl p-0 overflow-hidden bg-white border-none shadow-2xl flex flex-col sm:rounded-[2rem]">
+      <DialogContent className="sm:max-w-2xl p-0 overflow-hidden bg-white border-none shadow-2xl flex flex-col sm:rounded-[2rem] max-h-[95vh]">
         <div className="flex items-center justify-between p-6 border-b shrink-0">
           <DialogTitle className="text-xl font-bold">
             {isEditing ? "Editar Transação" : "Nova Transação"}
@@ -138,7 +138,7 @@ export function TransactionModal({
         </div>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 overflow-y-auto p-6 space-y-6 max-h-[80vh]">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 overflow-y-auto p-6 space-y-6">
             <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
@@ -153,7 +153,7 @@ export function TransactionModal({
                           <SelectValue placeholder="Selecione" />
                         </SelectTrigger>
                       </FormControl>
-                      <SelectContent className="rounded-xl" position="popper" sideOffset={5}>
+                      <SelectContent className="rounded-xl z-[9999]" position="popper" sideOffset={5}>
                         <SelectItem value="entrada">Receita</SelectItem>
                         <SelectItem value="saida">Despesa</SelectItem>
                       </SelectContent>
@@ -176,7 +176,7 @@ export function TransactionModal({
                             <SelectValue placeholder="Selecione" />
                           </SelectTrigger>
                         </FormControl>
-                        <SelectContent className="rounded-xl" position="popper" sideOffset={5}>
+                        <SelectContent className="rounded-xl z-[9999]" position="popper" sideOffset={5}>
                           <SelectItem value="Vendas">Vendas</SelectItem>
                           <SelectItem value="Equipamentos">Equipamentos</SelectItem>
                           <SelectItem value="Suprimentos">Suprimentos</SelectItem>
@@ -236,7 +236,7 @@ export function TransactionModal({
                           <SelectValue placeholder="Selecione" />
                         </SelectTrigger>
                       </FormControl>
-                      <SelectContent className="rounded-xl" position="popper" sideOffset={5}>
+                      <SelectContent className="rounded-xl z-[9999]" position="popper" sideOffset={5}>
                         {accounts.map((a: any) => (
                           <SelectItem key={a.id} value={a.id}>{a.name} - {brl(a.initial_balance || 0)}</SelectItem>
                         ))}
@@ -282,7 +282,7 @@ export function TransactionModal({
                           <SelectValue placeholder="Selecione" />
                         </SelectTrigger>
                       </FormControl>
-                      <SelectContent className="rounded-xl" position="popper" sideOffset={5}>
+                      <SelectContent className="rounded-xl z-[9999]" position="popper" sideOffset={5}>
                         <SelectItem value="pago">Pago</SelectItem>
                         <SelectItem value="pendente">Pendente</SelectItem>
                       </SelectContent>
@@ -304,7 +304,7 @@ export function TransactionModal({
                           <SelectValue placeholder="Selecione" />
                         </SelectTrigger>
                       </FormControl>
-                      <SelectContent className="rounded-xl" position="popper" sideOffset={5}>
+                      <SelectContent className="rounded-xl z-[9999]" position="popper" sideOffset={5}>
                         <SelectItem value="Dinheiro">Dinheiro</SelectItem>
                         <SelectItem value="Cartão de Crédito">Cartão de Crédito</SelectItem>
                         <SelectItem value="Cartão de Débito">Cartão de Débito</SelectItem>
