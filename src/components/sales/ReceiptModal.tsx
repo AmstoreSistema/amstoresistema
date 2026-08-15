@@ -285,7 +285,7 @@ export function ReceiptModal({
                     <span>Status:</span>
                     <span className="font-bold">PENDENTE</span>
                   </div>
-                  {(displaySale.installments?.length > 0 || displaySale.parcelas?.length > 0 || (displaySale.payment_method === 'Fiado' && displaySale.total_amount > 0 && displaySale.paid_amount === 0)) && (
+                  {(displaySale.installments?.length > 0 || displaySale.parcelas?.length > 0) && (
                     <div className="mt-2 space-y-1 border-t border-dashed border-black pt-1">
                       <p className="font-bold text-[9px]">PLANO DE PARCELAMENTO:</p>
                       {(displaySale.installments || displaySale.parcelas).map((inst: any, idx: number) => (
