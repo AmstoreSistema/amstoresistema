@@ -152,7 +152,7 @@ export function TransactionModal({
                           <SelectValue placeholder="Selecione" />
                         </SelectTrigger>
                       </FormControl>
-                      <SelectContent className="rounded-xl">
+                      <SelectContent className="rounded-xl" position="popper" sideOffset={5}>
                         <SelectItem value="entrada">Receita</SelectItem>
                         <SelectItem value="saida">Despesa</SelectItem>
                       </SelectContent>
@@ -174,7 +174,7 @@ export function TransactionModal({
                             <SelectValue placeholder="Selecione" />
                           </SelectTrigger>
                         </FormControl>
-                        <SelectContent className="rounded-xl">
+                        <SelectContent className="rounded-xl" position="popper" sideOffset={5}>
                           <SelectItem value="Vendas">Vendas</SelectItem>
                           <SelectItem value="Equipamentos">Equipamentos</SelectItem>
                           <SelectItem value="Suprimentos">Suprimentos</SelectItem>
@@ -233,7 +233,7 @@ export function TransactionModal({
                           <SelectValue placeholder="Selecione" />
                         </SelectTrigger>
                       </FormControl>
-                      <SelectContent className="rounded-xl">
+                      <SelectContent className="rounded-xl" position="popper" sideOffset={5}>
                         {accounts.map((a: any) => (
                           <SelectItem key={a.id} value={a.id}>{a.name} - {brl(a.initial_balance || 0)}</SelectItem>
                         ))}
@@ -280,7 +280,7 @@ export function TransactionModal({
                           <SelectValue placeholder="Selecione" />
                         </SelectTrigger>
                       </FormControl>
-                      <SelectContent className="rounded-xl">
+                      <SelectContent className="rounded-xl" position="popper" sideOffset={5}>
                         <SelectItem value="pago">Pago</SelectItem>
                         <SelectItem value="pendente">Pendente</SelectItem>
                       </SelectContent>
@@ -301,7 +301,7 @@ export function TransactionModal({
                           <SelectValue placeholder="Selecione" />
                         </SelectTrigger>
                       </FormControl>
-                      <SelectContent className="rounded-xl">
+                      <SelectContent className="rounded-xl" position="popper" sideOffset={5}>
                         <SelectItem value="Dinheiro">Dinheiro</SelectItem>
                         <SelectItem value="Cartão de Crédito">Cartão de Crédito</SelectItem>
                         <SelectItem value="Cartão de Débito">Cartão de Débito</SelectItem>
