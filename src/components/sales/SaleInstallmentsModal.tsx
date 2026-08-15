@@ -273,6 +273,11 @@ export function SaleInstallmentsModal({
                         {inst.status !== 'paid' && inst.remaining_amount !== inst.amount && (
                           <span className="text-[9px] text-muted-foreground line-through opacity-50">{brl(inst.amount)}</span>
                         )}
+                        {inst.status !== 'paid' && Number(sale?.cashback_earned) > 0 && (
+                          <div className="text-[9px] text-yellow-600 font-bold mt-1">
+                            Liberará {brl((Number(sale.cashback_earned) * Number(inst.remaining_amount ?? inst.amount)) / Number(sale.total_amount))} cashback
+                          </div>
+                        )}
                       </div>
 
                       {inst.status !== 'paid' && (
