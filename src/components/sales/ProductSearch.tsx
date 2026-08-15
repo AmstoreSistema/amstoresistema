@@ -1,7 +1,7 @@
 import * as React from "react";
 import { Search, Package, Check, Plus, Hash } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useRows } from "@/lib/data";
+import { supabase } from "@/integrations/supabase/client";
 import { brl } from "@/lib/format";
 import {
   Popover,
@@ -16,8 +16,8 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
-import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
+import { useQuery } from "@tanstack/react-query";
 
 interface StockProduct {
   id: string;
@@ -30,7 +30,6 @@ interface StockProduct {
   imagem_url?: string | null;
 }
 
-
 export function ProductSearch({ 
   onAdd 
 }: { 
@@ -39,7 +38,27 @@ export function ProductSearch({
   const [open, setOpen] = React.useState(false);
   const [selectedStock, setSelectedStock] = React.useState<StockProduct | null>(null);
   
-  const { data: stockItems = [] } = useRows<StockProduct>("stock_products");
+  // Use a customized query to join with products table to get the image_url
+  const { data: stockItems = [] } = useQuery({
+    queryKey: ["stock_products_with_images"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("stock_products")
+        .select(`
+          *,
+          products:produto_id (
+            image_url
+          )
+        `);
+      
+      if (error) throw error;
+      
+      return (data || []).map(item => ({
+        ...item,
+        imagem_url: (item as any).products?.image_url
+      })) as StockProduct[];
+    }
+  });
 
   const availableItems = React.useMemo(() => {
     return stockItems
@@ -47,9 +66,7 @@ export function ProductSearch({
       .sort((a, b) => (a.produto_nome || "").localeCompare(b.produto_nome || ""));
   }, [stockItems]);
 
-
   const handleSelectStock = (item: StockProduct) => {
-    // If it has numeracoes, we don't close yet, we show sizes
     if (item.numeracoes && Object.keys(item.numeracoes).length > 0) {
       setSelectedStock(item);
     } else {
@@ -58,7 +75,6 @@ export function ProductSearch({
       setSelectedStock(null);
     }
   };
-
 
   return (
     <div className="space-y-4">
