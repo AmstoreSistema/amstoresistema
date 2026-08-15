@@ -233,8 +233,15 @@ export function ReceiptModal({
                   </div>
                   <div className="flex justify-between text-[10px]">
                     <span>({brl(item.unit_price || 0)} )</span>
-                    <span className="font-bold">{brl((item.quantity || 0) * (item.unit_price || 0))}</span>
+                    <span className="font-bold">{brl((item.quantity || 0) * (item.unit_price || 0) - (item.discount || 0))}</span>
                   </div>
+                  {item.discount > 0 && (
+                    <div className="flex justify-between text-[9px] text-gray-600 italic">
+                      <span>Desconto Item:</span>
+                      <span>- {brl(item.discount)}</span>
+                    </div>
+                  )}
+
                 </div>
               ))}
             </div>
