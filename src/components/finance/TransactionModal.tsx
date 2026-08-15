@@ -262,12 +262,10 @@ export function TransactionModal({
                   </FormItem>
                 )}
               />
-              <FormItem>
-                <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Data de Vencimento</FormLabel>
-                <FormControl>
-                  <Input type="date" className="h-12 rounded-xl border-gray-100 bg-gray-50/50" />
-                </FormControl>
-              </FormItem>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Data de Vencimento</label>
+                <Input type="date" className="h-12 rounded-xl border-gray-100 bg-gray-50/50" />
+              </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
