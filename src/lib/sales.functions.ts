@@ -308,9 +308,9 @@ export const processBulkPayment = createServerFn({ method: "POST" })
     }
 
     const results = await Promise.all(paymentPromises);
-    const errors = results.filter(r => r.error);
-    if (errors.length > 0) {
-      throw new Error(`Erro ao processar pagamentos: ${errors[0].error?.message}`);
+    const firstError = results.find(r => r.error);
+    if (firstError?.error) {
+      throw new Error(`Erro ao processar pagamentos: ${firstError.error.message}`);
     }
 
     // Register a transaction for the total amount paid
