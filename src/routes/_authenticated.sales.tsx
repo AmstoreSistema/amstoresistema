@@ -114,26 +114,25 @@ function SalesPage() {
   }, [sales]);
 
   const getStatusBadge = (s: any) => {
-    // Uma venda só é considerada paga se o status for 'paid' e, se for fiado, todas as parcelas estiverem pagas.
-    // Como aqui não temos acesso direto às parcelas sem uma query extra, vamos confiar no status sincronizado pelo banco.
-    if (s.is_debt && (String(s.status || "") !== "paid" && String(s.status || "") !== "completed" && String(s.status || "") !== "finalizado")) {
-      const isPartial = String(s.status || "") === "partial";
+    // Para vendas fiado, verificamos o paid_amount vs total_amount
+    const isFiado = s.payment_method === 'Fiado' || !!s.is_debt;
+    const isPaid = (String(s.status || "") === "paid" || String(s.status || "") === "completed" || String(s.status || "") === "finalizado" || Number(s.paid_amount) >= Number(s.total_amount));
+    
+    if (isFiado && !isPaid) {
+      const isPartial = Number(s.paid_amount) > 0;
       return (
-        <Badge className={`${isPartial ? 'bg-warning/10 text-warning' : 'bg-destructive/10 text-destructive'} border-none`}>
-          {isPartial ? 'Pendente (Parcial)' : 'Pendente (Fiado)'}
+        <Badge className={`${isPartial ? 'bg-warning/10 text-warning' : 'bg-destructive/10 text-destructive'} border-none uppercase text-[9px] font-black`}>
+          {isPartial ? 'Pendente (Parcial)' : 'Pendente / Fiado'}
         </Badge>
       );
     }
     
-    // Se não for debt ou se o status for pago
-    const isPaid = String(s.status || "") === "paid" || String(s.status || "") === "completed" || String(s.status || "") === "finalizado" || Number(s.paid_amount) >= Number(s.total_amount);
-    
     if (isPaid) {
-      return <Badge className="bg-success/10 text-success border-none">Pago</Badge>;
+      return <Badge className="bg-success/10 text-success border-none uppercase text-[9px] font-black">Pago</Badge>;
     }
 
     return (
-      <Badge className="bg-destructive/10 text-destructive border-none">
+      <Badge className="bg-destructive/10 text-destructive border-none uppercase text-[9px] font-black">
         Pendente
       </Badge>
     );
