@@ -48,7 +48,7 @@ export function TransactionDetailsModal({
 
   if (!transaction) return null;
 
-  const sale = saleData?.sale;
+  const sale = saleData?.sale as any;
   const items = saleData?.items || [];
   const clientName = transaction.clients?.name || sale?.clients?.name || "Consumidor";
 
