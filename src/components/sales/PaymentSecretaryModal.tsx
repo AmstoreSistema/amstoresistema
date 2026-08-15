@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { brl } from "@/lib/format";
 import { Banknote, Calendar, Receipt, User, AlertCircle } from "lucide-react";
-import { registerSalePayment } from "@/lib/sales.functions";
+import { registerSalePayment, processBulkPayment } from "@/lib/sales.functions";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -35,34 +35,51 @@ export function PaymentSecretaryModal({
 }) {
   const qc = useQueryClient();
   const [selectedInstIds, setSelectedInstIds] = React.useState<string[]>([]);
-  const [amount, setAmount] = React.useState(0);
+  const [amount, setAmount] = React.useState<number | string>(0);
+  const [manualAmount, setManualAmount] = React.useState(false);
   const [paymentMethod, setPaymentMethod] = React.useState("Dinheiro");
   const [saving, setSaving] = React.useState(false);
 
   React.useEffect(() => {
-    const sum = installments
-      .filter(i => selectedInstIds.includes(i.id))
-      .reduce((acc, curr) => acc + Number(curr.remaining_amount ?? curr.amount), 0);
-    setAmount(sum);
-  }, [selectedInstIds, installments]);
+    if (!manualAmount) {
+      const sum = installments
+        .filter(i => selectedInstIds.includes(i.id))
+        .reduce((acc, curr) => acc + Number(curr.remaining_amount ?? curr.amount), 0);
+      setAmount(sum);
+    }
+  }, [selectedInstIds, installments, manualAmount]);
 
   const handleConfirm = async () => {
-    if (selectedInstIds.length === 0) {
-      toast.error("Selecione pelo menos uma parcela");
+    const paymentVal = Number(amount);
+    if (paymentVal <= 0) {
+      toast.error("Informe um valor válido para o pagamento");
       return;
     }
+
     setSaving(true);
     try {
-      for (const instId of selectedInstIds) {
-        const inst = installments.find(i => i.id === instId);
-        await registerSalePayment({
+      if (manualAmount) {
+        // Use bulk payment logic (FIFO - First In First Out for installments)
+        await processBulkPayment({
           data: {
-            installment_id: instId,
             sale_id: saleId!,
-            amount: Number(inst.remaining_amount ?? inst.amount),
+            amount: paymentVal,
             payment_method: paymentMethod
           }
         });
+      } else {
+        // Pay specific selected installments
+        for (const instId of selectedInstIds) {
+          const inst = installments.find(i => i.id === instId);
+          await registerSalePayment({
+            data: {
+              installment_id: instId,
+              sale_id: saleId!,
+              amount: Number(inst.remaining_amount ?? inst.amount),
+              payment_method: paymentMethod
+            }
+          });
+        }
       }
       toast.success("Pagamentos registrados!");
       onOpenChange(false);
@@ -116,8 +133,38 @@ export function PaymentSecretaryModal({
            </div>
 
            <div className="space-y-2">
-              <Label className="text-[10px] uppercase font-bold text-muted-foreground ml-1">Valor a Pagar Agora</Label>
-              <Input value={brl(amount)} disabled className="h-12 rounded-2xl font-black text-lg bg-card" />
+              <div className="flex justify-between items-center px-1">
+                <Label className="text-[10px] uppercase font-bold text-muted-foreground">Valor a Pagar Agora</Label>
+                <button 
+                  type="button"
+                  onClick={() => {
+                    setManualAmount(!manualAmount);
+                    if (manualAmount) setSelectedInstIds([]);
+                  }}
+                  className="text-[9px] font-black text-primary hover:underline uppercase tracking-tighter"
+                >
+                  {manualAmount ? "Selecionar Parcelas" : "Digitar Valor Manual"}
+                </button>
+              </div>
+              {manualAmount ? (
+                <div className="relative">
+                  <Banknote className="absolute left-4 top-1/2 -translate-y-1/2 size-5 text-gold" />
+                  <Input 
+                    type="number"
+                    value={amount} 
+                    onChange={(e) => setAmount(e.target.value)} 
+                    className="h-14 rounded-2xl font-black text-xl bg-card pl-12 border-gold/20 focus:border-gold" 
+                    placeholder="0,00"
+                  />
+                </div>
+              ) : (
+                <Input value={brl(Number(amount))} disabled className="h-12 rounded-2xl font-black text-lg bg-card" />
+              )}
+              {manualAmount && (
+                <p className="text-[10px] text-muted-foreground px-2 italic">
+                  * O valor será aplicado automaticamente nas parcelas mais antigas.
+                </p>
+              )}
            </div>
 
            <div className="grid grid-cols-2 gap-4">
