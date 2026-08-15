@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { brl } from "@/lib/format";
-import { Banknote, Calendar, Receipt, User, AlertCircle } from "lucide-react";
+import { Banknote, Receipt } from "lucide-react";
 import { registerSalePayment, processBulkPayment } from "@/lib/sales.functions";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
@@ -51,6 +51,10 @@ export function PaymentSecretaryModal({
 
   const handleConfirm = async () => {
     const paymentVal = Number(amount);
+    if (!saleId) {
+      toast.error("Venda não encontrada");
+      return;
+    }
     if (paymentVal <= 0) {
       toast.error("Informe um valor válido para o pagamento");
       return;
@@ -62,7 +66,7 @@ export function PaymentSecretaryModal({
         // Use bulk payment logic (FIFO - First In First Out for installments)
         await processBulkPayment({
           data: {
-            sale_id: saleId!,
+            sale_id: saleId,
             amount: paymentVal,
             payment_method: paymentMethod
           }
@@ -74,7 +78,7 @@ export function PaymentSecretaryModal({
           await registerSalePayment({
             data: {
               installment_id: instId,
-              sale_id: saleId!,
+              sale_id: saleId,
               amount: Number(inst.remaining_amount ?? inst.amount),
               payment_method: paymentMethod
             }
@@ -93,15 +97,15 @@ export function PaymentSecretaryModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md p-0 overflow-hidden rounded-[2rem] border-none shadow-2xl">
-        <DialogHeader className="p-6 bg-card border-b border-border/40">
-           <DialogTitle className="font-display font-black text-xl flex items-center gap-2">
+      <DialogContent className="grid max-h-[calc(100dvh-1rem)] w-[calc(100%-1rem)] max-w-md grid-rows-[auto_minmax(0,1fr)_auto] gap-0 overflow-hidden rounded-lg border-none p-0 shadow-2xl sm:max-h-[calc(100dvh-2rem)]">
+        <DialogHeader className="border-b border-border/40 bg-card px-4 py-3.5 sm:px-5">
+           <DialogTitle className="flex items-center gap-2 font-display text-lg font-black">
               <Receipt className="size-5 text-gold" /> Registrar Pagamento
            </DialogTitle>
         </DialogHeader>
 
-        <div className="p-6 space-y-6">
-           <div className="bg-muted/30 p-4 rounded-2xl space-y-1">
+        <div className="min-h-0 space-y-4 overflow-y-auto overscroll-contain px-4 py-4 sm:px-5">
+           <div className="space-y-1 rounded-md bg-muted/30 px-3 py-2.5">
               <div className="flex justify-between text-sm font-bold">
                  <span>Cliente:</span>
                  <span className="text-foreground">{clientName}</span>
@@ -112,39 +116,41 @@ export function PaymentSecretaryModal({
               </div>
            </div>
 
-           <div className="space-y-3">
+            <div className="space-y-2">
               <Label className="text-[10px] uppercase font-bold text-muted-foreground ml-1">Parcelas Pendentes</Label>
-              <div className="space-y-2">
+               <div className="max-h-40 space-y-1.5 overflow-y-auto pr-1">
                  {installments.filter(i => !['paid', 'pago'].includes(String(i.status || '').toLowerCase())).map(inst => (
-                   <div key={inst.id} className="flex items-center gap-3 p-3 rounded-xl border bg-card hover:bg-muted/10">
+                    <label key={inst.id} className="grid cursor-pointer grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2.5 rounded-md border bg-card px-3 py-2.5 hover:bg-muted/10">
                       <Checkbox 
                         checked={selectedInstIds.includes(inst.id)}
                         onCheckedChange={(checked: boolean) => {
                           setSelectedInstIds(checked ? [...selectedInstIds, inst.id] : selectedInstIds.filter(id => id !== inst.id));
                         }}
                       />
-                      <div className="flex-1 text-sm font-bold">
+                       <span className="min-w-0 truncate text-sm font-bold">
                          {inst.installment_number}ª Parcela - {new Date(inst.due_date).toLocaleDateString('pt-BR')}
-                      </div>
-                      <div className="font-black text-gold">{brl(inst.remaining_amount ?? inst.amount)}</div>
-                   </div>
+                       </span>
+                       <span className="shrink-0 text-sm font-black text-gold">{brl(inst.remaining_amount ?? inst.amount)}</span>
+                    </label>
                 ))}
               </div>
            </div>
 
            <div className="space-y-2">
-              <div className="flex justify-between items-center px-1">
+               <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 px-1">
                 <Label className="text-[10px] uppercase font-bold text-muted-foreground">Valor a Pagar Agora</Label>
-                <button 
+                 <Button
+                   variant="ghost"
+                   size="sm"
                   type="button"
                   onClick={() => {
                     setManualAmount(!manualAmount);
                     if (manualAmount) setSelectedInstIds([]);
                   }}
-                  className="text-[9px] font-black text-primary hover:underline uppercase tracking-tighter"
+                   className="h-auto px-1 py-0 text-[9px] font-black uppercase text-primary hover:bg-transparent hover:underline"
                 >
                   {manualAmount ? "Selecionar Parcelas" : "Digitar Valor Manual"}
-                </button>
+                 </Button>
               </div>
               {manualAmount ? (
                 <div className="relative">
@@ -153,12 +159,12 @@ export function PaymentSecretaryModal({
                     type="number"
                     value={amount} 
                     onChange={(e) => setAmount(e.target.value)} 
-                    className="h-14 rounded-2xl font-black text-xl bg-card pl-12 border-gold/20 focus:border-gold" 
+                    className="h-11 rounded-md bg-card pl-11 text-lg font-black border-gold/20 focus:border-gold" 
                     placeholder="0,00"
                   />
                 </div>
               ) : (
-                <Input value={brl(Number(amount))} disabled className="h-12 rounded-2xl font-black text-lg bg-card" />
+                 <Input value={brl(Number(amount))} disabled className="h-11 rounded-md bg-card text-base font-black" />
               )}
               {manualAmount && (
                 <p className="text-[10px] text-muted-foreground px-2 italic">
@@ -167,20 +173,20 @@ export function PaymentSecretaryModal({
               )}
            </div>
 
-           <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-3 min-[390px]:grid-cols-2">
               <div className="space-y-2">
                  <Label className="text-[10px] uppercase font-bold text-muted-foreground ml-1">Forma</Label>
-                 <Input value={paymentMethod} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPaymentMethod(e.target.value)} className="h-10 rounded-xl" />
+                  <Input value={paymentMethod} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPaymentMethod(e.target.value)} className="h-10 rounded-md" />
               </div>
               <div className="space-y-2">
                  <Label className="text-[10px] uppercase font-bold text-muted-foreground ml-1">Data</Label>
-                 <Input type="date" className="h-10 rounded-xl" defaultValue={new Date().toISOString().split('T')[0]} />
+                  <Input type="date" className="h-10 rounded-md" defaultValue={new Date().toISOString().split('T')[0]} />
               </div>
            </div>
         </div>
 
-        <DialogFooter className="p-6 pt-0">
-           <Button className="w-full h-12 rounded-2xl bg-gradient-gold shadow-gold font-black" onClick={handleConfirm} disabled={saving}>
+         <DialogFooter className="border-t border-border/40 bg-background px-4 py-3 sm:px-5">
+            <Button className="h-11 w-full rounded-md bg-gradient-gold font-black shadow-gold" onClick={handleConfirm} disabled={saving || Number(amount) <= 0}>
               Confirmar Pagamento
            </Button>
         </DialogFooter>
