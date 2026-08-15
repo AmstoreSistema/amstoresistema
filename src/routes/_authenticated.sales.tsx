@@ -114,7 +114,9 @@ function SalesPage() {
   }, [sales]);
 
   const getStatusBadge = (s: any) => {
-    if (s.is_debt && String(s.status || "") !== "paid") {
+    // Uma venda só é considerada paga se o status for 'paid' e, se for fiado, todas as parcelas estiverem pagas.
+    // Como aqui não temos acesso direto às parcelas sem uma query extra, vamos confiar no status sincronizado pelo banco.
+    if (s.is_debt && (String(s.status || "") !== "paid" && String(s.status || "") !== "completed" && String(s.status || "") !== "finalizado")) {
       const isPartial = String(s.status || "") === "partial";
       return (
         <Badge className={`${isPartial ? 'bg-warning/10 text-warning' : 'bg-destructive/10 text-destructive'} border-none`}>
@@ -122,7 +124,19 @@ function SalesPage() {
         </Badge>
       );
     }
-    return <Badge className="bg-success/10 text-success border-none">Pago</Badge>;
+    
+    // Se não for debt ou se o status for pago
+    const isPaid = String(s.status || "") === "paid" || String(s.status || "") === "completed" || String(s.status || "") === "finalizado" || Number(s.paid_amount) >= Number(s.total_amount);
+    
+    if (isPaid) {
+      return <Badge className="bg-success/10 text-success border-none">Pago</Badge>;
+    }
+
+    return (
+      <Badge className="bg-destructive/10 text-destructive border-none">
+        Pendente
+      </Badge>
+    );
   };
 
   return (
