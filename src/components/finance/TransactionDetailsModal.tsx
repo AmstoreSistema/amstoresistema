@@ -54,7 +54,7 @@ export function TransactionDetailsModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-4xl p-0 overflow-hidden bg-white border-none shadow-2xl flex flex-col h-[90vh] max-h-[95vh] sm:rounded-xl">
+      <DialogContent className="max-w-2xl p-0 overflow-hidden bg-white border-none shadow-2xl flex flex-col h-fit max-h-[90vh] sm:rounded-xl">
         {/* Header - ID and Badges */}
         <div className="px-6 py-4 bg-white border-b shrink-0">
           <h2 className="text-xl font-bold text-foreground mb-2">
@@ -75,10 +75,10 @@ export function TransactionDetailsModal({
 
         <div className="flex-1 overflow-hidden bg-[#F8F9FB]">
           <ScrollArea className="h-full">
-            <div className="p-6 space-y-4">
+            <div className="p-4 space-y-3">
               {/* Value Highlight */}
               <div className={cn(
-                "p-8 rounded-xl border flex flex-col items-start justify-center gap-1",
+                "p-5 rounded-xl border flex flex-col items-start justify-center gap-0.5",
                 isRevenue ? "bg-[#F2FCF5] border-green-100" : "bg-red-50 border-red-100"
               )}>
                 <span className="text-[10px] font-bold uppercase tracking-tight text-muted-foreground">Valor</span>
@@ -98,24 +98,24 @@ export function TransactionDetailsModal({
                       <h3 className="text-sm font-bold text-blue-900">Detalhes da Venda</h3>
                    </div>
                    
-                   <div className="p-4 space-y-4">
+                   <div className="p-3 space-y-3">
                       {/* Info Grid */}
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="bg-white p-3 rounded-lg border border-blue-50">
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="bg-white p-2.5 rounded-lg border border-blue-50">
                           <label className="text-[10px] font-bold text-muted-foreground uppercase block mb-1">Cliente</label>
                           <span className="text-sm font-bold text-foreground">{clientName}</span>
                         </div>
-                        <div className="bg-white p-3 rounded-lg border border-blue-50">
+                        <div className="bg-white p-2.5 rounded-lg border border-blue-50">
                           <label className="text-[10px] font-bold text-muted-foreground uppercase block mb-1">Código da Venda</label>
                           <span className="text-sm font-bold text-foreground">#{sale?.sale_code || transaction.sale_id.slice(0, 8)}</span>
                         </div>
-                        <div className="bg-white p-3 rounded-lg border border-blue-50">
+                        <div className="bg-white p-2.5 rounded-lg border border-blue-50">
                           <label className="text-[10px] font-bold text-muted-foreground uppercase block mb-1">Data da Venda</label>
                           <span className="text-sm text-foreground">
                             {sale?.created_at ? dateTimeBR(sale.created_at) : "—"}
                           </span>
                         </div>
-                        <div className="bg-white p-3 rounded-lg border border-blue-50">
+                        <div className="bg-white p-2.5 rounded-lg border border-blue-50">
                           <label className="text-[10px] font-bold text-muted-foreground uppercase block mb-1">Forma de Pagamento</label>
                           <span className="text-sm text-foreground">
                             {sale?.payment_method || "Dinheiro"}
@@ -153,7 +153,7 @@ export function TransactionDetailsModal({
                             </div>
                           ))}
                         </div>
-                        <div className="px-3 py-4 bg-gray-50 flex flex-col gap-1 border-t">
+                        <div className="px-3 py-3 bg-gray-50 flex flex-col gap-0.5 border-t">
                           {(sale?.discount > 0 || sale?.cashback_used > 0) && (
                             <div className="flex justify-between items-center text-[10px] font-bold text-muted-foreground uppercase">
                               <span>Total Descontos:</span>
@@ -171,8 +171,8 @@ export function TransactionDetailsModal({
               )}
 
               {/* Bottom Metadata Grid */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="bg-white p-4 rounded-xl border border-gray-100 flex items-center gap-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-white p-3 rounded-xl border border-gray-100 flex items-center gap-2">
                   <div className="size-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
                     <User className="size-4" />
                   </div>
@@ -182,7 +182,7 @@ export function TransactionDetailsModal({
                   </div>
                 </div>
                 
-                <div className="bg-white p-4 rounded-xl border border-gray-100 flex items-center gap-3">
+                <div className="bg-white p-3 rounded-xl border border-gray-100 flex items-center gap-2">
                   <div className="size-8 rounded-lg bg-gray-50 text-gray-600 flex items-center justify-center">
                     <Tag className="size-4" />
                   </div>
@@ -192,7 +192,7 @@ export function TransactionDetailsModal({
                   </div>
                 </div>
 
-                <div className="bg-white p-4 rounded-xl border border-gray-100 flex items-center gap-3">
+                <div className="bg-white p-3 rounded-xl border border-gray-100 flex items-center gap-2">
                   <div className="size-8 rounded-lg bg-gray-50 text-gray-600 flex items-center justify-center">
                     <Wallet className="size-4" />
                   </div>
@@ -202,7 +202,7 @@ export function TransactionDetailsModal({
                   </div>
                 </div>
 
-                <div className="bg-white p-4 rounded-xl border border-gray-100 flex items-center gap-3">
+                <div className="bg-white p-3 rounded-xl border border-gray-100 flex items-center gap-2">
                   <div className="size-8 rounded-lg bg-gray-50 text-gray-600 flex items-center justify-center">
                     <Calendar className="size-4" />
                   </div>
