@@ -266,6 +266,68 @@ export const updateInstallments = createServerFn({ method: "POST" })
     return { success: true };
   });
 
+
+export const processBulkPayment = createServerFn({ method: "POST" })
+  .inputValidator((data) => z.object({
+    sale_id: z.string(),
+    amount: z.number(),
+    payment_method: z.string(),
+    account_id: z.string().optional()
+  }).parse(data))
+  .handler(async ({ data }) => {
+    const { supabaseAdmin: admin } = await import("@/integrations/supabase/client.server");
+    
+    // Get all pending installments for this sale ordered by due date
+    const { data: installments, error: instError } = await admin
+      .from("sale_installments")
+      .select("*")
+      .eq("sale_id", data.sale_id)
+      .neq("status", "paid")
+      .order("due_date", { ascending: true })
+      .order("installment_number", { ascending: true });
+
+    if (instError) throw new Error(`Erro ao buscar parcelas: ${instError.message}`);
+    if (!installments || installments.length === 0) throw new Error("Nenhuma parcela pendente encontrada para esta venda.");
+
+    let remainingPayment = data.amount;
+    const paymentPromises = [];
+
+    for (const inst of installments) {
+      if (remainingPayment <= 0) break;
+
+      const instRemaining = Number(inst.remaining_amount ?? inst.amount);
+      const amountToPay = Math.min(remainingPayment, instRemaining);
+
+      paymentPromises.push(admin.rpc('pay_sale_installment', {
+        p_installment_id: inst.id,
+        p_amount: amountToPay,
+        p_payment_method: data.payment_method
+      }));
+
+      remainingPayment -= amountToPay;
+    }
+
+    const results = await Promise.all(paymentPromises);
+    const errors = results.filter(r => r.error);
+    if (errors.length > 0) {
+      throw new Error(`Erro ao processar pagamentos: ${errors[0].error?.message}`);
+    }
+
+    // Register a transaction for the total amount paid
+    const { data: sale } = await admin.from("sales").select("sale_code").eq("id", data.sale_id).single();
+    
+    await admin.from("transactions").insert({
+      amount: data.amount,
+      type: "income",
+      description: `Pagamento Acumulado Venda #${sale?.sale_code || data.sale_id.slice(0, 8)}`,
+      sale_id: data.sale_id,
+      category: 'Venda',
+      account_id: data.account_id
+    } as any);
+
+    return { success: true };
+  });
+
 export const getSaleDetails = createServerFn({ method: "GET" })
   .inputValidator((data) => z.object({ sale_id: z.string() }).parse(data))
   .handler(async ({ data }) => {
