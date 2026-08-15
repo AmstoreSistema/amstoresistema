@@ -23,6 +23,7 @@ import { getSaleDetails } from "@/lib/sales.functions";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { ReceiptModal } from "./ReceiptModal";
+import { PaymentSecretaryModal } from "./PaymentSecretaryModal";
 
 interface SaleDetailsModalProps {
   saleId: string | null;
@@ -45,6 +46,7 @@ export function SaleDetailsModal({
 
   const fetchSale = useServerFn(getSaleDetails);
   const [receiptOpen, setReceiptOpen] = React.useState(false);
+  const [secretaryOpen, setSecretaryOpen] = React.useState(false);
   
   const { data, isLoading } = useQuery({
     queryKey: ['sale-details', saleId],
@@ -216,9 +218,19 @@ export function SaleDetailsModal({
                       Histórico de Pagamentos
                     </h3>
                     {sale?.payment_method === 'Fiado' && (
-                      <div className="text-right">
-                        <div className="text-[10px] font-bold text-muted-foreground uppercase">Saldo Devedor</div>
-                        <div className="text-lg font-black text-gold leading-none">{brl(Number(sale.total_amount) - Number(sale.paid_amount))}</div>
+                      <div className="flex items-center gap-2">
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          className="h-8 rounded-xl bg-gold/10 border-gold/20 text-gold hover:bg-gold/20 font-bold text-[10px] gap-2 shadow-sm"
+                          onClick={() => setSecretaryOpen(true)}
+                        >
+                          <DollarSign className="size-3.5" /> Registrar Pagamento
+                        </Button>
+                        <div className="text-right ml-4">
+                          <div className="text-[10px] font-bold text-muted-foreground uppercase">Saldo Devedor</div>
+                          <div className="text-lg font-black text-gold leading-none">{brl(Number(sale.total_amount) - Number(sale.paid_amount))}</div>
+                        </div>
                       </div>
                     )}
                   </div>
@@ -302,6 +314,18 @@ export function SaleDetailsModal({
             installments
           }}
           client={null} // We'd need to fetch client details or pass them if available
+        />
+      )}
+
+      {sale && (
+        <PaymentSecretaryModal
+          open={secretaryOpen}
+          onOpenChange={setSecretaryOpen}
+          saleId={sale.id}
+          clientName={(sale as any)?.client_name || "Cliente"}
+          totalAmount={Number(sale.total_amount)}
+          remainingAmount={Number(sale.total_amount) - Number(sale.paid_amount)}
+          installments={installments}
         />
       )}
     </>
