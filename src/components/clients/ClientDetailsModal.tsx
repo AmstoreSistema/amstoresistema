@@ -236,55 +236,60 @@ export function ClientDetailsModal({ client, isOpen, onClose }: ClientDetailsMod
                     Nenhuma venda encontrada para este cliente.
                   </div>
                 ) : (
-                  data?.sales.map((sale: any) => (
-                    <div 
-                      key={sale.id} 
-                      className="bg-white rounded-xl p-3 flex items-center justify-between shadow-sm border border-gray-50 hover:border-primary/20 hover:bg-gray-50 cursor-pointer transition-all active:scale-[0.98]"
-                      onClick={() => handleSaleClick(sale.id)}
-                    >
-
-                      <div className="flex flex-col">
-                        <div className="flex items-center gap-2">
-                          <span className="font-bold text-foreground text-sm">{sale.sale_code}</span>
-                          <span className={cn(
-                            "text-[10px] font-bold px-2 py-0.5 rounded uppercase",
-                            (sale.status === 'paid' || sale.status === 'completed' || sale.status === 'finalizado' || Number(sale.paid_amount) >= Number(sale.total_amount)) 
-                              ? "bg-green-100 text-green-700" 
-                              : sale.payment_method === 'Fiado' ? "bg-orange-100 text-orange-700" : "bg-orange-100 text-orange-700"
-                          )}>
-                            {(sale.status === 'paid' || sale.status === 'completed' || sale.status === 'finalizado' || Number(sale.paid_amount) >= Number(sale.total_amount)) 
-                              ? 'pago' 
-                              : sale.payment_method === 'Fiado' ? 'pendente / fiado' : 'pendente'}
-                          </span>
-                          {sale.payment_method === 'Fiado' && (
-                            <span className="text-[10px] font-bold px-2 py-0.5 rounded uppercase bg-blue-100 text-blue-700">
-                              Fiado
+                  data?.sales.map((sale: any) => {
+                    const saleInstallments = data?.installments?.filter((i: any) => i.sale_id === sale.id) || [];
+                    const nextInstallment = saleInstallments.find((i: any) => i.status !== 'paid');
+                    const installmentCount = saleInstallments.length || 1;
+                    
+                    return (
+                      <div 
+                        key={sale.id} 
+                        className="bg-white rounded-xl p-3 flex items-center justify-between shadow-sm border border-gray-50 hover:border-primary/20 hover:bg-gray-50 cursor-pointer transition-all active:scale-[0.98]"
+                        onClick={() => handleSaleClick(sale.id)}
+                      >
+                        <div className="flex flex-col">
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-foreground text-sm">{sale.sale_code}</span>
+                            <span className={cn(
+                              "text-[10px] font-bold px-2 py-0.5 rounded uppercase",
+                              (sale.status === 'paid' || sale.status === 'completed' || sale.status === 'finalizado' || Number(sale.paid_amount) >= Number(sale.total_amount)) 
+                                ? "bg-green-100 text-green-700" 
+                                : sale.payment_method === 'Fiado' ? "bg-orange-100 text-orange-700" : "bg-orange-100 text-orange-700"
+                            )}>
+                              {(sale.status === 'paid' || sale.status === 'completed' || sale.status === 'finalizado' || Number(sale.paid_amount) >= Number(sale.total_amount)) 
+                                ? 'pago' 
+                                : sale.payment_method === 'Fiado' ? 'pendente / fiado' : 'pendente'}
                             </span>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-1 text-[11px] text-muted-foreground mt-1">
-                          <Calendar className="size-3" />
-                          {format(new Date(sale.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-                        </div>
-                        {Number(sale.cashback_earned) > 0 && (
-                          <div className="flex flex-col gap-1 mt-0.5">
-                            <div className="flex items-center gap-1 text-[10px] text-yellow-600 font-bold">
-                              <Coins className="size-3" />
-                              +{brl(sale.cashback_earned)} cashback gerado
-                            </div>
-                            {sale.payment_method === 'Fiado' && Number(sale.paid_amount) < Number(sale.total_amount) && (
-                              <div className="text-[9px] text-muted-foreground bg-gray-100/50 px-1.5 py-0.5 rounded-md w-fit italic">
-                                Liberado ao pagar: {brl((Number(sale.cashback_earned) * (sale.installments?.find((i: any) => i.status !== 'paid')?.amount || (Number(sale.total_amount) / (sale.installments_count || 1)))) / Number(sale.total_amount))} p/ parcela
-                              </div>
+                            {sale.payment_method === 'Fiado' && (
+                              <span className="text-[10px] font-bold px-2 py-0.5 rounded uppercase bg-blue-100 text-blue-700">
+                                Fiado
+                              </span>
                             )}
                           </div>
-                        )}
+                          <div className="flex items-center gap-1 text-[11px] text-muted-foreground mt-1">
+                            <Calendar className="size-3" />
+                            {format(new Date(sale.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                          </div>
+                          {Number(sale.cashback_earned) > 0 && (
+                            <div className="flex flex-col gap-1 mt-0.5">
+                              <div className="flex items-center gap-1 text-[10px] text-yellow-600 font-bold">
+                                <Coins className="size-3" />
+                                +{brl(sale.cashback_earned)} cashback gerado
+                              </div>
+                              {sale.payment_method === 'Fiado' && Number(sale.paid_amount) < Number(sale.total_amount) && (
+                                <div className="text-[9px] text-muted-foreground bg-gray-100/50 px-1.5 py-0.5 rounded-md w-fit italic font-medium">
+                                  Liberará {brl((Number(sale.cashback_earned) * (nextInstallment?.amount || (Number(sale.total_amount) / installmentCount))) / Number(sale.total_amount))} p/ pagamento
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                        <div className="text-right">
+                          <div className="font-bold text-green-600">{brl(sale.total_amount)}</div>
+                        </div>
                       </div>
-                      <div className="text-right">
-                        <div className="font-bold text-green-600">{brl(sale.total_amount)}</div>
-                      </div>
-                    </div>
-                  ))
+                    );
+                  })
                 )}
               </div>
             </div>
