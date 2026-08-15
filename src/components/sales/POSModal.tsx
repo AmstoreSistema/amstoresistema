@@ -42,7 +42,8 @@ import { DebtAlertModal } from "./DebtAlertModal";
 import { createSale } from "@/lib/sales.functions";
 import { getClientDetails } from "@/lib/clients.functions";
 import { toast } from "sonner";
-import { useQueryClient, useServerFn } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { Badge } from "@/components/ui/badge";
 
 
