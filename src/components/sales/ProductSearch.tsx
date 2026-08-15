@@ -27,7 +27,9 @@ interface StockProduct {
   preco_venda: number;
   numeracoes: any;
   categoria: string | null;
+  imagem_url?: string | null;
 }
+
 
 export function ProductSearch({ 
   onAdd 
@@ -40,8 +42,11 @@ export function ProductSearch({
   const { data: stockItems = [] } = useRows<StockProduct>("stock_products");
 
   const availableItems = React.useMemo(() => {
-    return stockItems.filter(item => (item.quantidade_disponivel ?? 0) > 0);
+    return stockItems
+      .filter(item => (item.quantidade_disponivel ?? 0) > 0)
+      .sort((a, b) => (a.produto_nome || "").localeCompare(b.produto_nome || ""));
   }, [stockItems]);
+
 
   const handleSelectStock = (item: StockProduct) => {
     // If it has numeracoes, we don't close yet, we show sizes
@@ -82,7 +87,18 @@ export function ProductSearch({
                       onSelect={() => handleSelectStock(item)}
                       className="cursor-pointer p-3"
                     >
-                      <Package className="mr-3 size-5 text-muted-foreground" />
+                      {item.imagem_url ? (
+                        <div className="mr-3 size-10 rounded-lg overflow-hidden shrink-0 border border-border/40">
+                          <img 
+                            src={item.imagem_url} 
+                            alt={item.produto_nome} 
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                      ) : (
+                        <Package className="mr-3 size-5 text-muted-foreground shrink-0" />
+                      )}
+
                       <div className="flex flex-col flex-1">
                         <span className="font-bold">{item.produto_nome}</span>
                         <div className="flex items-center gap-2 mt-0.5">

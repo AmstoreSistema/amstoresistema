@@ -53,7 +53,9 @@ interface CartItem {
   quantity: number;
   numeracao: string | null;
   discount: number;
+  imagem_url?: string | null;
 }
+
 
 export function POSModal({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
   const qc = useQueryClient();
@@ -203,11 +205,13 @@ export function POSModal({ open, onOpenChange }: { open: boolean; onOpenChange: 
         price: Number(stock.preco_venda),
         quantity: 1,
         numeracao: size,
-        discount: 0
+        discount: 0,
+        imagem_url: stock.imagem_url
       }];
     });
     toast.success(`${stock.produto_nome} adicionado`);
   };
+
 
   const removeItem = (id: string) => {
     setItems(prev => prev.filter(i => i.id !== id));
@@ -410,9 +414,16 @@ export function POSModal({ open, onOpenChange }: { open: boolean; onOpenChange: 
                         </div>
                      ) : items.map((item) => (
                        <div key={item.id} className="group flex items-center gap-3 p-3 rounded-2xl border border-border/40 bg-card hover:bg-muted/5 transition-all shadow-sm">
-                          <div className="size-10 rounded-xl bg-muted/50 flex items-center justify-center shrink-0 font-display font-black text-[10px] text-muted-foreground">
-                             {item.name.charAt(0)}
-                          </div>
+                          {item.imagem_url ? (
+                            <div className="size-10 rounded-xl overflow-hidden shrink-0 border border-border/20">
+                              <img src={item.imagem_url} alt={item.name} className="w-full h-full object-cover" />
+                            </div>
+                          ) : (
+                            <div className="size-10 rounded-xl bg-muted/50 flex items-center justify-center shrink-0 font-display font-black text-[10px] text-muted-foreground">
+                              {item.name.charAt(0)}
+                            </div>
+                          )}
+
                           
                           <div className="flex-1 min-w-0">
                              <div className="flex items-center gap-1.5">
