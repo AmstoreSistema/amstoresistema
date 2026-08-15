@@ -64,10 +64,10 @@ export function SaleDetailsModal({
   return (
     <>
       <Dialog open={isModalOpen} onOpenChange={(o) => !o && handleClose()}>
-        <DialogContent className="max-w-4xl p-0 overflow-hidden bg-[#F8F9FB] border-none shadow-2xl flex flex-col h-[90vh] sm:rounded-[2rem]">
-          <div className="flex items-center justify-between p-6 bg-white border-b relative shrink-0">
+        <DialogContent className="max-w-4xl p-0 overflow-hidden bg-[#F8F9FB] border-none shadow-2xl flex flex-col h-[90vh] sm:rounded-[1.5rem]">
+          <div className="flex items-center justify-between p-4 bg-white border-b relative shrink-0">
             <div className="flex items-center gap-4">
-              <div className="size-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+              <div className="size-8 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
                 <ShoppingBag className="size-5" />
               </div>
               <div>
@@ -95,7 +95,7 @@ export function SaleDetailsModal({
               <Button 
                 variant="outline" 
                 size="sm" 
-                className="rounded-xl font-bold h-9 gap-2 shadow-sm"
+                className="rounded-xl font-bold h-8 text-[10px] gap-2 shadow-sm"
                 onClick={() => setReceiptOpen(true)}
               >
                 <Printer className="size-4" /> Cupom
@@ -106,10 +106,10 @@ export function SaleDetailsModal({
 
           <div className="flex-1 overflow-hidden flex flex-col sm:flex-row">
             <ScrollArea className="flex-1">
-              <div className="p-6 space-y-8">
+              <div className="p-5 space-y-6">
                 {/* Sale Info Grid */}
-                <div className="grid grid-cols-2 gap-8">
-                  <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-6">
+                  <div className="space-y-3">
                     <div>
                       <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1 block">Cliente</label>
                       <div className="font-bold text-foreground text-sm">
@@ -137,37 +137,37 @@ export function SaleDetailsModal({
                   </div>
 
                   <div className="space-y-3">
-                    <div className="bg-blue-50/50 p-4 rounded-xl flex justify-between items-center border border-blue-100">
-                      <span className="text-sm text-blue-700 font-medium">Subtotal</span>
-                      <span className="font-bold text-blue-900 text-lg">{brl(subtotal)}</span>
+                    <div className="bg-blue-50/50 p-3 rounded-xl flex justify-between items-center border border-blue-100">
+                      <span className="text-xs text-blue-700 font-medium">Subtotal</span>
+                      <span className="font-bold text-blue-900 text-base">{brl(subtotal)}</span>
                     </div>
-                    <div className="bg-purple-50/50 p-4 rounded-xl flex justify-between items-center border border-purple-100">
-                      <span className="text-sm text-purple-700 font-medium">desconto</span>
-                      <span className="font-bold text-purple-900 text-lg">{brl(Number(sale?.discount || 0) + Number(sale?.cashback_used || 0))}</span>
+                    <div className="bg-purple-50/50 p-3 rounded-xl flex justify-between items-center border border-purple-100">
+                      <span className="text-xs text-purple-700 font-medium">desconto</span>
+                      <span className="font-bold text-purple-900 text-base">{brl(Number(sale?.discount || 0) + Number(sale?.cashback_used || 0))}</span>
                     </div>
-                    <div className="bg-green-50 p-4 rounded-xl flex justify-between items-center border border-green-200">
-                      <span className="text-sm text-green-700 font-bold">Valor Total</span>
-                      <span className="font-black text-green-900 text-2xl">{brl(sale?.total_amount || 0)}</span>
+                    <div className="bg-green-50 p-3 rounded-xl flex justify-between items-center border border-green-200">
+                      <span className="text-xs text-green-700 font-bold">Valor Total</span>
+                      <span className="font-black text-green-900 text-xl">{brl(sale?.total_amount || 0)}</span>
                     </div>
-                    <div className="bg-yellow-50/50 p-4 rounded-xl flex justify-between items-center border border-yellow-100">
-                      <div className="flex items-center gap-2 text-yellow-700 text-sm font-medium">
-                        <History className="size-4" /> Cashback Gerado
+                    <div className="bg-yellow-50/50 p-3 rounded-xl flex justify-between items-center border border-yellow-100">
+                      <div className="flex items-center gap-2 text-yellow-700 text-xs font-medium">
+                        <History className="size-3.5" /> Cashback Gerado
                       </div>
-                      <span className="font-bold text-yellow-900 text-lg">{brl(sale?.cashback_earned || 0)}</span>
+                      <span className="font-bold text-yellow-900 text-base">{brl(sale?.cashback_earned || 0)}</span>
                     </div>
-                    <div className="bg-cyan-50/50 p-4 rounded-xl flex justify-between items-center border border-cyan-100">
-                      <span className="text-sm text-cyan-700 font-medium">Valor Pago</span>
-                      <span className="font-bold text-cyan-900 text-lg">{brl(sale?.paid_amount || 0)}</span>
+                    <div className="bg-cyan-50/50 p-3 rounded-xl flex justify-between items-center border border-cyan-100">
+                      <span className="text-xs text-cyan-700 font-medium">Valor Pago</span>
+                      <span className="font-bold text-cyan-900 text-base">{brl(sale?.paid_amount || 0)}</span>
                     </div>
                   </div>
                 </div>
 
                 {/* Items Table-like View */}
                 <div>
-                  <h3 className="text-sm font-bold text-foreground mb-4 flex items-center gap-2 uppercase tracking-tight">
+                  <h3 className="text-sm font-bold text-foreground mb-3 flex items-center gap-2 uppercase tracking-tight">
                     Itens da Venda
                   </h3>
-                  <div className="bg-white rounded-2xl overflow-hidden border border-gray-100 shadow-sm">
+                  <div className="bg-white rounded-xl overflow-hidden border border-gray-100 shadow-sm">
                     {isLoading ? (
                       <div className="py-8 text-center text-muted-foreground">Carregando itens...</div>
                     ) : items.length === 0 ? (
@@ -175,7 +175,7 @@ export function SaleDetailsModal({
                     ) : (
                       <div className="divide-y divide-gray-50">
                          {items.map((item: any, i: number) => (
-                          <div key={i} className="p-4 flex items-center justify-between hover:bg-gray-50 transition-colors">
+                          <div key={i} className="p-3 flex items-center justify-between hover:bg-gray-50 transition-colors">
                             <div className="flex-1">
                               <div className="font-bold text-foreground text-sm uppercase">{item.products?.name || "Produto"}</div>
                               <div className="flex items-center gap-2 mt-0.5">
@@ -206,23 +206,23 @@ export function SaleDetailsModal({
 
                 {/* Payments History */}
                 <div>
-                  <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center justify-between mb-3">
                     <h3 className="text-sm font-bold text-foreground flex items-center gap-2 uppercase tracking-tight">
                       Histórico de Pagamentos
                     </h3>
                     {sale?.payment_method === 'Fiado' && (
                       <div className="text-right">
                         <div className="text-[10px] font-bold text-muted-foreground uppercase">Saldo Devedor</div>
-                        <div className="text-lg font-black text-gold">{brl(Number(sale.total_amount) - Number(sale.paid_amount))}</div>
+                        <div className="text-lg font-black text-gold leading-none">{brl(Number(sale.total_amount) - Number(sale.paid_amount))}</div>
                       </div>
                     )}
                   </div>
-                  <div className="space-y-4">
+                  <div className="space-y-3">
 
                     {/* Installments for Credit Sales */}
                     {installments.length > 0 && (
-                      <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm">
-                        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-3 block">Plano de Parcelamento</p>
+                      <div className="bg-white rounded-xl p-3 border border-gray-100 shadow-sm">
+                        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-2 block">Plano de Parcelamento</p>
                         <div className="space-y-2">
                           {installments.map((inst: any, i: number) => (
                             <div key={i} className="flex items-center justify-between py-2 border-b border-gray-50 last:border-0">
@@ -260,7 +260,7 @@ export function SaleDetailsModal({
                           Nenhum pagamento registrado.
                         </div>
                       ) : payments.map((pay: any, i: number) => (
-                        <div key={i} className="bg-white rounded-xl p-4 flex items-center justify-between border border-gray-100 shadow-sm">
+                        <div key={i} className="bg-white rounded-xl p-3 flex items-center justify-between border border-gray-100 shadow-sm">
                           <div>
                             <div className="font-bold text-foreground text-sm uppercase leading-tight">
                               {pay.payment_method || pay.description || "Pagamento"}
@@ -272,7 +272,7 @@ export function SaleDetailsModal({
                               Conta: {pay.financial_accounts?.name || "Caixa Principal"}
                             </div>
                           </div>
-                          <div className="font-bold text-green-600 text-lg">{brl(pay.amount)}</div>
+                          <div className="font-bold text-green-600 text-base">{brl(pay.amount)}</div>
                         </div>
                       ))}
                     </div>
