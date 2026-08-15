@@ -115,7 +115,7 @@ export function PaymentSecretaryModal({
            <div className="space-y-3">
               <Label className="text-[10px] uppercase font-bold text-muted-foreground ml-1">Parcelas Pendentes</Label>
               <div className="space-y-2">
-                {installments.filter(i => i.status !== 'paid').map(inst => (
+                 {installments.filter(i => !['paid', 'pago'].includes(String(i.status || '').toLowerCase())).map(inst => (
                    <div key={inst.id} className="flex items-center gap-3 p-3 rounded-xl border bg-card hover:bg-muted/10">
                       <Checkbox 
                         checked={selectedInstIds.includes(inst.id)}
