@@ -436,6 +436,9 @@ export function POSModal({ open, onOpenChange }: { open: boolean; onOpenChange: 
                              </div>
                              <div className="flex items-center gap-2 mt-0.5">
                                 <p className="text-[9px] text-muted-foreground font-medium">Preço Unit: {brl(item.price)}</p>
+                                {item.discount > 0 && (
+                                  <p className="text-[9px] text-destructive font-bold italic">(-{brl(item.discount)})</p>
+                                )}
                              </div>
                           </div>
                           

@@ -260,7 +260,7 @@ export function ReceiptModal({
                 </div>
               )}
               <div className="flex justify-between font-bold text-sm pt-1">
-                <span>TOTAL:</span>
+                <span>TOTAL LÍQUIDO:</span>
                 <span>{brl(displaySale?.total_amount || 0)}</span>
               </div>
               <div className="flex justify-between text-[10px]">
