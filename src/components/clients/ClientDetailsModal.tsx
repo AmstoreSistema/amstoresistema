@@ -267,9 +267,16 @@ export function ClientDetailsModal({ client, isOpen, onClose }: ClientDetailsMod
                           {format(new Date(sale.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
                         </div>
                         {Number(sale.cashback_earned) > 0 && (
-                          <div className="flex items-center gap-1 text-[10px] text-yellow-600 font-bold mt-0.5">
-                            <Coins className="size-3" />
-                            +{brl(sale.cashback_earned)} cashback gerado
+                          <div className="flex flex-col gap-1 mt-0.5">
+                            <div className="flex items-center gap-1 text-[10px] text-yellow-600 font-bold">
+                              <Coins className="size-3" />
+                              +{brl(sale.cashback_earned)} cashback gerado
+                            </div>
+                            {sale.payment_method === 'Fiado' && Number(sale.paid_amount) < Number(sale.total_amount) && (
+                              <div className="text-[9px] text-muted-foreground bg-gray-100/50 px-1.5 py-0.5 rounded-md w-fit italic">
+                                Liberado ao pagar: {brl((Number(sale.cashback_earned) * (sale.installments?.find((i: any) => i.status !== 'paid')?.amount || (Number(sale.total_amount) / (sale.installments_count || 1)))) / Number(sale.total_amount))} p/ parcela
+                              </div>
+                            )}
                           </div>
                         )}
                       </div>
