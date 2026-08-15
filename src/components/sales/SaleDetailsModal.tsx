@@ -81,9 +81,9 @@ export function SaleDetailsModal({
                     <div className="flex gap-2">
                       <span className={cn(
                         "text-[10px] font-bold px-2 py-0.5 rounded uppercase",
-                        sale.status === 'paid' || sale.status === 'completed' || sale.status === 'finalizado' ? "bg-green-100 text-green-700" : "bg-orange-100 text-orange-700"
+                        (sale.status === 'paid' || sale.status === 'completed' || sale.status === 'finalizado') && installments.every((i: any) => i.status === 'paid' || i.status === 'pago') ? "bg-green-100 text-green-700" : "bg-orange-100 text-orange-700"
                       )}>
-                        {sale.status === 'paid' || sale.status === 'completed' || sale.status === 'finalizado' ? 'Pago' : sale.payment_method === 'Fiado' ? 'Pendente / Fiado' : 'Pendente'}
+                        {(sale.status === 'paid' || sale.status === 'completed' || sale.status === 'finalizado') && installments.every((i: any) => i.status === 'paid' || i.status === 'pago') ? 'Pago' : sale.payment_method === 'Fiado' ? 'Pendente / Fiado' : 'Pendente'}
                       </span>
                       <span className="text-[10px] font-bold px-2 py-0.5 rounded uppercase bg-blue-100 text-blue-700">
                         {sale.sale_type || 'Varejo'}
