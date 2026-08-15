@@ -316,7 +316,7 @@ export function SaleInstallmentsModal({
              <Button 
                className="flex-1 rounded-xl bg-gold text-black font-black hover:bg-gold/90 gap-2"
                onClick={() => setSecretaryOpen(true)}
-               disabled={unpaidInstallments.length === 0}
+               disabled={Number(sale?.paid_amount || 0) >= Number(sale?.total_amount || 0)}
              >
                <Banknote className="size-4" /> Registrar Pagamento
              </Button>
