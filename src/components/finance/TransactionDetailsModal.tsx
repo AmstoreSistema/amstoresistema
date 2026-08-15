@@ -54,7 +54,7 @@ export function TransactionDetailsModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-2xl p-0 overflow-hidden bg-white border-none shadow-2xl flex flex-col h-fit max-h-[90vh] sm:rounded-xl">
+      <DialogContent className="max-w-2xl p-0 overflow-hidden bg-white border-none shadow-2xl flex flex-col h-[90vh] max-h-[90vh] sm:rounded-xl">
         {/* Header - ID and Badges */}
         <div className="px-6 py-4 bg-white border-b shrink-0">
           <h2 className="text-xl font-bold text-foreground mb-2">
