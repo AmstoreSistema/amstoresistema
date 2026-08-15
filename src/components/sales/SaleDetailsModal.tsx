@@ -81,9 +81,9 @@ export function SaleDetailsModal({
                     <div className="flex gap-2">
                       <span className={cn(
                         "text-[10px] font-bold px-2 py-0.5 rounded uppercase",
-                        (sale.status === 'paid' || sale.status === 'completed' || sale.status === 'finalizado') && installments.every((i: any) => i.status === 'paid' || i.status === 'pago') ? "bg-green-100 text-green-700" : "bg-orange-100 text-orange-700"
+                        (sale.status === 'paid' || sale.status === 'completed' || sale.status === 'finalizado' || Number(sale.paid_amount) >= Number(sale.total_amount)) && installments.every((i: any) => i.status === 'paid' || i.status === 'pago') ? "bg-green-100 text-green-700" : "bg-orange-100 text-orange-700"
                       )}>
-                        {(sale.status === 'paid' || sale.status === 'completed' || sale.status === 'finalizado') && installments.every((i: any) => i.status === 'paid' || i.status === 'pago') ? 'Pago' : sale.payment_method === 'Fiado' ? 'Pendente / Fiado' : 'Pendente'}
+                        {(sale.status === 'paid' || sale.status === 'completed' || sale.status === 'finalizado' || Number(sale.paid_amount) >= Number(sale.total_amount)) && installments.every((i: any) => i.status === 'paid' || i.status === 'pago') ? 'Pago' : sale.payment_method === 'Fiado' ? 'Pendente / Fiado' : 'Pendente'}
                       </span>
                       <span className="text-[10px] font-bold px-2 py-0.5 rounded uppercase bg-blue-100 text-blue-700">
                         {sale.sale_type || 'Varejo'}
@@ -219,16 +219,18 @@ export function SaleDetailsModal({
                     </h3>
                     {sale?.payment_method === 'Fiado' && (
                       <div className="flex items-center gap-2">
-                        <Button 
-                          size="sm" 
-                          variant="outline"
-                          className="h-8 rounded-xl bg-gold/10 border-gold/20 text-gold hover:bg-gold/20 font-bold text-[10px] gap-2 shadow-sm"
-                          onClick={() => setSecretaryOpen(true)}
-                        >
-                          <DollarSign className="size-3.5" /> Registrar Pagamento
-                        </Button>
+                        {Number(sale.paid_amount) < Number(sale.total_amount) && (
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            className="h-8 rounded-xl bg-gold/10 border-gold/20 text-gold hover:bg-gold/20 font-bold text-[10px] gap-2 shadow-sm"
+                            onClick={() => setSecretaryOpen(true)}
+                          >
+                            <DollarSign className="size-3.5" /> Registrar Pagamento
+                          </Button>
+                        )}
                         <div className="text-right ml-4">
-                          <div className="text-[10px] font-bold text-muted-foreground uppercase">Saldo Devedor</div>
+                          <div className="text-[10px] font-bold text-muted-foreground uppercase leading-tight">Saldo Devedor</div>
                           <div className="text-lg font-black text-gold leading-none">{brl(Number(sale.total_amount) - Number(sale.paid_amount))}</div>
                         </div>
                       </div>
