@@ -60,6 +60,12 @@ export function SaleDetailsModal({
   const items = data?.items || [];
   const payments = data?.payments || [];
   const installments = data?.installments || [];
+  const openInstallments = installments.filter((installment: any) =>
+    !['paid', 'pago'].includes(String(installment.status || '').toLowerCase())
+  );
+  const remainingBalance = Math.max(0, Number(sale?.total_amount || 0) - Number(sale?.paid_amount || 0));
+  const isCreditSale = Boolean(sale?.is_debt) || sale?.payment_method === 'Fiado' || installments.length > 0;
+  const hasOutstandingDebt = isCreditSale && (remainingBalance > 0.009 || openInstallments.length > 0);
 
   const subtotal = sale ? (Number(sale.total_amount) + Number(sale.discount || 0) + Number(sale.cashback_used || 0)) : 0;
 
@@ -83,7 +89,7 @@ export function SaleDetailsModal({
                         "text-[10px] font-bold px-2 py-0.5 rounded uppercase",
                         (sale.status === 'paid' || sale.status === 'completed' || sale.status === 'finalizado' || Number(sale.paid_amount) >= Number(sale.total_amount)) && installments.every((i: any) => i.status === 'paid' || i.status === 'pago') ? "bg-green-100 text-green-700" : "bg-orange-100 text-orange-700"
                       )}>
-                        {(sale.status === 'paid' || sale.status === 'completed' || sale.status === 'finalizado' || Number(sale.paid_amount) >= Number(sale.total_amount)) && installments.every((i: any) => i.status === 'paid' || i.status === 'pago') ? 'Pago' : sale.payment_method === 'Fiado' ? 'Pendente / Fiado' : 'Pendente'}
+                        {!hasOutstandingDebt && (sale.status === 'paid' || sale.status === 'completed' || sale.status === 'finalizado' || Number(sale.paid_amount) >= Number(sale.total_amount)) ? 'Pago' : isCreditSale ? 'Pendente / Fiado' : 'Pendente'}
                       </span>
                       <span className="text-[10px] font-bold px-2 py-0.5 rounded uppercase bg-blue-100 text-blue-700">
                         {sale.sale_type || 'Varejo'}
@@ -157,7 +163,7 @@ export function SaleDetailsModal({
                       </div>
                       <span className="font-bold text-yellow-900 text-base">{brl(sale?.cashback_earned || 0)}</span>
                     </div>
-                    {sale?.payment_method === 'Fiado' && Number(sale?.cashback_earned) > 0 && (
+                    {isCreditSale && Number(sale?.cashback_earned) > 0 && (
                       <div className="text-[10px] text-muted-foreground px-3 py-1 bg-yellow-50/30 rounded-lg italic border border-yellow-100/50">
                         * Liberado proporcionalmente a cada pagamento.
                       </div>
@@ -217,9 +223,9 @@ export function SaleDetailsModal({
                     <h3 className="text-sm font-bold text-foreground flex items-center gap-2 uppercase tracking-tight">
                       Histórico de Pagamentos
                     </h3>
-                    {sale?.payment_method === 'Fiado' && (
+                    {hasOutstandingDebt && (
                       <div className="flex items-center gap-2">
-                        {Number(sale.paid_amount) < Number(sale.total_amount) && (
+                        {remainingBalance > 0.009 && (
                           <Button 
                             size="sm" 
                             variant="outline"
@@ -231,7 +237,7 @@ export function SaleDetailsModal({
                         )}
                         <div className="text-right ml-4">
                           <div className="text-[10px] font-bold text-muted-foreground uppercase leading-tight">Saldo Devedor</div>
-                          <div className="text-lg font-black text-gold leading-none">{brl(Number(sale.total_amount) - Number(sale.paid_amount))}</div>
+                          <div className="text-lg font-black text-gold leading-none">{brl(remainingBalance)}</div>
                         </div>
                       </div>
                     )}

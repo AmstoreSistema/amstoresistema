@@ -128,7 +128,7 @@ export function SaleInstallmentsModal({
 
   if (!saleId) return null;
 
-  const unpaidInstallments = installments.filter((i: any) => i.status !== 'paid');
+  const unpaidInstallments = installments.filter((i: any) => !['paid', 'pago'].includes(String(i.status || '').toLowerCase()));
   const remainingTotal = unpaidInstallments.reduce((acc: number, curr: any) => acc + Number(curr.remaining_amount ?? curr.amount), 0);
 
   return (

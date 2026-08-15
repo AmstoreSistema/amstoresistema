@@ -242,6 +242,7 @@ export function ClientDetailsModal({ client, isOpen, onClose }: ClientDetailsMod
                       const nextInstallment = unpaidInstallments[0];
                       const installmentCount = saleInstallments.length || 1;
                       const isFullyPaid = (sale.status === 'paid' || sale.status === 'completed' || sale.status === 'finalizado' || Number(sale.paid_amount) >= Number(sale.total_amount)) && unpaidInstallments.length === 0;
+                      const isCreditSale = Boolean(sale.is_debt) || sale.payment_method === 'Fiado' || saleInstallments.length > 0;
 
                     
                     return (
@@ -257,13 +258,13 @@ export function ClientDetailsModal({ client, isOpen, onClose }: ClientDetailsMod
                               "text-[10px] font-bold px-2 py-0.5 rounded uppercase",
                               (isFullyPaid) 
                                 ? "bg-green-100 text-green-700" 
-                                : sale.payment_method === 'Fiado' ? "bg-orange-100 text-orange-700" : "bg-orange-100 text-orange-700"
+                                : isCreditSale ? "bg-orange-100 text-orange-700" : "bg-orange-100 text-orange-700"
                             )}>
                               {(isFullyPaid) 
                                 ? 'pago' 
-                                : sale.payment_method === 'Fiado' ? 'pendente / fiado' : 'pendente'}
+                                : isCreditSale ? 'pendente / fiado' : 'pendente'}
                             </span>
-                            {sale.payment_method === 'Fiado' && (
+                            {isCreditSale && (
                               <span className="text-[10px] font-bold px-2 py-0.5 rounded uppercase bg-blue-100 text-blue-700">
                                 Fiado
                               </span>
@@ -279,7 +280,7 @@ export function ClientDetailsModal({ client, isOpen, onClose }: ClientDetailsMod
                                 <Coins className="size-3" />
                                 +{brl(sale.cashback_earned)} cashback gerado
                               </div>
-                              {sale.payment_method === 'Fiado' && !isFullyPaid && (
+                              {isCreditSale && !isFullyPaid && (
                                 <div className="text-[9px] text-muted-foreground bg-gray-100/50 px-1.5 py-0.5 rounded-md w-fit italic font-medium">
                                   Liberará {brl((Number(sale.cashback_earned) * (nextInstallment?.amount || (Number(sale.total_amount) / installmentCount))) / Number(sale.total_amount))} p/ pagamento
                                 </div>
