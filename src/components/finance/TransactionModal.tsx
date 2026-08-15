@@ -71,7 +71,7 @@ export function TransactionModal({
       amount: 0,
       description: "",
       account_id: "",
-      category: "Vendas",
+      category: "Venda",
       status: "pago",
       due_date: new Date().toISOString().split('T')[0],
       payment_method: "Dinheiro",
