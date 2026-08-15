@@ -114,7 +114,9 @@ export function POSModal({ open, onOpenChange }: { open: boolean; onOpenChange: 
       const checkDebts = async () => {
         try {
           const details = await fetchClientDetails({ data: { client_id: client.id } });
-          if (details && details.stats.total_debt > 0) {
+          // Only show alert if there is actual debt AND it's not the very first sale being processed
+          // (total_bought > 0 means the client has at least one previous sale)
+          if (details && details.stats.total_debt > 0 && details.stats.total_bought > 0) {
             setDebtAlert({
               isOpen: true,
               clientName: client.name,
