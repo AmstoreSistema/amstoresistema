@@ -135,9 +135,6 @@ export function TransactionModal({
           <DialogTitle className="text-xl font-bold">
             {isEditing ? "Editar Transação" : "Nova Transação"}
           </DialogTitle>
-          <Button variant="ghost" size="icon" className="rounded-full" onClick={onClose}>
-            <X className="size-5" />
-          </Button>
         </div>
 
         <Form {...form}>
@@ -151,11 +148,12 @@ export function TransactionModal({
                     <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Tipo *</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
-                        <SelectTrigger className="h-12 rounded-xl border-gray-100 bg-gray-50/50">
+                        <SelectTrigger className="h-12 rounded-xl border-gray-100 bg-gray-50/50" tabIndex={0}>
+
                           <SelectValue placeholder="Selecione" />
                         </SelectTrigger>
                       </FormControl>
-                      <SelectContent className="rounded-xl">
+                      <SelectContent className="rounded-xl" position="popper" sideOffset={5}>
                         <SelectItem value="entrada">Receita</SelectItem>
                         <SelectItem value="saida">Despesa</SelectItem>
                       </SelectContent>
@@ -173,11 +171,12 @@ export function TransactionModal({
                     <div className="flex gap-2">
                       <Select onValueChange={field.onChange} value={field.value || "Vendas"}>
                         <FormControl>
-                          <SelectTrigger className="h-12 rounded-xl border-gray-100 bg-gray-50/50">
+                          <SelectTrigger className="h-12 rounded-xl border-gray-100 bg-gray-50/50" tabIndex={0}>
+
                             <SelectValue placeholder="Selecione" />
                           </SelectTrigger>
                         </FormControl>
-                        <SelectContent className="rounded-xl">
+                        <SelectContent className="rounded-xl" position="popper" sideOffset={5}>
                           <SelectItem value="Vendas">Vendas</SelectItem>
                           <SelectItem value="Equipamentos">Equipamentos</SelectItem>
                           <SelectItem value="Suprimentos">Suprimentos</SelectItem>
@@ -232,11 +231,12 @@ export function TransactionModal({
                     <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Conta *</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
-                        <SelectTrigger className="h-12 rounded-xl border-gray-100 bg-gray-50/50">
+                        <SelectTrigger className="h-12 rounded-xl border-gray-100 bg-gray-50/50" tabIndex={0}>
+
                           <SelectValue placeholder="Selecione" />
                         </SelectTrigger>
                       </FormControl>
-                      <SelectContent className="rounded-xl">
+                      <SelectContent className="rounded-xl" position="popper" sideOffset={5}>
                         {accounts.map((a: any) => (
                           <SelectItem key={a.id} value={a.id}>{a.name} - {brl(a.initial_balance || 0)}</SelectItem>
                         ))}
@@ -264,7 +264,9 @@ export function TransactionModal({
               />
               <FormItem>
                 <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Data de Vencimento</FormLabel>
-                <Input type="date" className="h-12 rounded-xl border-gray-100 bg-gray-50/50" />
+                <FormControl>
+                  <Input type="date" className="h-12 rounded-xl border-gray-100 bg-gray-50/50" />
+                </FormControl>
               </FormItem>
             </div>
 
@@ -277,11 +279,12 @@ export function TransactionModal({
                     <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Status</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
-                        <SelectTrigger className="h-12 rounded-xl border-gray-100 bg-gray-50/50">
+                        <SelectTrigger className="h-12 rounded-xl border-gray-100 bg-gray-50/50" tabIndex={0}>
+
                           <SelectValue placeholder="Selecione" />
                         </SelectTrigger>
                       </FormControl>
-                      <SelectContent className="rounded-xl">
+                      <SelectContent className="rounded-xl" position="popper" sideOffset={5}>
                         <SelectItem value="pago">Pago</SelectItem>
                         <SelectItem value="pendente">Pendente</SelectItem>
                       </SelectContent>
@@ -298,11 +301,12 @@ export function TransactionModal({
                     <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Forma de proteção</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value || "Dinheiro"}>
                       <FormControl>
-                        <SelectTrigger className="h-12 rounded-xl border-gray-100 bg-gray-50/50">
+                        <SelectTrigger className="h-12 rounded-xl border-gray-100 bg-gray-50/50" tabIndex={0}>
+
                           <SelectValue placeholder="Selecione" />
                         </SelectTrigger>
                       </FormControl>
-                      <SelectContent className="rounded-xl">
+                      <SelectContent className="rounded-xl" position="popper" sideOffset={5}>
                         <SelectItem value="Dinheiro">Dinheiro</SelectItem>
                         <SelectItem value="Cartão de Crédito">Cartão de Crédito</SelectItem>
                         <SelectItem value="Cartão de Débito">Cartão de Débito</SelectItem>

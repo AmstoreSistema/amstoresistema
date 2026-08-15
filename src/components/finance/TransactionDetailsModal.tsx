@@ -81,9 +81,6 @@ export function TransactionDetailsModal({
               </div>
             </div>
           </div>
-          <Button variant="ghost" size="icon" className="rounded-full" onClick={onClose}>
-            <X className="size-5" />
-          </Button>
         </div>
 
         <div className="flex-1 overflow-hidden">
