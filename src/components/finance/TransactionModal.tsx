@@ -148,7 +148,8 @@ export function TransactionModal({
                     <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Tipo *</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
-                        <SelectTrigger className="h-12 rounded-xl border-gray-100 bg-gray-50/50">
+                        <SelectTrigger className="h-12 rounded-xl border-gray-100 bg-gray-50/50" tabIndex={0}>
+
                           <SelectValue placeholder="Selecione" />
                         </SelectTrigger>
                       </FormControl>
@@ -170,7 +171,8 @@ export function TransactionModal({
                     <div className="flex gap-2">
                       <Select onValueChange={field.onChange} value={field.value || "Vendas"}>
                         <FormControl>
-                          <SelectTrigger className="h-12 rounded-xl border-gray-100 bg-gray-50/50">
+                          <SelectTrigger className="h-12 rounded-xl border-gray-100 bg-gray-50/50" tabIndex={0}>
+
                             <SelectValue placeholder="Selecione" />
                           </SelectTrigger>
                         </FormControl>
@@ -229,7 +231,8 @@ export function TransactionModal({
                     <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Conta *</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
-                        <SelectTrigger className="h-12 rounded-xl border-gray-100 bg-gray-50/50">
+                        <SelectTrigger className="h-12 rounded-xl border-gray-100 bg-gray-50/50" tabIndex={0}>
+
                           <SelectValue placeholder="Selecione" />
                         </SelectTrigger>
                       </FormControl>
@@ -276,7 +279,8 @@ export function TransactionModal({
                     <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Status</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
-                        <SelectTrigger className="h-12 rounded-xl border-gray-100 bg-gray-50/50">
+                        <SelectTrigger className="h-12 rounded-xl border-gray-100 bg-gray-50/50" tabIndex={0}>
+
                           <SelectValue placeholder="Selecione" />
                         </SelectTrigger>
                       </FormControl>
@@ -297,7 +301,8 @@ export function TransactionModal({
                     <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Forma de proteção</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value || "Dinheiro"}>
                       <FormControl>
-                        <SelectTrigger className="h-12 rounded-xl border-gray-100 bg-gray-50/50">
+                        <SelectTrigger className="h-12 rounded-xl border-gray-100 bg-gray-50/50" tabIndex={0}>
+
                           <SelectValue placeholder="Selecione" />
                         </SelectTrigger>
                       </FormControl>
