@@ -357,10 +357,15 @@ export function POSModal({ open, onOpenChange }: { open: boolean; onOpenChange: 
             promo_qr: result.promoQr,
             is_awarded: result.isAwarded,
             cashback_earned: result.cashbackEarned || saleData.cashback_earned,
-            items: (saleData.items || []).map(item => ({
-             ...item,
-             name: items.find(i => i.stock_id === item.stock_id)?.name || "Produto"
-           }))
+             items: (saleData.items || []).map(item => ({
+              ...item,
+              name: items.find(i => i.stock_id === item.stock_id)?.name || "Produto"
+            })),
+            installments: installments.map(inst => ({
+              installment_number: inst.number,
+              due_date: inst.due_date,
+              amount: inst.amount
+            }))
         };
 
         setLastSale(lastSaleData);
