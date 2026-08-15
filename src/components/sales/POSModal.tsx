@@ -38,9 +38,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { ClientSearch } from "./ClientSearch";
 import { ProductSearch } from "./ProductSearch";
 import { ReceiptModal } from "./ReceiptModal";
+import { DebtAlertModal } from "./DebtAlertModal";
 import { createSale } from "@/lib/sales.functions";
+import { getClientDetails } from "@/lib/clients.functions";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { Badge } from "@/components/ui/badge";
 
 
@@ -82,6 +85,19 @@ export function POSModal({ open, onOpenChange }: { open: boolean; onOpenChange: 
   const [receiptOpen, setReceiptOpen] = React.useState(false);
   const [previewOpen, setPreviewOpen] = React.useState(false);
   const [lastSale, setLastSale] = React.useState<any>(null);
+  const [debtAlert, setDebtAlert] = React.useState<{
+    isOpen: boolean;
+    clientName: string;
+    debtAmount: number;
+    pendingSalesCount: number;
+  }>({
+    isOpen: false,
+    clientName: "",
+    debtAmount: 0,
+    pendingSalesCount: 0
+  });
+
+  const fetchClientDetails = useServerFn(getClientDetails);
 
   // Auto-update accountId based on active account
   React.useEffect(() => {
@@ -94,6 +110,30 @@ export function POSModal({ open, onOpenChange }: { open: boolean; onOpenChange: 
   // Update sale code when client changes
   React.useEffect(() => {
     if (client) {
+      // Check for debts
+      const checkDebts = async () => {
+        try {
+          const details = await fetchClientDetails({ data: { client_id: client.id } });
+          if (details && details.stats.total_debt > 0) {
+            setDebtAlert({
+              isOpen: true,
+              clientName: client.name,
+              debtAmount: details.stats.total_debt,
+              pendingSalesCount: details.sales.filter((s: any) => 
+                s.payment_method === 'Fiado' && 
+                s.status !== 'paid' && 
+                s.status !== 'completed' && 
+                s.status !== 'finalizado'
+              ).length || 1
+            });
+          }
+        } catch (error) {
+          console.error("Error checking client debts:", error);
+        }
+      };
+      
+      checkDebts();
+
       const initials = (client.name || "")
         .split(' ')
         .filter((n: string) => n.length > 0)
@@ -747,6 +787,20 @@ export function POSModal({ open, onOpenChange }: { open: boolean; onOpenChange: 
          }}
          client={client}
          isPreview={previewOpen}
+      />
+
+      <DebtAlertModal 
+        isOpen={debtAlert.isOpen}
+        clientName={debtAlert.clientName}
+        debtAmount={debtAlert.debtAmount}
+        pendingSalesCount={debtAlert.pendingSalesCount}
+        onClose={() => {
+          setDebtAlert(prev => ({ ...prev, isOpen: false }));
+          setClient(null);
+        }}
+        onConfirm={() => {
+          setDebtAlert(prev => ({ ...prev, isOpen: false }));
+        }}
       />
 
     </Dialog>
