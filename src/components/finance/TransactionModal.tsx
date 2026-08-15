@@ -130,16 +130,16 @@ export function TransactionModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="sm:max-w-2xl p-0 overflow-hidden bg-white border-none shadow-2xl flex flex-col sm:rounded-[2rem] max-h-[95vh]">
-        <div className="flex items-center justify-between p-6 border-b shrink-0">
+      <DialogContent className="sm:max-w-xl p-0 overflow-hidden bg-white border-none shadow-2xl flex flex-col sm:rounded-[1.5rem] max-h-[90vh]">
+        <div className="flex items-center justify-between p-4 border-b shrink-0">
           <DialogTitle className="text-xl font-bold">
             {isEditing ? "Editar Transação" : "Nova Transação"}
           </DialogTitle>
         </div>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 overflow-y-auto p-6 space-y-6">
-            <div className="grid grid-cols-2 gap-4">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 overflow-y-auto p-5 space-y-4">
+            <div className="grid grid-cols-2 gap-3">
               <FormField
                 control={form.control}
                 name="type"
@@ -148,7 +148,7 @@ export function TransactionModal({
                     <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Tipo *</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
-                        <SelectTrigger className="h-12 rounded-xl border-gray-100 bg-gray-50/50" tabIndex={0}>
+                        <SelectTrigger className="h-10 rounded-xl border-gray-100 bg-gray-50/50" tabIndex={0}>
 
                           <SelectValue placeholder="Selecione" />
                         </SelectTrigger>
@@ -171,7 +171,7 @@ export function TransactionModal({
                     <div className="flex gap-2">
                       <Select onValueChange={field.onChange} value={field.value || "Vendas"}>
                         <FormControl>
-                          <SelectTrigger className="h-12 rounded-xl border-gray-100 bg-gray-50/50" tabIndex={0}>
+                          <SelectTrigger className="h-10 rounded-xl border-gray-100 bg-gray-50/50" tabIndex={0}>
 
                             <SelectValue placeholder="Selecione" />
                           </SelectTrigger>
@@ -185,7 +185,7 @@ export function TransactionModal({
                           <SelectItem value="Outros">Outros</SelectItem>
                         </SelectContent>
                       </Select>
-                      <Button type="button" variant="outline" size="icon" className="h-12 w-12 rounded-xl border-gray-100 bg-gray-50/50">
+                      <Button type="button" variant="outline" size="icon" className="h-10 w-10 rounded-xl border-gray-100 bg-gray-50/50">
                         <Plus className="size-4" />
                       </Button>
                     </div>
@@ -202,14 +202,14 @@ export function TransactionModal({
                 <FormItem>
                   <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Descrição *</FormLabel>
                   <FormControl>
-                    <Input className="h-12 rounded-xl border-gray-100 bg-gray-50/50" placeholder="Descrição da transação" {...field} value={field.value || ""} />
+                    <Input className="h-10 rounded-xl border-gray-100 bg-gray-50/50" placeholder="Descrição da transação" {...field} value={field.value || ""} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-3">
               <FormField
                 control={form.control}
                 name="amount"
@@ -217,7 +217,7 @@ export function TransactionModal({
                   <FormItem>
                     <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Valor *</FormLabel>
                     <FormControl>
-                      <Input type="number" step="0.01" className="h-12 rounded-xl border-gray-100 bg-gray-50/50" {...field} />
+                      <Input type="number" step="0.01" className="h-10 rounded-xl border-gray-100 bg-gray-50/50" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -231,7 +231,7 @@ export function TransactionModal({
                     <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Conta *</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
-                        <SelectTrigger className="h-12 rounded-xl border-gray-100 bg-gray-50/50" tabIndex={0}>
+                        <SelectTrigger className="h-10 rounded-xl border-gray-100 bg-gray-50/50" tabIndex={0}>
 
                           <SelectValue placeholder="Selecione" />
                         </SelectTrigger>
@@ -248,7 +248,7 @@ export function TransactionModal({
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-3">
               <FormField
                 control={form.control}
                 name="due_date"
@@ -256,7 +256,7 @@ export function TransactionModal({
                   <FormItem>
                     <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Data da Transação *</FormLabel>
                     <FormControl>
-                      <Input type="date" className="h-12 rounded-xl border-gray-100 bg-gray-50/50" {...field} value={field.value || ""} />
+                      <Input type="date" className="h-10 rounded-xl border-gray-100 bg-gray-50/50" {...field} value={field.value || ""} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -264,11 +264,11 @@ export function TransactionModal({
               />
               <div className="space-y-2">
                 <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Data de Vencimento</label>
-                <Input type="date" className="h-12 rounded-xl border-gray-100 bg-gray-50/50" />
+                <Input type="date" className="h-10 rounded-xl border-gray-100 bg-gray-50/50" />
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-3">
               <FormField
                 control={form.control}
                 name="status"
@@ -277,7 +277,7 @@ export function TransactionModal({
                     <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Status</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
-                        <SelectTrigger className="h-12 rounded-xl border-gray-100 bg-gray-50/50" tabIndex={0}>
+                        <SelectTrigger className="h-10 rounded-xl border-gray-100 bg-gray-50/50" tabIndex={0}>
 
                           <SelectValue placeholder="Selecione" />
                         </SelectTrigger>
@@ -299,7 +299,7 @@ export function TransactionModal({
                     <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Forma de proteção</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value || "Dinheiro"}>
                       <FormControl>
-                        <SelectTrigger className="h-12 rounded-xl border-gray-100 bg-gray-50/50" tabIndex={0}>
+                        <SelectTrigger className="h-10 rounded-xl border-gray-100 bg-gray-50/50" tabIndex={0}>
 
                           <SelectValue placeholder="Selecione" />
                         </SelectTrigger>
@@ -327,7 +327,7 @@ export function TransactionModal({
                   <FormControl>
                     <Textarea 
                       placeholder="Informações adicionais..." 
-                      className="rounded-xl border-gray-100 bg-gray-50/50 min-h-[100px]" 
+                      className="rounded-xl border-gray-100 bg-gray-50/50 min-h-[80px]" 
                       {...field} 
                       value={field.value || ""}
                     />
@@ -347,13 +347,13 @@ export function TransactionModal({
           </form>
         </Form>
 
-        <div className="p-6 bg-white border-t shrink-0 flex gap-3">
-          <Button variant="outline" className="flex-1 h-12 rounded-xl font-bold uppercase tracking-widest text-xs" onClick={onClose}>
+        <div className="p-4 bg-white border-t shrink-0 flex gap-2">
+          <Button variant="outline" className="flex-1 h-10 rounded-xl font-bold uppercase tracking-widest text-[10px]" onClick={onClose}>
             Cancelar
           </Button>
           <Button 
             onClick={form.handleSubmit(onSubmit)} 
-            className="flex-1 h-12 rounded-xl bg-green-500 hover:bg-green-600 text-white font-bold uppercase tracking-widest text-xs border-none shadow-lg shadow-green-100"
+            className="flex-1 h-10 rounded-xl bg-green-500 hover:bg-green-600 text-white font-bold uppercase tracking-widest text-[10px] border-none shadow-lg shadow-green-100"
           >
             {isEditing ? "Atualizar Transação" : "Criar Transação"}
           </Button>
