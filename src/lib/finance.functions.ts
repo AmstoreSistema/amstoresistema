@@ -33,6 +33,37 @@ export const createTransaction = createServerFn({ method: "POST" })
     return { success: true };
   });
 
+export const updateTransaction = createServerFn({ method: "POST" })
+  .inputValidator((data) => z.object({
+    id: z.string(),
+    type: z.enum(["entrada", "saida", "transferencia"]),
+    amount: z.number(),
+    description: z.string(),
+    account_id: z.string(),
+    category: z.string().optional().nullable(),
+    status: z.enum(["pago", "pendente", "cancelado"]),
+    due_date: z.string().optional().nullable(),
+    payment_method: z.string().optional().nullable(),
+  }).parse(data))
+  .handler(async ({ data }) => {
+    const { error } = await supabase
+      .from("transactions")
+      .update({
+        type: data.type,
+        amount: data.type === "saida" ? -Math.abs(data.amount) : Math.abs(data.amount),
+        description: data.description,
+        account_id: data.account_id,
+        category: data.category,
+        status: data.status,
+        due_date: data.due_date,
+        payment_method: data.payment_method
+      } as any)
+      .eq("id", data.id);
+
+    if (error) throw new Error(error.message);
+    return { success: true };
+  });
+
 export const updateTransactionStatus = createServerFn({ method: "POST" })
   .inputValidator((data) => z.object({
     id: z.string(),
