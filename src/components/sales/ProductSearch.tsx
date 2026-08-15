@@ -59,6 +59,7 @@ export function ProductSearch({
     }
   };
 
+
   return (
     <div className="space-y-4">
       <Popover open={open} onOpenChange={(val) => {
