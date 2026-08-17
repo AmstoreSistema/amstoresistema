@@ -13,7 +13,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { useSaveRow } from "@/lib/data";
+import { useRows, useSaveRow } from "@/lib/data";
 import { toast } from "sonner";
 
 interface SupplierFormModalProps {
@@ -22,12 +22,12 @@ interface SupplierFormModalProps {
   supplier?: any;
 }
 
-const CATEGORIES = ["Couros", "Sintéticos", "Palmilhas", "Solados", "Cola", "Embalagens", "Outros"];
 const STATES = ["AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA", "MT", "MS", "MG", "PA", "PB", "PR", "PE", "PI", "RJ", "RN", "RS", "RO", "RR", "SC", "SP", "SE", "TO"];
 
 export function SupplierFormModal({ open, onOpenChange, supplier }: SupplierFormModalProps) {
   const isEditing = !!supplier;
   const { mutate: save, isPending } = useSaveRow("suppliers", "Fornecedor");
+  const { data: materialCategories = [] } = useRows<{id: string, name: string}>("material_categories", { order: { column: "name", ascending: true } });
 
   const [formData, setFormData] = useState({
     name: "",
@@ -177,9 +177,15 @@ export function SupplierFormModal({ open, onOpenChange, supplier }: SupplierForm
                       <SelectValue placeholder="Selecione a categoria" />
                     </SelectTrigger>
                     <SelectContent>
-                      {CATEGORIES.map((cat) => (
-                        <SelectItem key={cat} value={cat}>{cat}</SelectItem>
-                      ))}
+                      {materialCategories.length > 0 ? (
+                        materialCategories.map((cat) => (
+                          <SelectItem key={cat.id} value={cat.name}>{cat.name}</SelectItem>
+                        ))
+                      ) : (
+                        ["Couros", "Sintéticos", "Palmilhas", "Solados", "Cola", "Embalagens", "Outros"].map((cat) => (
+                          <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                        ))
+                      )}
                     </SelectContent>
                   </Select>
                 </div>
