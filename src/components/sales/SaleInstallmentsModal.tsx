@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { cn } from "@/lib/utils";
 import { 
   brl, 
   dateTimeBR 
@@ -265,13 +266,22 @@ export function SaleInstallmentsModal({
                     
                     <div className="text-right flex items-center gap-4">
                       <div className="flex flex-col items-end">
-                        <span className={`font-black ${inst.status === 'paid' ? 'text-success' : isOverdue ? 'text-destructive' : 'text-gold'}`}>
-                          {brl(inst.remaining_amount ?? inst.amount)}
+                        <span className={cn(
+                          "font-black text-lg",
+                          inst.status === 'paid' || inst.status === 'pago' ? 'text-success' : 
+                          inst.status === 'partial' ? 'text-blue-600' :
+                          isOverdue ? 'text-destructive' : 'text-gold'
+                        )}>
+                          {brl(inst.amount)}
                         </span>
-                        {inst.status !== 'paid' && inst.remaining_amount !== inst.amount && (
-                          <span className="text-[9px] text-muted-foreground line-through opacity-50">{brl(inst.amount)}</span>
+                        
+                        {inst.status !== 'paid' && inst.status !== 'pago' && (
+                          <div className="text-[9px] font-bold text-muted-foreground uppercase">
+                            {inst.status === 'partial' ? `Restante: ${brl(inst.remaining_amount)}` : 'Pendente'}
+                          </div>
                         )}
-                        {inst.status !== 'paid' && Number(sale?.cashback_earned) > 0 && (
+
+                        {inst.status !== 'paid' && inst.status !== 'pago' && Number(sale?.cashback_earned) > 0 && (
                           <div className="text-[9px] text-yellow-600 font-bold mt-1">
                             Liberará {brl((Number(sale.cashback_earned) * Number(inst.remaining_amount ?? inst.amount)) / Number(sale.total_amount))} cashback
                           </div>
