@@ -113,12 +113,16 @@ export function TransactionModal({
   }, [transaction, isOpen, form, accounts]);
 
   const onSubmit = async (values: z.infer<typeof transactionSchema>) => {
+    const formattedValues = {
+      ...values,
+      client_id: values.client_id === 'none' ? null : values.client_id
+    };
     try {
       if (isEditing) {
-        await updateTransaction({ data: { ...values, id: transaction.id } });
+        await updateTransaction({ data: { ...formattedValues, id: transaction.id } });
         toast.success("Transação atualizada com sucesso");
       } else {
-        await createTransaction({ data: values });
+        await createTransaction({ data: formattedValues });
         toast.success("Lançamento realizado com sucesso");
       }
       onClose();
