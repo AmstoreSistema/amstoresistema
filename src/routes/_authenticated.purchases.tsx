@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Truck, ShoppingCart, Plus, CheckCircle2, Trash2 } from "lucide-react";
+import { Truck, ShoppingCart, Plus, CheckCircle2, Trash2, Eye } from "lucide-react";
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -29,6 +29,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { logAudit, useRows } from "@/lib/data";
 import { brl, dateTimeBR, num } from "@/lib/format";
+import { SupplierPurchasesModal } from "@/components/suppliers/SupplierPurchasesModal";
 
 export const Route = createFileRoute("/_authenticated/purchases")({
   head: () => ({
@@ -55,7 +56,7 @@ function PurchasesPage() {
   const qc = useQueryClient();
   const { data: purchases = [], isLoading } = useRows<Purchase>("purchases", { order: { column: "created_at", ascending: false } });
   const { data: materials = [] } = useRows<Material>("materials", { order: { column: "name", ascending: true } });
-  const { data: suppliers = [] } = useRows<{ id: string; name: string }>("suppliers", { order: { column: "name", ascending: true } });
+  const { data: suppliers = [] } = useRows<any>("suppliers", { order: { column: "name", ascending: true } });
   const { data: accounts = [] } = useRows<{ id: string; active: boolean }>("financial_accounts");
 
   const [open, setOpen] = useState(false);
@@ -65,6 +66,7 @@ function PurchasesPage() {
   const [qty, setQty] = useState("1");
   const [cost, setCost] = useState("0");
   const [saving, setSaving] = useState(false);
+  const [viewingPurchase, setViewingPurchase] = useState<any>(null);
 
   const addItem = () => {
     const mat = materials.find((m) => m.id === pick);
@@ -215,14 +217,26 @@ function PurchasesPage() {
             header: "", 
             className: "text-right",
             render: (p) => (
-              <Button 
-                size="icon" 
-                variant="ghost" 
-                className="text-destructive" 
-                onClick={() => handleCancelPurchase(p.id)}
-              >
-                <Trash2 className="size-4" />
-              </Button>
+              <div className="flex justify-end gap-1">
+                <Button 
+                  size="icon" 
+                  variant="ghost" 
+                  onClick={() => {
+                    const sup = suppliers.find(s => s.id === (p as any).supplier_id || s.name === (p as any).supplier_name);
+                    setViewingPurchase({ ...p, supplier: sup || { name: (p as any).supplier_name, id: (p as any).supplier_id } });
+                  }}
+                >
+                  <Eye className="size-4" />
+                </Button>
+                <Button 
+                  size="icon" 
+                  variant="ghost" 
+                  className="text-destructive" 
+                  onClick={() => handleCancelPurchase(p.id)}
+                >
+                  <Trash2 className="size-4" />
+                </Button>
+              </div>
             ) 
           },
         ]}
@@ -300,6 +314,12 @@ function PurchasesPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <SupplierPurchasesModal 
+        open={!!viewingPurchase}
+        onOpenChange={(open) => !open && setViewingPurchase(null)}
+        supplier={viewingPurchase?.supplier}
+      />
     </div>
   );
 }
