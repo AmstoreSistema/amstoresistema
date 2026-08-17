@@ -296,15 +296,27 @@ export function SaleDetailsModal({
                                         <span className="text-[9px] font-black bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded uppercase">Parcial</span>
                                       )}
                                     </div>
-                                    <div className="text-muted-foreground uppercase text-[10px] font-medium">
-                                      {isPaid ? 'Paga' : isOverdue ? 'Atrasada' : 'Pendente'}
-                                      {(isPartial || isPaid) && ` • Pago: ${brl(inst.paid_amount)}`}
+                                    <div className="uppercase text-[10px] font-bold">
+                                      {isPaid ? (
+                                        <span className="text-green-600">PAGO • {brl(inst.paid_amount)}</span>
+                                      ) : isPartial ? (
+                                        <span className="text-blue-600">PENDENTE: {brl(remaining)} • Pago: {brl(inst.paid_amount)}</span>
+                                      ) : (
+                                        <span className={isOverdue ? "text-destructive" : "text-orange-600"}>
+                                          {isOverdue ? "ATRASADA" : "PENDENTE"}
+                                        </span>
+                                      )}
                                     </div>
                                   </div>
                                 </div>
                                 <div className="text-right">
-                                  <div className="font-bold text-sm text-foreground">{brl(remaining)}</div>
-                                  <div className="text-[9px] text-muted-foreground">Original: {brl(inst.amount)}</div>
+                                  <div className={cn(
+                                    "font-black text-sm",
+                                    isPaid ? "text-green-600" : isPartial ? "text-blue-600" : "text-foreground"
+                                  )}>
+                                    {brl(inst.amount)}
+                                  </div>
+                                  <div className="text-[9px] text-muted-foreground uppercase font-medium">Parcela {inst.installment_number}</div>
                                 </div>
                               </div>
                             );
