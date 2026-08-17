@@ -60,14 +60,14 @@ function ClientsPage() {
     select: "client_id, bonus_amount, available_bonus"
   });
 
-  const { data: salesTotals = [] } = useQuery({
+  const { data: salesTotals = {} } = useQuery({
     queryKey: ['clients-sales-totals'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('sales')
         .select('client_id, total_amount');
       
-      if (error) return [];
+      if (error) return {} as Record<string, number>;
       
       const totals: Record<string, number> = {};
       data.forEach(sale => {
@@ -82,9 +82,10 @@ function ClientsPage() {
   const clients = useMemo(() => {
     return clientsData.map(client => {
       const activeBonuses = qrBonusData?.filter(b => b.client_id === client.id && b.available_bonus !== false) || [];
+      const typedSalesTotals = salesTotals as Record<string, number>;
       return {
         ...client,
-        total_spent: salesTotals[client.id] || 0,
+        total_spent: typedSalesTotals[client.id] || 0,
         has_qr_bonus: activeBonuses.length > 0,
         qr_bonus_amount: activeBonuses.reduce((acc, b) => acc + (b.bonus_amount || 0), 0)
       };
