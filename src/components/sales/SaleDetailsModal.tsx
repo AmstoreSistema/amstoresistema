@@ -121,6 +121,7 @@ export function SaleDetailsModal({
                       const { cancelSale } = await import("@/lib/sales.functions");
                       await cancelSale({ data: { sale_id: saleId! } });
                       toast.success("Venda estornada com sucesso");
+                      qc.invalidateQueries();
                       handleClose();
                     } catch (err: any) {
                       toast.error(err.message);
