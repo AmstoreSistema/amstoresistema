@@ -36,7 +36,9 @@ function SuppliersPage() {
     order: { column: "name", ascending: true } 
   });
   
-  const { data: purchases = [] } = useRows<any>("purchases");
+  const { data: purchases = [] } = useRows<any>("purchases", {
+    select: "supplier_id, supplier_name, total_amount"
+  });
 
   const save = useSaveRow("suppliers", "Fornecedor");
   const remove = useDeleteRow("suppliers", "Fornecedor");
@@ -67,7 +69,7 @@ function SuppliersPage() {
   const stats = useMemo(() => {
     const total = suppliers.length;
     const active = suppliers.filter(s => s.active !== false).length;
-    const totalPurchases = purchases.reduce((sum, p) => sum + (Number(p.quantity) * Number(p.unit_cost)), 0);
+    const totalPurchases = purchases.reduce((sum, p) => sum + Number(p.total_amount || 0), 0);
     return { total, active, totalPurchases };
   }, [suppliers, purchases]);
 
@@ -175,6 +177,10 @@ function SuppliersPage() {
             <SupplierCard 
               key={s.id} 
               supplier={s} 
+              totalPurchases={purchases
+                .filter(p => p.supplier_id === s.id || (p.supplier_name === s.name && !p.supplier_id))
+                .reduce((sum, p) => sum + Number(p.total_amount || 0), 0)
+              }
               onEdit={handleEdit}
               onView={handleView}
               onDelete={handleDelete}
