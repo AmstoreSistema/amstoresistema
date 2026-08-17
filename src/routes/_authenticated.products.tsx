@@ -541,7 +541,7 @@ function ProductsPage() {
                     <Select value={form.category ?? "Bolsa"} onValueChange={(v) => setForm({ ...form, category: v })}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        {CATEGORIES.map((c) => (
+                        {PRODUCT_CATEGORIES.map((c) => (
                           <SelectItem key={c} value={c}>{c}</SelectItem>
                         ))}
                       </SelectContent>
