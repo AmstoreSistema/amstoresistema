@@ -108,6 +108,25 @@ export function SaleDetailsModal({
               >
                 <Printer className="size-4" /> Cupom
               </Button>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="rounded-xl font-bold h-8 text-[10px] gap-2 text-destructive hover:text-destructive hover:bg-destructive/10"
+                onClick={async () => {
+                  if (confirm("Deseja realmente estornar esta venda? O estoque será devolvido, o saldo das contas financeiras será ajustado e o cashback liberado será estornado.")) {
+                    try {
+                      const { cancelSale } = await import("@/lib/sales.functions");
+                      await cancelSale({ data: { sale_id: saleId! } });
+                      toast.success("Venda estornada com sucesso");
+                      handleClose();
+                    } catch (err: any) {
+                      toast.error(err.message);
+                    }
+                  }
+                }}
+              >
+                Estornar
+              </Button>
             </div>
             {/* Removed redundant DialogClose here as standard DialogContent includes one */}
           </div>
