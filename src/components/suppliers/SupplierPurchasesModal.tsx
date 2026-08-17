@@ -154,8 +154,9 @@ export function SupplierPurchasesModal({ open, onOpenChange, supplier }: Supplie
                       <tr>
                         <th className="px-4 py-3 font-bold text-[10px] uppercase tracking-widest text-muted-foreground">Data</th>
                         <th className="px-4 py-3 font-bold text-[10px] uppercase tracking-widest text-muted-foreground">Material</th>
-                        <th className="px-4 py-3 font-bold text-[10px] uppercase tracking-widest text-muted-foreground">Preço Unit.</th>
-                        <th className="px-4 py-3 font-bold text-[10px] uppercase tracking-widest text-muted-foreground text-right">Variação</th>
+                        <th className="px-4 py-3 font-bold text-[10px] uppercase tracking-widest text-muted-foreground">Preço Anterior (Sistema)</th>
+                        <th className="px-4 py-3 font-bold text-[10px] uppercase tracking-widest text-muted-foreground">Novo Preço (Compra)</th>
+                        <th className="px-4 py-3 font-bold text-[10px] uppercase tracking-widest text-muted-foreground text-right">Variação / Diferença</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border/50">
@@ -167,20 +168,27 @@ export function SupplierPurchasesModal({ open, onOpenChange, supplier }: Supplie
                           <tr key={item.id} className="hover:bg-muted/5 transition-colors">
                             <td className="px-4 py-3 text-xs text-muted-foreground">{dateBR(item.created_at)}</td>
                             <td className="px-4 py-3 font-medium">{getMaterialName(item.material_id)}</td>
-                            <td className="px-4 py-3 font-bold">{brl(item.unit_cost)}</td>
+                            <td className="px-4 py-3 text-xs text-muted-foreground font-medium">{brl(item.previous_cost || 0)}</td>
+                            <td className="px-4 py-3 text-xs font-bold text-blue-600">{brl(item.unit_cost)}</td>
                             <td className="px-4 py-3 text-right">
                               {diff > 0 ? (
-                                <div className="flex items-center justify-end gap-1 text-destructive font-bold text-xs">
-                                  <TrendingUp className="size-3" />
-                                  +{brl(diff)} ({percent.toFixed(1)}%)
+                                <div className="flex flex-col items-end gap-0.5 text-destructive font-bold text-[11px]">
+                                  <div className="flex items-center gap-1">
+                                    <TrendingUp className="size-3" />
+                                    +{brl(diff)}
+                                  </div>
+                                  <span className="text-[10px] opacity-80">({percent.toFixed(1)}%)</span>
                                 </div>
                               ) : diff < 0 ? (
-                                <div className="flex items-center justify-end gap-1 text-success font-bold text-xs">
-                                  <TrendingDown className="size-3" />
-                                  {brl(diff)} ({percent.toFixed(1)}%)
+                                <div className="flex flex-col items-end gap-0.5 text-success font-bold text-[11px]">
+                                  <div className="flex items-center gap-1">
+                                    <TrendingDown className="size-3" />
+                                    {brl(diff)}
+                                  </div>
+                                  <span className="text-[10px] opacity-80">({percent.toFixed(1)}%)</span>
                                 </div>
                               ) : (
-                                <div className="flex items-center justify-end gap-1 text-muted-foreground text-xs">
+                                <div className="flex items-center justify-end gap-1 text-muted-foreground text-[11px]">
                                   <Minus className="size-3" />
                                   Mantido
                                 </div>
