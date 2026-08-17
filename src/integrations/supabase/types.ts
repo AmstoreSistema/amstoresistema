@@ -1334,22 +1334,64 @@ export type Database = {
       }
       suppliers: {
         Row: {
+          active: boolean | null
+          address: string | null
+          category: string | null
+          city: string | null
           contact: string | null
           created_at: string | null
+          delivery_time: number | null
+          document: string | null
+          email: string | null
           id: string
           name: string
+          notes: string | null
+          payment_method: string | null
+          phone: string | null
+          phone_secondary: string | null
+          state: string | null
+          type: string | null
+          zip_code: string | null
         }
         Insert: {
+          active?: boolean | null
+          address?: string | null
+          category?: string | null
+          city?: string | null
           contact?: string | null
           created_at?: string | null
+          delivery_time?: number | null
+          document?: string | null
+          email?: string | null
           id?: string
           name: string
+          notes?: string | null
+          payment_method?: string | null
+          phone?: string | null
+          phone_secondary?: string | null
+          state?: string | null
+          type?: string | null
+          zip_code?: string | null
         }
         Update: {
+          active?: boolean | null
+          address?: string | null
+          category?: string | null
+          city?: string | null
           contact?: string | null
           created_at?: string | null
+          delivery_time?: number | null
+          document?: string | null
+          email?: string | null
           id?: string
           name?: string
+          notes?: string | null
+          payment_method?: string | null
+          phone?: string | null
+          phone_secondary?: string | null
+          state?: string | null
+          type?: string | null
+          zip_code?: string | null
         }
         Relationships: []
       }
