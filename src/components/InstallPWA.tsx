@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Download, MoreVertical, Share, X } from 'lucide-react';
+import { Download, Share, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -16,22 +16,30 @@ export function InstallPWA() {
   const [isIOS, setIsIOS] = useState(false);
 
   useEffect(() => {
-    // Service worker registration is handled by vite-plugin-pwa in production.
-    // We only manage the install prompt here.
+    // Check if already in standalone mode
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches ||
+      (navigator as any).standalone ||
+      document.referrer.includes('android-app://');
 
-    const standalone = window.matchMedia('(display-mode: standalone)').matches ||
-      Boolean((navigator as Navigator & { standalone?: boolean }).standalone);
+    if (isStandalone) return;
+
     const ios = /iphone|ipad|ipod/i.test(navigator.userAgent);
     setIsIOS(ios);
 
     const wasDismissed = window.localStorage.getItem(DISMISSED_KEY) === 'true';
-    if (ios && !standalone && !wasDismissed) setShowInstallModal(true);
+    
+    // Show manual instructions for iOS
+    if (ios && !wasDismissed) {
+      setShowInstallModal(true);
+    }
 
     const handler = (event: Event) => {
+      // Prevent the default browser prompt
+      event.preventDefault();
       const promptEvent = event as BeforeInstallPromptEvent;
-      promptEvent.preventDefault();
       setDeferredPrompt(promptEvent);
-      if (!standalone && !wasDismissed) {
+      
+      if (!wasDismissed) {
         setShowInstallModal(true);
       }
     };
@@ -104,18 +112,28 @@ export function InstallPWA() {
                   </p>
                 ) : (
                   <p className="mb-3 text-sm leading-relaxed text-muted-foreground">
-                    Instale o AmStore para abrir direto da sua tela inicial. No computador, você também pode usar o ícone de instalação na barra do navegador.
+                    Instale o AmStore para abrir direto da sua tela inicial e ter uma experiência completa de aplicativo.
                   </p>
                 )}
                 
                 <div className="flex gap-2">
-                   <Button
-                    onClick={handleInstallClick}
-                     disabled={!deferredPrompt}
-                    className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold"
-                  >
-                     <Download className="size-4" /> {isIOS ? 'Siga os passos acima' : 'Instalar agora'}
-                  </Button>
+                   {!isIOS && (
+                     <Button
+                      onClick={handleInstallClick}
+                      disabled={!deferredPrompt}
+                      className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold"
+                    >
+                       <Download className="size-4 mr-2" /> Instalar agora
+                    </Button>
+                   )}
+                   {isIOS && (
+                     <Button
+                      onClick={dismiss}
+                      className="w-full bg-primary/10 hover:bg-primary/20 text-primary font-semibold"
+                    >
+                       Entendi
+                    </Button>
+                   )}
                 </div>
               </div>
             </div>
