@@ -52,9 +52,10 @@ export function SupplierPurchasesModal({ open, onOpenChange, supplier }: Supplie
                         </div>
                       </div>
                     </div>
-                    <Badge variant={purchase.status === 'received' ? 'default' : 'secondary'} className={purchase.status === 'received' ? 'bg-success text-white' : ''}>
-                      {purchase.status === 'received' ? 'Recebido' : 'Pendente'}
-                    </Badge>
+                    <Badge 
+                      variant={purchase.status === 'received' ? 'default' : 'secondary'} 
+                      className={purchase.status === 'received' ? 'bg-success text-white' : ''}
+                    >
                       {purchase.status === 'received' ? 'Recebido' : 'Pendente'}
                     </Badge>
                   </div>
