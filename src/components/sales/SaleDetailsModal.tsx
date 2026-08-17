@@ -47,6 +47,7 @@ export function SaleDetailsModal({
   const handleClose = onClose || (() => onOpenChange?.(false));
 
   const fetchSale = useServerFn(getSaleDetails);
+  const qc = useQueryClient();
   const [receiptOpen, setReceiptOpen] = React.useState(false);
   const [secretaryOpen, setSecretaryOpen] = React.useState(false);
   
