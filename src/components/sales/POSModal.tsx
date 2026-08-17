@@ -116,15 +116,17 @@ export function POSModal({ open, onOpenChange }: { open: boolean; onOpenChange: 
           const details = await fetchClientDetails({ data: { client_id: client.id } });
           // Only show alert if there is actual debt AND it's not the very first sale being processed
           // (total_bought > 0 means the client has at least one previous sale)
-          if (details && details.stats.total_debt > 0.009 && details.stats.total_bought > 0) {
+          const unpaidSales = details.sales.filter((s: any) => 
+            (s.payment_method === 'Fiado' || s.is_debt || s.status?.toLowerCase() === 'pendente') && 
+            !['paid', 'completed', 'finalizado', 'pago'].includes(s.status?.toLowerCase())
+          );
+
+          if (details && details.stats.total_debt > 0.009 && unpaidSales.length > 0) {
             setDebtAlert({
               isOpen: true,
               clientName: client.name,
               debtAmount: details.stats.total_debt,
-              pendingSalesCount: details.sales.filter((s: any) => 
-                (s.payment_method === 'Fiado' || s.is_debt) && 
-                !['paid', 'completed', 'finalizado', 'pago'].includes(s.status?.toLowerCase())
-              ).length || 1
+              pendingSalesCount: unpaidSales.length
             });
           }
         } catch (error) {

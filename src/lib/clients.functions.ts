@@ -16,6 +16,7 @@ export const getClientDetails = createServerFn({ method: "GET" })
           paid_amount,
           status,
           payment_method,
+          is_debt,
           created_at,
           discount,
           cashback_earned
