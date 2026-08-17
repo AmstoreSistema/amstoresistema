@@ -120,12 +120,15 @@ function AccountsPage() {
     },
   });
 
-  const onSubmit = (values: z.infer<typeof accountSchema>) => {
+  const onSubmit = async (values: z.infer<typeof accountSchema>) => {
+    const { initial_balance, ...rest } = values;
+    
     save.mutate({
       id: editingAccount?.id,
       values: {
-        ...values,
-        current_balance: editingAccount ? editingAccount.current_balance : values.initial_balance,
+        ...rest,
+        initial_balance: editingAccount ? editingAccount.initial_balance : initial_balance,
+        current_balance: editingAccount ? initial_balance : initial_balance,
       }
     }, {
       onSuccess: () => {
@@ -261,7 +264,10 @@ function AccountsPage() {
                         <DropdownMenuItem 
                           onClick={() => {
                             setEditingAccount(account);
-                            form.reset(account);
+                            form.reset({
+                              ...account,
+                              initial_balance: Number(account.current_balance)
+                            });
                             setOpen(true);
                           }}
                           className="rounded-xl gap-2"
@@ -370,21 +376,35 @@ function AccountsPage() {
                     </FormItem>
                   )}
                 />
-                {!editingAccount && (
-                  <FormField
-                    control={form.control}
-                    name="initial_balance"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Saldo Inicial</FormLabel>
-                        <FormControl>
-                          <Input type="number" step="0.01" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                )}
+                <FormField
+                  control={form.control}
+                  name="initial_balance"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{editingAccount ? "Ajustar Saldo Atual" : "Saldo Inicial"}</FormLabel>
+                      <FormControl>
+                        <div className="relative">
+                          <Input 
+                            type="number" 
+                            step="0.01" 
+                            {...field} 
+                            className="pr-16"
+                          />
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="absolute right-1 top-1 h-7 text-[10px] uppercase font-bold text-destructive hover:bg-destructive/10"
+                            onClick={() => field.onChange(0)}
+                          >
+                            Zerar
+                          </Button>
+                        </div>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
               </div>
               
               <FormField
