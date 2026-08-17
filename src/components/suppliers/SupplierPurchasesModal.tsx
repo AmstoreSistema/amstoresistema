@@ -90,19 +90,36 @@ export function SupplierPurchasesModal({ open, onOpenChange, supplier }: Supplie
                         </Badge>
                       </div>
 
-                      <div className="grid grid-cols-2 gap-4 border-t border-border/50 pt-3">
-                        <div className="flex items-center gap-2">
-                          <Package className="size-4 text-muted-foreground" />
-                          <div>
-                            <p className="text-[10px] text-muted-foreground uppercase">Itens da Compra</p>
-                            <p className="text-xs font-medium text-muted-foreground">
-                              {priceHistory.filter((i: any) => i.purchase_id === purchase.id).map((i: any) => `${i.quantity}${getMaterialUnit(i.material_id)} ${getMaterialName(i.material_id)}`).join(', ') || 'Ver detalhes'}
-                            </p>
+                      <div className="flex flex-col gap-3 border-t border-border/50 pt-3">
+                        <div className="flex items-start justify-between">
+                          <div className="flex items-center gap-2">
+                            <Package className="size-4 text-muted-foreground" />
+                            <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-tight">Itens da Compra</p>
                           </div>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-[10px] text-muted-foreground uppercase">Valor Total</p>
                           <p className="text-sm font-bold text-success">{brl(purchase.total_amount)}</p>
+                        </div>
+
+                        <div className="rounded-xl bg-muted/30 p-3">
+                          <table className="w-full text-[11px]">
+                            <thead>
+                              <tr className="text-muted-foreground border-b border-border/50">
+                                <th className="text-left py-1 font-bold uppercase tracking-widest">Qtd</th>
+                                <th className="text-left py-1 font-bold uppercase tracking-widest">Material</th>
+                                <th className="text-right py-1 font-bold uppercase tracking-widest">Unit.</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-border/20">
+                              {priceHistory
+                                .filter((i: any) => i.purchase_id === purchase.id)
+                                .map((i: any) => (
+                                  <tr key={i.id}>
+                                    <td className="py-2 font-medium">{i.quantity}{getMaterialUnit(i.material_id)}</td>
+                                    <td className="py-2 text-muted-foreground font-medium">{getMaterialName(i.material_id)}</td>
+                                    <td className="py-2 text-right font-bold">{brl(i.unit_cost)}</td>
+                                  </tr>
+                                ))}
+                            </tbody>
+                          </table>
                         </div>
                       </div>
                     </div>
