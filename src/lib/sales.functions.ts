@@ -233,7 +233,15 @@ export const registerSalePayment = createServerFn({ method: "POST" })
 
       const finalDesc = data.description || `Pagamento Venda #${sale.sale_code || data.sale_id.slice(0, 8)}`;
 
-      // The transaction trigger handles cashback, but we still insert the transaction manually for non-RPC payments
+      // Description for the record
+      const finalDesc = data.description || `Pagamento Venda #${sale.sale_code || data.sale_id.slice(0, 8)}`;
+      
+      // Removed manual transaction insert and account balance update.
+      // The database trigger 'transaction_balance_trigger' on 'transactions' table 
+      // handles account balances automatically when a transaction is inserted.
+      // We still need one source of transaction truth. 
+      // If we are here (registerSalePayment without installment_id), we insert it once.
+      
       await admin
         .from("transactions")
         .insert({
@@ -247,16 +255,6 @@ export const registerSalePayment = createServerFn({ method: "POST" })
           payment_method: data.payment_method,
           client_id: sale.client_id
         } as any);
-
-      if (data.account_id) {
-        const { data: acc } = await admin.from("financial_accounts").select("current_balance").eq("id", data.account_id).single();
-        await admin
-          .from("financial_accounts")
-          .update({ 
-            current_balance: (Number(acc?.current_balance || 0) + data.amount)
-          })
-          .eq("id", data.account_id);
-      }
     }
 
     return { success: true };
