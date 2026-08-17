@@ -255,16 +255,6 @@ export function SaleDetailsModal({
                             className="h-8 rounded-xl bg-gold/10 border-gold/20 text-gold hover:bg-gold/20 font-bold text-[10px] gap-2 shadow-sm"
                             onClick={() => setSecretaryOpen(true)}
                           >
-                            <PaymentSecretaryModal 
-                              open={secretaryOpen}
-                              onOpenChange={setSecretaryOpen}
-                              saleId={saleId}
-                              saleCode={sale?.sale_code}
-                              clientName={sale?.client_name || "Cliente"}
-                              totalAmount={Number(sale?.total_amount || 0)}
-                              remainingAmount={remainingBalance}
-                              installments={installments}
-                            />
                             <DollarSign className="size-3.5" /> Registrar Pagamento
                           </Button>
                         )}
@@ -389,9 +379,10 @@ export function SaleDetailsModal({
           open={secretaryOpen}
           onOpenChange={setSecretaryOpen}
           saleId={sale.id}
-          clientName={(sale as any)?.client_name || "Cliente"}
+          saleCode={sale.sale_code ?? undefined}
+          clientName={(sale as any)?.client_name || (sale as any)?.clients?.name || "Cliente"}
           totalAmount={Number(sale.total_amount)}
-          remainingAmount={Number(sale.total_amount) - Number(sale.paid_amount)}
+          remainingAmount={Math.max(0, Number(sale.total_amount) - Number(sale.paid_amount))}
           installments={installments}
         />
       )}
