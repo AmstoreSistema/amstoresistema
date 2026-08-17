@@ -24,6 +24,8 @@ import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { ReceiptModal } from "./ReceiptModal";
 import { PaymentSecretaryModal } from "./PaymentSecretaryModal";
+import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface SaleDetailsModalProps {
   saleId: string | null;
@@ -45,6 +47,7 @@ export function SaleDetailsModal({
   const handleClose = onClose || (() => onOpenChange?.(false));
 
   const fetchSale = useServerFn(getSaleDetails);
+  const qc = useQueryClient();
   const [receiptOpen, setReceiptOpen] = React.useState(false);
   const [secretaryOpen, setSecretaryOpen] = React.useState(false);
   
@@ -107,6 +110,26 @@ export function SaleDetailsModal({
                 onClick={() => setReceiptOpen(true)}
               >
                 <Printer className="size-4" /> Cupom
+              </Button>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="rounded-xl font-bold h-8 text-[10px] gap-2 text-destructive hover:text-destructive hover:bg-destructive/10"
+                onClick={async () => {
+                  if (confirm("Deseja realmente estornar esta venda? O estoque será devolvido, o saldo das contas financeiras será ajustado e o cashback liberado será estornado.")) {
+                    try {
+                      const { cancelSale } = await import("@/lib/sales.functions");
+                      await cancelSale({ data: { sale_id: saleId! } });
+                      toast.success("Venda estornada com sucesso");
+                      qc.invalidateQueries();
+                      handleClose();
+                    } catch (err: any) {
+                      toast.error(err.message);
+                    }
+                  }
+                }}
+              >
+                Estornar
               </Button>
             </div>
             {/* Removed redundant DialogClose here as standard DialogContent includes one */}
