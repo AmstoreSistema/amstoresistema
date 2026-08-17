@@ -37,7 +37,7 @@ export function PaymentSecretaryModal({
   open: boolean; 
   onOpenChange: (open: boolean) => void;
   saleId: string | null;
-  saleCode?: string;
+  saleCode?: string | null;
   clientName: string;
   totalAmount: number;
   remainingAmount: number;
