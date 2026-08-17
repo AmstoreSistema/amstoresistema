@@ -107,27 +107,34 @@ export function POSModal({ open, onOpenChange }: { open: boolean; onOpenChange: 
     }
   }, [accounts, accountId, isDebt]);
 
-  // Update sale code when client changes
+  // Update sale code and check for debts when client changes
   React.useEffect(() => {
     if (client) {
-      // Check for debts
+      console.log("Cliente selecionado, verificando débitos...", client.name);
+      
       const checkDebts = async () => {
         try {
           const details = await fetchClientDetails({ data: { client_id: client.id } });
-          // Only show alert if there is actual debt AND it's not the very first sale being processed
-          // (total_bought > 0 means the client has at least one previous sale)
-          const unpaidSales = details.sales.filter((s: any) => 
-            (s.payment_method === 'Fiado' || s.is_debt || s.status?.toLowerCase() === 'pendente') && 
-            !['paid', 'completed', 'finalizado', 'pago'].includes(s.status?.toLowerCase())
+          console.log("Detalhes do cliente recebidos para alerta:", details);
+
+          // Find unpaid installments explicitly
+          const unpaidInstallments = details.installments.filter((i: any) => 
+            !['paid', 'paga', 'pago', 'finalizado'].includes(i.status?.toLowerCase())
           );
 
-          if (details && details.stats.total_debt > 0.009 && unpaidSales.length > 0) {
+          console.log("Parcelas em aberto encontradas:", unpaidInstallments);
+
+          // We check total_debt from stats which is calculated from pending installments in getClientDetails
+          if (details && details.stats.total_debt > 0.009 && unpaidInstallments.length > 0) {
+            console.log("Disparando alerta de pendência para:", client.name);
             setDebtAlert({
               isOpen: true,
               clientName: client.name,
               debtAmount: details.stats.total_debt,
-              pendingSalesCount: unpaidSales.length
+              pendingSalesCount: unpaidInstallments.length
             });
+          } else {
+            console.log("Nenhum débito significativo encontrado para:", client.name);
           }
         } catch (error) {
           console.error("Error checking client debts:", error);
