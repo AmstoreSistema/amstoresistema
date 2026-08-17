@@ -909,6 +909,7 @@ export type Database = {
           received_at: string | null
           status: string
           supplier: string
+          supplier_id: string | null
           unit_cost: number
         }
         Insert: {
@@ -920,6 +921,7 @@ export type Database = {
           received_at?: string | null
           status?: string
           supplier?: string
+          supplier_id?: string | null
           unit_cost?: number
         }
         Update: {
@@ -931,6 +933,7 @@ export type Database = {
           received_at?: string | null
           status?: string
           supplier?: string
+          supplier_id?: string | null
           unit_cost?: number
         }
         Relationships: [
@@ -939,6 +942,13 @@ export type Database = {
             columns: ["material_id"]
             isOneToOne: false
             referencedRelation: "materials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchases_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
             referencedColumns: ["id"]
           },
         ]
