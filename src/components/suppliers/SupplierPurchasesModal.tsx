@@ -101,6 +101,3 @@ export function SupplierPurchasesModal({ open, onOpenChange, supplier }: Supplie
     </Dialog>
   );
 }
-    </Dialog>
-  );
-}
