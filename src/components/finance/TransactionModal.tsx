@@ -32,7 +32,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useRows } from "@/lib/data";
 import { createTransaction, updateTransaction } from "@/lib/finance.functions.ts";
-import { Plus, X } from "lucide-react";
+import { Plus, X, Search, User } from "lucide-react";
 import { brl } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
@@ -46,6 +46,7 @@ const transactionSchema = z.object({
   due_date: z.string().optional().nullable(),
   payment_method: z.string().optional().nullable(),
   observations: z.string().optional().nullable(),
+  client_id: z.string().optional().nullable(),
 });
 
 interface TransactionModalProps {
@@ -63,6 +64,7 @@ export function TransactionModal({
   const isEditing = !!transaction;
   
   const { data: accounts = [] } = useRows("financial_accounts", { filters: [{ column: "active", value: true }] });
+  const { data: clients = [] } = useRows("clients", { order: { column: "name", ascending: true } });
 
   const form = useForm<z.infer<typeof transactionSchema>>({
     resolver: zodResolver(transactionSchema),
@@ -76,6 +78,7 @@ export function TransactionModal({
       due_date: new Date().toISOString().split('T')[0],
       payment_method: "Dinheiro",
       observations: "",
+      client_id: null,
     },
   });
 
@@ -91,6 +94,7 @@ export function TransactionModal({
         due_date: transaction.due_date ? transaction.due_date.split('T')[0] : (transaction.created_at ? transaction.created_at.split('T')[0] : ""),
         payment_method: transaction.payment_method || "Dinheiro",
         observations: transaction.observations || "",
+        client_id: transaction.client_id || null,
       });
     } else if (!isEditing && isOpen) {
       form.reset({
@@ -103,6 +107,7 @@ export function TransactionModal({
         due_date: new Date().toISOString().split('T')[0],
         payment_method: "Dinheiro",
         observations: "",
+        client_id: null,
       });
     }
   }, [transaction, isOpen, form, accounts]);
@@ -205,6 +210,30 @@ export function TransactionModal({
                   <FormControl>
                     <Input className="h-10 rounded-xl border-gray-100 bg-gray-50/50" placeholder="Descrição da transação" {...field} value={field.value || ""} />
                   </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="client_id"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Cliente vinculado</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value || "none"}>
+                    <FormControl>
+                      <SelectTrigger className="h-10 rounded-xl border-gray-100 bg-gray-50/50" tabIndex={0}>
+                        <SelectValue placeholder="Selecione um cliente (opcional)" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent className="rounded-xl z-[9999]" position="popper" sideOffset={5}>
+                      <SelectItem value="none">Nenhum cliente</SelectItem>
+                      {(clients as any[]).map((c: any) => (
+                        <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <FormMessage />
                 </FormItem>
               )}
