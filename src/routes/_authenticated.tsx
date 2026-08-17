@@ -38,7 +38,7 @@ function AuthenticatedLayout() {
         const isAdmin = userRole === 'admin' || user.email === 'amstorebagshoes@gmail.com' || user.email === 'matosmonica000@gmail.com';
         const finalRole = isAdmin ? 'admin' : userRole;
 
-        const roleMap: any = { admin: "Administrador", moderator: "Moderador", user: "Vendedor" };
+        const roleMap: Record<string, string> = { admin: "Administrador", moderator: "Moderador", user: "Vendedor" };
         setRole(roleMap[finalRole] || "Vendedor");
         
         if (pathname === "/settings" && finalRole !== "admin") {
