@@ -164,7 +164,9 @@ function PurchasesPage() {
         category: "Compra de Materiais",
         status: "pago",
         due_date: new Date().toISOString(),
-        client_id: null
+        client_id: null,
+        supplier_id: supplierId || null,
+        purchase_id: purchase.id
       } as any);
 
       await logAudit("compra", "purchases", `Compra recebida: ${supplierName} - Total ${brl(total)}`, purchase.id);
