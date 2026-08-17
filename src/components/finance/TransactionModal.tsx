@@ -47,6 +47,7 @@ const transactionSchema = z.object({
   payment_method: z.string().optional().nullable(),
   observations: z.string().optional().nullable(),
   client_id: z.string().optional().nullable(),
+  supplier_id: z.string().optional().nullable(),
 });
 
 interface TransactionModalProps {
@@ -65,6 +66,7 @@ export function TransactionModal({
   
   const { data: accounts = [] } = useRows("financial_accounts", { filters: [{ column: "active", value: true }] });
   const { data: clients = [] } = useRows("clients", { order: { column: "name", ascending: true } });
+  const { data: suppliers = [] } = useRows("suppliers", { order: { column: "name", ascending: true } });
 
   const form = useForm<z.infer<typeof transactionSchema>>({
     resolver: zodResolver(transactionSchema),
@@ -79,6 +81,7 @@ export function TransactionModal({
       payment_method: "Dinheiro",
       observations: "",
       client_id: null,
+      supplier_id: null,
     },
   });
 
@@ -95,6 +98,7 @@ export function TransactionModal({
         payment_method: transaction.payment_method || "Dinheiro",
         observations: transaction.observations || "",
         client_id: transaction.client_id || null,
+        supplier_id: transaction.supplier_id || null,
       });
     } else if (!isEditing && isOpen) {
       form.reset({
@@ -108,6 +112,7 @@ export function TransactionModal({
         payment_method: "Dinheiro",
         observations: "",
         client_id: null,
+        supplier_id: null,
       });
     }
   }, [transaction, isOpen, form, accounts]);
@@ -115,7 +120,8 @@ export function TransactionModal({
   const onSubmit = async (values: z.infer<typeof transactionSchema>) => {
     const formattedValues = {
       ...values,
-      client_id: values.client_id === 'none' ? null : values.client_id
+      client_id: values.client_id === 'none' ? null : values.client_id,
+      supplier_id: values.supplier_id === 'none' ? null : values.supplier_id
     };
     try {
       if (isEditing) {
@@ -219,29 +225,55 @@ export function TransactionModal({
               )}
             />
 
-            <FormField
-              control={form.control}
-              name="client_id"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Cliente vinculado</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value || "none"}>
-                    <FormControl>
-                      <SelectTrigger className="h-10 rounded-xl border-gray-100 bg-gray-50/50" tabIndex={0}>
-                        <SelectValue placeholder="Selecione um cliente (opcional)" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent className="rounded-xl z-[9999]" position="popper" sideOffset={5}>
-                      <SelectItem value="none">Nenhum cliente</SelectItem>
-                      {(clients as any[]).map((c: any) => (
-                        <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            {currentType === "entrada" ? (
+              <FormField
+                control={form.control}
+                name="client_id"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Cliente vinculado</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value || "none"}>
+                      <FormControl>
+                        <SelectTrigger className="h-10 rounded-xl border-gray-100 bg-gray-50/50" tabIndex={0}>
+                          <SelectValue placeholder="Selecione um cliente (opcional)" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent className="rounded-xl z-[9999]" position="popper" sideOffset={5}>
+                        <SelectItem value="none">Nenhum cliente</SelectItem>
+                        {(clients as any[]).map((c: any) => (
+                          <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            ) : (
+              <FormField
+                control={form.control}
+                name="supplier_id"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Fornecedor vinculado</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value || "none"}>
+                      <FormControl>
+                        <SelectTrigger className="h-10 rounded-xl border-gray-100 bg-gray-50/50" tabIndex={0}>
+                          <SelectValue placeholder="Selecione um fornecedor (opcional)" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent className="rounded-xl z-[9999]" position="popper" sideOffset={5}>
+                        <SelectItem value="none">Nenhum fornecedor</SelectItem>
+                        {(suppliers as any[]).map((s: any) => (
+                          <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
 
             <div className="grid grid-cols-2 gap-3">
               <FormField
