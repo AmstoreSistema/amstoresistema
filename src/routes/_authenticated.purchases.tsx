@@ -75,6 +75,20 @@ function PurchasesPage() {
     setCost("0");
   };
 
+  const handleCancelPurchase = async (purchaseId: string) => {
+    if (!confirm("Tem certeza que deseja excluir esta compra? O estoque será estornado.")) return;
+    
+    try {
+      const { error } = await supabase.rpc("cancel_purchase", { p_purchase_id: purchaseId });
+      if (error) throw error;
+      
+      toast.success("Compra excluída e estoque estornado");
+      qc.invalidateQueries();
+    } catch (e: any) {
+      toast.error(e.message || "Erro ao excluir compra");
+    }
+  };
+
   const finalize = async () => {
     if (items.length === 0) {
       toast.error("Adicione itens à compra");
@@ -114,14 +128,14 @@ function PurchasesPage() {
         
         // Inserir item da compra (isso dispara a trigger de atualização de custo se for maior)
         const { error: itemError } = await supabase
-          .from("purchase_items" as any)
+          .from("purchase_items")
           .insert({
             purchase_id: purchase.id,
             material_id: item.material_id,
             quantity: item.quantity,
             unit_cost: item.cost,
             previous_cost: mat.cost_price || 0
-          } as any);
+          });
 
         if (itemError) throw itemError;
 
@@ -129,7 +143,7 @@ function PurchasesPage() {
         const nextStock = Number(mat.current_stock) + item.quantity;
         const { error: matError } = await supabase
           .from("materials")
-          .update({ current_stock: nextStock } as any)
+          .update({ current_stock: nextStock })
           .eq("id", item.material_id);
         
         if (matError) throw matError;
@@ -194,6 +208,21 @@ function PurchasesPage() {
           { key: "supplier", header: "Fornecedor", render: (p) => p.supplier_name || "—" },
           { key: "status", header: "Status", render: (p) => <Badge variant="secondary">{p.status}</Badge> },
           { key: "total", header: "Total", className: "text-right", render: (p) => <span className="font-semibold tabular-nums">{brl(p.total_amount)}</span> },
+          { 
+            key: "actions", 
+            header: "", 
+            className: "text-right",
+            render: (p) => (
+              <Button 
+                size="icon" 
+                variant="ghost" 
+                className="text-destructive" 
+                onClick={() => handleCancelPurchase(p.id)}
+              >
+                <Trash2 className="size-4" />
+              </Button>
+            ) 
+          },
         ]}
       />
 
