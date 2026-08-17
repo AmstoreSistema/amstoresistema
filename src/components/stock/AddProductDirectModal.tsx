@@ -33,7 +33,7 @@ import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { brl } from "@/lib/format";
 
-const PRODUCT_CATEGORIES = ["Bolsa", "Sandálias", "Carteiras", "Perfumes"];
+const PRODUCT_CATEGORIES = ["Bolsa", "Sandálias", "Carteiras", "perfumes"];
 const SIZES = ["33", "34", "35", "36", "37", "38", "39", "40"];
 
 export function AddProductDirectModal({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
