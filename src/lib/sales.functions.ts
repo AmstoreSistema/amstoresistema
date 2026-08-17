@@ -329,7 +329,7 @@ export const processBulkPayment = createServerFn({ method: "POST" })
         
         const { error: payError } = await admin.rpc('pay_sale_installment', {
           p_installment_id: inst.id,
-          p_amount: amountToPay,
+          p_amount: Number(amountToPay.toFixed(2)),
           p_payment_method: data.payment_method,
           p_account_id: data.account_id,
           p_description: instDesc

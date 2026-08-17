@@ -249,29 +249,45 @@ export function SaleDetailsModal({
                       <div className="bg-white rounded-xl p-3 border border-gray-100 shadow-sm">
                         <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-2 block">Plano de Parcelamento</p>
                         <div className="space-y-2">
-                          {installments.map((inst: any, i: number) => (
-                            <div key={i} className="flex items-center justify-between py-2 border-b border-gray-50 last:border-0">
-                              <div className="flex items-center gap-2">
-                                <div className={cn(
-                                  "size-6 rounded-full flex items-center justify-center text-[10px] font-bold",
-                                  inst.status === 'paid' || inst.status === 'pago' ? "bg-green-100 text-green-700" : 
-                                  new Date(inst.due_date) < new Date() ? "bg-destructive/10 text-destructive" : "bg-warning/10 text-warning"
+                          {installments.map((inst: any, i: number) => {
+                            const isPaid = inst.status === 'paid' || inst.status === 'pago';
+                            const isPartial = inst.status === 'parcial' || (Number(inst.paid_amount) > 0 && !isPaid);
+                            const isOverdue = !isPaid && new Date(inst.due_date) < new Date();
+                            const remaining = Number(inst.remaining_amount ?? (Number(inst.amount) - Number(inst.paid_amount || 0)));
 
-                                )}>
-                                  {inst.installment_number}
+                            return (
+                              <div key={i} className="flex items-center justify-between py-2 border-b border-gray-50 last:border-0">
+                                <div className="flex items-center gap-2">
+                                  <div className={cn(
+                                    "size-6 rounded-full flex items-center justify-center text-[10px] font-bold",
+                                    isPaid ? "bg-green-100 text-green-700" : 
+                                    isPartial ? "bg-blue-100 text-blue-700" :
+                                    isOverdue ? "bg-destructive/10 text-destructive" : "bg-warning/10 text-warning"
+                                  )}>
+                                    {inst.installment_number}
+                                  </div>
+                                  <div className="text-[11px]">
+                                    <div className="flex items-center gap-2">
+                                      <span className="font-bold">Vence em {new Date(inst.due_date).toLocaleDateString('pt-BR')}</span>
+                                      {isPartial && (
+                                        <span className="text-[9px] font-black bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded uppercase">Parcial</span>
+                                      )}
+                                    </div>
+                                    <div className="text-muted-foreground uppercase text-[10px] font-medium">
+                                      {isPaid ? 'Paga' : isOverdue ? 'Atrasada' : 'Pendente'}
+                                      {isPartial && ` • Pago: ${brl(inst.paid_amount)}`}
+                                    </div>
+                                  </div>
                                 </div>
-                                <div className="text-[11px]">
-                                  <span className="font-bold block">Vence em {new Date(inst.due_date).toLocaleDateString('pt-BR')}</span>
-                                  <span className="text-muted-foreground uppercase">
-                                    {inst.status === 'paid' || inst.status === 'pago' ? 'Paga' : 
-                                     new Date(inst.due_date) < new Date() ? 'Atrasada' : 'Pendente'}
-                                  </span>
-
+                                <div className="text-right">
+                                  <div className="font-bold text-sm text-foreground">{brl(remaining)}</div>
+                                  {isPartial && (
+                                    <div className="text-[9px] text-muted-foreground">Original: {brl(inst.amount)}</div>
+                                  )}
                                 </div>
                               </div>
-                              <div className="font-bold text-sm">{brl(inst.amount)}</div>
-                            </div>
-                          ))}
+                            );
+                          })}
                         </div>
                       </div>
                     )}
