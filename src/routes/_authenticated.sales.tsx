@@ -285,11 +285,11 @@ function SalesPage() {
                                  <DropdownMenuItem 
                                     className="rounded-xl gap-2 text-destructive"
                                     onClick={async () => {
-                                       if (confirm("Deseja realmente estornar esta venda? O estoque será devolvido.")) {
+                                       if (confirm("Deseja realmente estornar esta venda? O estoque será devolvido, o saldo das contas financeiras será ajustado e o cashback liberado será estornado.")) {
                                           try {
                                              const { cancelSale } = await import("@/lib/sales.functions");
                                              await cancelSale({ data: { sale_id: sale.id } });
-                                             toast.success("Venda estornada com sucesso");
+                                             toast.success("Venda estornada e dados financeiros sincronizados com sucesso");
                                              qc.invalidateQueries();
                                           } catch (err: any) {
                                              toast.error(err.message);
@@ -297,7 +297,7 @@ function SalesPage() {
                                        }
                                     }}
                                  >
-                                    <MoreVertical className="size-4" /> Estornar Venda
+                                    <AlertTriangle className="size-4" /> Estornar Venda
                                  </DropdownMenuItem>
 
                               </DropdownMenuContent>
