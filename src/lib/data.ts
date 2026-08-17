@@ -15,7 +15,13 @@ export function useRows<T = any>(
     queryKey: [table, opts?.select ?? "*", opts?.order?.column ?? "", opts?.limit ?? 0, opts?.filters ?? []],
     queryFn: async () => {
       let q = supabase.from(table as any).select(opts?.select ?? "*");
-      for (const f of opts?.filters ?? []) q = q.eq(f.column, f.value as never);
+      for (const f of opts?.filters ?? []) {
+        if (Array.isArray(f.value)) {
+          q = q.in(f.column, f.value as never[]);
+        } else {
+          q = q.eq(f.column, f.value as never);
+        }
+      }
       if (opts?.order) q = q.order(opts.order.column, { ascending: opts.order.ascending ?? false });
       if (opts?.limit) q = q.limit(opts.limit);
       const { data, error } = await q;
