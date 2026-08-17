@@ -10,6 +10,7 @@ import {
 import { useEffect, type ReactNode } from "react";
 import { Toaster } from "@/components/ui/sonner";
 import { InstallPWA } from "@/components/InstallPWA";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
@@ -129,10 +130,12 @@ function RootShell({ children }: { children: ReactNode }) {
         <HeadContent />
       </head>
       <body>
-        {children}
-        <InstallPWA />
-        <Toaster position="top-right" richColors />
-        <Scripts />
+        <ErrorBoundary>
+          {children}
+          <InstallPWA />
+          <Toaster position="top-right" richColors />
+          <Scripts />
+        </ErrorBoundary>
       </body>
     </html>
   );
