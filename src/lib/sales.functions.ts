@@ -189,12 +189,37 @@ export const registerSalePayment = createServerFn({ method: "POST" })
   }).parse(data))
   .handler(async ({ data }) => {
     if (data.installment_id) {
+      const { data: inst } = await supabase
+        .from("sale_installments")
+        .select("installment_number")
+        .eq("id", data.installment_id)
+        .single();
+
       const { error } = await supabase.rpc('pay_sale_installment', {
         p_installment_id: data.installment_id,
         p_amount: data.amount,
         p_payment_method: data.payment_method
       });
       if (error) throw new Error(`Erro ao registrar pagamento da parcela: ${error.message}`);
+
+      const { data: sale } = await supabase
+        .from("sales")
+        .select("sale_code")
+        .eq("id", data.sale_id)
+        .single();
+
+      // Register a transaction linked to the specific installment
+      await supabase
+        .from("transactions")
+        .insert({
+          amount: data.amount,
+          type: "income",
+          description: `Pagamento ${inst?.installment_number ? `${inst.installment_number}ª ` : ""}Parcela Venda #${sale?.sale_code || data.sale_id.slice(0, 8)}`,
+          sale_id: data.sale_id,
+          category: 'Venda',
+          account_id: data.account_id,
+          status: 'pago'
+        } as any);
     } else {
       const { error: paymentError } = await supabase
         .from("sale_payments")
@@ -232,7 +257,8 @@ export const registerSalePayment = createServerFn({ method: "POST" })
             description: `Pagamento Venda #${sale.sale_code || data.sale_id.slice(0, 8)}`,
             sale_id: data.sale_id,
             category: 'Venda',
-            account_id: data.account_id
+            account_id: data.account_id,
+            status: 'pago'
           } as any);
       }
     }
@@ -322,7 +348,8 @@ export const processBulkPayment = createServerFn({ method: "POST" })
       description: `Pagamento Acumulado Venda #${sale?.sale_code || data.sale_id.slice(0, 8)}`,
       sale_id: data.sale_id,
       category: 'Venda',
-      account_id: data.account_id
+      account_id: data.account_id,
+      status: 'pago'
     } as any);
 
     return { success: true };
