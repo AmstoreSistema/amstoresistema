@@ -185,43 +185,32 @@ export const registerSalePayment = createServerFn({ method: "POST" })
     sale_id: z.string(),
     amount: z.number(),
     payment_method: z.string(),
-    account_id: z.string().optional()
+    account_id: z.string().optional(),
+    description: z.string().optional()
   }).parse(data))
   .handler(async ({ data }) => {
-    if (data.installment_id) {
-      const { data: inst } = await supabase
-        .from("sale_installments")
-        .select("installment_number")
-        .eq("id", data.installment_id)
-        .single();
+    const { supabaseAdmin: admin } = await import("@/integrations/supabase/client.server");
 
-      const { error } = await supabase.rpc('pay_sale_installment', {
+    if (data.installment_id) {
+      const { error } = await admin.rpc('pay_sale_installment', {
         p_installment_id: data.installment_id,
         p_amount: data.amount,
-        p_payment_method: data.payment_method
+        p_payment_method: data.payment_method,
+        p_account_id: data.account_id,
+        p_description: data.description
       });
       if (error) throw new Error(`Erro ao registrar pagamento da parcela: ${error.message}`);
-
-      const { data: sale } = await supabase
+    } else {
+      // Direct sale payment (non-installment)
+      const { data: sale } = await admin
         .from("sales")
-        .select("sale_code")
+        .select("paid_amount, total_amount, sale_code, client_id")
         .eq("id", data.sale_id)
         .single();
 
-      // Register a transaction linked to the specific installment
-      await supabase
-        .from("transactions")
-        .insert({
-          amount: data.amount,
-          type: "income",
-          description: `Pagamento ${inst?.installment_number ? `${inst.installment_number}ª ` : ""}Parcela Venda #${sale?.sale_code || data.sale_id.slice(0, 8)}`,
-          sale_id: data.sale_id,
-          category: 'Venda',
-          account_id: data.account_id,
-          status: 'pago'
-        } as any);
-    } else {
-      const { error: paymentError } = await supabase
+      if (!sale) throw new Error("Venda não encontrada");
+
+      const { error: paymentError } = await admin
         .from("sale_payments")
         .insert({
           sale_id: data.sale_id,
@@ -231,35 +220,41 @@ export const registerSalePayment = createServerFn({ method: "POST" })
 
       if (paymentError) throw new Error(`Erro ao registrar pagamento: ${paymentError.message}`);
 
-      const { data: sale } = await supabase
+      const newPaidAmount = Number(sale.paid_amount) + data.amount;
+      const newStatus = newPaidAmount >= Number(sale.total_amount) - 0.009 ? "paid" : "partial";
+      
+      await admin
         .from("sales")
-        .select("paid_amount, total_amount, sale_code")
-        .eq("id", data.sale_id)
-        .single();
+        .update({ 
+          paid_amount: newPaidAmount,
+          status: newStatus
+        })
+        .eq("id", data.sale_id);
 
-      if (sale) {
-        const newPaidAmount = Number(sale.paid_amount) + data.amount;
-        const newStatus = newPaidAmount >= Number(sale.total_amount) - 0.009 ? "paid" : "partial";
-        
-        await supabase
-          .from("sales")
+      const finalDesc = data.description || `Pagamento Venda #${sale.sale_code || data.sale_id.slice(0, 8)}`;
+
+      // The transaction trigger handles cashback, but we still insert the transaction manually for non-RPC payments
+      await admin
+        .from("transactions")
+        .insert({
+          amount: data.amount,
+          type: "income",
+          description: finalDesc,
+          sale_id: data.sale_id,
+          category: 'Venda',
+          account_id: data.account_id,
+          status: 'pago',
+          payment_method: data.payment_method
+        } as any);
+
+      if (data.account_id) {
+        const { data: acc } = await admin.from("financial_accounts").select("current_balance").eq("id", data.account_id).single();
+        await admin
+          .from("financial_accounts")
           .update({ 
-            paid_amount: newPaidAmount,
-            status: newStatus
+            current_balance: (Number(acc?.current_balance || 0) + data.amount)
           })
-          .eq("id", data.sale_id);
-
-        await supabase
-          .from("transactions")
-          .insert({
-            amount: data.amount,
-            type: "income",
-            description: `Pagamento Venda #${sale.sale_code || data.sale_id.slice(0, 8)}`,
-            sale_id: data.sale_id,
-            category: 'Venda',
-            account_id: data.account_id,
-            status: 'pago'
-          } as any);
+          .eq("id", data.account_id);
       }
     }
 
@@ -303,21 +298,22 @@ export const processBulkPayment = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { supabaseAdmin: admin } = await import("@/integrations/supabase/client.server");
     
-    // Get all pending installments for this sale ordered by due date
+    // Get all pending installments for this sale ordered by due date (FIFO)
     const { data: installments, error: instError } = await admin
       .from("sale_installments")
       .select("*")
       .eq("sale_id", data.sale_id)
       .not("status", "in", "('paid','pago')")
-      .order("due_date", { ascending: true })
-      .order("installment_number", { ascending: true });
+      .order("installment_number", { ascending: true })
+      .order("due_date", { ascending: true });
 
     if (instError) throw new Error(`Erro ao buscar parcelas: ${instError.message}`);
     if (!installments || installments.length === 0) throw new Error("Nenhuma parcela pendente encontrada para esta venda.");
 
+    const { data: sale } = await admin.from("sales").select("sale_code").eq("id", data.sale_id).single();
     let remainingPayment = data.amount;
     
-    // We process sequentially to ensure FIFO logic is exact and database updates are consistent
+    // Process sequentially (FIFO)
     for (const inst of installments) {
       if (remainingPayment <= 0.009) break;
 
@@ -328,46 +324,22 @@ export const processBulkPayment = createServerFn({ method: "POST" })
       const amountToPay = Math.min(remainingPayment, instRemaining);
       
       if (amountToPay > 0) {
+        // Individual description for the installment part
+        const instDesc = `Pagamento ${inst.installment_number}ª Parcela Venda #${sale?.sale_code || data.sale_id.slice(0, 8)}`;
+        
         const { error: payError } = await admin.rpc('pay_sale_installment', {
           p_installment_id: inst.id,
           p_amount: amountToPay,
-          p_payment_method: data.payment_method
+          p_payment_method: data.payment_method,
+          p_account_id: data.account_id,
+          p_description: instDesc
         });
 
         if (payError) throw new Error(`Erro ao processar pagamento na parcela ${inst.installment_number}: ${payError.message}`);
 
-        // Register individual transaction for this installment
-        const { data: sale } = await admin.from("sales").select("sale_code").eq("id", data.sale_id).single();
-        await admin.from("transactions").insert({
-          amount: amountToPay,
-          type: "income",
-          description: `Pagamento ${inst.installment_number}ª Parcela Venda #${sale?.sale_code || data.sale_id.slice(0, 8)}`,
-          sale_id: data.sale_id,
-          category: 'Venda',
-          account_id: data.account_id,
-          status: 'pago'
-        } as any);
-
         remainingPayment -= amountToPay;
       }
     }
-
-    // Register a transaction for the total amount paid
-    const { data: sale } = await admin.from("sales").select("sale_code").eq("id", data.sale_id).single();
-    
-    // In bulk payment, we skip creating a generic "Pagamento Acumulado" transaction here
-    // because pay_sale_installment RPC now handles creating transactions for each part of the payment
-    // if we want more granular control, or we keep it if we prefer one single entry.
-    // The user mentioned "PAGAMENTO ACUMULADO VENDA que não existe", so we should remove this generic entry.
-    // However, if we remove it, we need to ensure transactions are created for the individual installments.
-    // Let's check if transactions are already created. 
-    // registerSalePayment creates a transaction, but processBulkPayment calls pay_sale_installment RPC directly.
-    
-    // We will create individual transactions here for each installment paid during bulk process
-    // OR we modify the description to be more accurate if we keep it as one.
-    // The user specifically disliked "PAGAMENTO ACUMULADO".
-    
-    return { success: true };
 
     return { success: true };
   });
