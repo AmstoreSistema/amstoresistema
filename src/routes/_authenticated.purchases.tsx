@@ -208,6 +208,21 @@ function PurchasesPage() {
           { key: "supplier", header: "Fornecedor", render: (p) => p.supplier_name || "—" },
           { key: "status", header: "Status", render: (p) => <Badge variant="secondary">{p.status}</Badge> },
           { key: "total", header: "Total", className: "text-right", render: (p) => <span className="font-semibold tabular-nums">{brl(p.total_amount)}</span> },
+          { 
+            key: "actions", 
+            header: "", 
+            className: "text-right",
+            render: (p) => (
+              <Button 
+                size="icon" 
+                variant="ghost" 
+                className="text-destructive" 
+                onClick={() => handleCancelPurchase(p.id)}
+              >
+                <Trash2 className="size-4" />
+              </Button>
+            ) 
+          },
         ]}
       />
 
