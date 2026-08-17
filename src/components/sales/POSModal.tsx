@@ -117,6 +117,9 @@ export function POSModal({ open, onOpenChange }: { open: boolean; onOpenChange: 
       
       const checkDebts = async () => {
         try {
+          // Double check if client is still selected to avoid race conditions
+          if (!client) return;
+          
           const details = await fetchClientDetails({ data: { client_id: client.id } });
           console.log("Detalhes do cliente recebidos para alerta:", details);
 
@@ -128,7 +131,8 @@ export function POSModal({ open, onOpenChange }: { open: boolean; onOpenChange: 
           console.log("Parcelas em aberto encontradas:", unpaidInstallments);
 
           // We check total_debt from stats which is calculated from pending installments in getClientDetails
-          if (details && details.stats.total_debt > 0.009 && unpaidInstallments.length > 0) {
+          // Only trigger if we are not currently submitting a sale
+          if (!isSubmitting && details && details.stats.total_debt > 0.009 && unpaidInstallments.length > 0) {
             console.log("Disparando alerta de pendência para:", client.name);
             setDebtAlert({
               isOpen: true,
@@ -160,7 +164,7 @@ export function POSModal({ open, onOpenChange }: { open: boolean; onOpenChange: 
     } else {
       setSaleCode(prev => (prev || "").split('-')[0] || "");
     }
-  }, [client]);
+  }, [client?.id]); // Only run when client ID changes to avoid unnecessary triggers
 
 
   // Totals
