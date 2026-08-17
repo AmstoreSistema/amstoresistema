@@ -16,9 +16,8 @@ export function InstallPWA() {
   const [isIOS, setIsIOS] = useState(false);
 
   useEffect(() => {
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js').catch(() => undefined);
-    }
+    // Service worker registration is handled by vite-plugin-pwa in production.
+    // We only manage the install prompt here.
 
     const standalone = window.matchMedia('(display-mode: standalone)').matches ||
       Boolean((navigator as Navigator & { standalone?: boolean }).standalone);
