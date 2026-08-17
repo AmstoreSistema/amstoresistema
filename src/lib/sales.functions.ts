@@ -244,7 +244,8 @@ export const registerSalePayment = createServerFn({ method: "POST" })
           category: 'Venda',
           account_id: data.account_id,
           status: 'pago',
-          payment_method: data.payment_method
+          payment_method: data.payment_method,
+          client_id: sale.client_id
         } as any);
 
       if (data.account_id) {
