@@ -60,16 +60,37 @@ function ClientsPage() {
     select: "client_id, bonus_amount, available_bonus"
   });
 
+  const { data: salesTotals = {} } = useQuery({
+    queryKey: ['clients-sales-totals'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('sales')
+        .select('client_id, total_amount');
+      
+      if (error) return {} as Record<string, number>;
+      
+      const totals: Record<string, number> = {};
+      data.forEach(sale => {
+        if (sale.client_id) {
+          totals[sale.client_id] = (totals[sale.client_id] || 0) + Number(sale.total_amount || 0);
+        }
+      });
+      return totals;
+    }
+  });
+
   const clients = useMemo(() => {
     return clientsData.map(client => {
       const activeBonuses = qrBonusData?.filter(b => b.client_id === client.id && b.available_bonus !== false) || [];
+      const typedSalesTotals = salesTotals as Record<string, number>;
       return {
         ...client,
+        total_spent: typedSalesTotals[client.id] || 0,
         has_qr_bonus: activeBonuses.length > 0,
         qr_bonus_amount: activeBonuses.reduce((acc, b) => acc + (b.bonus_amount || 0), 0)
       };
     });
-  }, [clientsData, qrBonusData]);
+  }, [clientsData, qrBonusData, salesTotals]);
 
   const { data: salesStats } = useQuery({
     queryKey: ['clients-sales-total'],
