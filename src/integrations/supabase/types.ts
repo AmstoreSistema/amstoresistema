@@ -1557,14 +1557,25 @@ export type Database = {
         Args: { p_discount: number; p_items: Json }
         Returns: number
       }
-      pay_sale_installment: {
-        Args: {
-          p_amount: number
-          p_installment_id: string
-          p_payment_method: string
-        }
-        Returns: undefined
-      }
+      pay_sale_installment:
+        | {
+            Args: {
+              p_amount: number
+              p_installment_id: string
+              p_payment_method: string
+            }
+            Returns: undefined
+          }
+        | {
+            Args: {
+              p_account_id?: string
+              p_amount: number
+              p_description?: string
+              p_installment_id: string
+              p_payment_method: string
+            }
+            Returns: undefined
+          }
       start_production_order: { Args: { _order_id: string }; Returns: Json }
       transfer_between_accounts: {
         Args: {
