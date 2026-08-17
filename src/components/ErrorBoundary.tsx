@@ -14,7 +14,7 @@ interface State {
 }
 
 export class ErrorBoundary extends Component<Props, State> {
-  public state: State = {
+  public override state: State = {
     hasError: false,
     error: null,
   };
@@ -23,7 +23,7 @@ export class ErrorBoundary extends Component<Props, State> {
     return { hasError: true, error };
   }
 
-  public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+  public override componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error("Uncaught error:", error, errorInfo);
     reportLovableError(error, { 
       boundary: "global_error_boundary",
@@ -41,7 +41,7 @@ export class ErrorBoundary extends Component<Props, State> {
     window.location.href = "/";
   };
 
-  public render() {
+  public override render() {
     if (this.state.hasError) {
       if (this.props.fallback) {
         return this.props.fallback;
@@ -60,7 +60,7 @@ export class ErrorBoundary extends Component<Props, State> {
             Nossa equipe técnica já foi notificada.
           </p>
           
-          {process.env.NODE_ENV === 'development' && this.state.error && (
+          {process.env['NODE_ENV'] === 'development' && this.state.error && (
             <div className="mb-8 max-w-2xl overflow-auto rounded-lg bg-muted p-4 text-left font-mono text-xs text-muted-foreground">
               <p className="mb-2 font-bold text-destructive">{this.state.error.toString()}</p>
               <pre className="whitespace-pre-wrap">{this.state.error.stack}</pre>
