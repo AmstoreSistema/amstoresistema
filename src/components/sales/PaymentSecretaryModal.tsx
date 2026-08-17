@@ -12,6 +12,14 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { brl } from "@/lib/format";
 import { Banknote, Receipt } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { useRows } from "@/lib/data";
 import { registerSalePayment, processBulkPayment } from "@/lib/sales.functions";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
@@ -38,7 +46,18 @@ export function PaymentSecretaryModal({
   const [amount, setAmount] = React.useState<number | string>("");
   const [manualAmount, setManualAmount] = React.useState(false);
   const [paymentMethod, setPaymentMethod] = React.useState("Dinheiro");
+  const [accountId, setAccountId] = React.useState<string>("");
   const [saving, setSaving] = React.useState(false);
+  
+  const { data: accounts = [] } = useRows("financial_accounts");
+
+  React.useEffect(() => {
+    if (accounts.length > 0 && !accountId) {
+      const main = accounts.find((a: any) => a.name.toLowerCase().includes('principal') || a.active);
+      if (main) setAccountId(main.id);
+      else setAccountId(accounts[0].id);
+    }
+  }, [accounts, accountId]);
 
   React.useEffect(() => {
     if (!manualAmount) {
@@ -68,7 +87,8 @@ export function PaymentSecretaryModal({
           data: {
             sale_id: saleId,
             amount: paymentVal,
-            payment_method: paymentMethod
+            payment_method: paymentMethod,
+            account_id: accountId
           }
         });
       } else {
@@ -80,7 +100,8 @@ export function PaymentSecretaryModal({
               installment_id: instId,
               sale_id: saleId,
               amount: Number(inst.remaining_amount ?? inst.amount),
-              payment_method: paymentMethod
+              payment_method: paymentMethod,
+              account_id: accountId
             }
           });
         }
@@ -175,6 +196,19 @@ export function PaymentSecretaryModal({
            </div>
 
             <div className="grid grid-cols-1 gap-3 min-[390px]:grid-cols-2">
+              <div className="space-y-2">
+                 <Label className="text-[10px] uppercase font-bold text-muted-foreground ml-1">Conta Financeira</Label>
+                  <Select value={accountId} onValueChange={setAccountId}>
+                    <SelectTrigger className="h-10 rounded-md">
+                      <SelectValue placeholder="Selecione a conta" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {accounts.map((acc: any) => (
+                        <SelectItem key={acc.id} value={acc.id}>{acc.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+              </div>
               <div className="space-y-2">
                  <Label className="text-[10px] uppercase font-bold text-muted-foreground ml-1">Forma</Label>
                   <Input value={paymentMethod} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPaymentMethod(e.target.value)} className="h-10 rounded-md" />

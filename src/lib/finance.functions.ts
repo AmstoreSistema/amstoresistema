@@ -15,7 +15,8 @@ export const createTransaction = createServerFn({ method: "POST" })
     reference_type: z.string().optional().nullable(),
   }).parse(data))
   .handler(async ({ data }) => {
-    const { error } = await supabase
+    const { supabaseAdmin: admin } = await import("@/integrations/supabase/client.server");
+    const { error } = await admin
       .from("transactions")
       .insert({
         type: data.type,
@@ -46,7 +47,8 @@ export const updateTransaction = createServerFn({ method: "POST" })
     payment_method: z.string().optional().nullable(),
   }).parse(data))
   .handler(async ({ data }) => {
-    const { error } = await supabase
+    const { supabaseAdmin: admin } = await import("@/integrations/supabase/client.server");
+    const { error } = await admin
       .from("transactions")
       .update({
         type: data.type,
@@ -70,7 +72,8 @@ export const updateTransactionStatus = createServerFn({ method: "POST" })
     status: z.enum(["pago", "pendente", "cancelado"]),
   }).parse(data))
   .handler(async ({ data }) => {
-    const { error } = await supabase
+    const { supabaseAdmin: admin } = await import("@/integrations/supabase/client.server");
+    const { error } = await admin
       .from("transactions")
       .update({ status: data.status } as any)
       .eq("id", data.id);
@@ -82,7 +85,8 @@ export const updateTransactionStatus = createServerFn({ method: "POST" })
 export const deleteTransaction = createServerFn({ method: "POST" })
   .inputValidator((data) => z.string().parse(data))
   .handler(async ({ data: id }) => {
-    const { error } = await supabase
+    const { supabaseAdmin: admin } = await import("@/integrations/supabase/client.server");
+    const { error } = await admin
       .from("transactions")
       .delete()
       .eq("id", id);
@@ -97,7 +101,8 @@ export const updateAccountBalance = createServerFn({ method: "POST" })
     current_balance: z.number(),
   }).parse(data))
   .handler(async ({ data }) => {
-    const { error } = await supabase
+    const { supabaseAdmin: admin } = await import("@/integrations/supabase/client.server");
+    const { error } = await admin
       .from("financial_accounts")
       .update({ current_balance: data.current_balance } as any)
       .eq("id", data.id);
