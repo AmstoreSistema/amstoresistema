@@ -14,6 +14,7 @@ export const createTransaction = createServerFn({ method: "POST" })
     reference_id: z.string().optional().nullable(),
     reference_type: z.string().optional().nullable(),
     client_id: z.string().optional().nullable(),
+    supplier_id: z.string().optional().nullable(),
   }).parse(data))
   .handler(async ({ data }) => {
     const { supabaseAdmin: admin } = await import("@/integrations/supabase/client.server");
@@ -29,7 +30,8 @@ export const createTransaction = createServerFn({ method: "POST" })
         due_date: data.due_date ?? null,
         reference_id: data.reference_id ?? null,
         reference_type: data.reference_type ?? null,
-        client_id: data.client_id ?? null
+        client_id: data.client_id ?? null,
+        supplier_id: data.supplier_id ?? null
       } as any);
 
     if (error) throw new Error(error.message);
@@ -48,6 +50,7 @@ export const updateTransaction = createServerFn({ method: "POST" })
     due_date: z.string().optional().nullable(),
     payment_method: z.string().optional().nullable(),
     client_id: z.string().optional().nullable(),
+    supplier_id: z.string().optional().nullable(),
   }).parse(data))
   .handler(async ({ data }) => {
     const { supabaseAdmin: admin } = await import("@/integrations/supabase/client.server");
@@ -62,7 +65,8 @@ export const updateTransaction = createServerFn({ method: "POST" })
         status: data.status,
         due_date: data.due_date,
         payment_method: data.payment_method,
-        client_id: data.client_id
+        client_id: data.client_id,
+        supplier_id: data.supplier_id
       } as any)
       .eq("id", data.id);
 
