@@ -33,7 +33,7 @@ import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { brl } from "@/lib/format";
 
-const PRODUCT_CATEGORIES = ["Bolsa", "Sandália", "Carteira", "Mochila", "Cinto", "Acessório", "Perfume", "Geral"];
+const PRODUCT_CATEGORIES = ["Bolsa", "Sandália", "Carteira", "Perfume"];
 const SIZES = ["33", "34", "35", "36", "37", "38", "39", "40"];
 
 export function AddProductDirectModal({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
@@ -43,7 +43,7 @@ export function AddProductDirectModal({ open, onOpenChange }: { open: boolean; o
   
   const [formData, setFormData] = React.useState({
     name: "",
-    category: "Geral",
+    category: "Bolsa",
     color: "",
     data_entrada: new Date().toISOString().split('T')[0],
     lote: `LOTE-DIR-${Date.now()}`,
