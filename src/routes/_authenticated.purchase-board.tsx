@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { 
   Truck, 
@@ -32,16 +32,22 @@ export const Route = createFileRoute("/_authenticated/purchase-board")({
 const MATERIAL_CATEGORIES = ["Todos", "Armarinho", "Cola", "Couro", "Embalagens", "Estrutura", "Ferragem", "Forro", "Linha", "Outro", "Papelaria", "Tecido"];
 
 function SuppliersPage() {
-  const { data: suppliers = [], isLoading } = useRows<any>("suppliers", { 
+  const { data: suppliers = [], isLoading, refetch } = useRows<any>("suppliers", { 
     order: { column: "name", ascending: true } 
   });
   
-  const { data: purchases = [] } = useRows<any>("purchases", {
+  const { data: purchases = [], refetch: refetchPurchases } = useRows<any>("purchases", {
     select: "supplier_id, supplier_name, total_amount"
   });
 
   const save = useSaveRow("suppliers", "Fornecedor");
   const remove = useDeleteRow("suppliers", "Fornecedor");
+
+  // Sync data when page loads or when a change might have occurred
+  useEffect(() => {
+    refetch();
+    refetchPurchases();
+  }, []);
 
   const [term, setTerm] = useState("");
   const [activeCategory, setActiveCategory] = useState("Todos");
