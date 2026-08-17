@@ -12,7 +12,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { useUpsert } from "@/lib/data";
+import { useSaveRow } from "@/lib/data";
 import { toast } from "sonner";
 
 interface SupplierFormModalProps {
@@ -26,7 +26,7 @@ const STATES = ["AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA", "MT"
 
 export function SupplierFormModal({ open, onOpenChange, supplier }: SupplierFormModalProps) {
   const isEditing = !!supplier;
-  const { mutate: upsert, isPending } = useUpsert("suppliers");
+  const { mutate: save, isPending } = useSaveRow("suppliers", "Fornecedor");
 
   const [formData, setFormData] = useState({
     name: "",
@@ -93,11 +93,10 @@ export function SupplierFormModal({ open, onOpenChange, supplier }: SupplierForm
       return;
     }
 
-    upsert(
-      { ...formData, id: supplier?.id },
+    save(
+      { id: supplier?.id, values: formData },
       {
         onSuccess: () => {
-          toast.success(isEditing ? "Fornecedor atualizado!" : "Fornecedor cadastrado!");
           onOpenChange(false);
         },
       }

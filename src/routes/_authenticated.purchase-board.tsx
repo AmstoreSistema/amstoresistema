@@ -192,8 +192,7 @@ function SuppliersPage() {
       <SupplierFormModal 
         open={formOpen}
         onOpenChange={setFormOpen}
-        onSubmit={handleSubmit}
-        initialData={editingSupplier}
+        supplier={editingSupplier}
       />
 
       <SupplierPurchasesModal
