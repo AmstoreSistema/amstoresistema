@@ -911,6 +911,7 @@ export type Database = {
           supplier: string
           supplier_id: string | null
           supplier_name: string | null
+          total_amount: number | null
           unit_cost: number
         }
         Insert: {
@@ -924,6 +925,7 @@ export type Database = {
           supplier?: string
           supplier_id?: string | null
           supplier_name?: string | null
+          total_amount?: number | null
           unit_cost?: number
         }
         Update: {
@@ -937,6 +939,7 @@ export type Database = {
           supplier?: string
           supplier_id?: string | null
           supplier_name?: string | null
+          total_amount?: number | null
           unit_cost?: number
         }
         Relationships: [
