@@ -238,10 +238,9 @@ export function ClientDetailsModal({ client, isOpen, onClose }: ClientDetailsMod
                 ) : (
                     data?.sales.map((sale: any) => {
                       const saleInstallments = data?.installments?.filter((i: any) => i.sale_id === sale.id) || [];
-                      const unpaidInstallments = saleInstallments.filter((i: any) => i.status !== 'paid' && i.status !== 'pago');
-                      const nextInstallment = unpaidInstallments[0];
-                      const installmentCount = saleInstallments.length || 1;
-                      const isFullyPaid = (sale.status === 'paid' || sale.status === 'completed' || sale.status === 'finalizado' || Number(sale.paid_amount) >= Number(sale.total_amount)) && unpaidInstallments.length === 0;
+                      const unpaidInstallments = saleInstallments.filter((i: any) => !['paid', 'pago'].includes(String(i.status || '').toLowerCase()));
+                      const remainingBalance = Math.max(0, Number(sale.total_amount) - Number(sale.paid_amount));
+                      const isFullyPaid = remainingBalance <= 0.009 && unpaidInstallments.length === 0;
                       const isCreditSale = Boolean(sale.is_debt) || sale.payment_method === 'Fiado' || saleInstallments.length > 0;
 
                     
@@ -280,9 +279,9 @@ export function ClientDetailsModal({ client, isOpen, onClose }: ClientDetailsMod
                                 <Coins className="size-3" />
                                 +{brl(sale.cashback_earned)} cashback gerado
                               </div>
-                              {isCreditSale && !isFullyPaid && (
+                              {isCreditSale && !isFullyPaid && unpaidInstallments.length > 0 && (
                                 <div className="text-[9px] text-muted-foreground bg-gray-100/50 px-1.5 py-0.5 rounded-md w-fit italic font-medium">
-                                  Liberará {brl((Number(sale.cashback_earned) * (nextInstallment?.amount || (Number(sale.total_amount) / installmentCount))) / Number(sale.total_amount))} p/ pagamento
+                                  Liberará {brl((Number(sale.cashback_earned) * (Math.max(0, Number(unpaidInstallments[0].amount) - Number(unpaidInstallments[0].paid_amount)))) / Number(sale.total_amount))} p/ pagamento
                                 </div>
                               )}
                             </div>

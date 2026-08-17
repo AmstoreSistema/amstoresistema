@@ -30,6 +30,7 @@ export const getClientDetails = createServerFn({ method: "GET" })
           sale_id,
           installment_number,
           amount,
+          paid_amount,
           due_date,
           status
         `)
@@ -63,8 +64,8 @@ export const getClientDetails = createServerFn({ method: "GET" })
     // Calculate totals
     const total_bought = sales.reduce((sum, s) => sum + Number(s.total_amount || 0), 0);
     const total_paid = sales.reduce((sum, s) => sum + Number(s.paid_amount || 0), 0);
-    const pending_installments = installments.filter(i => i.status !== 'paid');
-    const total_debt = pending_installments.reduce((sum, i) => sum + Number(i.amount || 0), 0);
+    const pending_installments = installments.filter(i => !['paid', 'pago'].includes(String(i.status || '').toLowerCase()));
+    const total_debt = pending_installments.reduce((sum, i) => sum + (Number(i.amount || 0) - Number(i.paid_amount || 0)), 0);
     
     const cashback_balance = Number(clientResult.data?.cashback_balance || 0);
 
