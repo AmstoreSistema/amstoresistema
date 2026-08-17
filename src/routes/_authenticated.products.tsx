@@ -136,7 +136,7 @@ type BomLine = {
   notes: string;
 };
 
-const PRODUCT_CATEGORIES = ["Bolsa", "Sandálias", "Carteiras", "perfumes"];
+const PRODUCT_CATEGORIES = ["Bolsa", "Sandálias", "Carteiras", "Perfumes"];
 
 const emptyLine = (): BomLine => ({
   key: Math.random().toString(36).slice(2),
