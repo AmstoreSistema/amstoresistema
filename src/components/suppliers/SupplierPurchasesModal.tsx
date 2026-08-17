@@ -1,6 +1,7 @@
 import { X, ShoppingCart, Calendar, Package } from "lucide-react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { brl, dateBR } from "@/lib/format";
 import { useRows } from "@/lib/data";
 import { Badge } from "@/components/ui/badge";
@@ -19,18 +20,24 @@ export function SupplierPurchasesModal({ open, onOpenChange, supplier }: Supplie
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[85vh] w-[95vw] overflow-y-auto sm:max-w-2xl rounded-3xl p-0 border-none bg-white [&>button]:hidden">
-        <div className="sticky top-0 z-10 flex items-center justify-between border-b bg-white px-6 py-4">
-          <div>
-            <h2 className="text-lg font-semibold">Compras: {supplier?.name}</h2>
-            <p className="text-xs text-muted-foreground uppercase tracking-wider">{supplier?.category}</p>
+      <DialogContent className="max-h-[90vh] w-[95vw] overflow-hidden sm:max-w-2xl rounded-[1.5rem] p-0 border-none bg-white [&>button]:hidden shadow-2xl flex flex-col">
+        <div className="sticky top-0 z-20 flex items-center justify-between border-b bg-white/80 backdrop-blur-md px-6 py-4">
+          <div className="flex items-center gap-3">
+            <div className="size-8 rounded-xl bg-gradient-gold flex items-center justify-center shadow-gold">
+              <ShoppingCart className="size-4 text-white" />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold leading-tight">Compras: {supplier?.name}</h2>
+              <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest">{supplier?.category}</p>
+            </div>
           </div>
-          <Button variant="ghost" size="icon" onClick={() => onOpenChange(false)} className="rounded-full">
+          <Button variant="ghost" size="icon" onClick={() => onOpenChange(false)} className="rounded-full hover:bg-muted">
             <X className="size-4" />
           </Button>
         </div>
 
-        <div className="p-6">
+        <ScrollArea className="flex-1 overflow-y-auto">
+          <div className="p-6 pb-12">
           {isLoading ? (
             <div className="space-y-4">
               {[1, 2, 3].map(i => <div key={i} className="h-24 animate-pulse rounded-2xl bg-muted/50" />)}
@@ -89,6 +96,7 @@ export function SupplierPurchasesModal({ open, onOpenChange, supplier }: Supplie
             </div>
           )}
         </div>
+        </ScrollArea>
       </DialogContent>
     </Dialog>
   );

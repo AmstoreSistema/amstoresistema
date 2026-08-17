@@ -4,6 +4,7 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Select,
   SelectContent,
@@ -105,20 +106,26 @@ export function SupplierFormModal({ open, onOpenChange, supplier }: SupplierForm
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] w-[95vw] overflow-y-auto sm:max-w-2xl rounded-3xl p-0 border-none bg-white [&>button]:hidden">
-        <form onSubmit={handleSubmit}>
-          <div className="sticky top-0 z-10 flex items-center justify-between border-b bg-white px-6 py-4">
-            <div>
-              <h2 className="text-lg font-semibold">{isEditing ? "Editar Fornecedor" : "Novo Fornecedor"}</h2>
-              <p className="text-xs text-muted-foreground uppercase tracking-wider">Gestão de Parceiros</p>
+      <DialogContent className="max-h-[95vh] w-[95vw] overflow-hidden sm:max-w-2xl rounded-[1.5rem] p-0 border-none bg-white [&>button]:hidden shadow-2xl flex flex-col">
+        <form onSubmit={handleSubmit} className="flex flex-col h-full overflow-hidden">
+          <div className="sticky top-0 z-20 flex items-center justify-between border-b bg-white/80 backdrop-blur-md px-6 py-4">
+            <div className="flex items-center gap-3">
+              <div className="size-8 rounded-xl bg-gradient-gold flex items-center justify-center shadow-gold">
+                <Check className="size-4 text-white" />
+              </div>
+              <div>
+                <h2 className="text-lg font-bold leading-tight">{isEditing ? "Editar Fornecedor" : "Novo Fornecedor"}</h2>
+                <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest">Gestão de Parceiros</p>
+              </div>
             </div>
-            <Button variant="ghost" size="icon" type="button" onClick={() => onOpenChange(false)} className="rounded-full">
+            <Button variant="ghost" size="icon" type="button" onClick={() => onOpenChange(false)} className="rounded-full hover:bg-muted">
               <X className="size-4" />
             </Button>
           </div>
 
-          <div className="space-y-8 p-6 pb-24">
-            {/* Informações Básicas */}
+          <ScrollArea className="flex-1 overflow-y-auto">
+            <div className="space-y-8 p-6 pb-24">
+              {/* Informações Básicas */}
             <section className="space-y-4">
               <div className="flex items-center gap-2 text-amber-600">
                 <div className="size-2 rounded-full bg-amber-600" />
@@ -297,12 +304,13 @@ export function SupplierFormModal({ open, onOpenChange, supplier }: SupplierForm
               />
             </section>
           </div>
+          </ScrollArea>
 
-          <div className="absolute bottom-0 left-0 right-0 border-t bg-white p-6">
+          <div className="absolute bottom-0 left-0 right-0 border-t bg-white/80 backdrop-blur-md p-6 z-20">
             <Button
               type="submit"
               disabled={isPending}
-              className="h-12 w-full rounded-2xl bg-amber-600 font-bold text-white hover:bg-amber-700 shadow-lg shadow-amber-600/20"
+              className="h-12 w-full rounded-2xl bg-amber-600 font-bold text-white hover:bg-amber-700 shadow-lg shadow-amber-600/20 active:scale-[0.98] transition-all"
             >
               {isPending ? "Processando..." : isEditing ? "Salvar Alterações" : "Cadastrar Fornecedor"}
             </Button>
