@@ -379,9 +379,10 @@ export function SaleDetailsModal({
           open={secretaryOpen}
           onOpenChange={setSecretaryOpen}
           saleId={sale.id}
-          clientName={(sale as any)?.client_name || "Cliente"}
+          saleCode={sale.sale_code}
+          clientName={(sale as any)?.client_name || (sale as any)?.clients?.name || "Cliente"}
           totalAmount={Number(sale.total_amount)}
-          remainingAmount={Number(sale.total_amount) - Number(sale.paid_amount)}
+          remainingAmount={Math.max(0, Number(sale.total_amount) - Number(sale.paid_amount))}
           installments={installments}
         />
       )}
