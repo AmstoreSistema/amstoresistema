@@ -214,7 +214,7 @@ export const registerSalePayment = createServerFn({ method: "POST" })
 
       if (sale) {
         const newPaidAmount = Number(sale.paid_amount) + data.amount;
-        const newStatus = newPaidAmount >= Number(sale.total_amount) ? "paid" : "partial";
+        const newStatus = newPaidAmount >= Number(sale.total_amount) - 0.009 ? "paid" : "partial";
         
         await supabase
           .from("sales")
