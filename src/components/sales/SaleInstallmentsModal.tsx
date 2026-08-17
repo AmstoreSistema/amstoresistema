@@ -258,11 +258,9 @@ export function SaleInstallmentsModal({
                       <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-tighter">
                         Vencimento: {new Date(inst.due_date).toLocaleDateString('pt-BR')}
                       </p>
-                      {Number(inst.paid_amount) > 0 && (
-                        <p className="text-[9px] text-blue-600 font-bold uppercase">
-                          Valor Original: {brl(inst.amount)} | Pago: {brl(inst.paid_amount)} | Restante: {brl(inst.remaining_amount ?? (Number(inst.amount) - Number(inst.paid_amount)))}
-                        </p>
-                      )}
+                      <p className="text-[9px] text-blue-600 font-bold uppercase">
+                        Valor Original: {brl(inst.amount)} | Pago: {brl(inst.paid_amount || 0)} | Restante: {brl(inst.remaining_amount ?? (Number(inst.amount) - Number(inst.paid_amount || 0)))}
+                      </p>
                     </div>
                     
                     <div className="text-right flex items-center gap-4">

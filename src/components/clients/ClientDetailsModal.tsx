@@ -188,29 +188,41 @@ export function ClientDetailsModal({ client, isOpen, onClose }: ClientDetailsMod
                     
                     entries.forEach((entry: any) => {
                       const sale = entry.sales;
-                      if (!sale || !sale.sale_items) return;
+                      if (!sale) return;
                       
-                      const items = sale.sale_items;
-                      const saleTotal = items.reduce((sum: number, it: any) => sum + (it.quantity * it.unit_price - (it.discount || 0)), 0);
+                      const saleTotal = Number(sale.total_amount || 0);
+                      const saleCashback = Number(sale.cashback_earned || 0);
                       
-                      if (saleTotal <= 0) return;
-                      
-                      items.forEach((item: any) => {
-                        const category = item.products?.category || "Outros";
-                        const weight = (item.quantity * item.unit_price - (item.discount || 0)) / saleTotal;
-                        const distributedAmount = weight * Number(entry.amount);
-                        
-                        if (!categoryTotals[category]) {
-                          categoryTotals[category] = { balance: 0, total_earned: 0 };
-                        }
-                        
-                        if (entry.kind === 'earned') {
-                          categoryTotals[category].balance += distributedAmount;
-                          categoryTotals[category].total_earned += distributedAmount;
-                        } else {
-                          categoryTotals[category].balance -= distributedAmount;
-                        }
-                      });
+                      // If we have total_amount and cashback_earned, we can be much more precise
+                      if (saleTotal > 0 && saleCashback > 0 && sale.sale_items) {
+                        const items = sale.sale_items;
+                        items.forEach((item: any) => {
+                          const category = item.products?.category || "Outros";
+                          const itemPrice = (item.quantity * item.unit_price - (item.discount || 0));
+                          
+                          // Proportional distribution: (itemPrice / saleTotal) * entry.amount
+                          const distributedAmount = (itemPrice / saleTotal) * Number(entry.amount);
+                          
+                          if (!categoryTotals[category]) {
+                            categoryTotals[category] = { balance: 0, total_earned: 0 };
+                          }
+                          
+                          if (entry.kind === 'earned') {
+                            categoryTotals[category].balance += distributedAmount;
+                            categoryTotals[category].total_earned += distributedAmount;
+                          } else {
+                            categoryTotals[category].balance -= distributedAmount;
+                          }
+                        });
+                      } else if (entry.kind === 'earned') {
+                         // Fallback for bonus entries or items without category
+                         const category = "Bônus/Geral";
+                         if (!categoryTotals[category]) {
+                            categoryTotals[category] = { balance: 0, total_earned: 0 };
+                         }
+                         categoryTotals[category].balance += Number(entry.amount);
+                         categoryTotals[category].total_earned += Number(entry.amount);
+                      }
                     });
 
                     return Object.entries(categoryTotals).map(([name, stats]: [string, any]) => (
@@ -279,7 +291,7 @@ export function ClientDetailsModal({ client, isOpen, onClose }: ClientDetailsMod
                                 <Coins className="size-3" />
                                 +{brl(sale.cashback_earned)} cashback gerado
                               </div>
-                              {isCreditSale && !isFullyPaid && unpaidInstallments.length > 0 && (
+                              {isCreditSale && !isFullyPaid && unpaidInstallments.length > 0 && Number(sale.total_amount) > 0 && (
                                 <div className="text-[9px] text-muted-foreground bg-gray-100/50 px-1.5 py-0.5 rounded-md w-fit italic font-medium">
                                   Liberará {brl((Number(sale.cashback_earned) * (Math.max(0, Number(unpaidInstallments[0].amount) - Number(unpaidInstallments[0].paid_amount)))) / Number(sale.total_amount))} p/ pagamento
                                 </div>
