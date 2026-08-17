@@ -93,11 +93,13 @@ function PurchasesPage() {
       }
 
       const total = items.reduce((s, i) => s + i.quantity * i.cost, 0);
+      
       const { data: purchase, error } = await supabase
         .from("purchases")
         .insert({
           total_amount: total,
           supplier_name: supplierName,
+          supplier_id: supplierId || null,
           status: "recebido",
         } as any)
         .select()
@@ -105,32 +107,29 @@ function PurchasesPage() {
 
       if (error) throw error;
 
-      // Items entry (requires purchase_items table if we had it, but following prompt logic we just update materials)
-      // If purchase_items doesn't exist, we'll just skip to material updates for simplicity or check if we should create it
-      // Let's assume we update materials and log the transaction.
-
+      // Registrar itens da compra e atualizar estoque
       for (const item of items) {
         const mat = materials.find((m) => m.id === item.material_id);
         if (!mat) continue;
         
+        // Inserir item da compra (isso dispara a trigger de atualização de custo se for maior)
+        const { error: itemError } = await supabase
+          .from("purchase_items" as any)
+          .insert({
+            purchase_id: purchase.id,
+            material_id: item.material_id,
+            quantity: item.quantity,
+            unit_cost: item.cost,
+            previous_cost: mat.cost_price || 0
+          } as any);
+
+        if (itemError) throw itemError;
+
+        // Atualizar estoque
         const nextStock = Number(mat.current_stock) + item.quantity;
-        
-        // Se for um material com dimensões (Couro, Forro, Estrutura, Tecido), 
-        // e se o material original tiver dimensões, podemos querer adicionar área ou apenas registrar a peça.
-        // O prompt pede que se o valor for maior, atualizar o valor.
-        
-        const updates: any = { 
-          current_stock: nextStock,
-        };
-
-        // Se o custo da compra for maior que o custo atual, atualiza o custo do material
-        if (item.cost > (mat.cost_price || 0)) {
-          updates.cost_price = item.cost;
-        }
-
         const { error: matError } = await supabase
           .from("materials")
-          .update(updates)
+          .update({ current_stock: nextStock } as any)
           .eq("id", item.material_id);
         
         if (matError) throw matError;
@@ -150,12 +149,13 @@ function PurchasesPage() {
         account_id: activeAccount.id,
         category: "Compra de Materiais",
         status: "pago",
-        due_date: new Date().toISOString()
+        due_date: new Date().toISOString(),
+        client_id: null
       } as any);
 
       await logAudit("compra", "purchases", `Compra recebida: ${supplierName} - Total ${brl(total)}`, purchase.id);
       
-      toast.success("Compra registrada, estoque atualizado e despesa lançada");
+      toast.success("Compra registrada, estoque atualizado (custo ajustado se maior) e despesa lançada");
       setOpen(false);
       setItems([]);
       setSupplierId("");
