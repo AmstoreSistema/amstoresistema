@@ -1611,6 +1611,7 @@ export type Database = {
     }
     Functions: {
       cancel_complete_sale: { Args: { p_sale_id: string }; Returns: undefined }
+      cancel_purchase: { Args: { p_purchase_id: string }; Returns: undefined }
       check_sale_installments_alerts: { Args: never; Returns: undefined }
       complete_production_order: { Args: { _order_id: string }; Returns: Json }
       create_complete_sale: {
