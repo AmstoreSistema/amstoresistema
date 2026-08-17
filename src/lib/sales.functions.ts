@@ -231,8 +231,6 @@ export const registerSalePayment = createServerFn({ method: "POST" })
         })
         .eq("id", data.sale_id);
 
-      const finalDesc = data.description || `Pagamento Venda #${sale.sale_code || data.sale_id.slice(0, 8)}`;
-
       // Description for the record
       const finalDesc = data.description || `Pagamento Venda #${sale.sale_code || data.sale_id.slice(0, 8)}`;
       
