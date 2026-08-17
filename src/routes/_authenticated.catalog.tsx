@@ -224,7 +224,7 @@ function CatalogPage() {
                   </div>
 
                   <div className="space-y-4 flex-1">
-                    {p.category === "Sandália" && availableSizes.length > 0 && (
+                    {p.category === "Sandálias" && availableSizes.length > 0 && (
                       <div className="space-y-2">
                         <p className="text-[10px] uppercase font-black text-muted-foreground tracking-widest">Numerações:</p>
                         <div className="flex flex-wrap gap-1">

@@ -88,7 +88,7 @@ function LabelsPage() {
   }, [labels]);
 
   const handleGenerate = async () => {
-    const isSandalia = selectedProduct?.category === 'Sandália';
+    const isSandalia = selectedProduct?.category === 'Sandálias';
     
     let prodItems;
     if (isSandalia) {
@@ -297,7 +297,7 @@ function LabelsPage() {
                   </div>
                 </div>
 
-                {selectedProduct.category === 'Sandália' ? (
+                {selectedProduct.category === 'Sandálias' ? (
                   <div className="space-y-2">
                     <Label>Quantidades por Tamanho</Label>
                     <div className="grid grid-cols-4 gap-2">
