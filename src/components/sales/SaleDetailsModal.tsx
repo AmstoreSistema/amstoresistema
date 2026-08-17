@@ -24,6 +24,8 @@ import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { ReceiptModal } from "./ReceiptModal";
 import { PaymentSecretaryModal } from "./PaymentSecretaryModal";
+import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface SaleDetailsModalProps {
   saleId: string | null;
