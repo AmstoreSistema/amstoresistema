@@ -160,7 +160,8 @@ export function PaymentSecretaryModal({
                     value={amount} 
                     onChange={(e) => setAmount(e.target.value)} 
                     className="h-11 rounded-md bg-card pl-11 text-lg font-black border-gold/20 focus:border-gold" 
-                    placeholder="0,00"
+                    placeholder="Digite o valor pago (ex: 60,00)"
+                    autoFocus
                   />
                 </div>
               ) : (
