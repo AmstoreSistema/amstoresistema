@@ -55,9 +55,11 @@ function PurchasesPage() {
   const qc = useQueryClient();
   const { data: purchases = [], isLoading } = useRows<Purchase>("purchases", { order: { column: "created_at", ascending: false } });
   const { data: materials = [] } = useRows<Material>("materials", { order: { column: "name", ascending: true } });
+  const { data: suppliers = [] } = useRows<{ id: string; name: string }>("suppliers", { order: { column: "name", ascending: true } });
+  const { data: accounts = [] } = useRows<{ id: string; active: boolean }>("financial_accounts");
 
   const [open, setOpen] = useState(false);
-  const [supplier, setSupplier] = useState("");
+  const [supplierId, setSupplierId] = useState("");
   const [items, setItems] = useState<{ material_id: string; quantity: number; cost: number }[]>([]);
   const [pick, setPick] = useState("");
   const [qty, setQty] = useState("1");
@@ -80,12 +82,22 @@ function PurchasesPage() {
     }
     setSaving(true);
     try {
+      const selectedSupplier = suppliers.find(s => s.id === supplierId);
+      const supplierName = selectedSupplier?.name || "Fornecedor não informado";
+      const activeAccount = accounts.find(a => a.active);
+
+      if (!activeAccount) {
+        toast.error("Nenhuma conta financeira ativa encontrada para lançar a despesa");
+        setSaving(false);
+        return;
+      }
+
       const total = items.reduce((s, i) => s + i.quantity * i.cost, 0);
       const { data: purchase, error } = await supabase
         .from("purchases")
         .insert({
           total_amount: total,
-          supplier_name: supplier || "Fornecedor não informado",
+          supplier_name: supplierName,
           status: "recebido",
         } as any)
         .select()
@@ -124,18 +136,29 @@ function PurchasesPage() {
         if (matError) throw matError;
       }
 
-      await supabase.from("transactions").insert({
-        amount: total,
-        type: "saida",
-        description: `Compra de materiais — ${supplier || "Geral"}`,
-      });
+      const itemsSummary = items
+        .map(i => {
+          const m = materials.find(mat => mat.id === i.material_id);
+          return `${i.quantity}${m?.unit || 'un'} ${m?.name || 'Item'}`;
+        })
+        .join(", ");
 
-      await logAudit("compra", "purchases", `Compra recebida: ${supplier} - Total ${brl(total)}`, purchase.id);
+      await supabase.from("transactions").insert({
+        amount: -Math.abs(total),
+        type: "saida",
+        description: `Compra: ${itemsSummary}`,
+        account_id: activeAccount.id,
+        category: "Compra de Materiais",
+        status: "pago",
+        due_date: new Date().toISOString()
+      } as any);
+
+      await logAudit("compra", "purchases", `Compra recebida: ${supplierName} - Total ${brl(total)}`, purchase.id);
       
-      toast.success("Compra registrada e estoque de materiais atualizado");
+      toast.success("Compra registrada, estoque atualizado e despesa lançada");
       setOpen(false);
       setItems([]);
-      setSupplier("");
+      setSupplierId("");
       qc.invalidateQueries();
     } catch (e: any) {
       toast.error(e.message || "Erro ao registrar compra");
@@ -184,7 +207,16 @@ function PurchasesPage() {
           <div className="space-y-4">
             <div>
               <Label className="mb-1.5 block text-xs">Fornecedor</Label>
-              <Input value={supplier} onChange={(e) => setSupplier(e.target.value)} placeholder="Nome do fornecedor" />
+              <Select value={supplierId} onValueChange={setSupplierId}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Selecione um fornecedor" />
+                </SelectTrigger>
+                <SelectContent>
+                  {suppliers.map((s) => (
+                    <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="flex flex-wrap items-end gap-2 rounded-xl border border-border bg-muted/40 p-3">
