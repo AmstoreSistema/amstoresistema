@@ -329,6 +329,12 @@ export function POSModal({ open, onOpenChange }: { open: boolean; onOpenChange: 
         setIsDebt(false);
         setNotes("");
         setSaleType("Varejo");
+        setDebtAlert({
+          isOpen: false,
+          clientName: "",
+          debtAmount: 0,
+          pendingSalesCount: 0
+        });
       };
 
       try {
