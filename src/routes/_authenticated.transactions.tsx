@@ -265,7 +265,7 @@ function TransactionsPage() {
                         
                         <div className="flex-1 min-w-0">
                            <div className="flex items-center gap-2">
-                              <h4 className="font-bold text-sm text-gray-800 truncate">{t.description || "Sem descrição"}</h4>
+                              <h4 className="font-normal text-sm text-gray-800 truncate">{t.description || "Sem descrição"}</h4>
                               <Badge variant="secondary" className={cn(
                                 "text-[9px] font-black uppercase h-5 px-1.5 border-none",
                                 t.status === 'pago' ? "bg-green-100 text-green-700" : "bg-orange-100 text-orange-700"
@@ -281,15 +281,15 @@ function TransactionsPage() {
                            )}
 
                            <div className="flex items-center gap-2 mt-1">
-                              <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-tight">
+                              <span className="text-[10px] text-muted-foreground font-normal uppercase tracking-tight">
                                 {t.category || "Vendas"}
                               </span>
                               <span className="size-1 rounded-full bg-gray-300" />
-                              <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-tight">
+                              <span className="text-[10px] text-muted-foreground font-normal uppercase tracking-tight">
                                  {t.financial_accounts?.name || "Caixa Principal"}
                               </span>
                               <span className="size-1 rounded-full bg-gray-300" />
-                              <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-tight">
+                              <span className="text-[10px] text-muted-foreground font-normal uppercase tracking-tight">
                                  {dateBR(t.created_at)}
                               </span>
                            </div>
