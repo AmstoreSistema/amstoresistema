@@ -248,11 +248,12 @@ export const registerSalePayment = createServerFn({ method: "POST" })
         } as any);
 
       if (data.account_id) {
+        const { data: acc } = await admin.from("financial_accounts").select("current_balance").eq("id", data.account_id).single();
         await admin
           .from("financial_accounts")
           .update({ 
-            current_balance: admin.rpc('increment', { row_id: data.account_id, val: data.amount }) 
-          } as any)
+            current_balance: (Number(acc?.current_balance || 0) + data.amount)
+          })
           .eq("id", data.account_id);
       }
     }
