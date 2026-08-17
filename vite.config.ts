@@ -63,7 +63,8 @@ export default defineConfig({
           ]
         },
         devOptions: {
-          enabled: false // Never register in dev or Lovable preview
+          enabled: false,
+          type: 'module'
         }
       })
     ]
