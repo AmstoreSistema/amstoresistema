@@ -324,7 +324,7 @@ export function ReceiptModal({
               <div className="text-center py-2 space-y-2">
                 <div className="bg-[#FFF9C4] border border-[#FBC02D] p-3 rounded-md text-center">
                   <div className="flex items-center justify-center gap-1 font-bold text-[10px]">
-                    <Gift className="size-3 text-orange-500" /> SALDO TOTAL CASHBACK
+                    <Gift className="size-3 text-orange-500" /> CASHBACK DESTA VENDA
                   </div>
                   <div className="text-sm font-black my-1">{brl(displaySale.cashback_earned)}</div>
                   {displaySale?.payment_method === 'Fiado' || displaySale?.is_debt ? (
@@ -332,7 +332,7 @@ export function ReceiptModal({
                       * O cashback será liberado proporcionalmente aos pagamentos das parcelas.
                     </p>
                   ) : (
-                    <p className="text-[9px] font-bold">Use na próxima compra!</p>
+                    <p className="text-[9px] font-bold">Saldo liberado e disponível!</p>
                   )}
                 </div>
               </div>

@@ -275,15 +275,13 @@ export function SaleDetailsModal({
                                     </div>
                                     <div className="text-muted-foreground uppercase text-[10px] font-medium">
                                       {isPaid ? 'Paga' : isOverdue ? 'Atrasada' : 'Pendente'}
-                                      {isPartial && ` • Pago: ${brl(inst.paid_amount)}`}
+                                      {(isPartial || isPaid) && ` • Pago: ${brl(inst.paid_amount)}`}
                                     </div>
                                   </div>
                                 </div>
                                 <div className="text-right">
                                   <div className="font-bold text-sm text-foreground">{brl(remaining)}</div>
-                                  {isPartial && (
-                                    <div className="text-[9px] text-muted-foreground">Original: {brl(inst.amount)}</div>
-                                  )}
+                                  <div className="text-[9px] text-muted-foreground">Original: {brl(inst.amount)}</div>
                                 </div>
                               </div>
                             );

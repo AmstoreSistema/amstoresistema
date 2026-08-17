@@ -37,7 +37,7 @@ export const getClientDetails = createServerFn({ method: "GET" })
         .order("due_date", { ascending: true }),
       supabaseAdmin
         .from("cashback_entries")
-        .select("amount, kind, sale_id, sales(status, sale_items(quantity, unit_price, discount, products(category)))")
+        .select("amount, kind, sale_id, sales(status, total_amount, cashback_earned, sale_items(quantity, unit_price, discount, products(category)))")
         .eq("client_id", data.client_id),
       supabaseAdmin
         .from("clients")
