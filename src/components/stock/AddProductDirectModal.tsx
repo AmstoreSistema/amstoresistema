@@ -33,7 +33,7 @@ import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { brl } from "@/lib/format";
 
-const CATEGORIES = ["Bolsa", "Sandália", "Carteira", "Mochila", "Cinto", "Acessório", "Geral"];
+const PRODUCT_CATEGORIES = ["Bolsa", "Sandália", "Carteira", "Mochila", "Cinto", "Acessório", "Perfume", "Geral"];
 const SIZES = ["33", "34", "35", "36", "37", "38", "39", "40"];
 
 export function AddProductDirectModal({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
@@ -241,7 +241,7 @@ export function AddProductDirectModal({ open, onOpenChange }: { open: boolean; o
                          <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                         {CATEGORIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                         {PRODUCT_CATEGORIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
                       </SelectContent>
                    </Select>
                 </div>

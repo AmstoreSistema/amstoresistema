@@ -58,7 +58,7 @@ export const Route = createFileRoute("/_authenticated/materials")({
   component: MaterialsPage,
 });
 
-export const MATERIAL_TYPES = ["Couro", "Tecido", "Ferragem", "Forro", "Cola", "Linha", "Estrutura", "Outro"];
+export const MATERIAL_CATEGORIES = ["Armarinho", "Cola", "Couro", "Embalagens", "Estrutura", "Ferragem", "Forro", "Linha", "Outro", "Papelaria", "Tecido"];
 
 type Material = {
   id: string;
@@ -367,7 +367,7 @@ function MaterialsPage() {
 
       <div className="flex flex-col gap-4">
         <div className="flex flex-wrap gap-2">
-          {["Todos", ...categories.map(c => c.name)].map(t => (
+          {["Todos", ...MATERIAL_CATEGORIES].map(t => (
             <Button 
               key={t}
               variant={activeType === t ? "default" : "outline"}
@@ -577,7 +577,7 @@ function MaterialsPage() {
                       <SelectValue placeholder="Selecione a categoria" />
                     </SelectTrigger>
                     <SelectContent>
-                      {categories.map(c => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)}
+                      {MATERIAL_CATEGORIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 </div>

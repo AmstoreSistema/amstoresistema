@@ -136,7 +136,7 @@ type BomLine = {
   notes: string;
 };
 
-const CATEGORIES = ["Bolsa", "Sandália", "Carteira", "Perfume"];
+const PRODUCT_CATEGORIES = ["Bolsa", "Sandália", "Carteira", "Mochila", "Cinto", "Acessório", "Perfume", "Geral"];
 
 const emptyLine = (): BomLine => ({
   key: Math.random().toString(36).slice(2),
@@ -201,7 +201,7 @@ function ProductsPage() {
         0,
       );
 
-  const categories = useMemo(() => ["Todos", ...new Set(products.map((p) => p.category))], [products]);
+  const categories = useMemo(() => ["Todos", ...PRODUCT_CATEGORIES], []);
 
   const filtered = useMemo(
     () =>
@@ -541,7 +541,7 @@ function ProductsPage() {
                     <Select value={form.category ?? "Bolsa"} onValueChange={(v) => setForm({ ...form, category: v })}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        {CATEGORIES.map((c) => (
+                        {PRODUCT_CATEGORIES.map((c) => (
                           <SelectItem key={c} value={c}>{c}</SelectItem>
                         ))}
                       </SelectContent>

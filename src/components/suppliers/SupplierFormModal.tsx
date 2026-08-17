@@ -24,6 +24,8 @@ interface SupplierFormModalProps {
 
 const STATES = ["AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA", "MT", "MS", "MG", "PA", "PB", "PR", "PE", "PI", "RJ", "RN", "RS", "RO", "RR", "SC", "SP", "SE", "TO"];
 
+const MATERIAL_CATEGORIES = ["Armarinho", "Cola", "Couro", "Embalagens", "Estrutura", "Ferragem", "Forro", "Linha", "Outro", "Papelaria", "Tecido"];
+
 export function SupplierFormModal({ open, onOpenChange, supplier }: SupplierFormModalProps) {
   const isEditing = !!supplier;
   const { mutate: save, isPending } = useSaveRow("suppliers", "Fornecedor");
@@ -177,15 +179,9 @@ export function SupplierFormModal({ open, onOpenChange, supplier }: SupplierForm
                       <SelectValue placeholder="Selecione a categoria" />
                     </SelectTrigger>
                     <SelectContent>
-                      {materialCategories.length > 0 ? (
-                        materialCategories.map((cat) => (
-                          <SelectItem key={cat.id} value={cat.name}>{cat.name}</SelectItem>
-                        ))
-                      ) : (
-                        ["Couros", "Sintéticos", "Palmilhas", "Solados", "Cola", "Embalagens", "Outros"].map((cat) => (
-                          <SelectItem key={cat} value={cat}>{cat}</SelectItem>
-                        ))
-                      )}
+                      {MATERIAL_CATEGORIES.map((cat) => (
+                        <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
