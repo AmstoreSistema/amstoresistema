@@ -114,6 +114,9 @@ export function POSModal({ open, onOpenChange }: { open: boolean; onOpenChange: 
       
       const checkDebts = async () => {
         try {
+          // Reset alert before checking
+          setDebtAlert(prev => ({ ...prev, isOpen: false }));
+          
           const details = await fetchClientDetails({ data: { client_id: client.id } });
           console.log("Detalhes do cliente recebidos para alerta:", details);
 
