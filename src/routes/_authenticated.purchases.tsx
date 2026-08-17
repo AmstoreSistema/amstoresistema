@@ -101,7 +101,7 @@ function PurchasesPage() {
           supplier_name: supplierName,
           supplier_id: supplierId || null,
           status: "recebido",
-        } as any)
+        })
         .select()
         .single();
 
