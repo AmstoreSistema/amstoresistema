@@ -94,12 +94,12 @@ export const deleteTransaction = createServerFn({ method: "POST" })
 export const updateAccountBalance = createServerFn({ method: "POST" })
   .inputValidator((data) => z.object({
     id: z.string(),
-    initial_balance: z.number(),
+    current_balance: z.number(),
   }).parse(data))
   .handler(async ({ data }) => {
     const { error } = await supabase
       .from("financial_accounts")
-      .update({ initial_balance: data.initial_balance } as any)
+      .update({ current_balance: data.current_balance } as any)
       .eq("id", data.id);
 
     if (error) throw new Error(error.message);
