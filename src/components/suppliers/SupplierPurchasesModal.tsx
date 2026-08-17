@@ -1,7 +1,7 @@
 import { X, ShoppingCart, Calendar, Package } from "lucide-react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { brl, date } from "@/lib/format";
+import { brl, dateBR } from "@/lib/format";
 import { useRows } from "@/lib/data";
 import { Badge } from "@/components/ui/badge";
 
@@ -48,11 +48,13 @@ export function SupplierPurchasesModal({ open, onOpenChange, supplier }: Supplie
                         <p className="font-bold text-sm">Compra #{purchase.id.slice(0, 8)}</p>
                         <div className="flex items-center gap-2 text-[10px] text-muted-foreground uppercase tracking-widest mt-1">
                           <Calendar className="size-3" />
-                          {date(purchase.created_at)}
+                          {dateBR(purchase.created_at)}
                         </div>
                       </div>
                     </div>
-                    <Badge variant={purchase.status === 'received' ? 'success' : 'secondary'} className="rounded-lg">
+                    <Badge variant={purchase.status === 'received' ? 'default' : 'secondary'} className={purchase.status === 'received' ? 'bg-success text-white' : ''}>
+                      {purchase.status === 'received' ? 'Recebido' : 'Pendente'}
+                    </Badge>
                       {purchase.status === 'received' ? 'Recebido' : 'Pendente'}
                     </Badge>
                   </div>
