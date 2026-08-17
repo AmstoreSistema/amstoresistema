@@ -374,6 +374,7 @@ export function SaleInstallmentsModal({
         onOpenChange={setSecretaryOpen}
         saleId={saleId}
         clientName={sale?.client_name || "Cliente"}
+        saleCode={sale?.sale_code}
         totalAmount={Number(sale?.total_amount || 0)}
         remainingAmount={remainingTotal}
         installments={installments}

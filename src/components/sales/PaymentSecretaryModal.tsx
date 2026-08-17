@@ -28,6 +28,7 @@ export function PaymentSecretaryModal({
   open, 
   onOpenChange, 
   saleId,
+  saleCode,
   clientName,
   totalAmount,
   remainingAmount,
@@ -36,6 +37,7 @@ export function PaymentSecretaryModal({
   open: boolean; 
   onOpenChange: (open: boolean) => void;
   saleId: string | null;
+  saleCode?: string;
   clientName: string;
   totalAmount: number;
   remainingAmount: number;
@@ -132,8 +134,8 @@ export function PaymentSecretaryModal({
                  <span className="text-foreground">{clientName}</span>
               </div>
               <div className="flex justify-between text-sm font-bold">
-                 <span>Venda ID:</span>
-                 <span className="text-foreground">{saleId?.slice(0, 8)}</span>
+                 <span>Código Venda:</span>
+                 <span className="text-foreground">{saleCode || saleId?.slice(0, 8)}</span>
               </div>
            </div>
 
