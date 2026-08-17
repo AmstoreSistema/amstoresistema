@@ -335,6 +335,19 @@ export const processBulkPayment = createServerFn({ method: "POST" })
         });
 
         if (payError) throw new Error(`Erro ao processar pagamento na parcela ${inst.installment_number}: ${payError.message}`);
+
+        // Register individual transaction for this installment
+        const { data: sale } = await admin.from("sales").select("sale_code").eq("id", data.sale_id).single();
+        await admin.from("transactions").insert({
+          amount: amountToPay,
+          type: "income",
+          description: `Pagamento ${inst.installment_number}ª Parcela Venda #${sale?.sale_code || data.sale_id.slice(0, 8)}`,
+          sale_id: data.sale_id,
+          category: 'Venda',
+          account_id: data.account_id,
+          status: 'pago'
+        } as any);
+
         remainingPayment -= amountToPay;
       }
     }
@@ -342,15 +355,19 @@ export const processBulkPayment = createServerFn({ method: "POST" })
     // Register a transaction for the total amount paid
     const { data: sale } = await admin.from("sales").select("sale_code").eq("id", data.sale_id).single();
     
-    await admin.from("transactions").insert({
-      amount: data.amount,
-      type: "income",
-      description: `Pagamento Acumulado Venda #${sale?.sale_code || data.sale_id.slice(0, 8)}`,
-      sale_id: data.sale_id,
-      category: 'Venda',
-      account_id: data.account_id,
-      status: 'pago'
-    } as any);
+    // In bulk payment, we skip creating a generic "Pagamento Acumulado" transaction here
+    // because pay_sale_installment RPC now handles creating transactions for each part of the payment
+    // if we want more granular control, or we keep it if we prefer one single entry.
+    // The user mentioned "PAGAMENTO ACUMULADO VENDA que não existe", so we should remove this generic entry.
+    // However, if we remove it, we need to ensure transactions are created for the individual installments.
+    // Let's check if transactions are already created. 
+    // registerSalePayment creates a transaction, but processBulkPayment calls pay_sale_installment RPC directly.
+    
+    // We will create individual transactions here for each installment paid during bulk process
+    // OR we modify the description to be more accurate if we keep it as one.
+    // The user specifically disliked "PAGAMENTO ACUMULADO".
+    
+    return { success: true };
 
     return { success: true };
   });
