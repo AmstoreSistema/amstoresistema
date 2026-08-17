@@ -102,8 +102,9 @@ function TransactionsPage() {
     return (transactions as any[]).filter(t => {
       const desc = (t.description || "").toLowerCase();
       const type = (t.type || "").toLowerCase();
+      const client = (t.clients?.name || "").toLowerCase();
       const search = term.toLowerCase();
-      return desc.includes(search) || type.includes(search);
+      return desc.includes(search) || type.includes(search) || client.includes(search);
     });
   }, [transactions, term]);
 
