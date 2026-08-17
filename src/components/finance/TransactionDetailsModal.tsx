@@ -18,12 +18,15 @@ import {
   User,
   Hash,
   CreditCard,
-  Package
+  Package,
+  Truck
 } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { getSaleDetails } from "@/lib/sales.functions";
+import { getPurchaseDetails } from "@/lib/purchases.functions";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
+import { useRows } from "@/lib/data";
 
 interface TransactionDetailsModalProps {
   transaction: any;
@@ -37,6 +40,7 @@ export function TransactionDetailsModal({
   onClose 
 }: TransactionDetailsModalProps) {
   const fetchSale = useServerFn(getSaleDetails);
+  const fetchPurchase = useServerFn(getPurchaseDetails);
   
   const isRevenue = transaction?.type === 'entrada' || transaction?.type === 'income';
   
@@ -46,11 +50,22 @@ export function TransactionDetailsModal({
     enabled: !!transaction?.sale_id && isOpen,
   });
 
+  const { data: purchaseData, isLoading: loadingPurchase } = useQuery({
+    queryKey: ['purchase-details', transaction?.purchase_id],
+    queryFn: () => fetchPurchase({ data: { purchase_id: transaction.purchase_id! } }),
+    enabled: !!transaction?.purchase_id && isOpen,
+  });
+
+  const { data: materials = [] } = useRows("materials");
+  const getMaterialName = (id: string) => materials.find((m: any) => m.id === id)?.name || "Material não encontrado";
+  const getMaterialUnit = (id: string) => materials.find((m: any) => m.id === id)?.unit || "";
+
   if (!transaction) return null;
 
   const sale = saleData?.sale as any;
   const items = saleData?.items || [];
-  const clientName = transaction.clients?.name || sale?.clients?.name || "Consumidor";
+  const clientName = transaction.clients?.name || sale?.clients?.name || (transaction.supplier_id || transaction.purchase_id ? null : "Consumidor");
+  const supplierName = transaction.suppliers?.name || purchaseData?.purchase?.suppliers?.name || purchaseData?.purchase?.supplier_name || "Fornecedor não identificado";
 
   return (
     <Dialog open={isOpen} onOpenChange={(o) => !o && onClose()}>
@@ -169,18 +184,85 @@ export function TransactionDetailsModal({
                    </div>
                 </div>
               )}
+              
+              {/* Linked Purchase Details Card */}
+              {transaction.purchase_id && (
+                <div className="bg-orange-50 rounded-xl border border-orange-100 overflow-hidden shadow-sm">
+                   <div className="px-4 py-3 border-b border-orange-100 flex items-center gap-2">
+                      <Truck className="size-4 text-orange-600" />
+                      <h3 className="text-sm font-bold text-orange-900">Detalhes da Compra</h3>
+                   </div>
+                   
+                   <div className="p-3 space-y-3">
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="bg-white p-2.5 rounded-lg border border-orange-50">
+                          <label className="text-[10px] font-bold text-muted-foreground uppercase block mb-1">Fornecedor</label>
+                          <span className="text-sm font-bold text-foreground">{supplierName}</span>
+                        </div>
+                        <div className="bg-white p-2.5 rounded-lg border border-orange-50">
+                          <label className="text-[10px] font-bold text-muted-foreground uppercase block mb-1">Código da Compra</label>
+                          <span className="text-sm font-bold text-foreground">#{transaction.purchase_id.slice(0, 8)}</span>
+                        </div>
+                      </div>
+
+                      <div className="bg-white rounded-lg border border-orange-50 overflow-hidden">
+                        <div className="px-3 py-2 bg-orange-50/30 border-b flex items-center gap-2">
+                          <Package className="size-3 text-orange-500" />
+                          <span className="text-[10px] font-bold text-orange-700 uppercase">Materiais Adquiridos ({purchaseData?.items?.length || 0})</span>
+                        </div>
+                        <div className="divide-y divide-gray-50">
+                          {loadingPurchase ? (
+                            <div className="p-4 text-center text-xs text-muted-foreground">Carregando itens...</div>
+                          ) : purchaseData?.items?.map((item: any, i: number) => (
+                            <div key={i} className="p-3 flex justify-between items-center text-sm">
+                              <div>
+                                <div className="font-bold text-foreground uppercase text-xs">
+                                  {getMaterialName(item.material_id)}
+                                </div>
+                                <div className="text-[10px] text-muted-foreground">
+                                  {item.quantity}{getMaterialUnit(item.material_id)} x {brl(item.unit_cost)}
+                                </div>
+                              </div>
+                              <span className="font-bold text-orange-600">{brl(item.quantity * item.unit_cost)}</span>
+                            </div>
+                          ))}
+                        </div>
+                        <div className="px-3 py-3 bg-gray-50 flex flex-col gap-0.5 border-t">
+                          <div className="flex justify-between items-center">
+                            <span className="text-xs font-bold uppercase text-foreground">Total da Compra:</span>
+                            <span className="text-lg font-black text-orange-600">{brl(purchaseData?.purchase?.total_amount)}</span>
+                          </div>
+                        </div>
+                      </div>
+                   </div>
+                </div>
+              )}
 
               {/* Bottom Metadata Grid */}
               <div className="grid grid-cols-2 gap-3">
-                <div className="bg-white p-3 rounded-xl border border-gray-100 flex items-center gap-2">
-                  <div className="size-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
-                    <User className="size-4" />
+                {clientName && (
+                  <div className="bg-white p-3 rounded-xl border border-gray-100 flex items-center gap-2">
+                    <div className="size-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
+                      <User className="size-4" />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-bold text-muted-foreground uppercase block">Cliente</label>
+                      <span className="text-xs font-bold text-blue-700">{clientName}</span>
+                    </div>
                   </div>
-                  <div>
-                    <label className="text-[10px] font-bold text-muted-foreground uppercase block">Cliente</label>
-                    <span className="text-xs font-bold text-blue-700">{clientName}</span>
+                )}
+                
+                {(!clientName && supplierName && (transaction.supplier_id || transaction.purchase_id)) && (
+                  <div className="bg-white p-3 rounded-xl border border-gray-100 flex items-center gap-2">
+                    <div className="size-8 rounded-lg bg-orange-50 text-orange-600 flex items-center justify-center">
+                      <Truck className="size-4" />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-bold text-muted-foreground uppercase block">Fornecedor</label>
+                      <span className="text-xs font-bold text-orange-700">{supplierName}</span>
+                    </div>
                   </div>
-                </div>
+                )}
                 
                 <div className="bg-white p-3 rounded-xl border border-gray-100 flex items-center gap-2">
                   <div className="size-8 rounded-lg bg-gray-50 text-gray-600 flex items-center justify-center">
