@@ -29,7 +29,7 @@ export const Route = createFileRoute("/_authenticated/purchase-board")({
   component: SuppliersPage,
 });
 
-const CATEGORIES = ["Todos", "Couros", "Tecidos", "Ferragens", "Linhas", "Diversos"];
+const MATERIAL_CATEGORIES = ["Todos", "Armarinho", "Cola", "Couro", "Embalagens", "Estrutura", "Ferragem", "Forro", "Linha", "Outro", "Papelaria", "Tecido"];
 
 function SuppliersPage() {
   const { data: suppliers = [], isLoading } = useRows<any>("suppliers", { 
@@ -133,7 +133,7 @@ function SuppliersPage() {
 
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex flex-wrap gap-2">
-            {CATEGORIES.map(c => (
+            {MATERIAL_CATEGORIES.map(c => (
               <Button 
                 key={c}
                 variant={activeCategory === c ? "default" : "secondary"}
