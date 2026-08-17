@@ -20,7 +20,7 @@ export function SupplierPurchasesModal({ open, onOpenChange, supplier }: Supplie
   });
 
   const { data: priceHistory = [], isLoading: loadingHistory } = useRows<any>("purchase_items", {
-    filters: supplier ? [{ column: "purchase_id", value: purchases.map((p: any) => p.id), operator: 'in' }] : undefined,
+    filters: supplier && purchases.length > 0 ? [{ column: "purchase_id", value: purchases.map((p: any) => p.id) }] : undefined,
     order: { column: "created_at", ascending: false }
   });
 
