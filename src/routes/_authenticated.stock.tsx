@@ -112,7 +112,7 @@ function StockPage() {
     if (!selectedProduct) return;
 
     const stockRecord = stockRecords.find(s => s.produto_id === selectedProduct.id);
-    const isSandalia = selectedProduct.category === "Sandália";
+    const isSandalia = selectedProduct.category === "Sandálias";
 
     try {
       let totalQty = 0;
@@ -396,7 +396,7 @@ function StockPage() {
             </DialogDescription>
           </DialogHeader>
           <div className="py-4">
-             {selectedProduct?.category === "Sandália" ? (
+             {selectedProduct?.category === "Sandálias" ? (
                <div className="space-y-4">
                  <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Numerações</Label>
                  <div className="grid grid-cols-4 gap-3">
