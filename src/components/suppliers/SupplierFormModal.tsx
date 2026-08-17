@@ -125,9 +125,7 @@ export function SupplierFormModal({ open, onOpenChange, supplier }: SupplierForm
 
           <ScrollArea className="flex-1 overflow-y-auto">
             <div className="space-y-8 p-6 pb-24">
-
-          <div className="space-y-8 p-6 pb-24">
-            {/* Informações Básicas */}
+              {/* Informações Básicas */}
             <section className="space-y-4">
               <div className="flex items-center gap-2 text-amber-600">
                 <div className="size-2 rounded-full bg-amber-600" />
