@@ -282,7 +282,7 @@ export const processBulkPayment = createServerFn({ method: "POST" })
       .from("sale_installments")
       .select("*")
       .eq("sale_id", data.sale_id)
-      .neq("status", "paid")
+      .not("status", "in", "('paid','pago')")
       .order("due_date", { ascending: true })
       .order("installment_number", { ascending: true });
 
@@ -290,27 +290,27 @@ export const processBulkPayment = createServerFn({ method: "POST" })
     if (!installments || installments.length === 0) throw new Error("Nenhuma parcela pendente encontrada para esta venda.");
 
     let remainingPayment = data.amount;
-    const paymentPromises = [];
-
+    
+    // We process sequentially to ensure FIFO logic is exact and database updates are consistent
     for (const inst of installments) {
-      if (remainingPayment <= 0) break;
+      if (remainingPayment <= 0.009) break;
 
-      const instRemaining = Number(inst.remaining_amount ?? inst.amount);
+      const instAmount = Number(inst.amount);
+      const instPaid = Number(inst.paid_amount || 0);
+      const instRemaining = Math.max(0, instAmount - instPaid);
+      
       const amountToPay = Math.min(remainingPayment, instRemaining);
+      
+      if (amountToPay > 0) {
+        const { error: payError } = await admin.rpc('pay_sale_installment', {
+          p_installment_id: inst.id,
+          p_amount: amountToPay,
+          p_payment_method: data.payment_method
+        });
 
-      paymentPromises.push(admin.rpc('pay_sale_installment', {
-        p_installment_id: inst.id,
-        p_amount: amountToPay,
-        p_payment_method: data.payment_method
-      }));
-
-      remainingPayment -= amountToPay;
-    }
-
-    const results = await Promise.all(paymentPromises);
-    const firstError = results.find(r => r.error);
-    if (firstError?.error) {
-      throw new Error(`Erro ao processar pagamentos: ${firstError.error.message}`);
+        if (payError) throw new Error(`Erro ao processar pagamento na parcela ${inst.installment_number}: ${payError.message}`);
+        remainingPayment -= amountToPay;
+      }
     }
 
     // Register a transaction for the total amount paid

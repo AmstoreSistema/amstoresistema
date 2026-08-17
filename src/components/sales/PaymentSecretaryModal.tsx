@@ -35,7 +35,7 @@ export function PaymentSecretaryModal({
 }) {
   const qc = useQueryClient();
   const [selectedInstIds, setSelectedInstIds] = React.useState<string[]>([]);
-  const [amount, setAmount] = React.useState<number | string>(0);
+  const [amount, setAmount] = React.useState<number | string>("");
   const [manualAmount, setManualAmount] = React.useState(false);
   const [paymentMethod, setPaymentMethod] = React.useState("Dinheiro");
   const [saving, setSaving] = React.useState(false);
@@ -180,7 +180,7 @@ export function PaymentSecretaryModal({
               </div>
               <div className="space-y-2">
                  <Label className="text-[10px] uppercase font-bold text-muted-foreground ml-1">Data</Label>
-                  <Input type="date" className="h-10 rounded-md" defaultValue={new Date().toISOString().split('T')[0]} />
+                  <Input type="date" className="h-10 rounded-md" defaultValue={new Date().toISOString().split('T')[0]} readOnly />
               </div>
            </div>
         </div>
