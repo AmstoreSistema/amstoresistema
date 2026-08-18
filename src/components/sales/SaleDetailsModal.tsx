@@ -19,11 +19,19 @@ import {
   History
 } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
-import { getSaleDetails } from "@/lib/sales.functions";
+import { getSaleDetails, registerSalePayment } from "@/lib/sales.functions";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { useRows } from "@/lib/data";
 import { ReceiptModal } from "./ReceiptModal";
-import { PaymentSecretaryModal } from "./PaymentSecretaryModal";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -87,7 +95,7 @@ export function SaleDetailsModal({
       toast.success("Pagamento registrado!");
       setExpandedPaymentId(null);
       setPayAmount("");
-      qc.invalidateQueries(['sale-details', saleId]);
+      qc.invalidateQueries({ queryKey: ['sale-details', saleId] });
     } catch (e: any) {
       toast.error(e.message);
     } finally {
@@ -369,7 +377,7 @@ export function SaleDetailsModal({
                               });
                               toast.success("Pagamento total processado!");
                               setExpandedPaymentId(null);
-                              qc.invalidateQueries(['sale-details', saleId]);
+                              qc.invalidateQueries({ queryKey: ['sale-details', saleId] });
                             } catch (e: any) {
                               toast.error(e.message);
                             } finally {
