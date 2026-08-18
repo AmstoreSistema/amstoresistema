@@ -221,7 +221,10 @@ function CreditPage() {
       <SaleDetailsModal 
         saleId={selectedSaleId}
         isOpen={saleDetailsOpen}
-        onClose={() => setSaleDetailsOpen(false)}
+        onClose={() => {
+          setSaleDetailsOpen(false);
+          setSelectedSaleId(null);
+        }}
       />
     </div>
   );

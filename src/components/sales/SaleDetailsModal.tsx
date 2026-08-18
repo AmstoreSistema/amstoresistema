@@ -578,18 +578,7 @@ export function SaleDetailsModal({
         />
       )}
 
-      {sale && (
-        <PaymentSecretaryModal
-          open={secretaryOpen}
-          onOpenChange={setSecretaryOpen}
-          saleId={sale.id}
-          saleCode={sale.sale_code}
-          clientName={(sale as any)?.client_name || (sale as any)?.clients?.name || "Cliente"}
-          totalAmount={Number(sale.total_amount)}
-          remainingAmount={Math.max(0, Number(sale.total_amount) - Number(sale.paid_amount))}
-          installments={installments}
-        />
-      )}
+      {/* Modal removido em favor da gestão unificada na própria tela */}
     </>
   );
 }
