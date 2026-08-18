@@ -33,12 +33,14 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { brl, dateBR } from "@/lib/format";
 import { useRows } from "@/lib/data";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { useServerFn } from "@tanstack/react-start";
 import { POSModal } from "@/components/sales/POSModal";
 import { SaleInstallmentsModal } from "@/components/sales/SaleInstallmentsModal";
 import { ReceiptModal } from "@/components/sales/ReceiptModal";
 import { SaleDetailsModal } from "@/components/sales/SaleDetailsModal";
+import { getSaleDetails } from "@/lib/sales.functions";
 
 
 
