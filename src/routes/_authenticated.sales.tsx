@@ -68,6 +68,14 @@ function SalesPage() {
   const [receiptOpen, setReceiptOpen] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [selectedSaleId, setSelectedSaleId] = useState<string | null>(null);
+  
+  // Real-time fetching of selected sale for the receipt
+  const fetchSale = useServerFn(getSaleDetails);
+  const { data: selectedSaleDetails } = useQuery({
+    queryKey: ['sale-details', selectedSaleId],
+    queryFn: () => fetchSale({ data: { sale_id: selectedSaleId! } }),
+    enabled: !!selectedSaleId && receiptOpen,
+  });
 
 
   const clientById = useMemo(() => new Map(clients.map((c: any) => [c.id, c])), [clients]);
@@ -329,8 +337,10 @@ function SalesPage() {
       <ReceiptModal 
         open={receiptOpen}
         onOpenChange={setReceiptOpen}
-        sale={sales.find((s: any) => s.id === selectedSaleId)}
+        sale={selectedSaleDetails?.sale || sales.find((s: any) => s.id === selectedSaleId)}
         client={clientById.get(sales.find((s: any) => s.id === selectedSaleId)?.client_id || "")}
+        installments={selectedSaleDetails?.installments || []}
+        payments={selectedSaleDetails?.payments || []}
       />
       <SaleDetailsModal 
         open={detailsOpen}
