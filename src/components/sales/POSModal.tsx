@@ -207,6 +207,12 @@ export function POSModal({ open, onOpenChange }: { open: boolean; onOpenChange: 
 
   React.useEffect(() => {
     if (items.length > 0 && cashbackConfigs.length > 0) {
+      const normalizeCategory = (value: unknown) => String(value || "")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .trim()
+        .toLowerCase()
+        .replace(/s$/, "");
       let total = 0;
       items.forEach(item => {
         // Cálculo do valor líquido do item (preço * quantidade - desconto do item)
@@ -217,15 +223,14 @@ export function POSModal({ open, onOpenChange }: { open: boolean; onOpenChange: 
         
         // Busca a configuração de cashback para a categoria do produto
         const config = cashbackConfigs.find((c: any) => 
-          c.active && c.category_name === stockItem?.categoria
+          c.active && normalizeCategory(c.category_name) === normalizeCategory(stockItem?.categoria)
         );
         
         if (config) {
           total += (itemTotal * Number(config.cashback_percent)) / 100;
         }
       });
-      // Mantemos o valor com decimais no estado para precisão, mas a exibição brl() cuida da formatação
-      setEstimatedCashback(total);
+      setEstimatedCashback(Number(total.toFixed(2)));
     } else {
       setEstimatedCashback(0);
     }
@@ -707,9 +712,16 @@ export function POSModal({ open, onOpenChange }: { open: boolean; onOpenChange: 
                      </div>
                      <div className="space-y-2 max-h-32 overflow-y-auto pr-2">
                         {installments.map((inst) => (
-                           <div key={inst.number} className="flex justify-between text-[11px] font-bold">
-                              <span className="text-muted-foreground">{inst.number}ª Parcela ({new Date(inst.due_date).toLocaleDateString('pt-BR')})</span>
-                              <span className="text-destructive">{brl(inst.amount)}</span>
+                            <div key={inst.number} className="flex justify-between gap-3 text-[11px] font-bold">
+                               <div>
+                                 <span className="text-muted-foreground">{inst.number}ª Parcela ({new Date(inst.due_date).toLocaleDateString('pt-BR')})</span>
+                                 {estimatedCashback > 0 && finalTotal > 0 && (
+                                   <div className="text-[9px] text-success mt-0.5">
+                                     Libera {brl((estimatedCashback * inst.amount) / finalTotal)} de cashback
+                                   </div>
+                                 )}
+                               </div>
+                               <span className="text-destructive shrink-0">{brl(inst.amount)}</span>
                            </div>
                         ))}
                      </div>
@@ -754,10 +766,13 @@ export function POSModal({ open, onOpenChange }: { open: boolean; onOpenChange: 
                         <p className="text-[9px] uppercase font-bold text-muted-foreground tracking-widest">Total Líquido</p>
                         <h2 className="text-4xl font-display font-black text-gold leading-none">{brl(finalTotal)}</h2>
                      </div>
-                     {client && (
+                     {client && estimatedCashback > 0 && (
                        <div className="text-right mb-1">
                           <p className="text-[8px] uppercase font-bold text-success tracking-tighter">Bônus Cashback</p>
                           <p className="text-sm font-black text-success">+{brl(estimatedCashback)}</p>
+                           <p className="text-[8px] text-muted-foreground mt-0.5">
+                             {isDebt ? "Liberado conforme os pagamentos" : "Liberado ao finalizar"}
+                           </p>
                        </div>
                      )}
                   </div>

@@ -69,6 +69,12 @@ export const createSale = createServerFn({ method: "POST" })
     let calculatedCashbackEarned = data.cashback_earned;
     
     if (calculatedCashbackEarned === 0 && data.items.length > 0 && data.client_id) {
+      const normalizeCategory = (value: unknown) => String(value || "")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .trim()
+        .toLowerCase()
+        .replace(/s$/, "");
       // Get all products in the sale to find their categories
       const productIds = [...new Set(data.items.map(i => i.product_id))];
       const { data: products } = await admin
@@ -89,13 +95,15 @@ export const createSale = createServerFn({ method: "POST" })
             const product = products.find(p => p.id === item.product_id);
             if (!product) continue;
             
-            const config = configs.find(c => c.category_name === product.category);
+            const config = configs.find(c =>
+              normalizeCategory(c.category_name) === normalizeCategory(product.category)
+            );
             if (config) {
               const itemTotal = (item.unit_price * item.quantity) - (item.discount || 0);
               totalEarned += (itemTotal * Number(config.cashback_percent)) / 100;
             }
           }
-          calculatedCashbackEarned = Math.floor(totalEarned);
+          calculatedCashbackEarned = Number(totalEarned.toFixed(2));
         }
       }
     }
