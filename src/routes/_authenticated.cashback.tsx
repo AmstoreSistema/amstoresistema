@@ -10,7 +10,8 @@ import {
   Coins,
   TrendingUp,
   BarChart3,
-  Eraser
+  Eraser,
+  Search
 } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { StatCard } from "@/components/stat-card";
@@ -42,6 +43,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { resetAllCashbacks } from "@/lib/cashback-cleanup.functions";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { NotifyClientsModal } from "@/components/cashback/NotifyClientsModal";
 
 export const Route = createFileRoute("/_authenticated/cashback")({
   head: () => ({
@@ -67,6 +69,7 @@ function CashbackPage() {
   
   const [modalOpen, setModalOpen] = useState(false);
   const [editingConfig, setEditingConfig] = useState<any>(null);
+  const [notifyModalOpen, setNotifyModalOpen] = useState(false);
   
   // Form state
   const [categoryId, setCategoryId] = useState("");
@@ -165,7 +168,11 @@ function CashbackPage() {
           >
             <Eraser className="size-4" /> Zerar Todos os Cashbacks
           </Button>
-          <Button variant="outline" className="gap-2 border-success/30 text-success hover:bg-success/5">
+          <Button 
+            variant="outline" 
+            className="gap-2 border-success/30 text-success hover:bg-success/5"
+            onClick={() => setNotifyModalOpen(true)}
+          >
             <Bell className="size-4" /> Notificar Clientes
           </Button>
           <Button onClick={handleOpenNew} className="gap-2 bg-gradient-gold shadow-gold font-bold">
@@ -325,6 +332,11 @@ function CashbackPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <NotifyClientsModal 
+        open={notifyModalOpen} 
+        onOpenChange={setNotifyModalOpen} 
+      />
     </div>
   );
 }
