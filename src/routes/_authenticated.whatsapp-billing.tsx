@@ -95,25 +95,26 @@ function WhatsAppBillingPage() {
           title="Com Telefone / Total" 
           value={`${metrics.clientsWithPhone} / ${metrics.totalClients}`} 
           icon={Users} 
-          description="Contatos disponíveis"
+          sub="Contatos disponíveis"
         />
         <StatCard 
           title="Com Parcelas Vencidas" 
           value={metrics.clientsWithOverdue.toString()} 
           icon={AlertTriangle} 
-          description="Clientes em atraso"
-          className="text-destructive"
+          sub="Clientes em atraso"
+          tone="destructive"
         />
         <StatCard 
           title="Total a Receber" 
           value={`R$ ${metrics.totalToReceive.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`} 
           icon={Landmark} 
+          tone="gold"
         />
         <StatCard 
           title="Total Vencido" 
           value={`R$ ${metrics.totalOverdueValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`} 
           icon={AlertTriangle} 
-          className="bg-destructive/5"
+          tone="destructive"
         />
       </div>
 
