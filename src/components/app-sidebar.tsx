@@ -120,12 +120,12 @@ const menuGroups: { label: string; items: Item[] }[] = [
   {
     label: "Gestão",
     items: [
-      {
-        title: "Cobrança WhatsApp",
-        url: "/whatsapp-billing",
-        icon: MessageCircle,
-        hint: "Envie lembretes e mensagens",
-      },
+        {
+          title: "Cobrança WhatsApp",
+          url: "/whatsapp-billing",
+          icon: MessageCircle,
+          hint: "Envie lembretes e mensagens",
+        },
           { title: "Cashback", url: "/cashback", icon: Coins },
           { title: "Promoções QR", url: "/promotions", icon: BadgePercent },
           {
