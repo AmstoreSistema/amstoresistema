@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useMemo } from "react";
 import { 
   Dialog, 
   DialogContent, 
@@ -180,34 +180,45 @@ export function TransactionModal({
               <FormField
                 control={form.control}
                 name="category"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Categoria</FormLabel>
-                    <div className="flex gap-2">
-                      <Select onValueChange={field.onChange} value={field.value || "Vendas"}>
-                        <FormControl>
-                          <SelectTrigger className="h-10 rounded-xl border-gray-100 bg-gray-50/50" tabIndex={0}>
-
-                            <SelectValue placeholder="Selecione" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent className="rounded-xl z-[9999]" position="popper" sideOffset={5}>
-                          <SelectItem value="Venda">Venda</SelectItem>
-                          <SelectItem value="Vendas">Vendas</SelectItem>
-                          <SelectItem value="Equipamentos">Equipamentos</SelectItem>
-                          <SelectItem value="Suprimentos">Suprimentos</SelectItem>
-                          <SelectItem value="Pessoal">Pessoal</SelectItem>
-                          <SelectItem value="Marketing">Marketing</SelectItem>
-                          <SelectItem value="Outros">Outros</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <Button type="button" variant="outline" size="icon" className="h-10 w-10 rounded-xl border-gray-100 bg-gray-50/50">
-                        <Plus className="size-4" />
-                      </Button>
-                    </div>
-                    <FormMessage />
-                  </FormItem>
-                )}
+                render={({ field }) => {
+                  // If we have a transaction and it's a purchase/sale, the category is usually fixed
+                  const isSystemTransaction = !!(transaction?.sale_id || transaction?.purchase_id);
+                  
+                  return (
+                    <FormItem>
+                      <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Categoria</FormLabel>
+                      <div className="flex gap-2">
+                        <Select 
+                          onValueChange={field.onChange} 
+                          value={field.value || ""} 
+                          disabled={isSystemTransaction}
+                        >
+                          <FormControl>
+                            <SelectTrigger className="h-10 rounded-xl border-gray-100 bg-gray-50/50" tabIndex={0}>
+                              <SelectValue placeholder="Selecione" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent className="rounded-xl z-[9999]" position="popper" sideOffset={5}>
+                            <SelectItem value="Venda">Venda</SelectItem>
+                            <SelectItem value="Vendas">Vendas</SelectItem>
+                            <SelectItem value="Compra de Materiais">Compra de Materiais</SelectItem>
+                            <SelectItem value="Equipamentos">Equipamentos</SelectItem>
+                            <SelectItem value="Suprimentos">Suprimentos</SelectItem>
+                            <SelectItem value="Pessoal">Pessoal</SelectItem>
+                            <SelectItem value="Marketing">Marketing</SelectItem>
+                            <SelectItem value="Outros">Outros</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        {!isSystemTransaction && (
+                          <Button type="button" variant="outline" size="icon" className="h-10 w-10 rounded-xl border-gray-100 bg-gray-50/50">
+                            <Plus className="size-4" />
+                          </Button>
+                        )}
+                      </div>
+                      <FormMessage />
+                    </FormItem>
+                  );
+                }}
               />
             </div>
 
@@ -232,7 +243,11 @@ export function TransactionModal({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Cliente vinculado</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value || "none"}>
+                    <Select 
+                      onValueChange={field.onChange} 
+                      value={field.value || "none"}
+                      disabled={!!transaction?.sale_id}
+                    >
                       <FormControl>
                         <SelectTrigger className="h-10 rounded-xl border-gray-100 bg-gray-50/50" tabIndex={0}>
                           <SelectValue placeholder="Selecione um cliente (opcional)" />
@@ -256,7 +271,11 @@ export function TransactionModal({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Fornecedor vinculado</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value || "none"}>
+                    <Select 
+                      onValueChange={field.onChange} 
+                      value={field.value || "none"}
+                      disabled={!!transaction?.purchase_id}
+                    >
                       <FormControl>
                         <SelectTrigger className="h-10 rounded-xl border-gray-100 bg-gray-50/50" tabIndex={0}>
                           <SelectValue placeholder="Selecione um fornecedor (opcional)" />
