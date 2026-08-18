@@ -103,8 +103,9 @@ function TransactionsPage() {
       const desc = (t.description || "").toLowerCase();
       const type = (t.type || "").toLowerCase();
       const client = (t.clients?.name || "").toLowerCase();
+      const supplier = (t.suppliers?.name || t.supplier_name || "").toLowerCase();
       const search = term.toLowerCase();
-      return desc.includes(search) || type.includes(search) || client.includes(search);
+      return desc.includes(search) || type.includes(search) || client.includes(search) || supplier.includes(search);
     });
   }, [transactions, term]);
 
