@@ -275,11 +275,15 @@ function TransactionsPage() {
                               </Badge>
                            </div>
                            
-                           {t.clients?.name && (
+                           {t.clients?.name ? (
                              <div className="mt-0.5">
                                <p className="text-sm font-bold text-gray-900">{t.clients.name}</p>
                              </div>
-                           )}
+                           ) : (t.suppliers?.name || t.supplier_name) ? (
+                             <div className="mt-0.5">
+                               <p className="text-sm font-bold text-gray-900">{t.suppliers?.name || t.supplier_name}</p>
+                             </div>
+                           ) : null}
 
                            <div className="flex items-center gap-2 mt-1">
                               <span className="text-[10px] text-muted-foreground font-normal uppercase tracking-tight">
