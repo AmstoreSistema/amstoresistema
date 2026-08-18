@@ -315,6 +315,12 @@ function AccountsPage() {
                             <CheckCircle2 className="size-4" /> Tornar Única Ativa
                           </DropdownMenuItem>
                         )}
+                        <DropdownMenuItem 
+                          onClick={() => handleDelete(account)}
+                          className="rounded-xl gap-2 text-destructive"
+                        >
+                          <Trash2 className="size-4" /> Excluir Conta
+                        </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </div>
