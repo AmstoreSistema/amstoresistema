@@ -79,12 +79,12 @@ export const updateTransaction = createServerFn({ method: "POST" })
 
     // Sync account balance
     const newAmount = data.type === "saida" ? -Math.abs(data.amount) : Math.abs(data.amount);
-    const diff = (data.status === 'pago' ? newAmount : 0) - (oldTx.status === 'pago' ? oldTx.amount : 0);
+    const diff = (data.status === 'pago' ? newAmount : 0) - (oldTx.status === 'pago' ? Number(oldTx.amount) : 0);
     
-    if (diff !== 0) {
-      const { data: account } = await admin.from("financial_accounts").select("current_balance").eq("id", data.account_id).single();
+    if (diff !== 0 && oldTx.account_id) {
+      const { data: account } = await admin.from("financial_accounts").select("current_balance").eq("id", oldTx.account_id).single();
       if (account) {
-        await admin.from("financial_accounts").update({ current_balance: Number(account.current_balance) + diff }).eq("id", data.account_id);
+        await admin.from("financial_accounts").update({ current_balance: Number(account.current_balance) + diff }).eq("id", oldTx.account_id);
       }
     }
 
@@ -110,8 +110,8 @@ export const updateTransactionStatus = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
 
     // If status changed from/to 'pago', update balance
-    if (oldTx.status !== data.status && (oldTx.status === 'pago' || data.status === 'pago')) {
-      const diff = data.status === 'pago' ? oldTx.amount : -oldTx.amount;
+    if (oldTx.status !== data.status && (oldTx.status === 'pago' || data.status === 'pago') && oldTx.account_id) {
+      const diff = data.status === 'pago' ? Number(oldTx.amount) : -Number(oldTx.amount);
       const { data: account } = await admin.from("financial_accounts").select("current_balance").eq("id", oldTx.account_id).single();
       if (account) {
         await admin.from("financial_accounts").update({ current_balance: Number(account.current_balance) + diff }).eq("id", oldTx.account_id);
@@ -137,10 +137,10 @@ export const deleteTransaction = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
 
     // Update account balance if transaction was 'pago'
-    if (tx.status === 'pago') {
+    if (tx.status === 'pago' && tx.account_id) {
       const { data: account } = await admin.from("financial_accounts").select("current_balance").eq("id", tx.account_id).single();
       if (account) {
-        await admin.from("financial_accounts").update({ current_balance: Number(account.current_balance) - tx.amount }).eq("id", tx.account_id);
+        await admin.from("financial_accounts").update({ current_balance: Number(account.current_balance) - Number(tx.amount) }).eq("id", tx.account_id);
       }
     }
 
