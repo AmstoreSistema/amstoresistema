@@ -120,7 +120,7 @@ export function NotifyClientsModal({ open, onOpenChange }: NotifyClientsModalPro
                           <Phone className="size-3" />
                           <span>{client.phone || "Sem telefone"}</span>
                         </div>
-                        <span>{format(new Date(client.updated_at), "dd MMM", { locale: ptBR })}</span>
+                        <span>{client.updated_at ? format(new Date(client.updated_at), "dd MMM", { locale: ptBR }) : ""}</span>
                       </div>
                     </div>
                   ))
