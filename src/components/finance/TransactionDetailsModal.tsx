@@ -62,10 +62,11 @@ export function TransactionDetailsModal({
 
   if (!transaction) return null;
 
+  const isExpense = transaction?.type === 'saida' || transaction?.type === 'expense';
   const sale = saleData?.sale as any;
   const items = saleData?.items || [];
-  const clientName = transaction.clients?.name || sale?.clients?.name || (transaction.supplier_id || transaction.purchase_id ? null : "Consumidor");
-  const supplierName = transaction.suppliers?.name || transaction.supplier_name || purchaseData?.purchase?.suppliers?.name || purchaseData?.purchase?.supplier_name || "Fornecedor não identificado";
+  const clientName = (transaction.clients?.name || sale?.clients?.name || (!isExpense && !transaction.purchase_id && !transaction.supplier_id ? "Consumidor" : null));
+  const supplierName = transaction.suppliers?.name || transaction.supplier_name || purchaseData?.purchase?.suppliers?.name || purchaseData?.purchase?.supplier_name;
 
   return (
     <Dialog open={isOpen} onOpenChange={(o) => !o && onClose()}>
