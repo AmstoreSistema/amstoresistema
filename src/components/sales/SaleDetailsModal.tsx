@@ -400,6 +400,9 @@ export function SaleDetailsModal({
                             const isPartial = inst.status === 'parcial' || (Number(inst.paid_amount) > 0 && !isPaid);
                             const isOverdue = !isPaid && new Date(inst.due_date) < new Date();
                             const remaining = Number(inst.remaining_amount ?? (Number(inst.amount) - Number(inst.paid_amount || 0)));
+                            const installmentCashback = Number(sale?.total_amount) > 0
+                              ? (Number(sale?.cashback_earned || 0) * remaining) / Number(sale?.total_amount || 0)
+                              : 0;
                             const isExpanded = expandedPaymentId === inst.id;
 
                             return (
@@ -432,6 +435,11 @@ export function SaleDetailsModal({
                                           </span>
                                         )}
                                       </div>
+                                       {!isPaid && installmentCashback > 0 && (
+                                         <div className="text-[9px] font-bold text-green-600 mt-0.5">
+                                           Este pagamento libera {brl(installmentCashback)} de cashback
+                                         </div>
+                                       )}
                                     </div>
                                   </div>
                                   <div className="flex items-center gap-4">
