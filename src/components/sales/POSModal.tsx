@@ -209,17 +209,23 @@ export function POSModal({ open, onOpenChange }: { open: boolean; onOpenChange: 
     if (items.length > 0 && cashbackConfigs.length > 0) {
       let total = 0;
       items.forEach(item => {
+        // Cálculo do valor líquido do item (preço * quantidade - desconto do item)
         const itemTotal = (item.price * item.quantity) - (item.discount || 0);
+        
+        // Busca o produto no estoque para identificar a categoria
         const stockItem = stockItemsData.find((si: any) => si.id === item.stock_id);
+        
+        // Busca a configuração de cashback para a categoria do produto
         const config = cashbackConfigs.find((c: any) => 
-          c.active && c.material_categories?.name === stockItem?.categoria
+          c.active && c.category_name === stockItem?.categoria
         );
         
         if (config) {
           total += (itemTotal * Number(config.cashback_percent)) / 100;
         }
       });
-      setEstimatedCashback(Math.floor(total));
+      // Mantemos o valor com decimais no estado para precisão, mas a exibição brl() cuida da formatação
+      setEstimatedCashback(total);
     } else {
       setEstimatedCashback(0);
     }
@@ -307,7 +313,7 @@ export function POSModal({ open, onOpenChange }: { open: boolean; onOpenChange: 
         paid_amount: isDebt ? 0 : finalTotal,
         is_debt: isDebt,
         cashback_used: cashbackToUse,
-        cashback_earned: 0,
+        cashback_earned: estimatedCashback,
         notes: notes,
         sale_type: saleType,
         financial_account_id: accountId,
