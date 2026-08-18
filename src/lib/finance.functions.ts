@@ -54,6 +54,11 @@ export const updateTransaction = createServerFn({ method: "POST" })
   }).parse(data))
   .handler(async ({ data }) => {
     const { supabaseAdmin: admin } = await import("@/integrations/supabase/client.server");
+    
+    // Get old transaction for balance diff calculation
+    const { data: oldTx } = await admin.from("transactions").select("*").eq("id", data.id).single();
+    if (!oldTx) throw new Error("Transação não encontrada");
+
     const { error } = await admin
       .from("transactions")
       .update({
@@ -71,6 +76,18 @@ export const updateTransaction = createServerFn({ method: "POST" })
       .eq("id", data.id);
 
     if (error) throw new Error(error.message);
+
+    // Sync account balance
+    const newAmount = data.type === "saida" ? -Math.abs(data.amount) : Math.abs(data.amount);
+    const diff = (data.status === 'pago' ? newAmount : 0) - (oldTx.status === 'pago' ? oldTx.amount : 0);
+    
+    if (diff !== 0) {
+      const { data: account } = await admin.from("financial_accounts").select("current_balance").eq("id", data.account_id).single();
+      if (account) {
+        await admin.from("financial_accounts").update({ current_balance: Number(account.current_balance) + diff }).eq("id", data.account_id);
+      }
+    }
+
     return { success: true };
   });
 
@@ -81,12 +98,26 @@ export const updateTransactionStatus = createServerFn({ method: "POST" })
   }).parse(data))
   .handler(async ({ data }) => {
     const { supabaseAdmin: admin } = await import("@/integrations/supabase/client.server");
+    
+    const { data: oldTx } = await admin.from("transactions").select("*").eq("id", data.id).single();
+    if (!oldTx) throw new Error("Transação não encontrada");
+
     const { error } = await admin
       .from("transactions")
       .update({ status: data.status } as any)
       .eq("id", data.id);
 
     if (error) throw new Error(error.message);
+
+    // If status changed from/to 'pago', update balance
+    if (oldTx.status !== data.status && (oldTx.status === 'pago' || data.status === 'pago')) {
+      const diff = data.status === 'pago' ? oldTx.amount : -oldTx.amount;
+      const { data: account } = await admin.from("financial_accounts").select("current_balance").eq("id", oldTx.account_id).single();
+      if (account) {
+        await admin.from("financial_accounts").update({ current_balance: Number(account.current_balance) + diff }).eq("id", oldTx.account_id);
+      }
+    }
+
     return { success: true };
   });
 
@@ -94,12 +125,25 @@ export const deleteTransaction = createServerFn({ method: "POST" })
   .inputValidator((data) => z.string().parse(data))
   .handler(async ({ data: id }) => {
     const { supabaseAdmin: admin } = await import("@/integrations/supabase/client.server");
+    
+    const { data: tx } = await admin.from("transactions").select("*").eq("id", id).single();
+    if (!tx) throw new Error("Transação não encontrada");
+
     const { error } = await admin
       .from("transactions")
       .delete()
       .eq("id", id);
 
     if (error) throw new Error(error.message);
+
+    // Update account balance if transaction was 'pago'
+    if (tx.status === 'pago') {
+      const { data: account } = await admin.from("financial_accounts").select("current_balance").eq("id", tx.account_id).single();
+      if (account) {
+        await admin.from("financial_accounts").update({ current_balance: Number(account.current_balance) - tx.amount }).eq("id", tx.account_id);
+      }
+    }
+
     return { success: true };
   });
 
