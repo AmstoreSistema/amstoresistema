@@ -89,7 +89,7 @@ function TransactionsPage() {
   const handleUpdateAccountBalance = async () => {
     if (!editingAccount) return;
     try {
-      await updateAccountBalance({ data: { id: editingAccount.id, initial_balance: Number(newBalance) } });
+      await updateAccountBalance({ data: { id: editingAccount.id, current_balance: Number(newBalance) } });
       toast.success("Saldo inicial atualizado");
       setEditingAccount(null);
       qc.invalidateQueries();
