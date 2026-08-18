@@ -313,7 +313,7 @@ export function POSModal({ open, onOpenChange }: { open: boolean; onOpenChange: 
         paid_amount: isDebt ? 0 : finalTotal,
         is_debt: isDebt,
         cashback_used: cashbackToUse,
-        cashback_earned: 0,
+        cashback_earned: estimatedCashback,
         notes: notes,
         sale_type: saleType,
         financial_account_id: accountId,
