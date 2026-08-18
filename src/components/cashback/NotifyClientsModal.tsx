@@ -154,8 +154,8 @@ export function NotifyClientsModal({ open, onOpenChange }: NotifyClientsModalPro
                     </p>
                     <div className="absolute right-3 bottom-2 text-[9px] text-muted-foreground flex items-center gap-1">
                       {format(new Date(), "HH:mm")}
-                      <div className="flex -space-x-1">
-                        <div className="size-3 text-blue-500">✓✓</div>
+                      <div className="flex -space-x-1 font-bold text-blue-500">
+                        ✓✓
                       </div>
                     </div>
                   </div>

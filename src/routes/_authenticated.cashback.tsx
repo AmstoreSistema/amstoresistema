@@ -10,8 +10,7 @@ import {
   Coins,
   TrendingUp,
   BarChart3,
-  Eraser,
-  Search
+  Eraser
 } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { StatCard } from "@/components/stat-card";
