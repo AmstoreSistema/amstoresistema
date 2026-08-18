@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 export const createTransaction = createServerFn({ method: "POST" })
   .inputValidator((data) => z.object({
@@ -157,6 +158,32 @@ export const updateAccountBalance = createServerFn({ method: "POST" })
     const { error } = await admin
       .from("financial_accounts")
       .update({ current_balance: data.current_balance } as any)
+      .eq("id", data.id);
+
+    if (error) throw new Error(error.message);
+    return { success: true };
+  });
+
+export const deleteFinancialAccount = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data) => z.object({ id: z.string() }).parse(data))
+  .handler(async ({ data, context }) => {
+    const { supabaseAdmin: admin } = await import("@/integrations/supabase/client.server");
+    
+    // Check if there are transactions linked to this account
+    const { count, error: countError } = await admin
+      .from("transactions")
+      .select("*", { count: 'exact', head: true })
+      .eq("account_id", data.id);
+
+    if (countError) throw new Error(countError.message);
+    if (count && count > 0) {
+      throw new Error(`Não é possível excluir esta conta pois existem ${count} transações vinculadas a ela. Tente desativá-la em vez de excluir.`);
+    }
+
+    const { error } = await admin
+      .from("financial_accounts")
+      .delete()
       .eq("id", data.id);
 
     if (error) throw new Error(error.message);
