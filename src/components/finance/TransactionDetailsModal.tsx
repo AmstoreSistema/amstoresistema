@@ -62,10 +62,11 @@ export function TransactionDetailsModal({
 
   if (!transaction) return null;
 
+  const isExpense = transaction?.type === 'saida' || transaction?.type === 'expense';
   const sale = saleData?.sale as any;
   const items = saleData?.items || [];
-  const clientName = transaction.clients?.name || sale?.clients?.name || (transaction.supplier_id || transaction.purchase_id ? null : "Consumidor");
-  const supplierName = transaction.suppliers?.name || transaction.supplier_name || purchaseData?.purchase?.suppliers?.name || purchaseData?.purchase?.supplier_name || "Fornecedor não identificado";
+  const clientName = (transaction.clients?.name || sale?.clients?.name || (!isExpense && !transaction.purchase_id && !transaction.supplier_id ? "Consumidor" : null));
+  const supplierName = transaction.suppliers?.name || transaction.supplier_name || purchaseData?.purchase?.suppliers?.name || purchaseData?.purchase?.supplier_name;
 
   return (
     <Dialog open={isOpen} onOpenChange={(o) => !o && onClose()}>
@@ -240,7 +241,7 @@ export function TransactionDetailsModal({
 
               {/* Bottom Metadata Grid */}
               <div className="grid grid-cols-2 gap-3">
-                {clientName && (
+                {isRevenue && clientName && (
                   <div className="bg-white p-3 rounded-xl border border-gray-100 flex items-center gap-2">
                     <div className="size-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
                       <User className="size-4" />
@@ -252,7 +253,7 @@ export function TransactionDetailsModal({
                   </div>
                 )}
                 
-                {(!clientName && supplierName && (transaction.supplier_id || transaction.purchase_id)) && (
+                {isExpense && supplierName && (
                   <div className="bg-white p-3 rounded-xl border border-gray-100 flex items-center gap-2">
                     <div className="size-8 rounded-lg bg-orange-50 text-orange-600 flex items-center justify-center">
                       <Truck className="size-4" />
