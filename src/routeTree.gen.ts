@@ -31,6 +31,7 @@ import { Route as AuthenticatedSalesRouteImport } from './routes/_authenticated.
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated.settings'
 import { Route as AuthenticatedStockRouteImport } from './routes/_authenticated.stock'
 import { Route as AuthenticatedTransactionsRouteImport } from './routes/_authenticated.transactions'
+import { Route as AuthenticatedWhatsappBillingRouteImport } from './routes/_authenticated.whatsapp-billing'
 import { Route as ApiPublicSorteioInfoRouteImport } from './routes/api/public/sorteio-info'
 
 const IndexRoute = IndexRouteImport.update({
@@ -144,6 +145,12 @@ const AuthenticatedTransactionsRoute =
     path: '/transactions',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
+const AuthenticatedWhatsappBillingRoute =
+  AuthenticatedWhatsappBillingRouteImport.update({
+    id: '/whatsapp-billing',
+    path: '/whatsapp-billing',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const ApiPublicSorteioInfoRoute = ApiPublicSorteioInfoRouteImport.update({
   id: '/api/public/sorteio-info',
   path: '/api/public/sorteio-info',
@@ -172,6 +179,7 @@ export interface FileRoutesByFullPath {
   '/settings': typeof AuthenticatedSettingsRoute
   '/stock': typeof AuthenticatedStockRoute
   '/transactions': typeof AuthenticatedTransactionsRoute
+  '/whatsapp-billing': typeof AuthenticatedWhatsappBillingRoute
   '/api/public/sorteio-info': typeof ApiPublicSorteioInfoRoute
 }
 export interface FileRoutesByTo {
@@ -196,6 +204,7 @@ export interface FileRoutesByTo {
   '/settings': typeof AuthenticatedSettingsRoute
   '/stock': typeof AuthenticatedStockRoute
   '/transactions': typeof AuthenticatedTransactionsRoute
+  '/whatsapp-billing': typeof AuthenticatedWhatsappBillingRoute
   '/api/public/sorteio-info': typeof ApiPublicSorteioInfoRoute
 }
 export interface FileRoutesById {
@@ -222,6 +231,7 @@ export interface FileRoutesById {
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/_authenticated/stock': typeof AuthenticatedStockRoute
   '/_authenticated/transactions': typeof AuthenticatedTransactionsRoute
+  '/_authenticated/whatsapp-billing': typeof AuthenticatedWhatsappBillingRoute
   '/api/public/sorteio-info': typeof ApiPublicSorteioInfoRoute
 }
 export interface FileRouteTypes {
@@ -248,6 +258,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/stock'
     | '/transactions'
+    | '/whatsapp-billing'
     | '/api/public/sorteio-info'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -272,6 +283,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/stock'
     | '/transactions'
+    | '/whatsapp-billing'
     | '/api/public/sorteio-info'
   id:
     | '__root__'
@@ -297,6 +309,7 @@ export interface FileRouteTypes {
     | '/_authenticated/settings'
     | '/_authenticated/stock'
     | '/_authenticated/transactions'
+    | '/_authenticated/whatsapp-billing'
     | '/api/public/sorteio-info'
   fileRoutesById: FileRoutesById
 }
@@ -464,6 +477,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedTransactionsRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/whatsapp-billing': {
+      id: '/_authenticated/whatsapp-billing'
+      path: '/whatsapp-billing'
+      fullPath: '/whatsapp-billing'
+      preLoaderRoute: typeof AuthenticatedWhatsappBillingRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/api/public/sorteio-info': {
       id: '/api/public/sorteio-info'
       path: '/api/public/sorteio-info'
@@ -493,6 +513,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
   AuthenticatedStockRoute: typeof AuthenticatedStockRoute
   AuthenticatedTransactionsRoute: typeof AuthenticatedTransactionsRoute
+  AuthenticatedWhatsappBillingRoute: typeof AuthenticatedWhatsappBillingRoute
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
@@ -514,6 +535,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
   AuthenticatedStockRoute: AuthenticatedStockRoute,
   AuthenticatedTransactionsRoute: AuthenticatedTransactionsRoute,
+  AuthenticatedWhatsappBillingRoute: AuthenticatedWhatsappBillingRoute,
 }
 
 const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
