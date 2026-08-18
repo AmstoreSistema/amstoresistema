@@ -35,7 +35,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { PaymentSecretaryModal } from "./PaymentSecretaryModal";
+// Modal de Secretário de Pagamento removido em favor da gestão unificada.
 
 
 export function SaleInstallmentsModal({ 
@@ -65,7 +65,7 @@ export function SaleInstallmentsModal({
     inst: null,
     amount: ""
   });
-  const [secretaryOpen, setSecretaryOpen] = React.useState(false);
+  // const [secretaryOpen, setSecretaryOpen] = React.useState(false); // Removido
 
 
   React.useEffect(() => {
@@ -323,7 +323,7 @@ export function SaleInstallmentsModal({
           <div className="p-6 border-t border-border/40 bg-muted/5 flex gap-3">
              <Button 
                className="flex-1 rounded-xl bg-gold text-black font-black hover:bg-gold/90 gap-2"
-               onClick={() => setSecretaryOpen(true)}
+               onClick={() => toast.info("Use os botões individuais de Quitar/Parcial em cada parcela.")}
                disabled={Number(sale?.paid_amount || 0) >= Number(sale?.total_amount || 0)}
              >
                <Banknote className="size-4" /> Registrar Pagamento
@@ -369,16 +369,7 @@ export function SaleInstallmentsModal({
         </DialogContent>
       </Dialog>
 
-      <PaymentSecretaryModal 
-        open={secretaryOpen}
-        onOpenChange={setSecretaryOpen}
-        saleId={saleId}
-        clientName={sale?.client_name || sale?.clients?.name || "Cliente"}
-        saleCode={sale?.sale_code}
-        totalAmount={Number(sale?.total_amount || 0)}
-        remainingAmount={remainingTotal}
-        installments={installments}
-      />
+      {/* Modal removido */}
     </>
   );
 }
