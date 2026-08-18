@@ -100,6 +100,7 @@ export type Database = {
           active: boolean
           cashback_percent: number
           category_id: string | null
+          category_name: string | null
           created_at: string | null
           id: string
           updated_at: string | null
@@ -108,6 +109,7 @@ export type Database = {
           active?: boolean
           cashback_percent?: number
           category_id?: string | null
+          category_name?: string | null
           created_at?: string | null
           id?: string
           updated_at?: string | null
@@ -116,6 +118,7 @@ export type Database = {
           active?: boolean
           cashback_percent?: number
           category_id?: string | null
+          category_name?: string | null
           created_at?: string | null
           id?: string
           updated_at?: string | null
@@ -124,7 +127,7 @@ export type Database = {
           {
             foreignKeyName: "cashback_config_category_id_fkey"
             columns: ["category_id"]
-            isOneToOne: true
+            isOneToOne: false
             referencedRelation: "material_categories"
             referencedColumns: ["id"]
           },

@@ -80,7 +80,7 @@ export const createSale = createServerFn({ method: "POST" })
         // Get cashback configs
         const { data: configs } = await admin
           .from("cashback_config")
-          .select("cashback_percent, material_categories(name)")
+          .select("cashback_percent, category_name")
           .eq("active", true);
         
         if (configs && configs.length > 0) {
@@ -89,7 +89,7 @@ export const createSale = createServerFn({ method: "POST" })
             const product = products.find(p => p.id === item.product_id);
             if (!product) continue;
             
-            const config = configs.find(c => (c.material_categories as any)?.name === product.category);
+            const config = configs.find(c => c.category_name === product.category);
             if (config) {
               const itemTotal = (item.unit_price * item.quantity) - (item.discount || 0);
               totalEarned += (itemTotal * Number(config.cashback_percent)) / 100;
