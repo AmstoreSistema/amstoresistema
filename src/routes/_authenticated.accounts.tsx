@@ -12,10 +12,13 @@ import {
   XCircle,
   TrendingUp,
   TrendingDown,
-  DollarSign
+  DollarSign,
+  Trash2
 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { useServerFn } from "@tanstack/react-start";
+import { deleteFinancialAccount } from "@/lib/finance.functions";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -91,6 +94,7 @@ function AccountsPage() {
   const qc = useQueryClient();
   const { data: accounts = [], isLoading } = useRows("financial_accounts", { order: { column: "name", ascending: true } });
   const save = useSaveRow("financial_accounts", "conta financeira");
+  const deleteAccountFn = useServerFn(deleteFinancialAccount);
   
   const [open, setOpen] = useState(false);
   const [transferOpen, setTransferOpen] = useState(false);
@@ -168,6 +172,18 @@ function AccountsPage() {
       id: account.id,
       values: { active: !account.active }
     });
+  };
+
+  const handleDelete = async (account: any) => {
+    if (!confirm(`Deseja realmente excluir a conta "${account.name}"? Esta ação não pode ser desfeita.`)) return;
+    
+    try {
+      await deleteAccountFn({ data: { id: account.id } });
+      toast.success("Conta excluída com sucesso");
+      qc.invalidateQueries();
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao excluir conta");
+    }
   };
 
   const getAccountIcon = (type: string) => {
