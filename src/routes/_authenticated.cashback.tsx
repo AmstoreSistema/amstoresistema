@@ -55,10 +55,9 @@ export const Route = createFileRoute("/_authenticated/cashback")({
 
 function CashbackPage() {
   const { data: configs = [], isLoading } = useRows<any>("cashback_config", {
-    select: "*, material_categories(name)",
-    order: { column: "material_categories(name)", ascending: true }
+    order: { column: "category_name", ascending: true }
   });
-  const { data: categories = [] } = useRows<any>("material_categories");
+  const PRODUCT_CATEGORIES = ["Bolsa", "Sandálias", "Carteiras", "perfumes"];
   
   const queryClient = useQueryClient();
   const resetAllCashbacksFn = useServerFn(resetAllCashbacks);
@@ -89,7 +88,7 @@ function CashbackPage() {
 
   const handleEdit = (config: any) => {
     setEditingConfig(config);
-    setCategoryId(config.category_id);
+    setCategoryId(config.category_name);
     setPercent(config.cashback_percent.toString());
     setIsActive(config.active);
     setModalOpen(true);
@@ -113,7 +112,7 @@ function CashbackPage() {
       await save.mutateAsync({
         id: editingConfig?.id,
         values: {
-          category_id: categoryId,
+          category_name: categoryId, // categoryId variable actually holds the category name string here
           cashback_percent: Number(percent),
           active: isActive
         }
@@ -222,7 +221,7 @@ function CashbackPage() {
               <div className="flex items-center justify-between p-6">
                 <div className="space-y-4">
                   <div className="flex items-center gap-2">
-                    <h3 className="font-black text-xl">{config.material_categories?.name}</h3>
+                    <h3 className="font-black text-xl">{config.category_name}</h3>
                     <Badge variant={config.active ? "default" : "secondary"} className={cn("h-5 rounded-md px-1.5 font-bold text-[9px] uppercase tracking-wider", config.active ? "bg-success hover:bg-success/90" : "")}>
                       {config.active ? "Ativo" : "Inativo"}
                     </Badge>
@@ -278,14 +277,14 @@ function CashbackPage() {
           <div className="grid gap-6 py-4">
             <div className="space-y-2">
               <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground ml-1">Categoria de Produto</Label>
-              <Select value={categoryId} onValueChange={setCategoryId} disabled={!!editingConfig}>
+              <Select value={categoryId} onValueChange={setCategoryId}>
                 <SelectTrigger className="h-12 rounded-2xl bg-muted/30 border-none font-bold">
                   <SelectValue placeholder="Selecione a categoria" />
                 </SelectTrigger>
                 <SelectContent className="rounded-2xl border-none shadow-xl">
-                  {categories.map((cat: any) => (
-                    <SelectItem key={cat.id} value={cat.id} className="rounded-xl font-medium">
-                      {cat.name}
+                  {PRODUCT_CATEGORIES.map((cat: string) => (
+                    <SelectItem key={cat} value={cat} className="rounded-xl font-medium">
+                      {cat}
                     </SelectItem>
                   ))}
                 </SelectContent>
