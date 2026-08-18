@@ -29,13 +29,17 @@ export function ReceiptModal({
   onOpenChange, 
   sale,
   client,
-  isPreview = false
+  isPreview = false,
+  installments = [],
+  payments = []
 }: { 
   open: boolean; 
   onOpenChange: (open: boolean) => void;
   sale: any;
   client: any;
   isPreview?: boolean;
+  installments?: any[];
+  payments?: any[];
 }) {
   const receiptRef = React.useRef<HTMLDivElement>(null);
   const qrcodeRef = React.useRef<HTMLDivElement>(null);
@@ -281,17 +285,64 @@ export function ReceiptModal({
                   <div className="flex justify-between font-bold border-2 border-black p-1 text-center my-1">
                     <span className="w-full">VENDA A PRAZO (FIADO)</span>
                   </div>
-                  <div className="flex justify-between text-[10px]">
+                  
+                  {/* --- HISTÓRICO DE PAGAMENTOS / FIADO --- */}
+                  {(payments.length > 0 || (displaySale.paid_amount > 0 && payments.length === 0)) && (
+                    <div className="mt-2 space-y-1 border-t border-dashed border-black pt-2">
+                      <p className="font-bold text-[10px] text-center mb-1">HISTÓRICO DE PAGAMENTOS / FIADO</p>
+                      
+                      <div className="flex justify-between text-[9px]">
+                        <span>Total Original:</span>
+                        <span>{brl(subtotal)}</span>
+                      </div>
+
+                      <div className="space-y-0.5 my-1">
+                        {payments.map((pay: any, idx: number) => (
+                          <div key={idx} className="flex justify-between text-[9px] italic">
+                            <span>{new Date(pay.created_at).toLocaleDateString('pt-BR')} ({pay.payment_method}):</span>
+                            <span>{brl(pay.amount)}</span>
+                          </div>
+                        ))}
+                        {payments.length === 0 && displaySale.paid_amount > 0 && (
+                           <div className="flex justify-between text-[9px] italic">
+                            <span>Pagamento Inicial:</span>
+                            <span>{brl(displaySale.paid_amount)}</span>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="border-t border-dotted border-black my-1" />
+                      
+                      <div className="flex justify-between text-[10px] font-bold">
+                        <span>Total Já Pago:</span>
+                        <span>{brl(displaySale.paid_amount || 0)}</span>
+                      </div>
+                      <div className="flex justify-between text-[10px] font-bold">
+                        <span>Saldo Devedor:</span>
+                        <span>{brl(Math.max(0, (displaySale.total_amount || 0) - (displaySale.paid_amount || 0)))}</span>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="flex justify-between text-[10px] mt-2">
                     <span>Status:</span>
-                    <span className="font-bold">PENDENTE</span>
+                    <span className="font-bold">
+                      {displaySale.status === 'paid' || displaySale.status === 'pago' 
+                        ? 'QUITADO' 
+                        : (displaySale.paid_amount > 0 ? 'PARCIALMENTE PAGO' : 'PENDENTE')}
+                    </span>
                   </div>
-                  {(displaySale.installments?.length > 0 || displaySale.parcelas?.length > 0) && (
+
+                  {(installments.length > 0 || displaySale.installments?.length > 0 || displaySale.parcelas?.length > 0) && (
                     <div className="mt-2 space-y-1 border-t border-dashed border-black pt-1">
                       <p className="font-bold text-[9px]">PLANO DE PARCELAMENTO:</p>
-                      {(displaySale.installments || displaySale.parcelas).map((inst: any, idx: number) => (
+                      {(installments.length > 0 ? installments : (displaySale.installments || displaySale.parcelas)).map((inst: any, idx: number) => (
                         <div key={idx} className="flex justify-between text-[9px]">
                           <span>{inst.installment_number || inst.number || (idx + 1)}ª Parcela ({new Date(inst.due_date).toLocaleDateString('pt-BR')}):</span>
-                          <span>{brl(inst.amount)}</span>
+                          <span>
+                            {brl(inst.amount)} 
+                            {inst.status === 'paid' || inst.status === 'pago' ? ' (PAGO)' : ''}
+                          </span>
                         </div>
                       ))}
                     </div>

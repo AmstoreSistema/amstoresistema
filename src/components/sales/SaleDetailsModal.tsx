@@ -574,7 +574,9 @@ export function SaleDetailsModal({
             })),
             installments
           }}
-          client={null} // We'd need to fetch client details or pass them if available
+          client={data?.sale?.clients || null}
+          installments={installments}
+          payments={payments}
         />
       )}
 
