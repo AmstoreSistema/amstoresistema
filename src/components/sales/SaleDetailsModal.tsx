@@ -401,7 +401,7 @@ export function SaleDetailsModal({
                             const isOverdue = !isPaid && new Date(inst.due_date) < new Date();
                             const remaining = Number(inst.remaining_amount ?? (Number(inst.amount) - Number(inst.paid_amount || 0)));
                             const installmentCashback = Number(sale?.total_amount) > 0
-                              ? (Number(sale?.cashback_earned || 0) * remaining) / Number(sale.total_amount)
+                              ? (Number(sale?.cashback_earned || 0) * remaining) / Number(sale?.total_amount || 0)
                               : 0;
                             const isExpanded = expandedPaymentId === inst.id;
 
