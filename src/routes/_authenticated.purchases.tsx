@@ -168,6 +168,7 @@ function PurchasesPage() {
         due_date: new Date().toISOString(),
         client_id: null,
         supplier_id: supplierId || null,
+        supplier_name: supplierName,
         purchase_id: purchase.id
       } as any);
 

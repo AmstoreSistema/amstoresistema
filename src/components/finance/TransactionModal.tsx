@@ -98,7 +98,7 @@ export function TransactionModal({
         payment_method: transaction.payment_method || "Dinheiro",
         observations: transaction.observations || "",
         client_id: transaction.client_id || null,
-        supplier_id: transaction.supplier_id || null,
+        supplier_id: transaction.supplier_id || transaction.purchase_id ? (transaction.supplier_id || suppliers.find((s: any) => s.name === transaction.supplier_name)?.id) : null,
       });
     } else if (!isEditing && isOpen) {
       form.reset({
