@@ -7,7 +7,9 @@ import {
   Landmark, 
   MessageCircle,
   Filter,
-  CheckSquare
+  CheckCircle2,
+  Calendar,
+  PhoneOff
 } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { StatCard } from "@/components/stat-card";
@@ -15,7 +17,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
-import { useState } from "react";
+import { Badge } from "@/components/ui/badge";
+import { useState, useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { getDebtorsData } from "@/lib/whatsapp-billing.functions";
+import { SendBillingModal } from "@/components/billing/SendBillingModal";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/whatsapp-billing")({
@@ -23,7 +32,47 @@ export const Route = createFileRoute("/_authenticated/whatsapp-billing")({
 });
 
 function WhatsAppBillingPage() {
-  const [filter, setFilter] = useState("all");
+  const [filter, setFilter] = useState("todos");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedDebtor, setSelectedDebtor] = useState<any>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const getDebtorsFn = useServerFn(getDebtorsData);
+  const { data, isLoading } = useQuery({
+    queryKey: ["whatsapp-billing-data"],
+    queryFn: () => getDebtorsFn()
+  });
+
+  const debtors = data?.debtors || [];
+  const metrics = data?.metrics || {
+    totalClients: 0,
+    clientsWithPhone: 0,
+    clientsWithOverdue: 0,
+    totalToReceive: 0,
+    totalOverdueValue: 0
+  };
+
+  const filteredDebtors = useMemo(() => {
+    return debtors.filter((d: any) => {
+      const matchesSearch = d.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                           (d.phone && d.phone.includes(searchTerm));
+      
+      if (!matchesSearch) return false;
+
+      if (filter === "vencidos") return d.totalOverdue > 0;
+      if (filter === "a vencer") return d.totalOverdue === 0 && d.totalDue > 0;
+      
+      return true;
+    });
+  }, [debtors, searchTerm, filter]);
+
+  const clientsWithoutPhone = debtors.filter((d: any) => !d.phone).length;
+
+  const handleOpenBilling = (debtor: any) => {
+    setSelectedDebtor(debtor);
+    setIsModalOpen(true);
+  };
+
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
