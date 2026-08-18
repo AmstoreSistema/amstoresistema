@@ -29,7 +29,7 @@ function WhatsAppBillingPage() {
     <div className="space-y-6 animate-in fade-in duration-500">
       <PageHeader 
         title="Cobrança WhatsApp" 
-        subtitle="Gerencie lembretes de pagamento e cobranças pendentes."
+        description="Gerencie lembretes de pagamento e cobranças pendentes."
       />
 
       {/* Warning Alert */}
