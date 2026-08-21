@@ -75,13 +75,9 @@ function AuthenticatedLayout() {
         <AppSidebar />
 
         <div className="flex min-w-0 flex-1 flex-col">
-          <header className="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-border bg-card/80 px-4 backdrop-blur-md">
-            <SidebarTrigger />
-            <div className="hidden items-center gap-2 rounded-lg border border-border bg-background px-3 py-1.5 text-sm text-muted-foreground md:flex">
-              <Search className="size-4" />
-              <span className="text-xs font-bold uppercase tracking-widest text-gold/80">Amstore BAGSHOES</span>
-            </div>
-            <div className="flex-1" />
+          <header className="sticky top-0 z-20 flex h-20 items-center gap-3 border-b border-border bg-card/80 px-4 backdrop-blur-md">
+            <CollapseButton />
+            <HeaderBrand />
             <div className="hidden text-right sm:block">
               <p className="text-xs font-semibold leading-tight">{role}</p>
               <p className="max-w-[180px] truncate text-[11px] text-muted-foreground">{email}</p>
