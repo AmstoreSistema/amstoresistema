@@ -168,7 +168,7 @@ export function AppSidebar() {
             </div>
           </div>
         ) : (
-          <HeaderBrand />
+          <BrandBlock storeLogo={storeLogo} />
         )}
       </SidebarHeader>
 
