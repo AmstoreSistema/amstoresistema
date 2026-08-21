@@ -65,7 +65,7 @@ function BrandBlock({ storeLogo }: { storeLogo: string }) {
           src={storeLogo}
           alt="Amstore Bagshoes"
           onError={() => setBroken(true)}
-          className="mt-2 h-10 w-auto max-w-[150px] object-contain"
+          className="mt-2 h-10 w-auto max-w-[150px] object-contain invert"
         />
       ) : (
         <div className="mt-2 flex items-center gap-2">
@@ -150,6 +150,7 @@ const menuGroups: { label: string; items: Item[] }[] = [
         icon: Store,
         items: [
           { title: "Painel de controle", url: "/store", icon: Store },
+          { title: "Relatórios", url: "/store-reports", icon: PieChart },
           { title: "Vendas", url: "/sales", icon: ShoppingCart },
           { title: "Clientes", url: "/clients", icon: Users },
           { title: "Fiado", url: "/credit", icon: HandCoins },
