@@ -259,6 +259,8 @@ function SettingsPage() {
     reader.onload = async (event) => {
       try {
         const payload = JSON.parse(event.target?.result as string);
+        console.log("[Import] Objeto JSON carregado:", payload);
+        
         const isNative = !!payload?.data && !!payload?.version;
 
         if (isNative) {
@@ -277,12 +279,19 @@ function SettingsPage() {
           const counts = Object.fromEntries(
             Object.entries(info.collections as Record<string, number>).filter(([, n]) => n > 0),
           );
-          if (Object.keys(counts).length === 0) {
-            toast.error(
-              "Não encontramos clientes, produtos, fornecedores, materiais, categorias ou transações neste arquivo.",
-            );
+          
+          const hasData = Object.keys(counts).length > 0;
+          const hasSkipped = Object.keys(info.skipped as Record<string, number>).length > 0;
+
+          if (!hasData && !hasSkipped) {
+            toast.error("Este arquivo parece estar vazio ou não contém dados estruturados.");
             return;
           }
+
+          if (!hasData) {
+            toast.warning("Não identificamos tabelas conhecidas, mas encontramos outras coleções no arquivo.");
+          }
+
           setImportDialog({
             open: true,
             payload,
@@ -294,6 +303,7 @@ function SettingsPage() {
         } catch (error: any) {
           toast.error(`Erro ao analisar backup: ${error?.message ?? "falha desconhecida"}`);
         } finally {
+          setSaving(true); // Manter saving como true para evitar múltiplos cliques enquanto processa, mas as funções acima já lidam com isso
           setSaving(false);
         }
       } catch (error) {

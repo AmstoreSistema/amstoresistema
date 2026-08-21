@@ -217,12 +217,22 @@ const stockQty = (row: any) =>
 /** Encontra todas as coleções de registros dentro de um payload de formato desconhecido. */
 export function extractAllCollections(payload: any): Collections {
   const out: Collections = {};
+  
+  if (Array.isArray(payload)) {
+    // Se for um array direto, tentamos inferir o que é ou apenas jogamos numa chave genérica
+    if (payload.length > 0 && typeof payload[0] === "object") {
+      out["root_array"] = payload;
+    }
+    return out;
+  }
+
   const visit = (node: any, depth: number) => {
     if (!node || typeof node !== "object" || depth > 4) return;
     if (Array.isArray(node)) return;
+    
     for (const [key, value] of Object.entries(node)) {
       if (Array.isArray(value)) {
-        if (value.some((r) => r && typeof r === "object" && !Array.isArray(r))) {
+        if (value.length > 0 && value.some((r) => r && typeof r === "object" && !Array.isArray(r))) {
           out[key] = (out[key] ?? []).concat(value.filter((r) => r && typeof r === "object"));
         }
       } else if (value && typeof value === "object") {
@@ -230,6 +240,7 @@ export function extractAllCollections(payload: any): Collections {
       }
     }
   };
+  
   visit(payload, 0);
   return out;
 }
