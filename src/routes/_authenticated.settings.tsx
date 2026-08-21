@@ -314,9 +314,8 @@ function SettingsPage() {
     }
 
     const payload = importDialog.payload;
-    const tables = [...importDialog.selected].sort(
-      (a, b) => IMPORT_ORDER.indexOf(a) - IMPORT_ORDER.indexOf(b),
-    );
+    const orderOf = (t: string) => (IMPORT_ORDER.indexOf(t) === -1 ? 99 : IMPORT_ORDER.indexOf(t));
+    const tables = [...importDialog.selected].sort((a, b) => orderOf(a) - orderOf(b));
 
     // Fecha o diálogo para que a barra de progresso fique visível durante a restauração.
     closeImportDialog();
