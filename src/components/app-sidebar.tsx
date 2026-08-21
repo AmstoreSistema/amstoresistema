@@ -65,7 +65,7 @@ function BrandBlock({ storeLogo }: { storeLogo: string }) {
           src={storeLogo}
           alt="Amstore Bagshoes"
           onError={() => setBroken(true)}
-          className="mt-2 h-10 w-auto max-w-[150px] object-contain"
+          className="mt-2 h-10 w-auto max-w-[150px] object-contain invert"
         />
       ) : (
         <div className="mt-2 flex items-center gap-2">
