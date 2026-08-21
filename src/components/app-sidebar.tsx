@@ -228,7 +228,7 @@ export function AppSidebar() {
             >
               <ChevronRight className="size-5" />
             </Button>
-            <div className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-gold/40 bg-black shadow-lg shadow-gold/10">
+            <div className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-gold/40 bg-white shadow-lg shadow-gold/10">
               <img src={symbolAsset.url} alt="Logo" className="size-full object-contain p-1.5" />
             </div>
           </div>
