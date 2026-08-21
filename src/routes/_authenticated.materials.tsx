@@ -123,6 +123,32 @@ function MaterialsPage() {
   const [supplierDialogOpen, setSupplierDialogOpen] = useState(false);
   const [newSupplierName, setNewSupplierName] = useState("");
 
+  // Selection / bulk delete
+  const queryClient = useQueryClient();
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
+
+  const toggleSelected = (id: string) =>
+    setSelectedIds(prev => (prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]));
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.length === 0) return;
+    setBulkDeleting(true);
+    try {
+      const { error } = await supabase.from("materials").delete().in("id", selectedIds);
+      if (error) throw error;
+      toast.success(`${selectedIds.length} material(is) excluído(s)`);
+      setSelectedIds([]);
+      setBulkDeleteOpen(false);
+      await queryClient.invalidateQueries();
+    } catch (e: any) {
+      toast.error(e?.message ?? "Erro ao excluir materiais");
+    } finally {
+      setBulkDeleting(false);
+    }
+  };
+
   // Variations states
   const [variationsOpen, setVariationsOpen] = useState(false);
   const [activeMaterial, setActiveMaterial] = useState<Material | null>(null);
