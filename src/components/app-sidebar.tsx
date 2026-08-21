@@ -218,7 +218,7 @@ export function AppSidebar() {
           </div>
         )}
         {collapsed ? (
-          <div className="flex flex-col items-center justify-center gap-2 py-4">
+          <div className="flex flex-col items-center justify-center gap-4 py-4">
             <Button
               variant="ghost"
               size="icon"
@@ -227,11 +227,11 @@ export function AppSidebar() {
             >
               <ChevronRight className="size-5" />
             </Button>
-            <div className="flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-gold/20 bg-gradient-gold shadow-gold">
+            <div className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-gold/40 bg-black shadow-lg shadow-gold/10">
               {storeLogo ? (
-                <img src={storeLogo} alt="Logo" className="size-full object-cover" />
+                <img src={storeLogo} alt="Logo" className="size-full object-contain p-1" />
               ) : (
-                <Store className="size-5" />
+                <Store className="size-5 text-gold" />
               )}
             </div>
           </div>
