@@ -30,6 +30,7 @@ import {
 import * as React from "react";
 import { useRows } from "@/lib/data";
 import logoAsset from "@/assets/store-logo.png.asset.json";
+import symbolAsset from "@/assets/amstore-symbol.png.asset.json";
 import { Button } from "@/components/ui/button";
 
 function BrandBlock({ storeLogo }: { storeLogo: string }) {
@@ -228,11 +229,7 @@ export function AppSidebar() {
               <ChevronRight className="size-5" />
             </Button>
             <div className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-gold/40 bg-black shadow-lg shadow-gold/10">
-              {storeLogo ? (
-                <img src={storeLogo} alt="Logo" className="size-full object-contain p-1" />
-              ) : (
-                <Store className="size-5 text-gold" />
-              )}
+              <img src={symbolAsset.url} alt="Logo" className="size-full object-contain p-1.5" />
             </div>
           </div>
         ) : (
