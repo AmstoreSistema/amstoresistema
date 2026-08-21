@@ -158,19 +158,20 @@ function PurchasesPage() {
         })
         .join(", ");
 
-      await supabase.from("transactions").insert({
-        amount: -Math.abs(total),
+      const { error: txError } = await supabase.from("transactions").insert({
+        amount: Math.abs(total),
         type: "saida",
         description: `Compra: ${itemsSummary}`,
         account_id: activeAccount.id,
         category: "Compra de Materiais",
         status: "pago",
-        due_date: new Date().toISOString(),
+        due_date: new Date().toISOString().split('T')[0],
         client_id: null,
         supplier_id: supplierId || null,
-        supplier_name: supplierName,
         purchase_id: purchase.id
       } as any);
+
+      if (txError) throw txError;
 
       await logAudit("compra", "purchases", `Compra recebida: ${supplierName} - Total ${brl(total)}`, purchase.id);
       
