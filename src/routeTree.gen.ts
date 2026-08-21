@@ -32,6 +32,7 @@ import { Route as AuthenticatedReportsRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedSalesRouteImport } from './routes/_authenticated.sales'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated.settings'
 import { Route as AuthenticatedStockRouteImport } from './routes/_authenticated.stock'
+import { Route as AuthenticatedStoreRouteImport } from './routes/_authenticated.store'
 import { Route as AuthenticatedTransactionsRouteImport } from './routes/_authenticated.transactions'
 import { Route as AuthenticatedWhatsappBillingRouteImport } from './routes/_authenticated.whatsapp-billing'
 import { Route as ApiPublicSorteioInfoRouteImport } from './routes/api/public/sorteio-info'
@@ -151,6 +152,11 @@ const AuthenticatedStockRoute = AuthenticatedStockRouteImport.update({
   path: '/stock',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedStoreRoute = AuthenticatedStoreRouteImport.update({
+  id: '/store',
+  path: '/store',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 const AuthenticatedTransactionsRoute =
   AuthenticatedTransactionsRouteImport.update({
     id: '/transactions',
@@ -192,6 +198,7 @@ export interface FileRoutesByFullPath {
   '/sales': typeof AuthenticatedSalesRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/stock': typeof AuthenticatedStockRoute
+  '/store': typeof AuthenticatedStoreRoute
   '/transactions': typeof AuthenticatedTransactionsRoute
   '/whatsapp-billing': typeof AuthenticatedWhatsappBillingRoute
   '/api/public/sorteio-info': typeof ApiPublicSorteioInfoRoute
@@ -219,6 +226,7 @@ export interface FileRoutesByTo {
   '/sales': typeof AuthenticatedSalesRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/stock': typeof AuthenticatedStockRoute
+  '/store': typeof AuthenticatedStoreRoute
   '/transactions': typeof AuthenticatedTransactionsRoute
   '/whatsapp-billing': typeof AuthenticatedWhatsappBillingRoute
   '/api/public/sorteio-info': typeof ApiPublicSorteioInfoRoute
@@ -248,6 +256,7 @@ export interface FileRoutesById {
   '/_authenticated/sales': typeof AuthenticatedSalesRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/_authenticated/stock': typeof AuthenticatedStockRoute
+  '/_authenticated/store': typeof AuthenticatedStoreRoute
   '/_authenticated/transactions': typeof AuthenticatedTransactionsRoute
   '/_authenticated/whatsapp-billing': typeof AuthenticatedWhatsappBillingRoute
   '/api/public/sorteio-info': typeof ApiPublicSorteioInfoRoute
@@ -277,6 +286,7 @@ export interface FileRouteTypes {
     | '/sales'
     | '/settings'
     | '/stock'
+    | '/store'
     | '/transactions'
     | '/whatsapp-billing'
     | '/api/public/sorteio-info'
@@ -304,6 +314,7 @@ export interface FileRouteTypes {
     | '/sales'
     | '/settings'
     | '/stock'
+    | '/store'
     | '/transactions'
     | '/whatsapp-billing'
     | '/api/public/sorteio-info'
@@ -332,6 +343,7 @@ export interface FileRouteTypes {
     | '/_authenticated/sales'
     | '/_authenticated/settings'
     | '/_authenticated/stock'
+    | '/_authenticated/store'
     | '/_authenticated/transactions'
     | '/_authenticated/whatsapp-billing'
     | '/api/public/sorteio-info'
@@ -509,6 +521,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedStockRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/store': {
+      id: '/_authenticated/store'
+      path: '/store'
+      fullPath: '/store'
+      preLoaderRoute: typeof AuthenticatedStoreRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/transactions': {
       id: '/_authenticated/transactions'
       path: '/transactions'
@@ -552,6 +571,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedSalesRoute: typeof AuthenticatedSalesRoute
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
   AuthenticatedStockRoute: typeof AuthenticatedStockRoute
+  AuthenticatedStoreRoute: typeof AuthenticatedStoreRoute
   AuthenticatedTransactionsRoute: typeof AuthenticatedTransactionsRoute
   AuthenticatedWhatsappBillingRoute: typeof AuthenticatedWhatsappBillingRoute
 }
@@ -575,6 +595,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedSalesRoute: AuthenticatedSalesRoute,
   AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
   AuthenticatedStockRoute: AuthenticatedStockRoute,
+  AuthenticatedStoreRoute: AuthenticatedStoreRoute,
   AuthenticatedTransactionsRoute: AuthenticatedTransactionsRoute,
   AuthenticatedWhatsappBillingRoute: AuthenticatedWhatsappBillingRoute,
 }
