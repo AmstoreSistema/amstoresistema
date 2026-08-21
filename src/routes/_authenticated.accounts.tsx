@@ -300,15 +300,18 @@ function AccountsPage() {
                         {!account.active && (
                           <DropdownMenuItem 
                             onClick={async () => {
-                              // Deactivate all others first
-                              const { data: allAccounts } = await supabase.from('financial_accounts').select('id');
-                              if (allAccounts) {
-                                for (const acc of allAccounts) {
-                                  await supabase.from('financial_accounts').update({ active: acc.id === account.id }).eq('id', acc.id);
-                                }
+                              // O gatilho tr_ensure_single_active_account cuidará de desativar as outras
+                              const { error } = await supabase
+                                .from('financial_accounts')
+                                .update({ active: true })
+                                .eq('id', account.id);
+                              
+                              if (error) {
+                                toast.error(error.message);
+                              } else {
+                                qc.invalidateQueries();
+                                toast.success(`Conta "${account.name}" definida como ativa.`);
                               }
-                              qc.invalidateQueries();
-                              toast.success(`Conta "${account.name}" definida como ativa.`);
                             }}
                             className="rounded-xl gap-2 text-gold font-bold"
                           >
