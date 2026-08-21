@@ -23,6 +23,7 @@ import { Route as AuthenticatedClientsRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedCreditRouteImport } from './routes/_authenticated.credit'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated.dashboard'
 import { Route as AuthenticatedLabelsRouteImport } from './routes/_authenticated.labels'
+import { Route as AuthenticatedLiveMetricsRouteImport } from './routes/_authenticated.live-metrics'
 import { Route as AuthenticatedMaterialsRouteImport } from './routes/_authenticated.materials'
 import { Route as AuthenticatedProductionRouteImport } from './routes/_authenticated.production'
 import { Route as AuthenticatedProductsRouteImport } from './routes/_authenticated.products'
@@ -107,6 +108,12 @@ const AuthenticatedLabelsRoute = AuthenticatedLabelsRouteImport.update({
   path: '/labels',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedLiveMetricsRoute =
+  AuthenticatedLiveMetricsRouteImport.update({
+    id: '/live-metrics',
+    path: '/live-metrics',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedMaterialsRoute = AuthenticatedMaterialsRouteImport.update({
   id: '/materials',
   path: '/materials',
@@ -195,6 +202,7 @@ export interface FileRoutesByFullPath {
   '/credit': typeof AuthenticatedCreditRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/labels': typeof AuthenticatedLabelsRoute
+  '/live-metrics': typeof AuthenticatedLiveMetricsRoute
   '/materials': typeof AuthenticatedMaterialsRoute
   '/production': typeof AuthenticatedProductionRoute
   '/products': typeof AuthenticatedProductsRoute
@@ -224,6 +232,7 @@ export interface FileRoutesByTo {
   '/credit': typeof AuthenticatedCreditRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/labels': typeof AuthenticatedLabelsRoute
+  '/live-metrics': typeof AuthenticatedLiveMetricsRoute
   '/materials': typeof AuthenticatedMaterialsRoute
   '/production': typeof AuthenticatedProductionRoute
   '/products': typeof AuthenticatedProductsRoute
@@ -255,6 +264,7 @@ export interface FileRoutesById {
   '/_authenticated/credit': typeof AuthenticatedCreditRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/labels': typeof AuthenticatedLabelsRoute
+  '/_authenticated/live-metrics': typeof AuthenticatedLiveMetricsRoute
   '/_authenticated/materials': typeof AuthenticatedMaterialsRoute
   '/_authenticated/production': typeof AuthenticatedProductionRoute
   '/_authenticated/products': typeof AuthenticatedProductsRoute
@@ -286,6 +296,7 @@ export interface FileRouteTypes {
     | '/credit'
     | '/dashboard'
     | '/labels'
+    | '/live-metrics'
     | '/materials'
     | '/production'
     | '/products'
@@ -315,6 +326,7 @@ export interface FileRouteTypes {
     | '/credit'
     | '/dashboard'
     | '/labels'
+    | '/live-metrics'
     | '/materials'
     | '/production'
     | '/products'
@@ -345,6 +357,7 @@ export interface FileRouteTypes {
     | '/_authenticated/credit'
     | '/_authenticated/dashboard'
     | '/_authenticated/labels'
+    | '/_authenticated/live-metrics'
     | '/_authenticated/materials'
     | '/_authenticated/production'
     | '/_authenticated/products'
@@ -470,6 +483,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedLabelsRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/live-metrics': {
+      id: '/_authenticated/live-metrics'
+      path: '/live-metrics'
+      fullPath: '/live-metrics'
+      preLoaderRoute: typeof AuthenticatedLiveMetricsRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/materials': {
       id: '/_authenticated/materials'
       path: '/materials'
@@ -581,6 +601,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedCreditRoute: typeof AuthenticatedCreditRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedLabelsRoute: typeof AuthenticatedLabelsRoute
+  AuthenticatedLiveMetricsRoute: typeof AuthenticatedLiveMetricsRoute
   AuthenticatedMaterialsRoute: typeof AuthenticatedMaterialsRoute
   AuthenticatedProductionRoute: typeof AuthenticatedProductionRoute
   AuthenticatedProductsRoute: typeof AuthenticatedProductsRoute
@@ -606,6 +627,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedCreditRoute: AuthenticatedCreditRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedLabelsRoute: AuthenticatedLabelsRoute,
+  AuthenticatedLiveMetricsRoute: AuthenticatedLiveMetricsRoute,
   AuthenticatedMaterialsRoute: AuthenticatedMaterialsRoute,
   AuthenticatedProductionRoute: AuthenticatedProductionRoute,
   AuthenticatedProductsRoute: AuthenticatedProductsRoute,
