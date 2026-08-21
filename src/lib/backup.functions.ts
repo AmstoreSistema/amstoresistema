@@ -58,31 +58,58 @@ export const importSystemData = createServerFn({ method: "POST" })
       }
     }
 
-    const results: Record<string, { inserted: number; failed: number; error?: string }> = {};
+    const results: Record<string, { inserted: number; updated: number; failed: number; error?: string }> = {};
     const orderedTables = Object.keys(dataToImport).sort(
       (a, b) =>
         (IMPORT_ORDER.indexOf(a) === -1 ? 99 : IMPORT_ORDER.indexOf(a)) -
         (IMPORT_ORDER.indexOf(b) === -1 ? 99 : IMPORT_ORDER.indexOf(b)),
     );
 
+    // Chaves de conflito para evitar duplicidade em backups externos
+    const CONFLICT_KEYS: Record<string, string> = {
+      clients: "name",
+      products: "sku",
+      suppliers: "name",
+      materials: "name",
+      material_categories: "name",
+      financial_accounts: "name",
+      units_of_measure: "name",
+      promotions: "name",
+    };
+
     for (const table of orderedTables) {
       const rows = dataToImport[table];
       if (!Array.isArray(rows) || rows.length === 0) continue;
 
-      const res = { inserted: 0, failed: 0 } as { inserted: number; failed: number; error?: string };
+      const res = { inserted: 0, updated: 0, failed: 0 } as { inserted: number; updated: number; failed: number; error?: string };
+      const onConflict = CONFLICT_KEYS[table];
 
-      // Tenta em lote; se falhar (constraints/FKs), tenta linha por linha para salvar o máximo possível.
-      const { error: bulkError } = await supabaseAdmin.from(table as any).upsert(rows);
+      // Tenta upsert se houver chave de conflito, senão insert normal
+      const { data, error: bulkError } = await (onConflict 
+        ? supabaseAdmin.from(table as any).upsert(rows, { onConflict, ignoreDuplicates: false })
+        : supabaseAdmin.from(table as any).insert(rows)
+      ).select("id");
+
       if (!bulkError) {
         res.inserted = rows.length;
       } else {
+        // Fallback linha por linha se o lote falhar
         for (const row of rows) {
-          const { error } = await supabaseAdmin.from(table as any).insert(row);
-          if (error) {
+          try {
+            const { error } = await (onConflict
+              ? supabaseAdmin.from(table as any).upsert(row, { onConflict, ignoreDuplicates: false })
+              : supabaseAdmin.from(table as any).insert(row)
+            );
+            
+            if (error) {
+              res.failed += 1;
+              res.error = res.error ?? error.message;
+            } else {
+              res.inserted += 1;
+            }
+          } catch (e: any) {
             res.failed += 1;
-            res.error = res.error ?? error.message;
-          } else {
-            res.inserted += 1;
+            res.error = res.error ?? e.message;
           }
         }
       }
@@ -92,7 +119,7 @@ export const importSystemData = createServerFn({ method: "POST" })
     const totalInserted = Object.values(results).reduce((s, r) => s + r.inserted, 0);
     const totalFailed = Object.values(results).reduce((s, r) => s + r.failed, 0);
 
-    if (totalInserted === 0) {
+    if (totalInserted === 0 && totalFailed > 0) {
       const firstError = Object.values(results).find((r) => r.error)?.error;
       throw new Error(
         `Nenhum registro pôde ser restaurado.${firstError ? ` Motivo: ${firstError}` : ""}`,
