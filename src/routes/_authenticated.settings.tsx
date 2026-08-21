@@ -331,6 +331,8 @@ function SettingsPage() {
 
       for (let i = 0; i < total; i++) {
         const table = tables[i];
+        if (!table) continue;
+        
         const label = backupModules.flatMap(m => m.items).find(item => item.id === table)?.label || table;
 
         // Atualiza o progresso no início de cada tabela
