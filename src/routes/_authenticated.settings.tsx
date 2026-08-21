@@ -405,10 +405,12 @@ function SettingsPage() {
                     <div className="size-24 rounded-2xl bg-muted border-2 border-dashed border-border flex items-center justify-center overflow-hidden shrink-0">
                       {uploadingLogo ? (
                         <Spinner className="size-8 animate-spin text-gold" />
-                      ) : getSettingValue("store_logo") ? (
-                        <img src={getSettingValue("store_logo")} alt="Logo" className="max-h-full max-w-full object-contain p-2" />
                       ) : (
-                        <Store className="size-8 text-muted-foreground/40" />
+                        <img
+                          src={getSettingValue("store_logo") || logoAsset.url}
+                          alt="Logomarca da loja"
+                          className="max-h-full max-w-full object-contain p-2"
+                        />
                       )}
                     </div>
                     <div className="space-y-3 flex-1">
