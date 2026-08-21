@@ -779,6 +779,22 @@ function SettingsPage() {
                             );
                           })}
                         </div>
+
+                        {Object.keys(importDialog.skipped).length > 0 && (
+                          <div className="rounded-2xl border border-destructive/30 bg-destructive/5 p-4 space-y-2">
+                            <div className="flex items-center gap-2">
+                              <AlertTriangle className="size-4 text-destructive" />
+                              <h4 className="font-bold text-sm">Coleções não reconhecidas (não serão restauradas)</h4>
+                            </div>
+                            <div className="flex flex-wrap gap-2 max-h-[15vh] overflow-y-auto">
+                              {Object.entries(importDialog.skipped).map(([name, count]) => (
+                                <Badge key={name} variant="outline" className="text-[10px] border-destructive/30">
+                                  {name} · {count}
+                                </Badge>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </CardContent>
                     <CardFooter className="bg-muted/30 border-t border-border/40 p-8 flex justify-end gap-4">
