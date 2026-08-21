@@ -163,7 +163,7 @@ function PurchasesPage() {
         type: "saida",
         description: `Compra: ${itemsSummary}`,
         account_id: activeAccount.id,
-        category: "Compra de Materiais",
+        category: selectedSupplier?.category || "Compra de Materiais",
         status: "pago",
         due_date: new Date().toISOString().split('T')[0],
         client_id: null,
