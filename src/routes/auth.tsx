@@ -21,7 +21,7 @@ export const Route = createFileRoute("/auth")({
   component: AuthPage,
 });
 
-type Mode = "signin" | "forgot";
+type Mode = "signin" | "signup" | "forgot";
 
 function AuthPage() {
   const [mode, setMode] = useState<Mode>("signin");
@@ -43,6 +43,20 @@ function AuthPage() {
         return;
       }
 
+      if (mode === "signup") {
+        const { error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: { emailRedirectTo: window.location.origin },
+        });
+        if (error) {
+          toast.error(`Erro ao criar conta: ${error.message}`);
+        } else {
+          toast.success("Conta criada! Confirme o e-mail pelo link enviado para concluir o acesso.");
+          setMode("signin");
+        }
+        return;
+      }
 
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${window.location.origin}/reset-password`,
@@ -62,7 +76,7 @@ function AuthPage() {
 
   const titles: Record<Mode, { title: string; description: string; action: string }> = {
     signin: { title: "AmStore Gestão", description: "Entre no sistema para gerenciar sua produção", action: "Entrar" },
-    
+    signup: { title: "Criar conta", description: "Cadastre seu e-mail e defina sua própria senha", action: "Criar conta" },
     forgot: { title: "Recuperar senha", description: "Enviaremos um link para você definir uma nova senha", action: "Enviar link" },
   };
 
@@ -98,7 +112,7 @@ function AuthPage() {
                 <Input
                   id="password"
                   type="password"
-                  autoComplete="current-password"
+                  autoComplete={mode === "signup" ? "new-password" : "current-password"}
                   minLength={8}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
@@ -121,6 +135,9 @@ function AuthPage() {
               <>
                 <button type="button" className="text-muted-foreground hover:underline" onClick={() => setMode("forgot")}>
                   Esqueci minha senha
+                </button>
+                <button type="button" className="text-muted-foreground hover:underline" onClick={() => setMode("signup")}>
+                  Criar uma conta
                 </button>
               </>
             )}
