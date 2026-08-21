@@ -61,12 +61,14 @@ function BrandBlock({ storeLogo }: { storeLogo: string }) {
         {date}
       </p>
       {storeLogo && !broken ? (
-        <img
-          src={storeLogo}
-          alt="Amstore Bagshoes"
-          onError={() => setBroken(true)}
-          className="mt-2 h-10 w-auto max-w-[150px] object-contain invert mix-blend-screen"
-        />
+        <span className="mt-2 flex items-center justify-center bg-sidebar">
+          <img
+            src={storeLogo}
+            alt="Amstore Bagshoes"
+            onError={() => setBroken(true)}
+            className="h-10 w-auto max-w-[150px] object-contain invert mix-blend-screen"
+          />
+        </span>
       ) : (
         <div className="mt-2 flex items-center gap-2">
           <Store className="size-5 text-sidebar-primary" />
