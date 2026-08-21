@@ -261,31 +261,37 @@ function SettingsPage() {
         const isNative = !!payload?.data && !!payload?.version;
 
         if (isNative) {
-          setImportDialog({ open: true, payload, selected: Object.keys(payload.data) });
+          const counts = Object.fromEntries(
+            Object.entries(payload.data as Record<string, any[]>).map(([k, v]) => [k, Array.isArray(v) ? v.length : 0]),
+          );
+          setImportDialog({ open: true, payload, selected: Object.keys(counts), counts, skipped: {}, format: "amstore" });
           return;
         }
 
-        // Backup externo (Base44 e similares): inspeciona e mapeia automaticamente
+        // Backup externo (Base44 e similares): inspeciona, mapeia e abre o mesmo diálogo de seleção
         toast.info("Backup externo detectado. Analisando dados...");
         setSaving(true);
         try {
           const info = await inspectBackup({ data: { payload } });
-          const found = Object.entries(info.collections).filter(([, n]) => (n as number) > 0);
-          if (found.length === 0) {
+          const counts = Object.fromEntries(
+            Object.entries(info.collections as Record<string, number>).filter(([, n]) => n > 0),
+          );
+          if (Object.keys(counts).length === 0) {
             toast.error(
               "Não encontramos clientes, produtos, fornecedores, materiais, categorias ou transações neste arquivo.",
             );
             return;
           }
-          const result: any = await importData({ data: { payload } });
-          toast.success(
-            `Restauração concluída: ${result.totalInserted} registros importados${
-              result.totalFailed ? ` (${result.totalFailed} ignorados)` : ""
-            }.`,
-          );
-          setTimeout(() => window.location.reload(), 1800);
+          setImportDialog({
+            open: true,
+            payload,
+            selected: Object.keys(counts),
+            counts,
+            skipped: (info.skipped as Record<string, number>) ?? {},
+            format: "externo",
+          });
         } catch (error: any) {
-          toast.error(`Erro na restauração: ${error?.message ?? "falha desconhecida"}`);
+          toast.error(`Erro ao analisar backup: ${error?.message ?? "falha desconhecida"}`);
         } finally {
           setSaving(false);
         }
@@ -296,6 +302,9 @@ function SettingsPage() {
     reader.readAsText(file);
     e.target.value = ''; // Reset input
   };
+
+  const closeImportDialog = () =>
+    setImportDialog({ open: false, payload: null, selected: [], counts: {}, skipped: {}, format: "amstore" });
 
   const handleConfirmImport = async () => {
     if (importDialog.selected.length === 0) {
