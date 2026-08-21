@@ -7,7 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { AppSidebar } from "@/components/app-sidebar";
 
 import { Button } from "@/components/ui/button";
-import { SidebarProvider, useSidebar } from "@/components/ui/sidebar";
+import { SidebarProvider, SidebarTrigger, useSidebar } from "@/components/ui/sidebar";
 import { Toaster } from "@/components/ui/sonner";
 
 
@@ -60,6 +60,7 @@ function AuthenticatedLayout() {
 
         <div className="flex min-w-0 flex-1 flex-col">
           <header className="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-border bg-card/80 px-4 backdrop-blur-md">
+            <SidebarTrigger className="shrink-0 text-foreground" aria-label="Abrir menu" />
             <div className="hidden items-center gap-2 rounded-lg border border-border bg-background px-3 py-1.5 text-sm text-muted-foreground md:flex">
               <Search className="size-4" />
               <span className="text-xs font-bold uppercase tracking-widest text-gold/80">Amstore BAGSHOES</span>
