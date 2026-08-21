@@ -312,30 +312,57 @@ function SettingsPage() {
       return;
     }
 
+    const payload = importDialog.payload;
+    const tables = [...importDialog.selected].sort(
+      (a, b) => IMPORT_ORDER.indexOf(a) - IMPORT_ORDER.indexOf(b),
+    );
+
+    // Fecha o diálogo para que a barra de progresso fique visível durante a restauração.
+    closeImportDialog();
     setSaving(true);
     setBackupProgress({ active: true, currentTable: "Iniciando restauração...", percent: 0 });
-    
+
+    let inserted = 0;
+    let failed = 0;
+    const errors: string[] = [];
+
     try {
-      const total = importDialog.selected.length;
-      
-      for (let i = 0; i < importDialog.selected.length; i++) {
-        const table = importDialog.selected[i];
+      const total = tables.length;
+
+      for (let i = 0; i < total; i++) {
+        const table = tables[i];
         const label = backupModules.flatMap(m => m.items).find(item => item.id === table)?.label || table;
-        
+
         setBackupProgress({ active: true, currentTable: `Restaurando: ${label}`, percent: Math.round((i / total) * 100) });
-        
-        await importData({ data: { payload: importDialog.payload, tables: [table] } });
+
+        try {
+          const result: any = await importData({ data: { payload, tables: [table] } });
+          inserted += result?.totalInserted ?? 0;
+          failed += result?.totalFailed ?? 0;
+        } catch (error: any) {
+          errors.push(`${label}: ${error?.message ?? "falha"}`);
+        }
       }
-      
+
       setBackupProgress({ active: true, currentTable: "Restauração Concluída!", percent: 100 });
-      toast.success("Backup restaurado com sucesso");
-      closeImportDialog();
-      setTimeout(() => window.location.reload(), 1500);
+
+      if (inserted === 0) {
+        toast.error(`Nenhum registro restaurado.${errors[0] ? ` ${errors[0]}` : ""}`);
+        return;
+      }
+
+      toast.success(
+        `Restauração concluída: ${inserted} registros importados${failed ? ` (${failed} ignorados)` : ""}${
+          errors.length ? ` · ${errors.length} módulo(s) com erro` : ""
+        }.`,
+      );
+      setTimeout(() => window.location.reload(), 1800);
     } catch (error) {
       console.error("Erro import:", error);
       toast.error("Erro ao restaurar backup");
     } finally {
       setSaving(false);
+      setTimeout(() => setBackupProgress(prev => ({ ...prev, active: false })), 2500);
     }
   };
   
