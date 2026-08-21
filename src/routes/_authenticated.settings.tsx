@@ -705,7 +705,11 @@ function SettingsPage() {
                         </div>
                         <div>
                           <CardTitle className="text-2xl font-black">Restaurar Backup</CardTitle>
-                          <CardDescription>Selecione quais módulos deseja restaurar do arquivo enviado.</CardDescription>
+                          <CardDescription>
+                            {importDialog.format === "externo"
+                              ? "Arquivo externo (Base44) reconhecido. Selecione o que deseja restaurar."
+                              : "Selecione quais módulos deseja restaurar do arquivo enviado."}
+                          </CardDescription>
                         </div>
                       </div>
                     </CardHeader>
@@ -717,7 +721,7 @@ function SettingsPage() {
                             <Button 
                               variant="outline" 
                               size="sm" 
-                              onClick={() => setImportDialog(prev => ({ ...prev, selected: Object.keys(prev.payload.data) }))}
+                              onClick={() => setImportDialog(prev => ({ ...prev, selected: Object.keys(prev.counts) }))}
                               className="h-8 text-[10px] uppercase tracking-widest font-bold"
                             >
                               Todos
@@ -734,9 +738,9 @@ function SettingsPage() {
                         </div>
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 max-h-[40vh] overflow-y-auto p-2 pr-4 custom-scrollbar">
-                          {Object.keys(importDialog.payload.data).map((tableId) => {
+                          {Object.keys(importDialog.counts).map((tableId) => {
                             const label = backupModules.flatMap(m => m.items).find(item => item.id === tableId)?.label || tableId;
-                            const rowCount = importDialog.payload.data[tableId]?.length || 0;
+                            const rowCount = importDialog.counts[tableId] || 0;
                             
                             return (
                               <div 
