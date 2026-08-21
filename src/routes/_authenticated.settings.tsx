@@ -734,7 +734,7 @@ function SettingsPage() {
                   className="bg-blue-600 hover:bg-blue-700 text-white font-bold h-12 shadow-md transition-all flex gap-2"
                 >
                   {saving ? <Loader2 className="size-4 animate-spin" /> : <Download className="size-4" />}
-                  Gerar Backup Agora
+                  Gerar Backup Sistema
                 </Button>
 
                 <div className="relative">
@@ -746,7 +746,7 @@ function SettingsPage() {
                   />
                   <Button variant="outline" className="w-full h-12 font-bold border-2 flex gap-2 border-gold/40 text-gold hover:bg-gold/5">
                     <Upload className="size-4" />
-                    Restaurar Backup Interno
+                    Restaurar Backup Sistema
                   </Button>
                 </div>
 
@@ -759,7 +759,7 @@ function SettingsPage() {
                   />
                   <Button variant="outline" className="w-full h-12 font-bold border-2 flex gap-2 border-blue-400/40 text-blue-600 hover:bg-blue-50">
                     <Database className="size-4" />
-                    Restaurar Backup Externo
+                    Restaurar Backup Base44
                   </Button>
                 </div>
               </div>
