@@ -329,7 +329,7 @@ function SettingsPage() {
       
       setBackupProgress({ active: true, currentTable: "Restauração Concluída!", percent: 100 });
       toast.success("Backup restaurado com sucesso");
-      setImportDialog({ open: false, payload: null, selected: [] });
+      closeImportDialog();
       setTimeout(() => window.location.reload(), 1500);
     } catch (error) {
       console.error("Erro import:", error);
@@ -780,7 +780,7 @@ function SettingsPage() {
                     <CardFooter className="bg-muted/30 border-t border-border/40 p-8 flex justify-end gap-4">
                       <Button 
                         variant="ghost" 
-                        onClick={() => setImportDialog({ open: false, payload: null, selected: [] })}
+                        onClick={() => closeImportDialog()}
                         disabled={saving}
                         className="font-bold"
                       >
