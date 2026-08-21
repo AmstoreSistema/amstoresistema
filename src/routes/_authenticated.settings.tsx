@@ -333,36 +333,46 @@ function SettingsPage() {
         const table = tables[i];
         const label = backupModules.flatMap(m => m.items).find(item => item.id === table)?.label || table;
 
+        // Atualiza o progresso no início de cada tabela
         setBackupProgress({ active: true, currentTable: `Restaurando: ${label}`, percent: Math.round((i / total) * 100) });
 
         try {
           const result: any = await importData({ data: { payload, tables: [table] } });
-          inserted += result?.totalInserted ?? 0;
-          failed += result?.totalFailed ?? 0;
+          const tableResult = result?.results?.[table];
+          
+          inserted += tableResult?.inserted ?? 0;
+          failed += tableResult?.failed ?? 0;
+
+          // Se houve falha parcial na tabela, adicionamos aos erros para informar o usuário no final
+          if (tableResult?.failed > 0 && tableResult?.error) {
+            errors.push(`${label}: ${tableResult.error}`);
+          }
         } catch (error: any) {
-          errors.push(`${label}: ${error?.message ?? "falha"}`);
+          errors.push(`${label}: ${error?.message ?? "falha na conexão"}`);
         }
       }
 
-      setBackupProgress({ active: true, currentTable: "Restauração Concluída!", percent: 100 });
+      setBackupProgress({ active: true, currentTable: "Finalizando...", percent: 100 });
 
-      if (inserted === 0) {
-        toast.error(`Nenhum registro restaurado.${errors[0] ? ` ${errors[0]}` : ""}`);
+      if (inserted === 0 && failed > 0) {
+        toast.error(`A restauração falhou.${errors[0] ? ` ${errors[0]}` : ""}`);
         return;
       }
 
       toast.success(
-        `Restauração concluída: ${inserted} registros importados${failed ? ` (${failed} ignorados)` : ""}${
-          errors.length ? ` · ${errors.length} módulo(s) com erro` : ""
+        `Restauração concluída: ${inserted} registros processados${failed ? ` (${failed} falhas)` : ""}${
+          errors.length ? ` · Algumas tabelas tiveram erros` : ""
         }.`,
       );
-      setTimeout(() => window.location.reload(), 1800);
+      
+      // Delay um pouco maior para o usuário ver o 100%
+      setTimeout(() => window.location.reload(), 2500);
     } catch (error) {
       console.error("Erro import:", error);
-      toast.error("Erro ao restaurar backup");
+      toast.error("Erro inesperado ao restaurar backup");
     } finally {
       setSaving(false);
-      setTimeout(() => setBackupProgress(prev => ({ ...prev, active: false })), 2500);
+      setTimeout(() => setBackupProgress(prev => ({ ...prev, active: false })), 3000);
     }
   };
   
