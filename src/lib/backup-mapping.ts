@@ -12,21 +12,28 @@ const TABLE_ALIASES: Record<string, string> = {
   cliente: "clients",
   customers: "clients",
   customer: "clients",
+  contatos: "clients",
+  contato: "clients",
 
   products: "products",
   product: "products",
   produtos: "products",
   produto: "products",
   items: "products",
+  item: "products",
   produtoacabado: "products",
   produtosacabados: "products",
   modelos: "products",
   modelo: "products",
+  variacoes: "products",
+  variacao: "products",
 
   suppliers: "suppliers",
   supplier: "suppliers",
   fornecedores: "suppliers",
   fornecedor: "suppliers",
+  empresas: "suppliers",
+  empresa: "suppliers",
 
   materials: "materials",
   material: "materials",
@@ -37,6 +44,8 @@ const TABLE_ALIASES: Record<string, string> = {
   rawmaterials: "materials",
   insumos: "materials",
   insumo: "materials",
+  componentes: "materials",
+  componente: "materials",
 
   material_categories: "material_categories",
   materialcategory: "material_categories",
@@ -47,6 +56,8 @@ const TABLE_ALIASES: Record<string, string> = {
   category: "material_categories",
   categoriamaterial: "material_categories",
   categoriasmateriais: "material_categories",
+  grupos: "material_categories",
+  grupo: "material_categories",
 
   stock_products: "stock_products",
   stockproduct: "stock_products",
@@ -57,6 +68,7 @@ const TABLE_ALIASES: Record<string, string> = {
   estoqueproduto: "stock_products",
   estoqueprodutos: "stock_products",
   inventory: "stock_products",
+  armazem: "stock_products",
 
   transactions: "transactions",
   transaction: "transactions",
@@ -69,6 +81,9 @@ const TABLE_ALIASES: Record<string, string> = {
   movimentacaofinanceira: "transactions",
   financialtransaction: "transactions",
   financialtransactions: "transactions",
+  fluxodecaixa: "transactions",
+  contasapagar: "transactions",
+  contasareceber: "transactions",
 
   financial_accounts: "financial_accounts",
   financialaccount: "financial_accounts",
@@ -78,11 +93,16 @@ const TABLE_ALIASES: Record<string, string> = {
   contasfinanceiras: "financial_accounts",
   contafinanceira: "financial_accounts",
   caixas: "financial_accounts",
+  caixa: "financial_accounts",
+  bancos: "financial_accounts",
+  banco: "financial_accounts",
 
   promotions: "promotions",
   promotion: "promotions",
   promocoes: "promotions",
   promocao: "promotions",
+  descontos: "promotions",
+  cupom: "promotions",
 
   units_of_measure: "units_of_measure",
   unitofmeasure: "units_of_measure",
@@ -90,6 +110,7 @@ const TABLE_ALIASES: Record<string, string> = {
   unidades: "units_of_measure",
   unidademedida: "units_of_measure",
   unidadesdemedida: "units_of_measure",
+  medidas: "units_of_measure",
 };
 
 const slug = (s: string) =>
@@ -229,158 +250,158 @@ const MAPPERS: Record<string, Mapper> = {
     if (!name) return null;
     return {
       name,
-      phone: str(pick(c, ["phone", "telefone", "celular", "whatsapp", "fone"])) ?? null,
-      email: str(pick(c, ["email", "e_mail"])) ?? null,
-      document_cpf: str(pick(c, ["document_cpf", "cpf", "documento", "cnpj"])) ?? null,
-      address: str(pick(c, ["address", "endereco", "logradouro"])) ?? null,
-      city: str(pick(c, ["city", "cidade"])) ?? null,
+      phone: str(pick(c, ["phone", "telefone", "celular", "whatsapp", "fone", "tel", "cel"])) ?? null,
+      email: str(pick(c, ["email", "e_mail", "mail"])) ?? null,
+      document_cpf: str(pick(c, ["document_cpf", "cpf", "documento", "cnpj", "doc"])) ?? null,
+      address: str(pick(c, ["address", "endereco", "logradouro", "rua", "lograd"])) ?? null,
+      city: str(pick(c, ["city", "cidade", "municipio"])) ?? null,
       state: str(pick(c, ["state", "estado", "uf"])) ?? null,
-      zip_code: str(pick(c, ["zip_code", "cep"])) ?? null,
-      notes: str(pick(c, ["notes", "observacoes", "obs"])) ?? null,
-      client_type: str(pick(c, ["client_type", "tipo", "tipocliente"])) ?? "varejo",
-      cashback_balance: num(pick(c, ["cashback_balance", "cashback", "saldocashback"])),
-      created_at: date(pick(c, ["created_at", "criadoem", "datacadastro", "data"])),
+      zip_code: str(pick(c, ["zip_code", "cep", "codigopostal"])) ?? null,
+      notes: str(pick(c, ["notes", "observacoes", "obs", "comentarios"])) ?? null,
+      client_type: str(pick(c, ["client_type", "tipo", "tipocliente", "origem"])) ?? "varejo",
+      cashback_balance: num(pick(c, ["cashback_balance", "cashback", "saldocashback", "credito"])),
+      created_at: date(pick(c, ["created_at", "criadoem", "datacadastro", "data", "date"])),
     };
   },
   products: (p) => {
-    const name = str(pick(p, ["name", "nome", "produto", "descricao", "description"]));
-    const sku = str(pick(p, ["sku", "codigo", "code", "referencia", "ref"]));
+    const name = str(pick(p, ["name", "nome", "produto", "descricao", "description", "label"]));
+    const sku = str(pick(p, ["sku", "codigo", "code", "referencia", "ref", "id_externo"]));
     if (!name && !sku) return null;
-    const sale = num(pick(p, ["sale_price", "preco", "precovenda", "price", "valor", "valorvenda"]));
+    const sale = num(pick(p, ["sale_price", "preco", "precovenda", "price", "valor", "valorvenda", "venda"]));
     return {
       sku: sku ?? null,
       name: name ?? `Produto ${sku}`,
-      description: str(pick(p, ["description", "descricao"])) ?? null,
-      category: str(pick(p, ["category", "categoria", "tipo"])) ?? "Geral",
+      description: str(pick(p, ["description", "descricao", "info", "detalhes"])) ?? null,
+      category: str(pick(p, ["category", "categoria", "tipo", "grupo"])) ?? "Geral",
       color: str(pick(p, ["color", "cor"])) ?? null,
       image_url: image(p),
       sale_price: sale,
-      wholesale_price: num(pick(p, ["wholesale_price", "precoatacado", "atacado"]), 0) || null,
-      cost_price: num(pick(p, ["cost_price", "custo", "precocusto"])),
-      labor_cost: num(pick(p, ["labor_cost", "maodeobra", "custommaodeobra"])),
-      overhead_cost: num(pick(p, ["overhead_cost", "custoindireto", "despesas"])),
-      retail_margin: num(pick(p, ["retail_margin", "margemvarejo", "margem"])),
+      wholesale_price: num(pick(p, ["wholesale_price", "precoatacado", "atacado", "valoratacado"]), 0) || null,
+      cost_price: num(pick(p, ["cost_price", "custo", "precocusto", "valorcusto"])),
+      labor_cost: num(pick(p, ["labor_cost", "maodeobra", "custommaodeobra", "mao_de_obra"])),
+      overhead_cost: num(pick(p, ["overhead_cost", "custoindireto", "despesas", "fixo"])),
+      retail_margin: num(pick(p, ["retail_margin", "margemvarejo", "margem", "markup"])),
       wholesale_margin: num(pick(p, ["wholesale_margin", "margematacado"])),
       current_stock: stockQty(p),
-      min_stock: num(pick(p, ["min_stock", "estoqueminimo"])),
-      active: pick(p, ["active", "ativo"]) === false ? false : true,
-      created_at: date(pick(p, ["created_at", "criadoem", "data"])),
+      min_stock: num(pick(p, ["min_stock", "estoqueminimo", "minimo"])),
+      active: pick(p, ["active", "ativo", "status"]) === false || pick(p, ["status"]) === "inativo" ? false : true,
+      created_at: date(pick(p, ["created_at", "criadoem", "data", "date"])),
     };
   },
   suppliers: (s) => {
-    const name = str(pick(s, ["name", "nome", "fornecedor", "razaosocial"]));
+    const name = str(pick(s, ["name", "nome", "fornecedor", "razaosocial", "empresa"]));
     if (!name) return null;
     return {
       name,
-      contact: str(pick(s, ["contact", "contato", "responsavel"])) ?? null,
-      phone: str(pick(s, ["phone", "telefone", "celular", "whatsapp"])) ?? null,
-      email: str(pick(s, ["email"])) ?? null,
-      document: str(pick(s, ["document", "cnpj", "cpf", "documento"])) ?? null,
-      category: str(pick(s, ["category", "categoria"])) ?? null,
+      contact: str(pick(s, ["contact", "contato", "responsavel", "atendente"])) ?? null,
+      phone: str(pick(s, ["phone", "telefone", "celular", "whatsapp", "fone"])) ?? null,
+      email: str(pick(s, ["email", "mail"])) ?? null,
+      document: str(pick(s, ["document", "cnpj", "cpf", "documento", "doc"])) ?? null,
+      category: str(pick(s, ["category", "categoria", "tipo", "ramo"])) ?? null,
       type: str(pick(s, ["type", "tipo"])) ?? null,
       city: str(pick(s, ["city", "cidade"])) ?? null,
       state: str(pick(s, ["state", "estado", "uf"])) ?? null,
       address: str(pick(s, ["address", "endereco"])) ?? null,
       zip_code: str(pick(s, ["zip_code", "cep"])) ?? null,
-      notes: str(pick(s, ["notes", "observacoes"])) ?? null,
+      notes: str(pick(s, ["notes", "observacoes", "obs"])) ?? null,
       active: pick(s, ["active", "ativo"]) === false ? false : true,
-      created_at: date(pick(s, ["created_at", "criadoem", "data"])),
+      created_at: date(pick(s, ["created_at", "criadoem", "data", "date"])),
     };
   },
   materials: (m) => {
-    const name = str(pick(m, ["name", "nome", "material", "descricao"]));
+    const name = str(pick(m, ["name", "nome", "material", "descricao", "insumo"]));
     if (!name) return null;
     return {
       name,
-      sku: str(pick(m, ["sku", "codigo", "referencia"])) ?? null,
-      description: str(pick(m, ["description", "descricao"])) ?? null,
-      type: str(pick(m, ["type", "tipo", "categoria"])) ?? "Geral",
+      sku: str(pick(m, ["sku", "codigo", "referencia", "ref"])) ?? null,
+      description: str(pick(m, ["description", "descricao", "info"])) ?? null,
+      type: str(pick(m, ["type", "tipo", "categoria", "grupo"])) ?? "Geral",
       color: str(pick(m, ["color", "cor"])) ?? null,
-      unit: str(pick(m, ["unit", "unidade", "un", "unidademedida"])) ?? "un",
+      unit: str(pick(m, ["unit", "unidade", "un", "unidademedida", "uom"])) ?? "un",
       image_url: image(m),
-      cost_price: num(pick(m, ["cost_price", "custo", "preco", "valor", "precocusto", "custounitario"])),
+      cost_price: num(pick(m, ["cost_price", "custo", "preco", "valor", "precocusto", "custounitario", "compra"])),
       current_stock: stockQty(m),
-      min_stock: num(pick(m, ["min_stock", "estoqueminimo"])),
-      supplier: str(pick(m, ["supplier", "fornecedor"])) ?? null,
-      specification: str(pick(m, ["specification", "especificacao"])) ?? null,
-      width: num(pick(m, ["width", "largura"]), 0) || null,
-      height: num(pick(m, ["height", "altura"]), 0) || null,
-      thickness: num(pick(m, ["thickness", "espessura"]), 0) || null,
-      created_at: date(pick(m, ["created_at", "criadoem", "data"])),
+      min_stock: num(pick(m, ["min_stock", "estoqueminimo", "minimo"])),
+      supplier: str(pick(m, ["supplier", "fornecedor", "origem"])) ?? null,
+      specification: str(pick(m, ["specification", "especificacao", "dimensoes"])) ?? null,
+      width: num(pick(m, ["width", "largura", "L"]), 0) || null,
+      height: num(pick(m, ["height", "altura", "H", "comp"]), 0) || null,
+      thickness: num(pick(m, ["thickness", "espessura", "E"]), 0) || null,
+      created_at: date(pick(m, ["created_at", "criadoem", "data", "date"])),
     };
   },
   material_categories: (c) => {
-    const name = str(pick(c, ["name", "nome", "categoria"]));
+    const name = str(pick(c, ["name", "nome", "categoria", "grupo"]));
     if (!name) return null;
-    return { name, created_at: date(pick(c, ["created_at", "criadoem"])) };
+    return { name, created_at: date(pick(c, ["created_at", "criadoem", "data"])) };
   },
   stock_products: (s) => {
-    const name = str(pick(s, ["produto_nome", "produtonome", "name", "nome", "produto", "descricao"]));
+    const name = str(pick(s, ["produto_nome", "produtonome", "name", "nome", "produto", "descricao", "item"]));
     if (!name) return null;
-    const numeracoes = pick(s, ["numeracoes", "numeracao", "tamanhos", "sizes", "grade"]);
+    const numeracoes = pick(s, ["numeracoes", "numeracao", "tamanhos", "sizes", "grade", "variacoes"]);
     return {
       produto_nome: name,
-      categoria: str(pick(s, ["categoria", "category", "tipo"])) ?? null,
+      categoria: str(pick(s, ["categoria", "category", "tipo", "grupo"])) ?? null,
       quantidade_disponivel: stockQty(s),
       numeracoes:
         numeracoes && typeof numeracoes === "object" && !Array.isArray(numeracoes) ? numeracoes : null,
-      preco_custo: num(pick(s, ["preco_custo", "custo", "cost_price"])),
-      preco_venda: num(pick(s, ["preco_venda", "preco", "sale_price", "valor"])),
-      localizacao: str(pick(s, ["localizacao", "location", "local"])) ?? null,
-      lote: str(pick(s, ["lote", "batch"])) ?? null,
-      data_entrada: date(pick(s, ["data_entrada", "created_at", "dataentrada", "data"])),
+      preco_custo: num(pick(s, ["preco_custo", "custo", "cost_price", "valorcusto"])),
+      preco_venda: num(pick(s, ["preco_venda", "preco", "sale_price", "valor", "valorvenda"])),
+      localizacao: str(pick(s, ["localizacao", "location", "local", "prateleira"])) ?? null,
+      lote: str(pick(s, ["lote", "batch", "num_lote"])) ?? null,
+      data_entrada: date(pick(s, ["data_entrada", "created_at", "dataentrada", "data", "date"])),
     };
   },
   financial_accounts: (a) => {
-    const name = str(pick(a, ["name", "nome", "conta", "descricao"]));
+    const name = str(pick(a, ["name", "nome", "conta", "descricao", "banco"]));
     if (!name) return null;
-    const initial = num(pick(a, ["initial_balance", "saldoinicial", "saldo"]));
+    const initial = num(pick(a, ["initial_balance", "saldoinicial", "saldo", "inicial"]));
     return {
       name,
-      type: str(pick(a, ["type", "tipo"])) ?? "caixa",
+      type: str(pick(a, ["type", "tipo", "natureza"])) ?? "caixa",
       initial_balance: initial,
-      current_balance: num(pick(a, ["current_balance", "saldoatual", "saldo"]), initial),
-      bank_name: str(pick(a, ["bank_name", "banco"])) ?? null,
+      current_balance: num(pick(a, ["current_balance", "saldoatual", "saldo", "valor"]), initial),
+      bank_name: str(pick(a, ["bank_name", "banco", "instituicao"])) ?? null,
       agency: str(pick(a, ["agency", "agencia"])) ?? null,
-      account_number: str(pick(a, ["account_number", "numeroconta", "conta"])) ?? null,
-      active: pick(a, ["active", "ativo"]) === false ? false : true,
-      created_at: date(pick(a, ["created_at", "criadoem", "data"])),
+      account_number: str(pick(a, ["account_number", "numeroconta", "conta", "num"])) ?? null,
+      active: pick(a, ["active", "ativo", "status"]) === false ? false : true,
+      created_at: date(pick(a, ["created_at", "criadoem", "data", "date"])),
     };
   },
   promotions: (p) => {
-    const name = str(pick(p, ["name", "nome", "promocao", "titulo"]));
+    const name = str(pick(p, ["name", "nome", "promocao", "titulo", "campanha"]));
     if (!name) return null;
     return {
       name,
-      code: str(pick(p, ["code", "codigo", "cupom"])) ?? null,
-      discount_percent: num(pick(p, ["discount_percent", "desconto", "percentual"])),
-      active: pick(p, ["active", "ativo"]) === false ? false : true,
-      created_at: date(pick(p, ["created_at", "criadoem", "data"])),
+      code: str(pick(p, ["code", "codigo", "cupom", "voucher"])) ?? null,
+      discount_percent: num(pick(p, ["discount_percent", "desconto", "percentual", "off"])),
+      active: pick(p, ["active", "ativo", "status"]) === false ? false : true,
+      created_at: date(pick(p, ["created_at", "criadoem", "data", "date"])),
     };
   },
   units_of_measure: (u) => {
-    const name = str(pick(u, ["name", "nome", "unidade", "descricao"]));
+    const name = str(pick(u, ["name", "nome", "unidade", "descricao", "medida"]));
     if (!name) return null;
     return {
       name,
-      abbreviation: str(pick(u, ["abbreviation", "sigla", "abreviacao", "simbolo"])) ?? name.slice(0, 3),
-      created_at: date(pick(u, ["created_at", "criadoem"])),
+      abbreviation: str(pick(u, ["abbreviation", "sigla", "abreviacao", "simbolo", "abrev"])) ?? name.slice(0, 3),
+      created_at: date(pick(u, ["created_at", "criadoem", "data"])),
     };
   },
   transactions: (t) => {
-    const amount = num(pick(t, ["amount", "valor", "value", "total"]));
+    const amount = num(pick(t, ["amount", "valor", "value", "total", "saldo"]));
     if (!amount) return null;
-    const rawType = slug(String(pick(t, ["type", "tipo", "natureza"]) ?? "income"));
-    const isExpense = ["expense", "saida", "despesa", "debito", "out", "pagamento"].includes(rawType);
+    const rawType = slug(String(pick(t, ["type", "tipo", "natureza", "sentido"]) ?? "income"));
+    const isExpense = ["expense", "saida", "despesa", "debito", "out", "pagamento", "pagar", "retirada"].includes(rawType);
     return {
       amount: Math.abs(amount),
       type: isExpense ? "expense" : "income",
-      description: str(pick(t, ["description", "descricao", "historico", "titulo"])) ?? "Importado do backup",
-      category: str(pick(t, ["category", "categoria"])) ?? "Importado",
-      payment_method: str(pick(t, ["payment_method", "formapagamento", "pagamento"])) ?? null,
-      status: str(pick(t, ["status", "situacao"])) ?? "pago",
-      notes: str(pick(t, ["notes", "observacoes"])) ?? null,
-      created_at: date(pick(t, ["created_at", "data", "datapagamento", "criadoem"])),
+      description: str(pick(t, ["description", "descricao", "historico", "titulo", "obs"])) ?? "Importado do backup",
+      category: str(pick(t, ["category", "categoria", "grupo", "fluxo"])) ?? "Importado",
+      payment_method: str(pick(t, ["payment_method", "formapagamento", "pagamento", "meio"])) ?? null,
+      status: str(pick(t, ["status", "situacao", "estado"])) ?? "pago",
+      notes: str(pick(t, ["notes", "observacoes", "complemento"])) ?? null,
+      created_at: date(pick(t, ["created_at", "data", "datapagamento", "criadoem", "vencimento"])),
     };
   },
 };
