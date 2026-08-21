@@ -740,7 +740,7 @@ function SettingsPage() {
                 <div className="relative">
                   <input 
                     type="file" 
-                    accept=".json" 
+                    accept=".json,.csv" 
                     onChange={handleImportFile}
                     className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-10"
                   />
@@ -753,7 +753,7 @@ function SettingsPage() {
                 <div className="relative">
                   <input 
                     type="file" 
-                    accept=".json" 
+                    accept=".json,.csv" 
                     onChange={handleImportFile}
                     className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-10"
                   />
