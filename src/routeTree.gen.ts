@@ -15,6 +15,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as SorteioRouteImport } from './routes/sorteio'
 import { Route as AuthenticatedAccountsRouteImport } from './routes/_authenticated.accounts'
+import { Route as AuthenticatedAiDocsRouteImport } from './routes/_authenticated.ai-docs'
 import { Route as AuthenticatedAuditRouteImport } from './routes/_authenticated.audit'
 import { Route as AuthenticatedCashbackRouteImport } from './routes/_authenticated.cashback'
 import { Route as AuthenticatedCatalogRouteImport } from './routes/_authenticated.catalog'
@@ -22,6 +23,7 @@ import { Route as AuthenticatedClientsRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedCreditRouteImport } from './routes/_authenticated.credit'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated.dashboard'
 import { Route as AuthenticatedLabelsRouteImport } from './routes/_authenticated.labels'
+import { Route as AuthenticatedLiveMetricsRouteImport } from './routes/_authenticated.live-metrics'
 import { Route as AuthenticatedMaterialsRouteImport } from './routes/_authenticated.materials'
 import { Route as AuthenticatedProductionRouteImport } from './routes/_authenticated.production'
 import { Route as AuthenticatedProductsRouteImport } from './routes/_authenticated.products'
@@ -66,6 +68,11 @@ const AuthenticatedAccountsRoute = AuthenticatedAccountsRouteImport.update({
   path: '/accounts',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedAiDocsRoute = AuthenticatedAiDocsRouteImport.update({
+  id: '/ai-docs',
+  path: '/ai-docs',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 const AuthenticatedAuditRoute = AuthenticatedAuditRouteImport.update({
   id: '/audit',
   path: '/audit',
@@ -101,6 +108,12 @@ const AuthenticatedLabelsRoute = AuthenticatedLabelsRouteImport.update({
   path: '/labels',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedLiveMetricsRoute =
+  AuthenticatedLiveMetricsRouteImport.update({
+    id: '/live-metrics',
+    path: '/live-metrics',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedMaterialsRoute = AuthenticatedMaterialsRouteImport.update({
   id: '/materials',
   path: '/materials',
@@ -181,6 +194,7 @@ export interface FileRoutesByFullPath {
   '/reset-password': typeof ResetPasswordRoute
   '/sorteio': typeof SorteioRoute
   '/accounts': typeof AuthenticatedAccountsRoute
+  '/ai-docs': typeof AuthenticatedAiDocsRoute
   '/audit': typeof AuthenticatedAuditRoute
   '/cashback': typeof AuthenticatedCashbackRoute
   '/catalog': typeof AuthenticatedCatalogRoute
@@ -188,6 +202,7 @@ export interface FileRoutesByFullPath {
   '/credit': typeof AuthenticatedCreditRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/labels': typeof AuthenticatedLabelsRoute
+  '/live-metrics': typeof AuthenticatedLiveMetricsRoute
   '/materials': typeof AuthenticatedMaterialsRoute
   '/production': typeof AuthenticatedProductionRoute
   '/products': typeof AuthenticatedProductsRoute
@@ -209,6 +224,7 @@ export interface FileRoutesByTo {
   '/reset-password': typeof ResetPasswordRoute
   '/sorteio': typeof SorteioRoute
   '/accounts': typeof AuthenticatedAccountsRoute
+  '/ai-docs': typeof AuthenticatedAiDocsRoute
   '/audit': typeof AuthenticatedAuditRoute
   '/cashback': typeof AuthenticatedCashbackRoute
   '/catalog': typeof AuthenticatedCatalogRoute
@@ -216,6 +232,7 @@ export interface FileRoutesByTo {
   '/credit': typeof AuthenticatedCreditRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/labels': typeof AuthenticatedLabelsRoute
+  '/live-metrics': typeof AuthenticatedLiveMetricsRoute
   '/materials': typeof AuthenticatedMaterialsRoute
   '/production': typeof AuthenticatedProductionRoute
   '/products': typeof AuthenticatedProductsRoute
@@ -239,6 +256,7 @@ export interface FileRoutesById {
   '/reset-password': typeof ResetPasswordRoute
   '/sorteio': typeof SorteioRoute
   '/_authenticated/accounts': typeof AuthenticatedAccountsRoute
+  '/_authenticated/ai-docs': typeof AuthenticatedAiDocsRoute
   '/_authenticated/audit': typeof AuthenticatedAuditRoute
   '/_authenticated/cashback': typeof AuthenticatedCashbackRoute
   '/_authenticated/catalog': typeof AuthenticatedCatalogRoute
@@ -246,6 +264,7 @@ export interface FileRoutesById {
   '/_authenticated/credit': typeof AuthenticatedCreditRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/labels': typeof AuthenticatedLabelsRoute
+  '/_authenticated/live-metrics': typeof AuthenticatedLiveMetricsRoute
   '/_authenticated/materials': typeof AuthenticatedMaterialsRoute
   '/_authenticated/production': typeof AuthenticatedProductionRoute
   '/_authenticated/products': typeof AuthenticatedProductsRoute
@@ -269,6 +288,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/sorteio'
     | '/accounts'
+    | '/ai-docs'
     | '/audit'
     | '/cashback'
     | '/catalog'
@@ -276,6 +296,7 @@ export interface FileRouteTypes {
     | '/credit'
     | '/dashboard'
     | '/labels'
+    | '/live-metrics'
     | '/materials'
     | '/production'
     | '/products'
@@ -297,6 +318,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/sorteio'
     | '/accounts'
+    | '/ai-docs'
     | '/audit'
     | '/cashback'
     | '/catalog'
@@ -304,6 +326,7 @@ export interface FileRouteTypes {
     | '/credit'
     | '/dashboard'
     | '/labels'
+    | '/live-metrics'
     | '/materials'
     | '/production'
     | '/products'
@@ -326,6 +349,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/sorteio'
     | '/_authenticated/accounts'
+    | '/_authenticated/ai-docs'
     | '/_authenticated/audit'
     | '/_authenticated/cashback'
     | '/_authenticated/catalog'
@@ -333,6 +357,7 @@ export interface FileRouteTypes {
     | '/_authenticated/credit'
     | '/_authenticated/dashboard'
     | '/_authenticated/labels'
+    | '/_authenticated/live-metrics'
     | '/_authenticated/materials'
     | '/_authenticated/production'
     | '/_authenticated/products'
@@ -402,6 +427,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAccountsRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/ai-docs': {
+      id: '/_authenticated/ai-docs'
+      path: '/ai-docs'
+      fullPath: '/ai-docs'
+      preLoaderRoute: typeof AuthenticatedAiDocsRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/audit': {
       id: '/_authenticated/audit'
       path: '/audit'
@@ -449,6 +481,13 @@ declare module '@tanstack/react-router' {
       path: '/labels'
       fullPath: '/labels'
       preLoaderRoute: typeof AuthenticatedLabelsRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/live-metrics': {
+      id: '/_authenticated/live-metrics'
+      path: '/live-metrics'
+      fullPath: '/live-metrics'
+      preLoaderRoute: typeof AuthenticatedLiveMetricsRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/materials': {
@@ -554,6 +593,7 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedRouteChildren {
   AuthenticatedAccountsRoute: typeof AuthenticatedAccountsRoute
+  AuthenticatedAiDocsRoute: typeof AuthenticatedAiDocsRoute
   AuthenticatedAuditRoute: typeof AuthenticatedAuditRoute
   AuthenticatedCashbackRoute: typeof AuthenticatedCashbackRoute
   AuthenticatedCatalogRoute: typeof AuthenticatedCatalogRoute
@@ -561,6 +601,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedCreditRoute: typeof AuthenticatedCreditRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedLabelsRoute: typeof AuthenticatedLabelsRoute
+  AuthenticatedLiveMetricsRoute: typeof AuthenticatedLiveMetricsRoute
   AuthenticatedMaterialsRoute: typeof AuthenticatedMaterialsRoute
   AuthenticatedProductionRoute: typeof AuthenticatedProductionRoute
   AuthenticatedProductsRoute: typeof AuthenticatedProductsRoute
@@ -578,6 +619,7 @@ interface AuthenticatedRouteChildren {
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedAccountsRoute: AuthenticatedAccountsRoute,
+  AuthenticatedAiDocsRoute: AuthenticatedAiDocsRoute,
   AuthenticatedAuditRoute: AuthenticatedAuditRoute,
   AuthenticatedCashbackRoute: AuthenticatedCashbackRoute,
   AuthenticatedCatalogRoute: AuthenticatedCatalogRoute,
@@ -585,6 +627,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedCreditRoute: AuthenticatedCreditRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedLabelsRoute: AuthenticatedLabelsRoute,
+  AuthenticatedLiveMetricsRoute: AuthenticatedLiveMetricsRoute,
   AuthenticatedMaterialsRoute: AuthenticatedMaterialsRoute,
   AuthenticatedProductionRoute: AuthenticatedProductionRoute,
   AuthenticatedProductsRoute: AuthenticatedProductsRoute,
