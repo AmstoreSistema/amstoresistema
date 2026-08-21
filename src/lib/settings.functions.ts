@@ -95,7 +95,9 @@ export const updateUserStatus = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data) => z.object({ id: z.string(), active: z.boolean() }).parse(data))
   .handler(async ({ data, context }) => {
-    const { error } = await context.supabase
+    await assertAdmin(context.userId, context.claims);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin
       .from("user_profiles")
       .update({ active: data.active })
       .eq("id", data.id);
