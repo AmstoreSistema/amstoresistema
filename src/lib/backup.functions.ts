@@ -52,9 +52,11 @@ export const importSystemData = createServerFn({ method: "POST" })
         );
       }
       if (Object.keys(dataToImport).length === 0) {
-        throw new Error(
-          "Não encontramos dados reconhecíveis neste arquivo. Verifique se o backup contém clientes, produtos, fornecedores, materiais, categorias ou transações.",
-        );
+        // Log para ajudar a entender por que não houve mapeamento
+        console.warn("[Import] Nenhuma coleção mapeada para as tabelas internas.", { 
+          payloadKeys: Object.keys(payload || {}),
+          selectedTables 
+        });
       }
     }
 
