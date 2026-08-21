@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { getAppSettings, updateAppSettingsBatch, getUsers, updateUserStatus, updateUserRole, createNewUser } from "@/lib/settings.functions";
-import { exportSystemData, importSystemData } from "@/lib/backup.functions";
+import { exportSystemData, importSystemData, inspectBackupFile } from "@/lib/backup.functions";
 import { toast } from "sonner";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
@@ -118,6 +118,7 @@ function SettingsPage() {
   const createUser = useServerFn(createNewUser);
   const exportData = useServerFn(exportSystemData);
   const importData = useServerFn(importSystemData);
+  const inspectBackup = useServerFn(inspectBackupFile);
 
   const loadData = async () => {
     setLoading(true);
