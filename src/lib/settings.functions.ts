@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { assertAdmin } from "./admin.server";
 
 const FIXED_ADMINS = ["amstorebagshoes@gmail.com", "matosmonica000@gmail.com"];
 
@@ -16,18 +17,7 @@ export const updateAppSetting = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data) => z.object({ key: z.string(), value: z.any() }).parse(data))
   .handler(async ({ data, context }) => {
-    const { data: roleData } = await context.supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", context.userId)
-      .single();
-
-    const { data: userProfile } = await context.supabase.from("user_profiles").select("email").eq("id", context.userId).single();
-    const isAdmin = roleData?.role === 'admin' || userProfile?.email === 'amstorebagshoes@gmail.com' || userProfile?.email === 'matosmonica000@gmail.com';
-
-    if (!isAdmin) {
-      throw new Error("Apenas administradores podem alterar as configurações.");
-    }
+    await assertAdmin(context.userId, context.claims);
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { error } = await supabaseAdmin
@@ -45,18 +35,7 @@ export const updateAppSettingsBatch = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data) => z.array(z.object({ key: z.string(), value: z.any() })).parse(data))
   .handler(async ({ data, context }) => {
-    const { data: roleData } = await context.supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", context.userId)
-      .single();
-
-    const { data: userProfile } = await context.supabase.from("user_profiles").select("email").eq("id", context.userId).single();
-    const isAdmin = roleData?.role === 'admin' || userProfile?.email === 'amstorebagshoes@gmail.com' || userProfile?.email === 'matosmonica000@gmail.com';
-
-    if (!isAdmin) {
-      throw new Error("Apenas administradores podem alterar as configurações.");
-    }
+    await assertAdmin(context.userId, context.claims);
 
     const upserts = data.map(item => ({
       key: item.key,
@@ -116,7 +95,9 @@ export const updateUserStatus = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data) => z.object({ id: z.string(), active: z.boolean() }).parse(data))
   .handler(async ({ data, context }) => {
-    const { error } = await context.supabase
+    await assertAdmin(context.userId, context.claims);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin
       .from("user_profiles")
       .update({ active: data.active })
       .eq("id", data.id);
@@ -128,18 +109,7 @@ export const updateUserRole = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data) => z.object({ userId: z.string(), role: z.enum(["admin", "moderator", "user"]) }).parse(data))
   .handler(async ({ data, context }) => {
-    const { data: currentUserRole } = await context.supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", context.userId)
-      .single();
-
-    const { data: userProfile } = await context.supabase.from("user_profiles").select("email").eq("id", context.userId).single();
-    const isAdmin = currentUserRole?.role === 'admin' || userProfile?.email === 'amstorebagshoes@gmail.com' || userProfile?.email === 'matosmonica000@gmail.com';
-
-    if (!isAdmin) {
-      throw new Error("Apenas administradores podem gerenciar cargos.");
-    }
+    await assertAdmin(context.userId, context.claims);
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     
@@ -160,18 +130,7 @@ export const createNewUser = createServerFn({ method: "POST" })
     role: z.enum(["admin", "moderator", "user"])
   }).parse(data))
   .handler(async ({ data, context }) => {
-    const { data: currentUserRole } = await context.supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", context.userId)
-      .single();
-
-    const { data: userProfile } = await context.supabase.from("user_profiles").select("email").eq("id", context.userId).single();
-    const isAdmin = currentUserRole?.role === 'admin' || userProfile?.email === 'amstorebagshoes@gmail.com' || userProfile?.email === 'matosmonica000@gmail.com';
-
-    if (!isAdmin) {
-      throw new Error("Apenas administradores podem criar novos usuários.");
-    }
+    await assertAdmin(context.userId, context.claims);
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     

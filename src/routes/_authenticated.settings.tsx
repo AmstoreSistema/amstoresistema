@@ -193,7 +193,7 @@ function SettingsPage() {
       }
     } catch (error) {
       console.error("Erro ao salvar:", error);
-      toast.error("Erro ao salvar configurações. Verifique se você tem permissão de administrador.");
+      toast.error((error as any)?.message || "Erro ao salvar configurações.");
     } finally {
       setSaving(false);
     }
