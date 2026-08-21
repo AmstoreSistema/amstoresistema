@@ -141,6 +141,24 @@ const TABLE_ALIASES: Record<string, string> = {
   unidademedida: "units_of_measure",
   unidadesdemedida: "units_of_measure",
   medidas: "units_of_measure",
+
+  material_cuts: "material_cuts",
+  materialcut: "material_cuts",
+  materialcuts: "material_cuts",
+  cortes: "material_cuts",
+  corte: "material_cuts",
+  cortecouro: "material_cuts",
+  cortescouro: "material_cuts",
+
+  material_variations: "material_variations",
+  materialvariation: "material_variations",
+  materialvariations: "material_variations",
+  cupon: "material_variations",
+  cupons: "material_variations",
+  cuponproducao: "material_variations",
+  cuponsproducao: "material_variations",
+  variacaomaterial: "material_variations",
+  variacoesmateriais: "material_variations",
 };
 
 const slug = (s: string) =>
@@ -459,6 +477,33 @@ const MAPPERS: Record<string, Mapper> = {
       created_at: date(pick(u, ["created_at", "criadoem", "data"])),
     };
   },
+  material_cuts: (c) => {
+    const name = str(pick(c, ["name", "nome", "corte", "descricao"]));
+    const material_id = str(pick(c, ["material_id", "material", "id_material", "insumo_id"]));
+    if (!name || !material_id) return null;
+    return {
+      name,
+      material_id,
+      width: num(pick(c, ["width", "largura", "L"])),
+      height: num(pick(c, ["height", "altura", "H"])),
+      x: pick(c, ["x", "pos_x"]) ?? null,
+      y: pick(c, ["y", "pos_y"]) ?? null,
+      rotation: num(pick(c, ["rotation", "rotacao"]), 0),
+      status: str(pick(c, ["status", "situacao"])) ?? "disponivel",
+      created_at: date(pick(c, ["created_at", "criadoem"])),
+    };
+  },
+  material_variations: (v) => {
+    const name = str(pick(v, ["name", "nome", "variacao", "descricao", "cupom"]));
+    const material_id = str(pick(v, ["material_id", "material", "id_material"]));
+    if (!name || !material_id) return null;
+    return {
+      name,
+      material_id,
+      sku: str(pick(v, ["sku", "codigo", "referencia"])) ?? null,
+      created_at: date(pick(v, ["created_at", "criadoem"])),
+    };
+  },
   transactions: (t) => {
     const amount = num(pick(t, ["amount", "valor", "value", "total", "saldo"]));
     if (!amount) return null;
@@ -483,6 +528,8 @@ export const IMPORT_ORDER = [
   "units_of_measure",
   "suppliers",
   "materials",
+  "material_cuts",
+  "material_variations",
   "clients",
   "products",
   "product_materials",
