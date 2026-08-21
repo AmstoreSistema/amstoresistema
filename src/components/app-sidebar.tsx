@@ -29,6 +29,7 @@ import {
 import * as React from "react";
 import { useRows } from "@/lib/data";
 import logoAsset from "@/assets/store-logo.png.asset.json";
+import { HeaderBrand } from "@/components/header-brand";
 
 import {
   Sidebar,
