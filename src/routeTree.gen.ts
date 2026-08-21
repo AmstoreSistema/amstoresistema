@@ -15,6 +15,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as SorteioRouteImport } from './routes/sorteio'
 import { Route as AuthenticatedAccountsRouteImport } from './routes/_authenticated.accounts'
+import { Route as AuthenticatedAiDocsRouteImport } from './routes/_authenticated.ai-docs'
 import { Route as AuthenticatedAuditRouteImport } from './routes/_authenticated.audit'
 import { Route as AuthenticatedCashbackRouteImport } from './routes/_authenticated.cashback'
 import { Route as AuthenticatedCatalogRouteImport } from './routes/_authenticated.catalog'
@@ -64,6 +65,11 @@ const SorteioRoute = SorteioRouteImport.update({
 const AuthenticatedAccountsRoute = AuthenticatedAccountsRouteImport.update({
   id: '/accounts',
   path: '/accounts',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedAiDocsRoute = AuthenticatedAiDocsRouteImport.update({
+  id: '/ai-docs',
+  path: '/ai-docs',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
 const AuthenticatedAuditRoute = AuthenticatedAuditRouteImport.update({
@@ -181,6 +187,7 @@ export interface FileRoutesByFullPath {
   '/reset-password': typeof ResetPasswordRoute
   '/sorteio': typeof SorteioRoute
   '/accounts': typeof AuthenticatedAccountsRoute
+  '/ai-docs': typeof AuthenticatedAiDocsRoute
   '/audit': typeof AuthenticatedAuditRoute
   '/cashback': typeof AuthenticatedCashbackRoute
   '/catalog': typeof AuthenticatedCatalogRoute
@@ -209,6 +216,7 @@ export interface FileRoutesByTo {
   '/reset-password': typeof ResetPasswordRoute
   '/sorteio': typeof SorteioRoute
   '/accounts': typeof AuthenticatedAccountsRoute
+  '/ai-docs': typeof AuthenticatedAiDocsRoute
   '/audit': typeof AuthenticatedAuditRoute
   '/cashback': typeof AuthenticatedCashbackRoute
   '/catalog': typeof AuthenticatedCatalogRoute
@@ -239,6 +247,7 @@ export interface FileRoutesById {
   '/reset-password': typeof ResetPasswordRoute
   '/sorteio': typeof SorteioRoute
   '/_authenticated/accounts': typeof AuthenticatedAccountsRoute
+  '/_authenticated/ai-docs': typeof AuthenticatedAiDocsRoute
   '/_authenticated/audit': typeof AuthenticatedAuditRoute
   '/_authenticated/cashback': typeof AuthenticatedCashbackRoute
   '/_authenticated/catalog': typeof AuthenticatedCatalogRoute
@@ -269,6 +278,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/sorteio'
     | '/accounts'
+    | '/ai-docs'
     | '/audit'
     | '/cashback'
     | '/catalog'
@@ -297,6 +307,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/sorteio'
     | '/accounts'
+    | '/ai-docs'
     | '/audit'
     | '/cashback'
     | '/catalog'
@@ -326,6 +337,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/sorteio'
     | '/_authenticated/accounts'
+    | '/_authenticated/ai-docs'
     | '/_authenticated/audit'
     | '/_authenticated/cashback'
     | '/_authenticated/catalog'
@@ -400,6 +412,13 @@ declare module '@tanstack/react-router' {
       path: '/accounts'
       fullPath: '/accounts'
       preLoaderRoute: typeof AuthenticatedAccountsRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/ai-docs': {
+      id: '/_authenticated/ai-docs'
+      path: '/ai-docs'
+      fullPath: '/ai-docs'
+      preLoaderRoute: typeof AuthenticatedAiDocsRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/audit': {
@@ -554,6 +573,7 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedRouteChildren {
   AuthenticatedAccountsRoute: typeof AuthenticatedAccountsRoute
+  AuthenticatedAiDocsRoute: typeof AuthenticatedAiDocsRoute
   AuthenticatedAuditRoute: typeof AuthenticatedAuditRoute
   AuthenticatedCashbackRoute: typeof AuthenticatedCashbackRoute
   AuthenticatedCatalogRoute: typeof AuthenticatedCatalogRoute
@@ -578,6 +598,7 @@ interface AuthenticatedRouteChildren {
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedAccountsRoute: AuthenticatedAccountsRoute,
+  AuthenticatedAiDocsRoute: AuthenticatedAiDocsRoute,
   AuthenticatedAuditRoute: AuthenticatedAuditRoute,
   AuthenticatedCashbackRoute: AuthenticatedCashbackRoute,
   AuthenticatedCatalogRoute: AuthenticatedCatalogRoute,
