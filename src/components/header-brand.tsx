@@ -1,4 +1,5 @@
 import * as React from "react";
+import { Store } from "lucide-react";
 import { useRows } from "@/lib/data";
 import logoAsset from "@/assets/store-logo.png.asset.json";
 
@@ -12,9 +13,11 @@ function useNow() {
   return now;
 }
 
+/** Bloco de marca exibido no topo do menu lateral: hora, data e logomarca. */
 export function HeaderBrand() {
   const now = useNow();
   const { data: settings = [] } = useRows<any>("app_settings");
+  const [broken, setBroken] = React.useState(false);
 
   const storeLogo = React.useMemo(() => {
     const setting = settings.find((s: any) => s.key === "store_logo");
@@ -33,23 +36,32 @@ export function HeaderBrand() {
     ? now
         .toLocaleDateString("pt-BR", { weekday: "short", day: "2-digit", month: "short" })
         .toUpperCase()
-        .replace(",", ".,")
     : "";
 
   return (
-    <div className="flex flex-1 flex-col items-center justify-center gap-0.5 py-1">
-      <p className="font-display text-lg font-bold leading-none tracking-tight text-gold">
+    <div className="flex flex-col items-center gap-1 px-2 py-3">
+      <p className="font-display text-xl font-bold leading-none tracking-tight text-gold">
         {time}
       </p>
-      <p className="text-[9px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
+      <p className="text-[9px] font-semibold uppercase tracking-[0.2em] text-sidebar-foreground/50">
         {date}
       </p>
-      <img
-        src={storeLogo}
-        alt="Amstore Bagshoes"
-        className="mt-1 h-6 w-auto max-w-[140px] object-contain"
-      />
-      <p className="text-[8px] font-semibold uppercase tracking-[0.3em] text-muted-foreground">
+      {storeLogo && !broken ? (
+        <img
+          src={storeLogo}
+          alt="Amstore Bagshoes"
+          onError={() => setBroken(true)}
+          className="mt-2 h-10 w-auto max-w-[150px] object-contain"
+        />
+      ) : (
+        <div className="mt-2 flex items-center gap-2">
+          <Store className="size-5 text-gold" />
+          <span className="font-display text-sm font-bold text-sidebar-foreground">
+            Amstore
+          </span>
+        </div>
+      )}
+      <p className="text-[8px] font-semibold uppercase tracking-[0.28em] text-sidebar-foreground/45">
         Gestão de Produção
       </p>
     </div>
