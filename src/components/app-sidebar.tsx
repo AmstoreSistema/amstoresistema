@@ -202,9 +202,14 @@ const menuGroups: { label: string; items: Item[] }[] = [
 ];
 
 export function AppSidebar() {
-  const { state, toggleSidebar } = useSidebar();
-  const collapsed = state === "collapsed";
+  const { state, toggleSidebar, isMobile, setOpenMobile } = useSidebar();
+  const collapsed = state === "collapsed" && !isMobile;
   const pathname = useRouterState({ select: (r) => r.location.pathname });
+
+  // Em celular, recolhe o menu automaticamente ao navegar para outra página
+  React.useEffect(() => {
+    if (isMobile) setOpenMobile(false);
+  }, [pathname, isMobile, setOpenMobile]);
   const { data: settings = [], isLoading: settingsLoading } = useRows<any>("app_settings");
 
   const storeLogo = React.useMemo<string | null>(() => {
@@ -222,7 +227,7 @@ export function AppSidebar() {
   return (
     <Sidebar collapsible="icon" className="border-sidebar-border scrollbar-hide [&_[data-sidebar=sidebar]]:scrollbar-hide">
       <SidebarHeader className="relative border-b border-sidebar-border">
-        {!collapsed && (
+        {!collapsed && !isMobile && (
           <div className="absolute top-2 right-2 z-10">
             <Button
               variant="ghost"
