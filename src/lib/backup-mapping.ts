@@ -12,21 +12,28 @@ const TABLE_ALIASES: Record<string, string> = {
   cliente: "clients",
   customers: "clients",
   customer: "clients",
+  contatos: "clients",
+  contato: "clients",
 
   products: "products",
   product: "products",
   produtos: "products",
   produto: "products",
   items: "products",
+  item: "products",
   produtoacabado: "products",
   produtosacabados: "products",
   modelos: "products",
   modelo: "products",
+  variacoes: "products",
+  variacao: "products",
 
   suppliers: "suppliers",
   supplier: "suppliers",
   fornecedores: "suppliers",
   fornecedor: "suppliers",
+  empresas: "suppliers",
+  empresa: "suppliers",
 
   materials: "materials",
   material: "materials",
@@ -37,6 +44,8 @@ const TABLE_ALIASES: Record<string, string> = {
   rawmaterials: "materials",
   insumos: "materials",
   insumo: "materials",
+  componentes: "materials",
+  componente: "materials",
 
   material_categories: "material_categories",
   materialcategory: "material_categories",
@@ -47,6 +56,8 @@ const TABLE_ALIASES: Record<string, string> = {
   category: "material_categories",
   categoriamaterial: "material_categories",
   categoriasmateriais: "material_categories",
+  grupos: "material_categories",
+  grupo: "material_categories",
 
   stock_products: "stock_products",
   stockproduct: "stock_products",
@@ -57,6 +68,7 @@ const TABLE_ALIASES: Record<string, string> = {
   estoqueproduto: "stock_products",
   estoqueprodutos: "stock_products",
   inventory: "stock_products",
+  armazem: "stock_products",
 
   transactions: "transactions",
   transaction: "transactions",
@@ -69,6 +81,9 @@ const TABLE_ALIASES: Record<string, string> = {
   movimentacaofinanceira: "transactions",
   financialtransaction: "transactions",
   financialtransactions: "transactions",
+  fluxodecaixa: "transactions",
+  contasapagar: "transactions",
+  contasareceber: "transactions",
 
   financial_accounts: "financial_accounts",
   financialaccount: "financial_accounts",
@@ -78,11 +93,16 @@ const TABLE_ALIASES: Record<string, string> = {
   contasfinanceiras: "financial_accounts",
   contafinanceira: "financial_accounts",
   caixas: "financial_accounts",
+  caixa: "financial_accounts",
+  bancos: "financial_accounts",
+  banco: "financial_accounts",
 
   promotions: "promotions",
   promotion: "promotions",
   promocoes: "promotions",
   promocao: "promotions",
+  descontos: "promotions",
+  cupom: "promotions",
 
   units_of_measure: "units_of_measure",
   unitofmeasure: "units_of_measure",
@@ -90,6 +110,7 @@ const TABLE_ALIASES: Record<string, string> = {
   unidades: "units_of_measure",
   unidademedida: "units_of_measure",
   unidadesdemedida: "units_of_measure",
+  medidas: "units_of_measure",
 };
 
 const slug = (s: string) =>
