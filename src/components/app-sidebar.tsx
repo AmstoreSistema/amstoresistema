@@ -187,7 +187,7 @@ const menuGroups: { label: string; items: Item[] }[] = [
 ];
 
 export function AppSidebar() {
-  const { state } = useSidebar();
+  const { state, toggleSidebar } = useSidebar();
   const collapsed = state === "collapsed";
   const pathname = useRouterState({ select: (r) => r.location.pathname });
   const { data: settings = [] } = useRows<any>("app_settings");
