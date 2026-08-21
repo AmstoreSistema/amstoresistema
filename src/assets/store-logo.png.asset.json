@@ -1,11 +1,11 @@
 {
-  "version": 1,
   "asset_id": "72251d7a-d66c-4d5c-894e-5f886bd3e852",
-  "project_id": "2d8bb3d6-9549-45f3-9ae9-67f5e512882e",
-  "url": "/__l5e/assets-v1/72251d7a-d66c-4d5c-894e-5f886bd3e852/store-logo.png",
-  "r2_key": "a/v1/2d8bb3d6-9549-45f3-9ae9-67f5e512882e/72251d7a-d66c-4d5c-894e-5f886bd3e852/store-logo.png",
-  "original_filename": "store-logo.png",
-  "size": 136352,
   "content_type": "image/png",
-  "created_at": "2026-08-14T15:48:53Z"
+  "created_at": "2026-08-14T15:48:53Z",
+  "original_filename": "store-logo.png",
+  "project_id": "01a99a0f-5eb7-49a1-af37-ec938aa3507b",
+  "r2_key": "a/v1/01a99a0f-5eb7-49a1-af37-ec938aa3507b/72251d7a-d66c-4d5c-894e-5f886bd3e852/store-logo.png",
+  "size": 136352,
+  "url": "/__l5e/assets-v1/72251d7a-d66c-4d5c-894e-5f886bd3e852/store-logo.png",
+  "version": 1
 }
