@@ -29,7 +29,53 @@ import {
 import * as React from "react";
 import { useRows } from "@/lib/data";
 import logoAsset from "@/assets/store-logo.png.asset.json";
-import { HeaderBrand } from "@/components/header-brand";
+
+function BrandBlock({ storeLogo }: { storeLogo: string }) {
+  const [now, setNow] = React.useState<Date | null>(null);
+  const [broken, setBroken] = React.useState(false);
+
+  React.useEffect(() => {
+    setNow(new Date());
+    const id = setInterval(() => setNow(new Date()), 20000);
+    return () => clearInterval(id);
+  }, []);
+
+  const time = now
+    ? now.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })
+    : "--:--";
+  const date = now
+    ? now
+        .toLocaleDateString("pt-BR", { weekday: "short", day: "2-digit", month: "short" })
+        .toUpperCase()
+    : "";
+
+  return (
+    <div className="flex flex-col items-center gap-1 px-2 py-3">
+      <p className="font-display text-xl font-bold leading-none tracking-tight text-sidebar-primary">
+        {time}
+      </p>
+      <p className="text-[9px] font-semibold uppercase tracking-[0.2em] text-sidebar-foreground/50">
+        {date}
+      </p>
+      {storeLogo && !broken ? (
+        <img
+          src={storeLogo}
+          alt="Amstore Bagshoes"
+          onError={() => setBroken(true)}
+          className="mt-2 h-10 w-auto max-w-[150px] object-contain"
+        />
+      ) : (
+        <div className="mt-2 flex items-center gap-2">
+          <Store className="size-5 text-sidebar-primary" />
+          <span className="font-display text-sm font-bold text-sidebar-foreground">Amstore</span>
+        </div>
+      )}
+      <p className="text-[8px] font-semibold uppercase tracking-[0.28em] text-sidebar-foreground/45">
+        Gestão de Produção
+      </p>
+    </div>
+  );
+}
 
 import {
   Sidebar,
@@ -168,7 +214,7 @@ export function AppSidebar() {
             </div>
           </div>
         ) : (
-          <HeaderBrand />
+          <BrandBlock storeLogo={storeLogo} />
         )}
       </SidebarHeader>
 
