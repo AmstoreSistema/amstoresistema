@@ -75,7 +75,7 @@ export function TransactionModal({
       amount: 0,
       description: "",
       account_id: "",
-      category: "Venda",
+      category: "Vendas",
       status: "pago",
       due_date: new Date().toISOString().split('T')[0],
       payment_method: "Dinheiro",
@@ -92,7 +92,7 @@ export function TransactionModal({
         amount: Math.abs(transaction.amount),
         description: transaction.description || "",
         account_id: transaction.account_id || "",
-        category: transaction.category || "Venda",
+        category: transaction.category || "Vendas",
         status: transaction.status === 'pago' ? 'pago' : 'pendente',
         due_date: transaction.due_date ? transaction.due_date.split('T')[0] : (transaction.created_at ? transaction.created_at.split('T')[0] : ""),
         payment_method: transaction.payment_method || "Dinheiro",
@@ -199,7 +199,6 @@ export function TransactionModal({
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent className="rounded-xl z-[9999]" position="popper" sideOffset={5}>
-                            <SelectItem value="Venda">Venda</SelectItem>
                             <SelectItem value="Vendas">Vendas</SelectItem>
                             <SelectItem value="Compra de Materiais">Compra de Materiais</SelectItem>
                             <SelectItem value="Equipamentos">Equipamentos</SelectItem>

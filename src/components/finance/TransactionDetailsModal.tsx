@@ -271,7 +271,7 @@ export function TransactionDetailsModal({
                   </div>
                   <div>
                     <label className="text-[10px] font-bold text-muted-foreground uppercase block">Categoria</label>
-                    <span className="text-xs font-bold">{transaction.category || "Vendas"}</span>
+                    <span className="text-xs font-bold uppercase">{transaction.category || "Vendas"}</span>
                   </div>
                 </div>
 
