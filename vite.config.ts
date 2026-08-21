@@ -73,6 +73,9 @@ export default defineConfig({
             }
           ]
         },
+        // O build cliente é emitido em dist/client; o service worker precisa
+        // ficar na raiz pública para ser servido em /sw.js
+        outDir: 'dist/client',
         devOptions: {
           enabled: false,
           type: 'module'
