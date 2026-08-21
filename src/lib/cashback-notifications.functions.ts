@@ -1,9 +1,11 @@
 import { createServerFn } from "@tanstack/react-start";
-import { z } from "zod";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 export const getClientsWithCashback = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
   .handler(async () => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
     
     // Fetch clients with balance > 0
     const { data, error } = await supabaseAdmin
