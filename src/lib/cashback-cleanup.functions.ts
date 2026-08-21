@@ -1,8 +1,10 @@
 import { createServerFn } from "@tanstack/react-start";
-import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 export const resetAllCashbacks = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .handler(async () => {
+
     const { supabaseAdmin: admin } = await import("@/integrations/supabase/client.server");
 
     // 1. Reset balance for all clients
