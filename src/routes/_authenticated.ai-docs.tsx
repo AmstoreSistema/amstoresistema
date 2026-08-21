@@ -32,7 +32,7 @@ export const Route = createFileRoute("/_authenticated/ai-docs")({
       { name: "twitter:card", content: "summary" },
     ],
   }),
-  component: AiDocsPage;
+  component: AiDocsPage,
 });
 
 const FORMATS = [
