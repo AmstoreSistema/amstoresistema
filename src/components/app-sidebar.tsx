@@ -6,6 +6,7 @@ import {
   BookMarked,
   BookOpen,
   Boxes,
+  ChevronLeft,
   ChevronRight,
   Coins,
   Factory,
@@ -29,6 +30,7 @@ import {
 import * as React from "react";
 import { useRows } from "@/lib/data";
 import logoAsset from "@/assets/store-logo.png.asset.json";
+import { Button } from "@/components/ui/button";
 
 function BrandBlock({ storeLogo }: { storeLogo: string }) {
   const [now, setNow] = React.useState<Date | null>(null);
@@ -202,9 +204,29 @@ export function AppSidebar() {
 
   return (
     <Sidebar collapsible="icon" className="border-sidebar-border scrollbar-hide [&_[data-sidebar=sidebar]]:scrollbar-hide">
-      <SidebarHeader className="border-b border-sidebar-border">
+      <SidebarHeader className="relative border-b border-sidebar-border">
+        {!collapsed && (
+          <div className="absolute top-2 right-2 z-10">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={toggleSidebar}
+              className="size-7 text-sidebar-foreground/50 hover:text-sidebar-primary"
+            >
+              <ChevronLeft className="size-4" />
+            </Button>
+          </div>
+        )}
         {collapsed ? (
-          <div className="flex items-center justify-center py-2">
+          <div className="flex flex-col items-center justify-center gap-2 py-4">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={toggleSidebar}
+              className="size-8 text-sidebar-foreground/50 hover:text-sidebar-primary"
+            >
+              <ChevronRight className="size-5" />
+            </Button>
             <div className="flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-gold/20 bg-gradient-gold shadow-gold">
               {storeLogo ? (
                 <img src={storeLogo} alt="Logo" className="size-full object-cover" />
