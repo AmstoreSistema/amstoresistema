@@ -65,6 +65,25 @@ const TABLE_ALIASES: Record<string, string> = {
   grupos: "material_categories",
   grupo: "material_categories",
 
+  product_materials: "product_materials",
+  productmaterial: "product_materials",
+  productmaterials: "product_materials",
+  composicoes: "product_materials",
+  composicao: "product_materials",
+  fichatecnica: "product_materials",
+  fichastecnicas: "product_materials",
+  receita: "product_materials",
+  bom: "product_materials",
+
+  production_orders: "production_orders",
+  productionorder: "production_orders",
+  productionorders: "production_orders",
+  ordens: "production_orders",
+  ordem: "production_orders",
+  ordensproducao: "production_orders",
+  ordemproducao: "production_orders",
+  producao: "production_orders",
+
   stock_products: "stock_products",
   stockproduct: "stock_products",
   stockproducts: "stock_products",
@@ -226,11 +245,22 @@ export function extractAllCollections(payload: any): Collections {
     return out;
   }
 
+  if (payload?.dados && typeof payload.dados === "object" && !Array.isArray(payload.dados)) {
+    // Caso específico do Base44 onde tudo está dentro de "dados"
+    for (const [key, value] of Object.entries(payload.dados)) {
+      if (Array.isArray(value)) {
+        out[key] = (out[key] ?? []).concat(value.filter((r) => r && typeof r === "object"));
+      }
+    }
+  }
+
   const visit = (node: any, depth: number) => {
     if (!node || typeof node !== "object" || depth > 4) return;
     if (Array.isArray(node)) return;
     
     for (const [key, value] of Object.entries(node)) {
+      if (key === "dados" && depth === 0) continue; // Já processado acima se for raiz
+      
       if (Array.isArray(value)) {
         if (value.length > 0 && value.some((r) => r && typeof r === "object" && !Array.isArray(r))) {
           out[key] = (out[key] ?? []).concat(value.filter((r) => r && typeof r === "object"));
@@ -357,6 +387,25 @@ const MAPPERS: Record<string, Mapper> = {
     if (!name) return null;
     return { name, created_at: date(pick(c, ["created_at", "criadoem", "data"])) };
   },
+  product_materials: (pm) => {
+    // Mapeamento simples para ficha técnica
+    return {
+      product_id: pick(pm, ["product_id", "produto_id", "id_produto"]),
+      material_id: pick(pm, ["material_id", "material_id", "id_material"]),
+      quantity: num(pick(pm, ["quantity", "quantidade", "qtd"])),
+      created_at: date(pick(pm, ["created_at", "criadoem"]))
+    };
+  },
+  production_orders: (po) => {
+    return {
+      product_id: pick(po, ["product_id", "produto_id", "id_produto"]),
+      quantity: num(pick(po, ["quantity", "quantidade", "qtd"])),
+      status: str(pick(po, ["status", "situacao"])) ?? "pendente",
+      start_date: date(pick(po, ["start_date", "data_inicio"])),
+      end_date: date(pick(po, ["end_date", "data_fim"])),
+      created_at: date(pick(po, ["created_at", "criadoem"]))
+    };
+  },
   stock_products: (s) => {
     const name = str(pick(s, ["produto_nome", "produtonome", "name", "nome", "produto", "descricao", "item"]));
     if (!name) return null;
@@ -436,6 +485,8 @@ export const IMPORT_ORDER = [
   "materials",
   "clients",
   "products",
+  "product_materials",
+  "production_orders",
   "stock_products",
   "financial_accounts",
   "promotions",
