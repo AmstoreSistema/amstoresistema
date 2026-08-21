@@ -1,13 +1,31 @@
 import { createFileRoute, Outlet, redirect, useRouterState } from "@tanstack/react-router";
-import { LogOut, Search } from "lucide-react";
+import { ChevronLeft, ChevronRight, LogOut } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
 import { AppSidebar } from "@/components/app-sidebar";
+import { HeaderBrand } from "@/components/header-brand";
 import { Button } from "@/components/ui/button";
-import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { SidebarProvider, useSidebar } from "@/components/ui/sidebar";
 import { Toaster } from "@/components/ui/sonner";
+
+function CollapseButton() {
+  const { state, toggleSidebar } = useSidebar();
+  const collapsed = state === "collapsed";
+  return (
+    <Button
+      variant="ghost"
+      size="icon"
+      onClick={toggleSidebar}
+      title={collapsed ? "Expandir menu" : "Recolher menu"}
+      aria-label={collapsed ? "Expandir menu" : "Recolher menu"}
+      className="shrink-0 text-muted-foreground hover:text-gold"
+    >
+      {collapsed ? <ChevronRight className="size-5" /> : <ChevronLeft className="size-5" />}
+    </Button>
+  );
+}
 
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
