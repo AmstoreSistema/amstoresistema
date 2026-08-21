@@ -195,9 +195,9 @@ function LiveMetrics() {
       />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard title="Vendas hoje" value={m.salesToday.length} sub={`${num(m.itemsToday, 0)} itens vendidos`} icon={ShoppingCart} tone="gold" />
-        <StatCard title="Faturamento hoje" value={brl(m.revenueToday)} sub={`Ticket médio ${brl(m.ticket)}`} icon={TrendingUp} tone="success" />
-        <StatCard title="Recebido hoje" value={brl(m.receivedToday)} sub={`Despesas ${brl(m.expensesToday)}`} icon={CreditCard} tone="info" />
+        <StatCard title="Vendas hoje" value={m.salesToday.length} sub={`${num(m.itemsToday, 0)} itens vendidos`} icon={ShoppingCart} tone="gold" to="/sales" />
+        <StatCard title="Faturamento hoje" value={brl(m.revenueToday)} sub={`Ticket médio ${brl(m.ticket)}`} icon={TrendingUp} tone="success" to="/reports" />
+        <StatCard title="Recebido hoje" value={brl(m.receivedToday)} sub={`Despesas ${brl(m.expensesToday)}`} icon={CreditCard} tone="info" to="/transactions" />
         <StatCard title="Saldo em caixa" value={brl(m.cashTotal)} sub={`${accounts.length} conta(s)`} icon={Wallet} tone="dark" to="/accounts" />
         <StatCard title="Fiado em aberto" value={brl(m.openDebt)} sub={`${m.overdue.length} parcela(s) vencida(s)`} icon={HandCoins} tone={m.overdue.length ? "destructive" : "warning"} to="/credit" />
         <StatCard title="Ordens ativas" value={m.activeOrders} sub={`${orders.length} ordens no total`} icon={Factory} tone="dark" to="/production" />

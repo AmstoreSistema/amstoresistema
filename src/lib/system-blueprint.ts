@@ -182,6 +182,30 @@ Para reproduzir este sistema em outra stack, siga a ordem:
 
 Ao pedir a especificação de um módulo para outra IA, informe: objetivo, tabelas envolvidas, regras de negócio, contratos de função, telas, componentes e casos de borda.`,
   },
+  {
+    id: "seguranca-auditoria",
+    title: "Segurança e auditoria",
+    summary: "Mecanismos de proteção, permissões e trilha de auditoria.",
+    body: `# Segurança e auditoria
+
+## Autenticação
+- Cadastro público desativado nas configurações do backend.
+- Somente administradores podem criar ou convidar novos usuários.
+- Reset de senha via e-mail obrigatório para novos acessos.
+
+## Permissões (RBAC)
+- Papéis: \`admin\`, \`moderador\`, \`user\`.
+- \`has_role(_user_id, _role)\`: Função SQL security definer para verificação de permissões sem recursividade no RLS.
+- RLS (\`Row Level Security\`) em todas as tabelas:
+  - \`authenticated\` role para acesso interno.
+  - \`service_role\` para tarefas de sistema/privilegiadas.
+  - Políticas baseadas no e-mail ou na função do usuário.
+
+## Trilha de Auditoria
+- Tabela \`audit_log\`: captura \`INSERT\`, \`UPDATE\`, \`DELETE\`.
+- Campos: ação, entidade, ID da entidade, dados antigos/novos (JSON), e-mail do autor e data.
+- Visualização em \`/audit\` com filtros por entidade e ação, permitindo rastrear quem alterou qualquer valor financeiro ou de estoque.`,
+  },
 ];
 
 export const BLUEPRINT_MARKDOWN = SYSTEM_BLUEPRINT.map((s) => s.body).join("\n\n---\n\n");

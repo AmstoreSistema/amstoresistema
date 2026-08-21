@@ -155,21 +155,26 @@ function AiDocsPage() {
           </div>
 
           {answer && (
-            <div className="rounded-2xl border border-border bg-background/60 p-4">
-              <div className="mb-3 flex items-center justify-between">
-                <Badge variant="secondary">Resultado</Badge>
+            <div className="rounded-2xl border border-border bg-background/60 p-5 shadow-inner">
+              <div className="mb-4 flex items-center justify-between border-b border-border/50 pb-3">
+                <div className="flex items-center gap-2">
+                  <Badge variant="secondary" className="bg-gold/10 text-gold border-gold/20">Resultado da IA</Badge>
+                  <span className="text-[10px] text-muted-foreground uppercase tracking-widest font-semibold">Markdown Disponível</span>
+                </div>
                 <div className="flex gap-2">
-                  <Button size="sm" variant="ghost" onClick={() => copy(answer)}>
-                    <Copy className="mr-2 size-4" /> Copiar
+                  <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => copy(answer)}>
+                    <Copy className="mr-2 size-3" /> Copiar especificação
                   </Button>
-                  <Button size="sm" variant="ghost" onClick={() => download("documentacao-amstore.md", answer)}>
-                    <Download className="mr-2 size-4" /> Baixar
+                  <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => download("documentacao-amstore.md", answer)}>
+                    <Download className="mr-2 size-3" /> Baixar .md
                   </Button>
                 </div>
               </div>
-              <pre className="max-h-[520px] overflow-auto whitespace-pre-wrap break-words font-mono text-xs leading-relaxed text-foreground/90">
-                {answer}
-              </pre>
+              <div className="prose prose-invert prose-sm max-w-none max-h-[600px] overflow-auto pr-4 custom-scrollbar">
+                <pre className="whitespace-pre-wrap break-words font-mono text-[11px] leading-relaxed text-foreground/90 bg-black/30 p-4 rounded-xl border border-border/30">
+                  {answer}
+                </pre>
+              </div>
             </div>
           )}
         </CardContent>
