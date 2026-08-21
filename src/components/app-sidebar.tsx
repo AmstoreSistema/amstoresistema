@@ -205,9 +205,11 @@ export function AppSidebar() {
   const { state, toggleSidebar } = useSidebar();
   const collapsed = state === "collapsed";
   const pathname = useRouterState({ select: (r) => r.location.pathname });
-  const { data: settings = [] } = useRows<any>("app_settings");
+  const { data: settings = [], isLoading: settingsLoading } = useRows<any>("app_settings");
 
-  const storeLogo = React.useMemo(() => {
+  const storeLogo = React.useMemo<string | null>(() => {
+    // Enquanto as configurações carregam, não exibe nenhuma logo (evita "piscar" a imagem padrão)
+    if (settingsLoading) return null;
     const setting = settings.find((s: any) => s.key === "store_logo");
     if (!setting) return logoAsset.url;
     try {
@@ -215,7 +217,7 @@ export function AppSidebar() {
     } catch {
       return setting.value || logoAsset.url;
     }
-  }, [settings]);
+  }, [settings, settingsLoading]);
 
   return (
     <Sidebar collapsible="icon" className="border-sidebar-border scrollbar-hide [&_[data-sidebar=sidebar]]:scrollbar-hide">
