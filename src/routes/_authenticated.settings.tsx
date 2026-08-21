@@ -329,34 +329,24 @@ function SettingsPage() {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    if (file.size > 1024 * 1024) {
+      toast.error("Imagem muito grande. Use um arquivo de até 1 MB.");
+      e.target.value = "";
+      return;
+    }
+
     setUploadingLogo(true);
     try {
-      // Ensure bucket exists or handle error if it doesn't
-      const fileExt = file.name.split('.').pop();
-      const fileName = `store-logo-${Date.now()}.${fileExt}`;
-      const filePath = `public/${fileName}`;
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = () => reject(new Error("Não foi possível ler o arquivo"));
+        reader.readAsDataURL(file);
+      });
 
-      const { data, error: uploadError } = await supabase.storage
-        .from('store_assets')
-        .upload(filePath, file);
+      setLocalSettings((prev) => ({ ...prev, store_logo: dataUrl }));
+      await saveSettingsBatch({ data: [{ key: "store_logo", value: dataUrl }] });
 
-      if (uploadError) {
-        if (uploadError.message.includes('bucket not found')) {
-          toast.error("Bucket 'store_assets' não encontrado. Configure o bucket no Supabase.");
-        } else {
-          throw uploadError;
-        }
-        return;
-      }
-
-      const { data: { publicUrl } } = supabase.storage
-        .from('store_assets')
-        .getPublicUrl(filePath);
-
-      // Salvar imediatamente no banco e atualizar estado local
-      setLocalSettings(prev => ({ ...prev, store_logo: publicUrl }));
-      await saveSettingsBatch({ data: [{ key: "store_logo", value: publicUrl }] });
-      
       toast.success("Logomarca carregada e salva com sucesso!");
       await loadData();
     } catch (error: any) {
@@ -364,6 +354,7 @@ function SettingsPage() {
       toast.error(`Erro ao carregar logomarca: ${error.message}`);
     } finally {
       setUploadingLogo(false);
+      e.target.value = "";
     }
   };
 
