@@ -25,67 +25,101 @@ export const exportSystemData = createServerFn({ method: "POST" })
   });
 
 export const importSystemData = createServerFn({ method: "POST" })
-  .inputValidator((data) => z.object({ 
+  .inputValidator((data) => z.object({
     payload: z.any(),
     tables: z.array(z.string()).optional(),
-    isBase44: z.boolean().optional()
+    isBase44: z.boolean().optional(),
   }).parse(data))
-  .handler(async ({ data: { payload, tables: selectedTables, isBase44 } }) => {
+  .handler(async ({ data: { payload, tables: selectedTables } }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    
+    const { mapForeignBackup, IMPORT_ORDER } = await import("@/lib/backup-mapping");
+
+    const isNative = !!payload?.data && !!payload?.version;
     let dataToImport: Record<string, any[]> = {};
 
-    if (isBase44) {
-      if (!payload.tabelas) {
-        throw new Error("Formato de backup Base44 inválido: chave 'tabelas' não encontrada");
-      }
-
-      // Mapping 'clientes' -> 'clients'
-      if (Array.isArray(payload.tabelas.clientes)) {
-        dataToImport['clients'] = payload.tabelas.clientes.map((c: any) => ({
-          name: c.nome,
-          phone: c.telefone,
-          cashback_balance: 0,
-          created_at: new Date().toISOString()
-        }));
-      }
-
-      // Mapping 'produtos' -> 'products'
-      if (Array.isArray(payload.tabelas.produtos)) {
-        dataToImport['products'] = payload.tabelas.produtos.map((p: any) => ({
-          sku: p.sku,
-          name: p.nome || `Produto ${p.sku}`,
-          sale_price: p.preco || 0,
-          category: 'Geral',
-          cost_price: 0,
-          labor_cost: 0,
-          overhead_cost: 0,
-          retail_margin: 0,
-          wholesale_margin: 0,
-          active: true,
-          created_at: new Date().toISOString()
-        }));
-      }
-    } else {
-      if (!payload.data || !payload.version) {
-        throw new Error("Formato de backup inválido");
-      }
-      dataToImport = selectedTables 
-        ? Object.fromEntries(Object.entries(payload.data).filter(([table]) => selectedTables.includes(table)))
+    if (isNative) {
+      dataToImport = selectedTables
+        ? Object.fromEntries(
+            Object.entries(payload.data).filter(([table]) => selectedTables.includes(table)),
+          )
         : payload.data;
+    } else {
+      // Backup externo (Base44 ou qualquer JSON com coleções de registros)
+      dataToImport = mapForeignBackup(payload);
+      if (selectedTables) {
+        dataToImport = Object.fromEntries(
+          Object.entries(dataToImport).filter(([table]) => selectedTables.includes(table)),
+        );
+      }
+      if (Object.keys(dataToImport).length === 0) {
+        throw new Error(
+          "Não encontramos dados reconhecíveis neste arquivo. Verifique se o backup contém clientes, produtos, fornecedores, materiais, categorias ou transações.",
+        );
+      }
     }
-    
-    for (const [table, rows] of Object.entries(dataToImport)) {
-      if (Array.isArray(rows) && rows.length > 0) {
-        // We use upsert with onConflict if we want to avoid duplicates
-        // For standard tables we might need to handle specific constraints
-        const { error } = await supabaseAdmin.from(table as any).upsert(rows);
-        if (error) {
-          console.error(`Error importing ${table}:`, error);
-          // If upsert fails due to missing FKs or other constraints, we log it
+
+    const results: Record<string, { inserted: number; failed: number; error?: string }> = {};
+    const orderedTables = Object.keys(dataToImport).sort(
+      (a, b) =>
+        (IMPORT_ORDER.indexOf(a) === -1 ? 99 : IMPORT_ORDER.indexOf(a)) -
+        (IMPORT_ORDER.indexOf(b) === -1 ? 99 : IMPORT_ORDER.indexOf(b)),
+    );
+
+    for (const table of orderedTables) {
+      const rows = dataToImport[table];
+      if (!Array.isArray(rows) || rows.length === 0) continue;
+
+      const res = { inserted: 0, failed: 0 } as { inserted: number; failed: number; error?: string };
+
+      // Tenta em lote; se falhar (constraints/FKs), tenta linha por linha para salvar o máximo possível.
+      const { error: bulkError } = await supabaseAdmin.from(table as any).upsert(rows);
+      if (!bulkError) {
+        res.inserted = rows.length;
+      } else {
+        for (const row of rows) {
+          const { error } = await supabaseAdmin.from(table as any).insert(row);
+          if (error) {
+            res.failed += 1;
+            res.error = res.error ?? error.message;
+          } else {
+            res.inserted += 1;
+          }
         }
       }
+      results[table] = res;
     }
-    
-    return { success: true };
+
+    const totalInserted = Object.values(results).reduce((s, r) => s + r.inserted, 0);
+    const totalFailed = Object.values(results).reduce((s, r) => s + r.failed, 0);
+
+    if (totalInserted === 0) {
+      const firstError = Object.values(results).find((r) => r.error)?.error;
+      throw new Error(
+        `Nenhum registro pôde ser restaurado.${firstError ? ` Motivo: ${firstError}` : ""}`,
+      );
+    }
+
+    return { success: true, results, totalInserted, totalFailed, format: isNative ? "amstore" : "externo" };
+  });
+
+export const inspectBackupFile = createServerFn({ method: "POST" })
+  .inputValidator((data) => z.object({ payload: z.any() }).parse(data))
+  .handler(async ({ data: { payload } }) => {
+    const { mapForeignBackup } = await import("@/lib/backup-mapping");
+    if (payload?.data && payload?.version) {
+      return {
+        format: "amstore" as const,
+        collections: Object.fromEntries(
+          Object.entries(payload.data as Record<string, any[]>).map(([k, v]) => [
+            k,
+            Array.isArray(v) ? v.length : 0,
+          ]),
+        ),
+      };
+    }
+    const mapped = mapForeignBackup(payload);
+    return {
+      format: "externo" as const,
+      collections: Object.fromEntries(Object.entries(mapped).map(([k, v]) => [k, v.length])),
+    };
   });
