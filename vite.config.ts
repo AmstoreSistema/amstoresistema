@@ -9,6 +9,8 @@ export default defineConfig({
     plugins: [
       VitePWA({
         registerType: 'autoUpdate',
+        injectRegister: null,
+        filename: 'sw.js',
         manifest: {
           name: 'AmStore Gestão',
           short_name: 'AmStore',
