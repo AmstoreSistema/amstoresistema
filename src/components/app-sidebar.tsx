@@ -67,16 +67,21 @@ function BrandBlock({ storeLogo }: { storeLogo: string | null }) {
         {date}
       </p>
       {storeLogo && !broken ? (
-        <span className="mt-2 flex items-center justify-center bg-sidebar">
+        <span className="relative mt-2 flex h-10 items-center justify-center bg-sidebar">
           <img
             src={storeLogo}
             alt="Amstore Bagshoes"
             onError={() => setBroken(true)}
-            className="h-10 w-auto max-w-[150px] object-contain invert mix-blend-screen"
+            onLoad={() => setLoaded(true)}
+            className={`h-10 w-auto max-w-[150px] object-contain invert mix-blend-screen transition-opacity duration-300 ${
+              loaded ? "opacity-100" : "opacity-0"
+            }`}
           />
         </span>
+      ) : storeLogo === null ? (
+        <div className="mt-2 h-10" />
       ) : (
-        <div className="mt-2 flex items-center gap-2">
+        <div className="mt-2 flex h-10 items-center gap-2">
           <Store className="size-5 text-sidebar-primary" />
           <span className="font-display text-sm font-bold text-sidebar-foreground">Amstore</span>
         </div>
