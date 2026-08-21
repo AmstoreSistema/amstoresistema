@@ -133,6 +133,10 @@ export const inspectBackupFile = createServerFn({ method: "POST" })
   .inputValidator((data) => z.object({ payload: z.any() }).parse(data))
   .handler(async ({ data: { payload } }) => {
     const { mapForeignBackup, unrecognizedCollections } = await import("@/lib/backup-mapping");
+    
+    // Log para depuração de backups Base44 / Externos
+    console.log("[Backup Inspect] Payload recebido:", JSON.stringify(payload, null, 2));
+
     if (payload?.data && payload?.version) {
       return {
         format: "amstore" as const,
