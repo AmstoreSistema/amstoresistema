@@ -49,6 +49,15 @@ export default defineConfig({
           navigateFallbackDenylist: [/^\/~oauth/],
           runtimeCaching: [
             {
+              urlPattern: ({ request }: { request: Request }) => request.mode === 'navigate',
+              handler: 'NetworkFirst',
+              options: {
+                cacheName: 'html-navigations',
+                networkTimeoutSeconds: 5,
+                cacheableResponse: { statuses: [0, 200] }
+              }
+            },
+            {
               urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
               handler: 'CacheFirst',
               options: {
