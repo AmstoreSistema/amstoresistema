@@ -428,6 +428,38 @@ function MaterialsPage() {
             onChange={e => setTerm(e.target.value)}
           />
         </div>
+
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border/60 bg-card px-4 py-3">
+          <label className="flex cursor-pointer select-none items-center gap-3 text-sm">
+            <Checkbox
+              checked={filtered.length > 0 && selectedIds.length === filtered.length}
+              onCheckedChange={(v) =>
+                setSelectedIds(v ? filtered.map(m => m.id) : [])
+              }
+            />
+            <span className="font-medium">
+              Selecionar todos
+              <span className="ml-1 text-muted-foreground">({filtered.length})</span>
+            </span>
+          </label>
+
+          <div className="flex items-center gap-3">
+            {selectedIds.length > 0 && (
+              <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                {selectedIds.length} selecionado(s)
+              </span>
+            )}
+            <Button
+              variant="destructive"
+              size="sm"
+              className="gap-2"
+              disabled={selectedIds.length === 0}
+              onClick={() => setBulkDeleteOpen(true)}
+            >
+              <Trash2 className="size-4" /> Excluir selecionados
+            </Button>
+          </div>
+        </div>
       </div>
 
       {isLoading ? (
