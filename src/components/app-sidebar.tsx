@@ -150,6 +150,7 @@ const menuGroups: { label: string; items: Item[] }[] = [
         icon: Store,
         items: [
           { title: "Painel de controle", url: "/store", icon: Store },
+          { title: "Relatórios", url: "/store-reports", icon: PieChart },
           { title: "Vendas", url: "/sales", icon: ShoppingCart },
           { title: "Clientes", url: "/clients", icon: Users },
           { title: "Fiado", url: "/credit", icon: HandCoins },
