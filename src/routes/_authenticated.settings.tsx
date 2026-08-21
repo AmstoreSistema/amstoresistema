@@ -651,13 +651,31 @@ function SettingsPage() {
                         )}
                       </div>
                       <div>
-                        <h4 className="font-bold text-sm">{backupProgress.currentTable}</h4>
-                        <p className="text-xs text-muted-foreground">Progresso do processo atual</p>
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline" className="text-[10px] font-black uppercase tracking-widest px-2 py-0.5 border-gold/30 text-gold">
+                            {backupProgress.percent === 100 ? "Concluído" : "Processando"}
+                          </Badge>
+                          <h4 className="font-bold text-sm">{backupProgress.currentTable}</h4>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {backupProgress.percent === 100 
+                            ? "Operação finalizada com sucesso." 
+                            : "Aguarde enquanto os dados são processados..."}
+                        </p>
                       </div>
                     </div>
-                    <span className="text-xl font-black text-gold">{backupProgress.percent}%</span>
+                    <div className="text-right">
+                      <span className="text-2xl font-black text-gold tabular-nums leading-none">{backupProgress.percent}%</span>
+                      <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-tighter">Progresso Total</p>
+                    </div>
                   </div>
-                  <Progress value={backupProgress.percent} className="h-2 bg-muted border-none" />
+                  <div className="relative pt-1">
+                    <Progress value={backupProgress.percent} className="h-3 bg-muted border border-border/40 overflow-hidden rounded-full shadow-inner" />
+                    <div 
+                      className="absolute top-0 bottom-0 left-0 bg-gold/10 transition-all duration-500 rounded-full" 
+                      style={{ width: `${backupProgress.percent}%` }}
+                    />
+                  </div>
                 </div>
               )}
 
@@ -709,17 +727,17 @@ function SettingsPage() {
                 </div>
               </div>
 
-              <div className="flex flex-col sm:flex-row gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <Button 
                   onClick={handleExport} 
                   disabled={saving}
-                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold h-12 shadow-md transition-all flex gap-2"
+                  className="bg-blue-600 hover:bg-blue-700 text-white font-bold h-12 shadow-md transition-all flex gap-2"
                 >
                   {saving ? <Loader2 className="size-4 animate-spin" /> : <Download className="size-4" />}
                   Gerar Backup Agora
                 </Button>
 
-                <div className="relative flex-1">
+                <div className="relative">
                   <input 
                     type="file" 
                     accept=".json" 
@@ -728,7 +746,20 @@ function SettingsPage() {
                   />
                   <Button variant="outline" className="w-full h-12 font-bold border-2 flex gap-2 border-gold/40 text-gold hover:bg-gold/5">
                     <Upload className="size-4" />
-                    Restaurar Backup BASE
+                    Restaurar Backup Interno
+                  </Button>
+                </div>
+
+                <div className="relative">
+                  <input 
+                    type="file" 
+                    accept=".json" 
+                    onChange={handleImportFile}
+                    className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-10"
+                  />
+                  <Button variant="outline" className="w-full h-12 font-bold border-2 flex gap-2 border-blue-400/40 text-blue-600 hover:bg-blue-50">
+                    <Database className="size-4" />
+                    Restaurar Backup Externo
                   </Button>
                 </div>
               </div>
