@@ -15,7 +15,7 @@ import { toast } from "sonner";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { CheckCircle2, Info, Loader2 as Spinner, ImageIcon } from "lucide-react";
+import { CheckCircle2, Info, Loader2 as Spinner, ImageIcon, AlertTriangle } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { supabase } from "@/integrations/supabase/client";
 import logoAsset from "@/assets/store-logo.png.asset.json";
