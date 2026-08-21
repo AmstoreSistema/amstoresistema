@@ -33,9 +33,15 @@ import logoAsset from "@/assets/store-logo.png.asset.json";
 import symbolAsset from "@/assets/amstore-symbol.png.asset.json";
 import { Button } from "@/components/ui/button";
 
-function BrandBlock({ storeLogo }: { storeLogo: string }) {
+function BrandBlock({ storeLogo }: { storeLogo: string | null }) {
   const [now, setNow] = React.useState<Date | null>(null);
   const [broken, setBroken] = React.useState(false);
+  const [loaded, setLoaded] = React.useState(false);
+
+  React.useEffect(() => {
+    setLoaded(false);
+    setBroken(false);
+  }, [storeLogo]);
 
   React.useEffect(() => {
     setNow(new Date());
