@@ -510,7 +510,10 @@ function StoreReportsPage() {
   ]);
 
   const handleExport = () => {
-    if (!result.rows.length) return toast.error("Nada para exportar.");
+    if (!result.rows.length) {
+      toast.error("Nada para exportar.");
+      return;
+    }
     const blob = new Blob([`\uFEFF${toCsv(result)}`], {
       type: "text/csv;charset=utf-8;",
     });
