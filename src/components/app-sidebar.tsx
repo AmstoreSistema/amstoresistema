@@ -156,25 +156,19 @@ export function AppSidebar() {
   return (
     <Sidebar collapsible="icon" className="border-sidebar-border scrollbar-hide [&_[data-sidebar=sidebar]]:scrollbar-hide">
       <SidebarHeader className="border-b border-sidebar-border">
-        <div className="flex items-center gap-3 px-1 py-2">
-          <div className="flex size-9 shrink-0 items-center justify-center rounded-xl overflow-hidden bg-gradient-gold text-sidebar-primary-foreground shadow-gold border border-gold/20">
-            {storeLogo ? (
-              <img src={storeLogo} alt="Logo" className="size-full object-cover" />
-            ) : (
-              <Store className="size-5" />
-            )}
-          </div>
-          {!collapsed && (
-            <div className="min-w-0">
-              <p className="truncate font-display text-sm font-bold tracking-tight text-sidebar-foreground">
-                Amstore
-              </p>
-              <p className="truncate text-[10px] uppercase tracking-[0.2em] text-sidebar-primary">
-                Bag&nbsp;Shoes
-              </p>
+        {collapsed ? (
+          <div className="flex items-center justify-center py-2">
+            <div className="flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-gold/20 bg-gradient-gold shadow-gold">
+              {storeLogo ? (
+                <img src={storeLogo} alt="Logo" className="size-full object-cover" />
+              ) : (
+                <Store className="size-5" />
+              )}
             </div>
-          )}
-        </div>
+          </div>
+        ) : (
+          <HeaderBrand />
+        )}
       </SidebarHeader>
 
       <SidebarContent className="scrollbar-hide gap-0 overflow-y-auto overflow-x-hidden">
