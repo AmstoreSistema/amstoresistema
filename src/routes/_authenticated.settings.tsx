@@ -257,36 +257,39 @@ function SettingsPage() {
     reader.onload = async (event) => {
       try {
         const payload = JSON.parse(event.target?.result as string);
-        
-        // Check if it's a Base44 backup (versao can be a string or number)
-        const isBase44 = payload.tabelas && (payload.versao === "1.0" || payload.versao === 1.0 || payload.versao === 1);
-        
-        if (isBase44) {
-          toast.info("Backup Base44 detectado. Mapeando dados...");
-          
-          setSaving(true);
-          try {
-            await importData({ data: { payload, isBase44: true } });
-            toast.success("Dados do Base44 restaurados com sucesso!");
-            setTimeout(() => window.location.reload(), 1500);
-          } catch (error: any) {
-            toast.error(`Erro na restauração Base44: ${error.message}`);
-          } finally {
-            setSaving(false);
-          }
+        const isNative = !!payload?.data && !!payload?.version;
+
+        if (isNative) {
+          setImportDialog({ open: true, payload, selected: Object.keys(payload.data) });
           return;
         }
 
-        if (!payload.data) throw new Error("Formato inválido");
-        
-        const availableTables = Object.keys(payload.data);
-        setImportDialog({
-          open: true,
-          payload,
-          selected: availableTables
-        });
+        // Backup externo (Base44 e similares): inspeciona e mapeia automaticamente
+        toast.info("Backup externo detectado. Analisando dados...");
+        setSaving(true);
+        try {
+          const info = await inspectBackup({ data: { payload } });
+          const found = Object.entries(info.collections).filter(([, n]) => (n as number) > 0);
+          if (found.length === 0) {
+            toast.error(
+              "Não encontramos clientes, produtos, fornecedores, materiais, categorias ou transações neste arquivo.",
+            );
+            return;
+          }
+          const result: any = await importData({ data: { payload } });
+          toast.success(
+            `Restauração concluída: ${result.totalInserted} registros importados${
+              result.totalFailed ? ` (${result.totalFailed} ignorados)` : ""
+            }.`,
+          );
+          setTimeout(() => window.location.reload(), 1800);
+        } catch (error: any) {
+          toast.error(`Erro na restauração: ${error?.message ?? "falha desconhecida"}`);
+        } finally {
+          setSaving(false);
+        }
       } catch (error) {
-        toast.error("Erro ao carregar arquivo de backup: formato inválido");
+        toast.error("Erro ao carregar arquivo de backup: o arquivo não é um JSON válido");
       }
     };
     reader.readAsText(file);
