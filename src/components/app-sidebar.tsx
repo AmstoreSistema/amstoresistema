@@ -30,6 +30,7 @@ import {
 import * as React from "react";
 import { useRows } from "@/lib/data";
 import logoAsset from "@/assets/store-logo.png.asset.json";
+import symbolAsset from "@/assets/amstore-symbol.png.asset.json";
 import { Button } from "@/components/ui/button";
 
 function BrandBlock({ storeLogo }: { storeLogo: string }) {
