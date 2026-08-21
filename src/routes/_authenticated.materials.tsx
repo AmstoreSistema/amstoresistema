@@ -469,7 +469,12 @@ function MaterialsPage() {
       ) : (
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {filtered.map(m => (
-            <Card key={m.id} className="overflow-hidden rounded-3xl border-border/50 bg-card transition-all hover:shadow-xl hover:shadow-gold/5">
+            <Card
+              key={m.id}
+              className={`overflow-hidden rounded-3xl border-border/50 bg-card transition-all hover:shadow-xl hover:shadow-gold/5 ${
+                selectedIds.includes(m.id) ? "ring-2 ring-destructive/60" : ""
+              }`}
+            >
               <div className="relative aspect-[4/3] bg-muted/30">
                 {m.image_url ? (
                   <img src={m.image_url} alt={m.name} className="h-full w-full object-cover" />
@@ -478,8 +483,15 @@ function MaterialsPage() {
                     <Boxes className="size-12" />
                   </div>
                 )}
+                <div className="absolute left-3 top-3 z-10 flex size-7 items-center justify-center rounded-md bg-background/90 shadow-sm backdrop-blur-sm">
+                  <Checkbox
+                    checked={selectedIds.includes(m.id)}
+                    onCheckedChange={() => toggleSelected(m.id)}
+                    aria-label={`Selecionar ${m.name}`}
+                  />
+                </div>
                 <Badge className="absolute right-3 top-3 bg-white/90 text-success backdrop-blur-sm">Normal</Badge>
-                <Badge variant="secondary" className="absolute left-3 top-3 uppercase tracking-wider">{m.type}</Badge>
+                <Badge variant="secondary" className="absolute bottom-3 left-3 uppercase tracking-wider">{m.type}</Badge>
               </div>
               <CardContent className="p-5">
                 <div className="mb-4">
