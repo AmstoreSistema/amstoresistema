@@ -11,11 +11,12 @@ import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { getAppSettings, updateAppSettingsBatch, getUsers, updateUserStatus, updateUserRole, createNewUser } from "@/lib/settings.functions";
 import { exportSystemData, importSystemData, inspectBackupFile } from "@/lib/backup.functions";
+import { IMPORT_ORDER } from "@/lib/backup-mapping";
 import { toast } from "sonner";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { CheckCircle2, Info, Loader2 as Spinner, ImageIcon } from "lucide-react";
+import { CheckCircle2, Info, Loader2 as Spinner, ImageIcon, AlertTriangle } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { supabase } from "@/integrations/supabase/client";
 import logoAsset from "@/assets/store-logo.png.asset.json";
@@ -41,7 +42,7 @@ function SettingsPage() {
   const [newUser, setNewUser] = useState({ email: "", password: "", display_name: "", role: "admin" as const });
   const [selectedTables, setSelectedTables] = useState<string[]>([]);
   const [backupProgress, setBackupProgress] = useState<{ active: boolean; currentTable: string; percent: number }>({ active: false, currentTable: "", percent: 0 });
-  const [importDialog, setImportDialog] = useState<{ open: boolean; payload: any; selected: string[] }>({ open: false, payload: null, selected: [] });
+  const [importDialog, setImportDialog] = useState<{ open: boolean; payload: any; selected: string[]; counts: Record<string, number>; skipped: Record<string, number>; format: "amstore" | "externo" }>({ open: false, payload: null, selected: [], counts: {}, skipped: {}, format: "amstore" });
   const [uploadingLogo, setUploadingLogo] = useState(false);
   
   const backupModules = [
@@ -261,31 +262,37 @@ function SettingsPage() {
         const isNative = !!payload?.data && !!payload?.version;
 
         if (isNative) {
-          setImportDialog({ open: true, payload, selected: Object.keys(payload.data) });
+          const counts = Object.fromEntries(
+            Object.entries(payload.data as Record<string, any[]>).map(([k, v]) => [k, Array.isArray(v) ? v.length : 0]),
+          );
+          setImportDialog({ open: true, payload, selected: Object.keys(counts), counts, skipped: {}, format: "amstore" });
           return;
         }
 
-        // Backup externo (Base44 e similares): inspeciona e mapeia automaticamente
+        // Backup externo (Base44 e similares): inspeciona, mapeia e abre o mesmo diálogo de seleção
         toast.info("Backup externo detectado. Analisando dados...");
         setSaving(true);
         try {
           const info = await inspectBackup({ data: { payload } });
-          const found = Object.entries(info.collections).filter(([, n]) => (n as number) > 0);
-          if (found.length === 0) {
+          const counts = Object.fromEntries(
+            Object.entries(info.collections as Record<string, number>).filter(([, n]) => n > 0),
+          );
+          if (Object.keys(counts).length === 0) {
             toast.error(
               "Não encontramos clientes, produtos, fornecedores, materiais, categorias ou transações neste arquivo.",
             );
             return;
           }
-          const result: any = await importData({ data: { payload } });
-          toast.success(
-            `Restauração concluída: ${result.totalInserted} registros importados${
-              result.totalFailed ? ` (${result.totalFailed} ignorados)` : ""
-            }.`,
-          );
-          setTimeout(() => window.location.reload(), 1800);
+          setImportDialog({
+            open: true,
+            payload,
+            selected: Object.keys(counts),
+            counts,
+            skipped: (info.skipped as Record<string, number>) ?? {},
+            format: "externo",
+          });
         } catch (error: any) {
-          toast.error(`Erro na restauração: ${error?.message ?? "falha desconhecida"}`);
+          toast.error(`Erro ao analisar backup: ${error?.message ?? "falha desconhecida"}`);
         } finally {
           setSaving(false);
         }
@@ -297,36 +304,65 @@ function SettingsPage() {
     e.target.value = ''; // Reset input
   };
 
+  const closeImportDialog = () =>
+    setImportDialog({ open: false, payload: null, selected: [], counts: {}, skipped: {}, format: "amstore" });
+
   const handleConfirmImport = async () => {
     if (importDialog.selected.length === 0) {
       toast.error("Selecione ao menos um item para restaurar");
       return;
     }
 
+    const payload = importDialog.payload;
+    const orderOf = (t: string) => (IMPORT_ORDER.indexOf(t) === -1 ? 99 : IMPORT_ORDER.indexOf(t));
+    const tables = [...importDialog.selected].sort((a, b) => orderOf(a) - orderOf(b));
+
+    // Fecha o diálogo para que a barra de progresso fique visível durante a restauração.
+    closeImportDialog();
     setSaving(true);
     setBackupProgress({ active: true, currentTable: "Iniciando restauração...", percent: 0 });
-    
+
+    let inserted = 0;
+    let failed = 0;
+    const errors: string[] = [];
+
     try {
-      const total = importDialog.selected.length;
-      
-      for (let i = 0; i < importDialog.selected.length; i++) {
-        const table = importDialog.selected[i];
+      const total = tables.length;
+
+      for (let i = 0; i < total; i++) {
+        const table = tables[i];
         const label = backupModules.flatMap(m => m.items).find(item => item.id === table)?.label || table;
-        
+
         setBackupProgress({ active: true, currentTable: `Restaurando: ${label}`, percent: Math.round((i / total) * 100) });
-        
-        await importData({ data: { payload: importDialog.payload, tables: [table] } });
+
+        try {
+          const result: any = await importData({ data: { payload, tables: [table] } });
+          inserted += result?.totalInserted ?? 0;
+          failed += result?.totalFailed ?? 0;
+        } catch (error: any) {
+          errors.push(`${label}: ${error?.message ?? "falha"}`);
+        }
       }
-      
+
       setBackupProgress({ active: true, currentTable: "Restauração Concluída!", percent: 100 });
-      toast.success("Backup restaurado com sucesso");
-      setImportDialog({ open: false, payload: null, selected: [] });
-      setTimeout(() => window.location.reload(), 1500);
+
+      if (inserted === 0) {
+        toast.error(`Nenhum registro restaurado.${errors[0] ? ` ${errors[0]}` : ""}`);
+        return;
+      }
+
+      toast.success(
+        `Restauração concluída: ${inserted} registros importados${failed ? ` (${failed} ignorados)` : ""}${
+          errors.length ? ` · ${errors.length} módulo(s) com erro` : ""
+        }.`,
+      );
+      setTimeout(() => window.location.reload(), 1800);
     } catch (error) {
       console.error("Erro import:", error);
       toast.error("Erro ao restaurar backup");
     } finally {
       setSaving(false);
+      setTimeout(() => setBackupProgress(prev => ({ ...prev, active: false })), 2500);
     }
   };
   
@@ -696,7 +732,11 @@ function SettingsPage() {
                         </div>
                         <div>
                           <CardTitle className="text-2xl font-black">Restaurar Backup</CardTitle>
-                          <CardDescription>Selecione quais módulos deseja restaurar do arquivo enviado.</CardDescription>
+                          <CardDescription>
+                            {importDialog.format === "externo"
+                              ? "Arquivo externo (Base44) reconhecido. Selecione o que deseja restaurar."
+                              : "Selecione quais módulos deseja restaurar do arquivo enviado."}
+                          </CardDescription>
                         </div>
                       </div>
                     </CardHeader>
@@ -708,7 +748,7 @@ function SettingsPage() {
                             <Button 
                               variant="outline" 
                               size="sm" 
-                              onClick={() => setImportDialog(prev => ({ ...prev, selected: Object.keys(prev.payload.data) }))}
+                              onClick={() => setImportDialog(prev => ({ ...prev, selected: Object.keys(prev.counts) }))}
                               className="h-8 text-[10px] uppercase tracking-widest font-bold"
                             >
                               Todos
@@ -725,9 +765,9 @@ function SettingsPage() {
                         </div>
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 max-h-[40vh] overflow-y-auto p-2 pr-4 custom-scrollbar">
-                          {Object.keys(importDialog.payload.data).map((tableId) => {
+                          {Object.keys(importDialog.counts).map((tableId) => {
                             const label = backupModules.flatMap(m => m.items).find(item => item.id === tableId)?.label || tableId;
-                            const rowCount = importDialog.payload.data[tableId]?.length || 0;
+                            const rowCount = importDialog.counts[tableId] || 0;
                             
                             return (
                               <div 
@@ -766,12 +806,28 @@ function SettingsPage() {
                             );
                           })}
                         </div>
+
+                        {Object.keys(importDialog.skipped).length > 0 && (
+                          <div className="rounded-2xl border border-destructive/30 bg-destructive/5 p-4 space-y-2">
+                            <div className="flex items-center gap-2">
+                              <AlertTriangle className="size-4 text-destructive" />
+                              <h4 className="font-bold text-sm">Coleções não reconhecidas (não serão restauradas)</h4>
+                            </div>
+                            <div className="flex flex-wrap gap-2 max-h-[15vh] overflow-y-auto">
+                              {Object.entries(importDialog.skipped).map(([name, count]) => (
+                                <Badge key={name} variant="outline" className="text-[10px] border-destructive/30">
+                                  {name} · {count}
+                                </Badge>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </CardContent>
                     <CardFooter className="bg-muted/30 border-t border-border/40 p-8 flex justify-end gap-4">
                       <Button 
                         variant="ghost" 
-                        onClick={() => setImportDialog({ open: false, payload: null, selected: [] })}
+                        onClick={() => closeImportDialog()}
                         disabled={saving}
                         className="font-bold"
                       >

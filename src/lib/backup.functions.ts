@@ -105,7 +105,7 @@ export const importSystemData = createServerFn({ method: "POST" })
 export const inspectBackupFile = createServerFn({ method: "POST" })
   .inputValidator((data) => z.object({ payload: z.any() }).parse(data))
   .handler(async ({ data: { payload } }) => {
-    const { mapForeignBackup } = await import("@/lib/backup-mapping");
+    const { mapForeignBackup, unrecognizedCollections } = await import("@/lib/backup-mapping");
     if (payload?.data && payload?.version) {
       return {
         format: "amstore" as const,
@@ -115,11 +115,13 @@ export const inspectBackupFile = createServerFn({ method: "POST" })
             Array.isArray(v) ? v.length : 0,
           ]),
         ),
+        skipped: {} as Record<string, number>,
       };
     }
     const mapped = mapForeignBackup(payload);
     return {
       format: "externo" as const,
       collections: Object.fromEntries(Object.entries(mapped).map(([k, v]) => [k, v.length])),
+      skipped: unrecognizedCollections(payload),
     };
   });
