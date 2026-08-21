@@ -14,6 +14,8 @@ const TABLE_ALIASES: Record<string, string> = {
   customer: "clients",
   contatos: "clients",
   contato: "clients",
+  users: "clients",
+  user: "clients",
 
   products: "products",
   product: "products",
@@ -27,6 +29,8 @@ const TABLE_ALIASES: Record<string, string> = {
   modelo: "products",
   variacoes: "products",
   variacao: "products",
+  mercadorias: "products",
+  mercadoria: "products",
 
   suppliers: "suppliers",
   supplier: "suppliers",
@@ -34,6 +38,8 @@ const TABLE_ALIASES: Record<string, string> = {
   fornecedor: "suppliers",
   empresas: "suppliers",
   empresa: "suppliers",
+  partners: "suppliers",
+  partner: "suppliers",
 
   materials: "materials",
   material: "materials",
@@ -84,6 +90,10 @@ const TABLE_ALIASES: Record<string, string> = {
   fluxodecaixa: "transactions",
   contasapagar: "transactions",
   contasareceber: "transactions",
+  payments: "transactions",
+  payment: "transactions",
+  sales: "transactions",
+  vendas: "transactions",
 
   financial_accounts: "financial_accounts",
   financialaccount: "financial_accounts",
@@ -96,6 +106,7 @@ const TABLE_ALIASES: Record<string, string> = {
   caixa: "financial_accounts",
   bancos: "financial_accounts",
   banco: "financial_accounts",
+  banks: "financial_accounts",
 
   promotions: "promotions",
   promotion: "promotions",
