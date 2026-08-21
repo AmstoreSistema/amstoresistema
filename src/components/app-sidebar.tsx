@@ -33,9 +33,15 @@ import logoAsset from "@/assets/store-logo.png.asset.json";
 import symbolAsset from "@/assets/amstore-symbol.png.asset.json";
 import { Button } from "@/components/ui/button";
 
-function BrandBlock({ storeLogo }: { storeLogo: string }) {
+function BrandBlock({ storeLogo }: { storeLogo: string | null }) {
   const [now, setNow] = React.useState<Date | null>(null);
   const [broken, setBroken] = React.useState(false);
+  const [loaded, setLoaded] = React.useState(false);
+
+  React.useEffect(() => {
+    setLoaded(false);
+    setBroken(false);
+  }, [storeLogo]);
 
   React.useEffect(() => {
     setNow(new Date());
@@ -61,16 +67,21 @@ function BrandBlock({ storeLogo }: { storeLogo: string }) {
         {date}
       </p>
       {storeLogo && !broken ? (
-        <span className="mt-2 flex items-center justify-center bg-sidebar">
+        <span className="relative mt-2 flex h-10 items-center justify-center bg-sidebar">
           <img
             src={storeLogo}
             alt="Amstore Bagshoes"
             onError={() => setBroken(true)}
-            className="h-10 w-auto max-w-[150px] object-contain invert mix-blend-screen"
+            onLoad={() => setLoaded(true)}
+            className={`h-10 w-auto max-w-[150px] object-contain invert mix-blend-screen transition-opacity duration-300 ${
+              loaded ? "opacity-100" : "opacity-0"
+            }`}
           />
         </span>
+      ) : storeLogo === null ? (
+        <div className="mt-2 h-10" />
       ) : (
-        <div className="mt-2 flex items-center gap-2">
+        <div className="mt-2 flex h-10 items-center gap-2">
           <Store className="size-5 text-sidebar-primary" />
           <span className="font-display text-sm font-bold text-sidebar-foreground">Amstore</span>
         </div>
@@ -194,9 +205,11 @@ export function AppSidebar() {
   const { state, toggleSidebar } = useSidebar();
   const collapsed = state === "collapsed";
   const pathname = useRouterState({ select: (r) => r.location.pathname });
-  const { data: settings = [] } = useRows<any>("app_settings");
+  const { data: settings = [], isLoading: settingsLoading } = useRows<any>("app_settings");
 
-  const storeLogo = React.useMemo(() => {
+  const storeLogo = React.useMemo<string | null>(() => {
+    // Enquanto as configurações carregam, não exibe nenhuma logo (evita "piscar" a imagem padrão)
+    if (settingsLoading) return null;
     const setting = settings.find((s: any) => s.key === "store_logo");
     if (!setting) return logoAsset.url;
     try {
@@ -204,7 +217,7 @@ export function AppSidebar() {
     } catch {
       return setting.value || logoAsset.url;
     }
-  }, [settings]);
+  }, [settings, settingsLoading]);
 
   return (
     <Sidebar collapsible="icon" className="border-sidebar-border scrollbar-hide [&_[data-sidebar=sidebar]]:scrollbar-hide">

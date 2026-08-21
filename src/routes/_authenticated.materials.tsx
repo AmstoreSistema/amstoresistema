@@ -45,8 +45,21 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { brl, num } from "@/lib/format";
 import { useRows, useSaveRow, useDeleteRow } from "@/lib/data";
+import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
 
 export const Route = createFileRoute("/_authenticated/materials")({
   head: () => ({
@@ -109,6 +122,32 @@ function MaterialsPage() {
   const [form, setForm] = useState<Partial<Material>>({});
   const [supplierDialogOpen, setSupplierDialogOpen] = useState(false);
   const [newSupplierName, setNewSupplierName] = useState("");
+
+  // Selection / bulk delete
+  const queryClient = useQueryClient();
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
+
+  const toggleSelected = (id: string) =>
+    setSelectedIds(prev => (prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]));
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.length === 0) return;
+    setBulkDeleting(true);
+    try {
+      const { error } = await supabase.from("materials").delete().in("id", selectedIds);
+      if (error) throw error;
+      toast.success(`${selectedIds.length} material(is) excluído(s)`);
+      setSelectedIds([]);
+      setBulkDeleteOpen(false);
+      await queryClient.invalidateQueries();
+    } catch (e: any) {
+      toast.error(e?.message ?? "Erro ao excluir materiais");
+    } finally {
+      setBulkDeleting(false);
+    }
+  };
 
   // Variations states
   const [variationsOpen, setVariationsOpen] = useState(false);
@@ -389,6 +428,38 @@ function MaterialsPage() {
             onChange={e => setTerm(e.target.value)}
           />
         </div>
+
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border/60 bg-card px-4 py-3">
+          <label className="flex cursor-pointer select-none items-center gap-3 text-sm">
+            <Checkbox
+              checked={filtered.length > 0 && selectedIds.length === filtered.length}
+              onCheckedChange={(v) =>
+                setSelectedIds(v ? filtered.map(m => m.id) : [])
+              }
+            />
+            <span className="font-medium">
+              Selecionar todos
+              <span className="ml-1 text-muted-foreground">({filtered.length})</span>
+            </span>
+          </label>
+
+          <div className="flex items-center gap-3">
+            {selectedIds.length > 0 && (
+              <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                {selectedIds.length} selecionado(s)
+              </span>
+            )}
+            <Button
+              variant="destructive"
+              size="sm"
+              className="gap-2"
+              disabled={selectedIds.length === 0}
+              onClick={() => setBulkDeleteOpen(true)}
+            >
+              <Trash2 className="size-4" /> Excluir selecionados
+            </Button>
+          </div>
+        </div>
       </div>
 
       {isLoading ? (
@@ -398,7 +469,12 @@ function MaterialsPage() {
       ) : (
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {filtered.map(m => (
-            <Card key={m.id} className="overflow-hidden rounded-3xl border-border/50 bg-card transition-all hover:shadow-xl hover:shadow-gold/5">
+            <Card
+              key={m.id}
+              className={`overflow-hidden rounded-3xl border-border/50 bg-card transition-all hover:shadow-xl hover:shadow-gold/5 ${
+                selectedIds.includes(m.id) ? "ring-2 ring-destructive/60" : ""
+              }`}
+            >
               <div className="relative aspect-[4/3] bg-muted/30">
                 {m.image_url ? (
                   <img src={m.image_url} alt={m.name} className="h-full w-full object-cover" />
@@ -407,8 +483,15 @@ function MaterialsPage() {
                     <Boxes className="size-12" />
                   </div>
                 )}
+                <div className="absolute left-3 top-3 z-10 flex size-7 items-center justify-center rounded-md bg-background/90 shadow-sm backdrop-blur-sm">
+                  <Checkbox
+                    checked={selectedIds.includes(m.id)}
+                    onCheckedChange={() => toggleSelected(m.id)}
+                    aria-label={`Selecionar ${m.name}`}
+                  />
+                </div>
                 <Badge className="absolute right-3 top-3 bg-white/90 text-success backdrop-blur-sm">Normal</Badge>
-                <Badge variant="secondary" className="absolute left-3 top-3 uppercase tracking-wider">{m.type}</Badge>
+                <Badge variant="secondary" className="absolute bottom-3 left-3 uppercase tracking-wider">{m.type}</Badge>
               </div>
               <CardContent className="p-5">
                 <div className="mb-4">
@@ -1395,6 +1478,30 @@ function MaterialsPage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={bulkDeleteOpen} onOpenChange={setBulkDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir materiais selecionados?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {selectedIds.length} material(is) serão excluídos permanentemente. Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={bulkDeleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                void handleBulkDelete();
+              }}
+              disabled={bulkDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {bulkDeleting ? "Excluindo..." : "Excluir todos"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
