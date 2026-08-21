@@ -5,34 +5,79 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useState } from "react";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/auth")({
+  head: () => ({
+    meta: [
+      { title: "Acesso | AmStore Gestão" },
+      { name: "description", content: "Entre no sistema AmStore Gestão para administrar vendas, estoque e financeiro." },
+      { property: "og:title", content: "Acesso | AmStore Gestão" },
+      { property: "og:description", content: "Entre no sistema AmStore Gestão para administrar vendas, estoque e financeiro." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
   component: AuthPage,
 });
 
+type Mode = "signin" | "signup" | "forgot";
+
 function AuthPage() {
+  const [mode, setMode] = useState<Mode>("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const handleSignIn = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-      
-      if (error) {
-        alert(`Erro ao acessar: ${error.message}`);
-      } else if (data.session) {
-        // Successful login, TanStack Router will handle the session change via beforeLoad gates
-        // and index.tsx redirect to dashboard.
-        window.location.href = "/dashboard";
+      if (mode === "signin") {
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) {
+          toast.error(`Erro ao acessar: ${error.message}`);
+        } else if (data.session) {
+          window.location.href = "/dashboard";
+        }
+        return;
       }
-    } catch (err) {
-      alert("Ocorreu um erro ao processar o login.");
+
+      if (mode === "signup") {
+        const { error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: { emailRedirectTo: window.location.origin },
+        });
+        if (error) {
+          toast.error(`Erro ao criar conta: ${error.message}`);
+        } else {
+          toast.success("Conta criada! Confirme o e-mail pelo link enviado para concluir o acesso.");
+          setMode("signin");
+        }
+        return;
+      }
+
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      if (error) {
+        toast.error(`Erro ao enviar recuperação: ${error.message}`);
+      } else {
+        toast.success("Enviamos um link de redefinição de senha para o seu e-mail.");
+        setMode("signin");
+      }
+    } catch {
+      toast.error("Ocorreu um erro ao processar a solicitação.");
     } finally {
       setLoading(false);
     }
+  };
+
+  const titles: Record<Mode, { title: string; description: string; action: string }> = {
+    signin: { title: "AmStore Gestão", description: "Entre no sistema para gerenciar sua produção", action: "Entrar" },
+    signup: { title: "Criar conta", description: "Cadastre seu e-mail e defina sua própria senha", action: "Criar conta" },
+    forgot: { title: "Recuperar senha", description: "Enviaremos um link para você definir uma nova senha", action: "Enviar link" },
   };
 
   return (
@@ -44,36 +89,59 @@ function AuthPage() {
               <span className="text-primary-foreground font-black italic text-2xl tracking-tighter">AM</span>
             </div>
           </div>
-          <CardTitle className="text-2xl font-bold tracking-tight">AmStore Gestão</CardTitle>
-          <CardDescription>Entre no sistema para gerenciar sua produção</CardDescription>
+          <CardTitle className="text-2xl font-bold tracking-tight">{titles[mode].title}</CardTitle>
+          <CardDescription>{titles[mode].description}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4 pt-4">
-          <form onSubmit={handleSignIn} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
-              <Input 
-                id="email" 
-                type="email" 
-                placeholder="seu@email.com" 
+              <Input
+                id="email"
+                type="email"
+                placeholder="seu@email.com"
+                autoComplete="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                required 
+                required
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Senha</Label>
-              <Input 
-                id="password" 
-                type="password" 
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required 
-              />
-            </div>
+            {mode !== "forgot" && (
+              <div className="space-y-2">
+                <Label htmlFor="password">Senha</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  autoComplete={mode === "signup" ? "new-password" : "current-password"}
+                  minLength={8}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
+              </div>
+            )}
             <Button type="submit" className="w-full font-semibold py-6" disabled={loading}>
-              {loading ? "Entrando..." : "Entrar"}
+              {loading ? "Processando..." : titles[mode].action}
             </Button>
           </form>
+
+          <div className="flex flex-col gap-2 text-center text-sm">
+            {mode !== "signin" && (
+              <button type="button" className="text-muted-foreground hover:underline" onClick={() => setMode("signin")}>
+                Voltar para o login
+              </button>
+            )}
+            {mode === "signin" && (
+              <>
+                <button type="button" className="text-muted-foreground hover:underline" onClick={() => setMode("forgot")}>
+                  Esqueci minha senha
+                </button>
+                <button type="button" className="text-muted-foreground hover:underline" onClick={() => setMode("signup")}>
+                  Criar uma conta
+                </button>
+              </>
+            )}
+          </div>
         </CardContent>
       </Card>
     </div>
