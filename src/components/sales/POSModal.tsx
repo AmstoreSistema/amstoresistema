@@ -101,11 +101,13 @@ export function POSModal({ open, onOpenChange }: { open: boolean; onOpenChange: 
 
   // Auto-update accountId based on active account
   React.useEffect(() => {
-    const activeAccount = accounts.find((a: any) => a.active);
-    if (activeAccount && !accountId && !isDebt) {
-      setAccountId(activeAccount.id);
+    if (open) {
+      const activeAccount = accounts.find((a: any) => a.active);
+      if (activeAccount) {
+        setAccountId(activeAccount.id);
+      }
     }
-  }, [accounts, accountId, isDebt]);
+  }, [accounts, open]);
 
   // Update sale code and check for debts when client changes
   React.useEffect(() => {
