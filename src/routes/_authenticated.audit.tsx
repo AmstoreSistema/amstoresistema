@@ -142,37 +142,6 @@ function AuditPage() {
     });
   }, [fetchSettings]);
 
-  const reportData = React.useMemo(() => {
-    const columns = [
-      { key: "date", label: "Data/Hora" },
-      { key: "user", label: "Usuário" },
-      { key: "action", label: "Ação" },
-      { key: "entity", label: "Entidade" },
-      { key: "entity_id", label: "ID Entidade" },
-    ];
-
-    const rows = filtered.map((log: any) => ({
-      date: formatDateTime(log.created_at),
-      user: displayName(log.user_email),
-      action: actionKind(log.action).toUpperCase(),
-      entity: entityLabel(log.entity),
-      entity_id: log.entity_id || "—",
-    }));
-
-    return { columns, rows };
-  }, [filtered, displayName]);
-
-  const handleExportCsv = () => {
-    const { columns, rows } = reportData;
-    const header = columns.map(c => `"${c.label}"`).join(";");
-    const body = rows.map(r => columns.map(c => `"${String(r[c.key] ?? "")}"`).join(";")).join("\n");
-    const csv = `\uFEFF${header}\n${body}`;
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = `auditoria-${new Date().toISOString().slice(0, 10)}.csv`;
-    a.click();
-  };
 
   const displayName = React.useCallback(
     (email: string | null) => {
