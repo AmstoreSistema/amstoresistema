@@ -323,16 +323,16 @@ export function AppSidebar() {
                         isActive={active}
                         tooltip={item.title}
                       >
-                        <Link to={item.url!} className="group/nav">
+                        <Link to={item.url!} className="group/nav flex w-full items-center justify-center group-data-[state=expanded]/sidebar-wrapper:justify-start">
                           <item.icon
                             className={cn(
-                              "size-4 transition-colors",
+                              "size-4 transition-colors shrink-0",
                               active
                                 ? "text-sidebar-primary"
                                 : "text-sidebar-foreground/60 group-hover/nav:text-sidebar-primary"
                             )}
                           />
-                          <span className="truncate">{item.title}</span>
+                          <span className="truncate group-data-[state=collapsed]/sidebar-wrapper:hidden ml-2">{item.title}</span>
                         </Link>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
