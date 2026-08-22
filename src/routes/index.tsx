@@ -37,15 +37,15 @@ Faça o seguinte:
 
 A listagem de módulos está funcionando perfeitamente e mostrando os registros corretamente. Restaram apenas estas últimas chaves na seção de "Coleções não reconhecidas" que precisam ser mapeadas para as tabelas do Supabase:
 
-- "sale_items" -> itens de venda
+- "sale_items" {"->"} itens de venda
 
-- "sale_payments" -> pagamentos de vendas
+- "sale_payments" {"->"} pagamentos de vendas
 
-- "sale_installments" -> parcelas de vendas
+- "sale_installments" {"->"} parcelas de vendas
 
-- "purchase_items" -> itens de compra
+- "purchase_items" {"->"} itens de compra
 
-- "app_settings" -> configurações globais (ou configurações)
+- "app_settings" {"->"} configurações globais (ou configurações)
 
 Por favor, inclua essas chaves finais no script para que elas virem cartões selecionáveis na interface, eliminando completamente a caixa vermelha de coleções não reconhecidas.
       </div>
