@@ -72,9 +72,14 @@ type ReportId =
   | "by-category"
   | "by-hour"
   | "cancelled"
-  | "sales-by-product";
+  | "sales-by-product"
+  | "stock-general"
+  | "production-general"
+  | "materials-general"
+  | "suppliers-general"
+  | "products-general";
 
-const REPORTS: { id: ReportId; label: string; icon: any; grouping?: boolean }[] = [
+const REPORTS: { id: ReportId; label: string; icon: any; grouping?: boolean; noFilter?: boolean }[] = [
   { id: "period", label: "Vendas por Período", icon: TrendingUp, grouping: true },
   { id: "top-products", label: "Produtos Mais Vendidos", icon: Package },
   { id: "clients", label: "Desempenho Clientes", icon: Users },
@@ -89,6 +94,11 @@ const REPORTS: { id: ReportId; label: string; icon: any; grouping?: boolean }[] 
   { id: "by-hour", label: "Por Horário", icon: Clock },
   { id: "cancelled", label: "Canceladas Detalhado", icon: XCircle },
   { id: "sales-by-product", label: "Vendas por Produto", icon: ShoppingBag },
+  { id: "stock-general", label: "Relatório de Estoque", icon: Boxes, noFilter: true },
+  { id: "production-general", label: "Relatório de Produção", icon: Footprints, noFilter: true },
+  { id: "materials-general", label: "Relatório de Materiais", icon: Package, noFilter: true },
+  { id: "suppliers-general", label: "Relatório de Fornecedores", icon: Users, noFilter: true },
+  { id: "products-general", label: "Relatório de Produtos", icon: ShoppingBag, noFilter: true },
 ];
 
 type Column = { key: string; label: string; align?: "right" };
@@ -690,37 +700,40 @@ function StoreReportsPage() {
           </div>
 
           {!current.noFilter && (
-            <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                Data início
-              </p>
-              <Input
-                type="date"
-                value={range.start}
-                onChange={(e) => setRange({ ...range, start: e.target.value })}
-                className="h-12 rounded-xl font-semibold"
-              />
-            </div>
-            <div className="space-y-2">
-              <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                Data fim
-              </p>
-              <Input
-                type="date"
-                value={range.end}
-                onChange={(e) => setRange({ ...range, end: e.target.value })}
-                className="h-12 rounded-xl font-semibold"
-              />
-            </div>
-          </div>
+            <>
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                    Data início
+                  </p>
+                  <Input
+                    type="date"
+                    value={range.start}
+                    onChange={(e) => setRange({ ...range, start: e.target.value })}
+                    className="h-12 rounded-xl font-semibold"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                    Data fim
+                  </p>
+                  <Input
+                    type="date"
+                    value={range.end}
+                    onChange={(e) => setRange({ ...range, end: e.target.value })}
+                    className="h-12 rounded-xl font-semibold"
+                  />
+                </div>
+              </div>
 
-          <Button
-            variant="outline"
-            onClick={() => setRange({ start: "", end: "" })}
-            className="h-10 w-full rounded-xl text-xs font-bold uppercase"
-          >
-            </Button>
+              <Button
+                variant="outline"
+                onClick={() => setRange({ start: "", end: "" })}
+                className="h-10 w-full rounded-xl text-xs font-bold uppercase"
+              >
+                Limpar datas
+              </Button>
+            </>
           )}
 
           {current.grouping && (
