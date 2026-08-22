@@ -234,13 +234,23 @@ function AuditPage() {
 
   return (
     <div className="p-6 space-y-6">
-      <div className="flex items-center gap-4">
-        <div className="size-12 rounded-2xl bg-primary flex items-center justify-center shadow-lg">
-          <FileText className="size-6 text-primary-foreground" />
+      <div className="flex flex-wrap items-center justify-between gap-4 print:hidden">
+        <div className="flex items-center gap-4">
+          <div className="size-12 rounded-2xl bg-primary flex items-center justify-center shadow-lg">
+            <FileText className="size-6 text-primary-foreground" />
+          </div>
+          <div>
+            <h1 className="text-3xl font-black tracking-tight">Histórico de Auditoria</h1>
+            <p className="text-sm text-muted-foreground">Rastreamento detalhado de todas as alterações no sistema</p>
+          </div>
         </div>
-        <div>
-          <h1 className="text-3xl font-black tracking-tight">Histórico de Auditoria</h1>
-          <p className="text-sm text-muted-foreground">Rastreamento detalhado de todas as alterações no sistema</p>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" className="rounded-xl border-border/40 hover:bg-muted/50 gap-2 font-bold" onClick={handleExportCsv}>
+            <FileDown className="size-4" /> CSV
+          </Button>
+          <Button variant="outline" className="rounded-xl border-border/40 hover:bg-muted/50 gap-2 font-bold" onClick={() => window.print()}>
+            <Printer className="size-4" /> IMPRIMIR
+          </Button>
         </div>
       </div>
 
