@@ -332,67 +332,6 @@ function ReportsPage() {
     a.click();
   };
 
-  const renderDataRow = (row: any) => {
-    switch (selectedType) {
-      case "sales":
-        return (
-          <div className="flex justify-between items-center py-3 border-b border-border/20 last:border-0 px-4 hover:bg-muted/5 transition-colors">
-            <div className="flex-1">
-              <p className="font-bold text-sm">#{row.id?.slice(0, 8)}</p>
-              <p className="text-[10px] text-muted-foreground uppercase font-bold">{dateBR(row.created_at)}</p>
-            </div>
-            <div className="text-right">
-              <p className="font-black text-gold">{brl(row.total_amount)}</p>
-              <p className="text-[10px] text-muted-foreground font-bold">{row.payment_method}</p>
-            </div>
-          </div>
-        );
-      case "stock":
-        return (
-          <div className="flex justify-between items-center py-3 border-b border-border/20 last:border-0 px-4 hover:bg-muted/5 transition-colors">
-            <div className="flex-1">
-              <p className="font-bold text-sm">{row.produto_nome}</p>
-              <p className="text-[10px] text-muted-foreground uppercase font-bold">Lote: {row.lote || "—"}</p>
-            </div>
-            <div className="text-right">
-              <p className="font-black text-primary">{row.quantidade_disponivel} un</p>
-              <p className="text-[10px] text-muted-foreground font-bold">{row.categoria}</p>
-            </div>
-          </div>
-        );
-      case "production":
-        return (
-          <div className="flex justify-between items-center py-3 border-b border-border/20 last:border-0 px-4 hover:bg-muted/5 transition-colors">
-            <div className="flex-1">
-              <p className="font-bold text-sm">{row.produto_nome}</p>
-              <p className="text-[10px] text-muted-foreground uppercase font-bold">{row.codigo_ordem}</p>
-            </div>
-            <div className="text-right">
-              <p className="font-black text-gold">{row.quantity} un</p>
-              <p className={cn("text-[10px] font-black uppercase", row.status === 'completed' ? 'text-success' : 'text-warning')}>
-                {row.status}
-              </p>
-            </div>
-          </div>
-        );
-      default:
-        return (
-          <div className="flex justify-between items-center py-3 border-b border-border/20 last:border-0 px-4 hover:bg-muted/5 transition-colors">
-            <div className="flex-1">
-              <p className="font-bold text-sm">{row.name || row.description || row.id?.slice(0, 8)}</p>
-              <p className="text-[10px] text-muted-foreground uppercase font-bold">{dateBR(row.created_at || row.due_date)}</p>
-            </div>
-            {row.amount || row.total_amount || row.current_stock ? (
-              <div className="text-right">
-                <p className="font-black text-gold">
-                  {row.amount || row.total_amount ? brl(row.amount || row.total_amount) : `${row.current_stock} un`}
-                </p>
-              </div>
-            ) : null}
-          </div>
-        );
-    }
-  };
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500 pb-12">
