@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import {
   TrendingUp,
@@ -33,6 +33,10 @@ import { brl, dateBR, dateTimeBR, num } from "@/lib/format";
 import { useRows } from "@/lib/data";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { ReportLayout } from "@/components/report-layout";
+import { getAppSettings } from "@/lib/settings.functions";
+import { useServerFn } from "@tanstack/react-start";
+
 
 export const Route = createFileRoute("/_authenticated/store-reports")({
   head: () => ({
@@ -120,6 +124,27 @@ function StoreReportsPage() {
     end: new Date().toISOString().slice(0, 10),
   });
   const [generated, setGenerated] = useState<ReportId | null>(null);
+  const [storeInfo, setStoreInfo] = useState<{
+    name?: string;
+    cnpj?: string;
+    contact?: string;
+    logo?: string;
+  }>({});
+
+  const fetchSettings = useServerFn(getAppSettings);
+
+  useEffect(() => {
+    fetchSettings().then((data: any) => {
+      const info: any = {};
+      data.forEach((s: any) => {
+        if (s.key === "store_name") info.name = s.value;
+        if (s.key === "store_cnpj") info.cnpj = s.value;
+        if (s.key === "store_contact") info.contact = s.value;
+        if (s.key === "store_logo") info.logo = s.value;
+      });
+      setStoreInfo(info);
+    });
+  }, [fetchSettings]);
 
   const { data: sales = [], isLoading: l1 } = useRows<any>("sales");
   const { data: saleItems = [], isLoading: l2 } = useRows<any>("sale_items");
@@ -129,6 +154,7 @@ function StoreReportsPage() {
   const { data: transactions = [] } = useRows<any>("transactions");
   const { data: stock = [] } = useRows<any>("stock_products");
   const { data: profiles = [] } = useRows<any>("user_profiles");
+
 
   const isLoading = l1 || l2;
   const current = REPORTS.find((r) => r.id === selected)!;
@@ -632,7 +658,7 @@ function StoreReportsPage() {
       {generated && (
         <Card className="rounded-3xl border-border/50">
           <CardContent className="p-0">
-            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/40 p-5">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/40 p-5 print:hidden">
               <div className="flex items-center gap-3">
                 <h2 className="font-display text-lg font-black">{current.label}</h2>
                 <Badge variant="outline" className="font-bold">
@@ -659,51 +685,19 @@ function StoreReportsPage() {
               </div>
             </div>
 
-            {result.rows.length === 0 ? (
-              <p className="p-12 text-center text-sm font-bold text-muted-foreground">
-                Nenhum dado encontrado para o período selecionado.
-              </p>
-            ) : (
-              <div className="max-h-[540px] overflow-auto">
-                <table className="w-full text-sm">
-                  <thead className="sticky top-0 bg-muted/50 backdrop-blur">
-                    <tr>
-                      {result.columns.map((c) => (
-                        <th
-                          key={c.key}
-                          className={cn(
-                            "px-4 py-3 text-[10px] font-black uppercase tracking-wider text-muted-foreground",
-                            c.align === "right" ? "text-right" : "text-left",
-                          )}
-                        >
-                          {c.label}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {result.rows.map((row, i) => (
-                      <tr key={i} className="border-t border-border/20 hover:bg-muted/20">
-                        {result.columns.map((c) => (
-                          <td
-                            key={c.key}
-                            className={cn(
-                              "px-4 py-3 font-semibold",
-                              c.align === "right" ? "text-right" : "text-left",
-                            )}
-                          >
-                            {row[c.key] ?? "—"}
-                          </td>
-                        ))}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
+            <ReportLayout 
+              id="printable-report"
+              title={current.label}
+              startDate={range.start}
+              endDate={range.end}
+              storeInfo={storeInfo}
+              columns={result.columns}
+              rows={result.rows}
+            />
           </CardContent>
         </Card>
       )}
+
     </div>
   );
 }
