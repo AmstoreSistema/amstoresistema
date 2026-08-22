@@ -440,17 +440,39 @@ function ReportsPage() {
       </Card>
 
       <div className="grid gap-6">
-        <div className="flex items-center justify-between px-2">
+        <div className="flex flex-wrap items-center justify-between gap-3 px-2 print:hidden">
           <h2 className="font-display font-black text-lg">Visualização do Relatório: {reportButtons.find(b => b.id === selectedType)?.label}</h2>
-          {showResults && (
-            <Badge className="bg-success text-white border-none font-black uppercase text-[10px]">
-              {filteredData.length} Registros encontrados
-            </Badge>
-          )}
+          <div className="flex items-center gap-2">
+            {showResults && filteredData.length > 0 && (
+              <>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleExportCsv}
+                  className="rounded-xl border-border/40 hover:bg-muted/50 gap-2 font-bold"
+                >
+                  <FileDown className="size-4" /> CSV
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => window.print()}
+                  className="rounded-xl border-border/40 hover:bg-muted/50 gap-2 font-bold"
+                >
+                  <Printer className="size-4" /> IMPRIMIR
+                </Button>
+              </>
+            )}
+            {showResults && (
+              <Badge className="bg-success text-white border-none font-black uppercase text-[10px]">
+                {filteredData.length} Registros encontrados
+              </Badge>
+            )}
+          </div>
         </div>
         
         {!showResults ? (
-          <Card className="rounded-[2rem] border-border/40 bg-card overflow-hidden">
+          <Card className="rounded-[2rem] border-border/40 bg-card overflow-hidden print:hidden">
             <CardContent className="p-12 text-center space-y-4">
               <div className="size-20 bg-muted/30 rounded-full flex items-center justify-center mx-auto">
                 <Search className="size-8 text-muted-foreground/30" />
@@ -462,32 +484,29 @@ function ReportsPage() {
             </CardContent>
           </Card>
         ) : (
-          <Card className="rounded-[2rem] border-border/40 bg-card overflow-hidden shadow-sm animate-in slide-in-from-bottom-4 duration-500">
+          <Card className="rounded-[2rem] border-border/40 bg-card overflow-hidden shadow-sm animate-in slide-in-from-bottom-4 duration-500 print:shadow-none print:border-none print:rounded-none">
             <CardContent className="p-0">
               {isLoading ? (
-                <div className="p-12 text-center space-y-4">
+                <div className="p-12 text-center space-y-4 print:hidden">
                   <RefreshCw className="size-8 text-primary animate-spin mx-auto" />
                   <p className="font-bold text-muted-foreground">Carregando dados...</p>
                 </div>
               ) : filteredData.length === 0 ? (
-                <div className="p-12 text-center space-y-4">
+                <div className="p-12 text-center space-y-4 print:hidden">
                   <X className="size-8 text-destructive/30 mx-auto" />
                   <p className="font-bold text-muted-foreground">Nenhum dado encontrado para este período</p>
                   <Button variant="outline" size="sm" onClick={() => setShowResults(false)} className="rounded-xl">Limpar</Button>
                 </div>
               ) : (
-                <div className="divide-y divide-border/10 max-h-[500px] overflow-y-auto scrollbar-hide">
-                  {filteredData.map((row, idx) => (
-                    <div key={idx}>
-                      {renderDataRow(row)}
-                    </div>
-                  ))}
-                </div>
-              )}
-              {filteredData.length > 0 && (
-                <div className="bg-muted/10 p-4 text-center border-t border-border/20">
-                  <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest">Fim do relatório</p>
-                </div>
+                <ReportLayout 
+                  id="printable-report"
+                  title={reportButtons.find(b => b.id === selectedType)?.label || "Relatório"}
+                  startDate={dateRange.start}
+                  endDate={dateRange.end}
+                  storeInfo={storeInfo}
+                  columns={reportResult.columns}
+                  rows={reportResult.rows}
+                />
               )}
             </CardContent>
           </Card>
