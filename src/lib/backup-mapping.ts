@@ -180,8 +180,6 @@ export const TABLE_ALIASES: Record<string, string> = {
   promocoes: "promotions",
   promocao: "promotions",
   descontos: "promotions",
-  cupom: "promotions",
-  cupons: "promotions",
 
   // Unidades de Medida
   units_of_measure: "units_of_measure",
