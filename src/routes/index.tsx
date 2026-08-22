@@ -19,7 +19,7 @@ Antes de executar qualquer ação, analise cuidadosamente a solicitação enviad
 
 Siga obrigatoriamente estas regras:
 
-1. Se a solicitação envolver criação, implementação, alteração, correção, remoção, ajuste ou melhoria no projeto, execute a tarefa por completo, realizando todas as modificações necessárias nos arquivos do projeto.
+1. Se a solicitaçao envolver criação, implementação, alteração, correção, remoção, ajuste ou melhoria no projeto, execute a tarefa por completo, realizando todas as modificações necessárias nos arquivos do projeto.
 
 2. Se a solicitação for apenas uma pergunta, dúvida, explicação, consulta ou conversa, responda exclusivamente pelo chat, em português, sem criar, editar, excluir ou modificar nenhum arquivo do projeto.
 
@@ -35,7 +35,7 @@ Prioridade: interpretar corretamente a intenção antes de agir, executar integr
 
 Faça o seguinte:
 
-Estou enviando um arquivo de backup feito no sistema do base44, verifique o arquivo e veja o que pode ser resolvido para quando eu for restaurar um backup criado no sistema do base44 ele restaure corretamente os dados necessários sem erros. Primeiro me mostre o que pode ser feito antes de aplicar a implementação.
+pode
       </div>
     </div>
   ),

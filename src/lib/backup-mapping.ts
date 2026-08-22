@@ -180,7 +180,6 @@ export const TABLE_ALIASES: Record<string, string> = {
   promocoes: "promotions",
   promocao: "promotions",
   descontos: "promotions",
-  cupom: "promotions",
 
   // Unidades de Medida
   units_of_measure: "units_of_measure",
@@ -251,6 +250,7 @@ const image = (row: any) => {
   const raw = pick(row, [
     "image_url",
     "imageurl",
+    "imagem_url",
     "imagem",
     "imagens",
     "image",
@@ -268,9 +268,17 @@ const image = (row: any) => {
   ]);
   const first = (v: any): string | undefined => {
     if (!v) return undefined;
-    if (typeof v === "string") return v.trim() || undefined;
+    if (typeof v === "string") {
+      const s = v.trim();
+      if (!s) return undefined;
+      // Se for Base64 puro sem prefixo, adicionamos o prefixo padrão de imagem
+      if (s.length > 100 && !s.includes(":") && !s.includes("/") && !s.includes("http")) {
+        return `data:image/jpeg;base64,${s}`;
+      }
+      return s;
+    }
     if (Array.isArray(v)) return first(v[0]);
-    if (typeof v === "object") return first(v.url ?? v.src ?? v.file_url ?? v.path ?? v.href);
+    if (typeof v === "object") return first(v.url ?? v.src ?? v.file_url ?? v.path ?? v.href ?? v.base64 ?? v.data);
     return undefined;
   };
   return first(raw) ?? null;
@@ -472,22 +480,21 @@ const MAPPERS: Record<string, Mapper> = {
     return { name, created_at: date(pick(c, ["created_at", "criadoem", "data"])) };
   },
   product_materials: (pm) => {
-    // Mapeamento simples para ficha técnica
     return {
       product_id: pick(pm, ["product_id", "produto_id", "id_produto"]),
-      material_id: pick(pm, ["material_id", "material_id", "id_material"]),
-      quantity: num(pick(pm, ["quantity", "quantidade", "qtd"])),
+      material_id: pick(pm, ["material_id", "id_material", "material_id_fk"]),
+      quantity: num(pick(pm, ["quantity", "quantidade", "qtd", "valor"])),
       created_at: date(pick(pm, ["created_at", "criadoem"]))
     };
   },
   production_orders: (po) => {
     return {
       product_id: pick(po, ["product_id", "produto_id", "id_produto"]),
-      quantity: num(pick(po, ["quantity", "quantidade", "qtd"])),
-      status: str(pick(po, ["status", "situacao"])) ?? "pendente",
-      start_date: date(pick(po, ["start_date", "data_inicio"])),
-      end_date: date(pick(po, ["end_date", "data_fim"])),
-      created_at: date(pick(po, ["created_at", "criadoem"]))
+      quantity: num(pick(po, ["quantity", "quantidade", "qtd", "total"])),
+      status: str(pick(po, ["status", "situacao", "estado"])) ?? "pendente",
+      start_date: date(pick(po, ["start_date", "data_inicio", "inicio"])),
+      end_date: date(pick(po, ["end_date", "data_fim", "fim"])),
+      created_at: date(pick(po, ["created_at", "criadoem", "data"]))
     };
   },
   stock_products: (s) => {
