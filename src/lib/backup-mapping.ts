@@ -493,14 +493,18 @@ const MAPPERS: Record<string, Mapper> = {
   },
   production_orders: (po) => {
     return {
-      product_id: pick(po, ["product_id", "produto_id", "id_produto"]),
-      quantity: num(pick(po, ["quantity", "quantidade", "qtd", "total"])),
+      quantity: num(pick(po, ["quantity", "quantidade", "qtd", "total"]), 1) || 1,
       status: str(pick(po, ["status", "situacao", "estado"])) ?? "pendente",
-      start_date: date(pick(po, ["start_date", "data_inicio", "inicio"])),
-      end_date: date(pick(po, ["end_date", "data_fim", "fim"])),
-      created_at: date(pick(po, ["created_at", "criadoem", "data"]))
+      priority: str(pick(po, ["priority", "prioridade"])) ?? null,
+      codigo_ordem: str(pick(po, ["codigo_ordem", "codigo", "numero", "numero_ordem"])) ?? null,
+      produto_nome: str(pick(po, ["produto_nome", "produto", "nome", "produtonome"])) ?? null,
+      notes: str(pick(po, ["notes", "observacoes", "obs"])) ?? null,
+      started_at: pick(po, ["started_at", "data_inicio", "inicio"]) ? date(pick(po, ["started_at", "data_inicio", "inicio"])) : null,
+      completed_at: pick(po, ["completed_at", "data_fim", "fim"]) ? date(pick(po, ["completed_at", "data_fim", "fim"])) : null,
+      created_at: date(pick(po, ["created_at", "created_date", "criadoem", "data"])),
     };
   },
+
   stock_products: (s) => {
     const name = str(pick(s, ["produto_nome", "produtonome", "name", "nome", "produto", "descricao", "item"]));
     if (!name) return null;
