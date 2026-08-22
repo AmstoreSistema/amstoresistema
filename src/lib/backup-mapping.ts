@@ -576,6 +576,16 @@ const MAPPERS: Record<string, Mapper> = {
       created_at: date(pick(t, ["created_at", "data", "datapagamento", "criadoem", "vencimento"])),
     };
   },
+  sales: (s) => ({
+    client_id: pick(s, ["client_id", "cliente_id"]),
+    total_amount: num(pick(s, ["total_amount", "valor_total", "valor"])),
+    paid_amount: num(pick(s, ["paid_amount", "valor_pago"])),
+    discount: num(pick(s, ["discount", "desconto"])),
+    payment_method: str(pick(s, ["payment_method", "metodo", "forma"])) ?? "dinheiro",
+    status: str(pick(s, ["status", "situacao"])) ?? "finalizado",
+    notes: str(pick(s, ["notes", "observacoes"])),
+    created_at: date(pick(s, ["created_at", "data"])),
+  }),
   sale_items: (si) => ({
     sale_id: pick(si, ["sale_id", "venda_id"]),
     product_id: pick(si, ["product_id", "produto_id"]),
