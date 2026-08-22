@@ -19,7 +19,7 @@ Antes de executar qualquer ação, analise cuidadosamente a solicitação enviad
 
 Siga obrigatoriamente estas regras:
 
-1. Se a solicitaçao envolver criação, implementação, alteração, correção, remoção, ajuste ou melhoria no projeto, execute a tarefa por completo, realizando todas as modificações necessárias nos arquivos do projeto.
+1. Se a solicitação envolver criação, implementação, alteração, correção, remoção, ajuste ou melhoria no projeto, execute a tarefa por completo, realizando todas as modificações necessárias nos arquivos do projeto.
 
 2. Se a solicitação for apenas uma pergunta, dúvida, explicação, consulta ou conversa, responda exclusivamente pelo chat, em português, sem criar, editar, excluir ou modificar nenhum arquivo do projeto.
 
@@ -35,7 +35,15 @@ Prioridade: interpretar corretamente a intenção antes de agir, executar integr
 
 Faça o seguinte:
 
-pode
+Preciso padronizar a visualização e a exportação/impressão dos relatórios principais do sistema para que sigam um formato profissional estilo planilha organizada, idêntico a um relatório gerencial impresso.
+
+Por favor, atualize o layout dos relatórios para que contenham estritamente a seguinte estrutura vertical no topo antes dos dados:
+1. Logomarca da empresa centralizada ou alinhada à esquerda no topo.
+2. Informações da Loja (Nome da loja, CNPJ, site ou contato) logo abaixo da logo.
+3. Título do Relatório em destaque (ex: "Relatório de Vendas", "Relatório de Estoque", etc.).
+4. Período de referência do relatório (ex: "Período: DD/MM/AAAA até DD/MM/AAAA").
+5. Logo abaixo, a tabela de dados bem estruturada, limpa e organizada em formato de planilha (com linhas zebradas suaves, cabeçalhos escuros ou destacados e alinhamento correto de textos e valores).
+6. Garanta que esse formato seja otimizado tanto para visualização na tela quanto para o comando de impressão (CSS @media print para sair perfeito no papel ou em PDF).
       </div>
     </div>
   ),

@@ -212,3 +212,50 @@
 #lovable-badge {
   display: none !important;
 }
+
+@media print {
+  /* Hide all UI elements except the report */
+  .report-container {
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    background: white !important;
+    z-index: 9999 !important;
+  }
+
+  body * {
+    visibility: hidden;
+  }
+
+  .report-container, .report-container * {
+    visibility: visible;
+  }
+
+  /* Reset layout for print */
+  body {
+    background-color: white !important;
+  }
+
+  .report-container {
+    display: block !important;
+  }
+
+  /* Force zebras in print */
+  .report-container table tr:nth-child(even) {
+    background-color: #f8fafc !important;
+    -webkit-print-color-adjust: exact;
+  }
+
+  .report-container table thead tr {
+    background-color: #f1f5f9 !important;
+    -webkit-print-color-adjust: exact;
+  }
+
+  /* Avoid page breaks inside rows */
+  tr {
+    page-break-inside: avoid;
+  }
+}
