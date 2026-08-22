@@ -5,7 +5,7 @@
 
 export type Collections = Record<string, any[]>;
 
-const TABLE_ALIASES: Record<string, string> = {
+export const TABLE_ALIASES: Record<string, string> = {
   // Clientes
   clients: "clients",
   client: "clients",
