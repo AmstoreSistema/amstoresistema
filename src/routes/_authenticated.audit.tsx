@@ -254,7 +254,7 @@ function AuditPage() {
         </div>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 print:hidden">
         {statCards.map((card) => (
           <Card key={card.label} className="border-border/60 shadow-sm">
             <CardContent className="flex items-center gap-3 p-4">
@@ -270,7 +270,7 @@ function AuditPage() {
         ))}
       </div>
 
-      <div className="flex flex-col gap-3 lg:flex-row">
+      <div className="flex flex-col gap-3 lg:flex-row print:hidden">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
           <Input
@@ -306,7 +306,7 @@ function AuditPage() {
         </Select>
       </div>
 
-      <div className="space-y-3">
+      <div className="space-y-3 print:hidden">
         {isLoading && <p className="text-sm text-muted-foreground">Carregando registros...</p>}
         {!isLoading && filtered.length === 0 && (
           <Card className="border-dashed">
@@ -358,6 +358,18 @@ function AuditPage() {
             </Card>
           );
         })}
+      </div>
+
+      <div className="hidden print:block">
+        <ReportLayout 
+          id="audit-report"
+          title="Relatório de Auditoria"
+          startDate={filtered.length > 0 ? filtered[filtered.length - 1].created_at : undefined}
+          endDate={filtered.length > 0 ? filtered[0].created_at : undefined}
+          storeInfo={storeInfo}
+          columns={reportData.columns}
+          rows={reportData.rows}
+        />
       </div>
 
       <AuditDetailsModal log={selected} onClose={() => setSelected(null)} displayName={displayName} />
