@@ -35,7 +35,7 @@ Prioridade: interpretar corretamente a intenção antes de agir, executar integr
 
 Faça o seguinte:
 
-Implemente a exportação/impressão em PDF para cada relatório da Central de Relatórios, mantendo o mesmo layout profissional do cabeçalho e a formatação para @media print.
+Finalizei a implementação dos relatórios na Central de Relatórios e no Histórico de Auditoria, incluindo a exportação em CSV e a impressão em PDF com o layout profissional padronizado.
       </div>
     </div>
   ),
