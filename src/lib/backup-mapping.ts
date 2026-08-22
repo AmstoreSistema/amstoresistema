@@ -324,7 +324,9 @@ export function extractCollections(payload: any): Collections {
   const out: Collections = {};
   for (const [key, rows] of Object.entries(extractAllCollections(payload))) {
     const target = TABLE_ALIASES[slug(key)];
-    if (target) out[target] = (out[target] ?? []).concat(rows);
+    if (target) {
+      out[target] = (out[target] ?? []).concat(rows);
+    }
   }
   return out;
 }
