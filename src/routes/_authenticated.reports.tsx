@@ -71,6 +71,7 @@ interface ReportConfig {
   url: string;
   dateColumn: string;
   filters?: { column: string; value: any }[];
+  noFilter?: boolean;
 }
 
 const REPORT_CONFIG: Record<ReportType, ReportConfig> = {
@@ -93,7 +94,8 @@ const REPORT_CONFIG: Record<ReportType, ReportConfig> = {
   stock: { 
     table: "stock_products", 
     url: "/stock", 
-    dateColumn: "created_at" 
+    dateColumn: "created_at",
+    noFilter: true
   },
   financial: { 
     table: "financial_accounts", 
@@ -103,27 +105,32 @@ const REPORT_CONFIG: Record<ReportType, ReportConfig> = {
   production: { 
     table: "production_orders", 
     url: "/production", 
-    dateColumn: "created_at" 
+    dateColumn: "created_at",
+    noFilter: true
   },
   clients: { 
     table: "clients", 
     url: "/clients", 
-    dateColumn: "created_at" 
+    dateColumn: "created_at",
+    noFilter: true
   },
   materials: { 
     table: "materials", 
     url: "/materials", 
-    dateColumn: "created_at" 
+    dateColumn: "created_at",
+    noFilter: true
   },
   products: { 
     table: "products", 
     url: "/products", 
-    dateColumn: "created_at" 
+    dateColumn: "created_at",
+    noFilter: true
   },
   suppliers: { 
     table: "suppliers", 
     url: "/purchase-board", 
-    dateColumn: "created_at" 
+    dateColumn: "created_at",
+    noFilter: true
   },
   purchases: { 
     table: "purchases", 
@@ -136,6 +143,7 @@ const REPORT_CONFIG: Record<ReportType, ReportConfig> = {
     dateColumn: "created_at" 
   },
 };
+
 
 function ReportsPage() {
   const [selectedType, setSelectedType] = useState<ReportType>("sales");
