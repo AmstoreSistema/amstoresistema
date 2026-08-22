@@ -35,11 +35,7 @@ Prioridade: interpretar corretamente a intenção antes de agir, executar integr
 
 Faça o seguinte:
 
-Ainda precisamos corrigir dois pontos críticos na janela de restauração de backup do Base44:
-
-1. Problema de Layout (Desproporcionalidade): A janela modal está muito longa, cortando o cabeçalho no topo e os botões de ação ("Cancelar" e "Iniciar Restauração") no rodapé. Por favor, ajuste o CSS do modal para que ele tenha uma altura máxima (ex: max-h-[85vh]), use um container com rolagem interna apenas na lista de módulos (`overflow-y-auto`), e mantenha o cabeçalho e o rodapé fixos e visíveis na tela.
-
-2. Mapeamento Pendente: As chaves do JSON (`sale_items`, `sale_payments`, `sale_installments`, `purchase_items`, `app_settings`) ainda aparecem na caixa vermelha de "Coleções não reconhecidas". Por favor, adicione explicitamente o mapeamento dessas chaves no código para que elas virem cartões selecionáveis na interface e a caixa vermelha suma.
+Estou enviando um arquivo de backup feito no sistema do base44, verifique o arquivo e veja o que pode ser resolvido para quando eu for restaurar um backup criado no sistema do base44 ele restaure corretamente os dados necessários sem erros. Primeiro me mostre o que pode ser feito antes de aplicar a implementação.
       </div>
     </div>
   ),
