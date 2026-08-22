@@ -158,9 +158,17 @@ export const inspectBackupFile = createServerFn({ method: "POST" })
       };
     }
     const mapped = mapForeignBackup(payload);
+    const rawCollections = extractAllCollections(payload);
+    
     return {
       format: "externo" as const,
-      collections: Object.fromEntries(Object.entries(mapped).map(([k, v]) => [k, v.length])),
+      collections: Object.fromEntries(
+        Object.entries(rawCollections).map(([k, v]) => {
+          // Se a chave for reconhecida, usamos o nome da tabela destino no count
+          const target = TABLE_ALIASES[k.toLowerCase().replace(/[^a-z0-9]/g, "")];
+          return [target || k, v.length];
+        })
+      ),
       skipped: unrecognizedCollections(payload),
     };
   });
