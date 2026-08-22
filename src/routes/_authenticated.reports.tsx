@@ -254,6 +254,29 @@ function ReportsPage() {
           { key: "category", label: "Ramo" }
         );
         break;
+      case "purchases":
+        columns.push(
+          { key: "id", label: "ID" },
+          { key: "date", label: "Data" },
+          { key: "supplier", label: "Fornecedor" },
+          { key: "total", label: "Total", align: "right" }
+        );
+        break;
+      case "financial":
+        columns.push(
+          { key: "name", label: "Conta" },
+          { key: "type", label: "Tipo" },
+          { key: "balance", label: "Saldo", align: "right" }
+        );
+        break;
+      case "general":
+        columns.push(
+          { key: "date", label: "Data" },
+          { key: "desc", label: "Descrição" },
+          { key: "type", label: "Tipo" },
+          { key: "amount", label: "Valor", align: "right" }
+        );
+        break;
       default:
         columns.push(
           { key: "id", label: "ID" },
@@ -302,6 +325,23 @@ function ReportsPage() {
           data.name = row.name || "—";
           data.contact = row.contact_name || "—";
           data.category = row.category || "—";
+          break;
+        case "purchases":
+          data.id = row.id?.slice(0, 8);
+          data.date = dateBR(row.created_at);
+          data.supplier = row.supplier_name || row.supplier_id || "—";
+          data.total = brl(row.total_amount);
+          break;
+        case "financial":
+          data.name = row.name || "—";
+          data.type = row.type || "—";
+          data.balance = brl(row.balance);
+          break;
+        case "general":
+          data.date = dateBR(row.created_at);
+          data.desc = row.description || "—";
+          data.type = row.type === 'income' ? 'ENTRADA' : 'SAÍDA';
+          data.amount = brl(row.amount);
           break;
         default:
           data.id = row.id?.slice(0, 8);
