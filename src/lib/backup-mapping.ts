@@ -205,14 +205,13 @@ export const TABLE_ALIASES: Record<string, string> = {
   variacaomaterial: "material_variations",
   variacoesmateriais: "material_variations",
 
-  // Sistema e Alertas
-  notifications: "notifications",
-  alertas: "notifications",
-  configuracoes_materiais: "material_categories",
-  configuracoesmateriais: "material_categories",
-  configuracoes_globais: "app_settings",
-  configuracoesglobais: "app_settings",
-  app_settings: "app_settings",
+  // Promoções e Cupons (Cont.)
+  promotions: "promotions",
+  promotion: "promotions",
+  promocoes: "promotions",
+  promocao: "promotions",
+  descontos: "promotions",
+  cupom: "promotions",
 };
 
 const slug = (s: string) =>
