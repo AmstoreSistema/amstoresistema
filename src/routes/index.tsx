@@ -35,9 +35,19 @@ Prioridade: interpretar corretamente a intenção antes de agir, executar integr
 
 Faça o seguinte:
 
-O sistema reconheceu os módulos principais, mas algumas chaves novas do backup ficaram na seção de "Coleções não reconhecidas" (referentes a itens de venda, pagamentos, parcelas, etc.). 
+A listagem de módulos está funcionando perfeitamente e mostrando os registros corretamente. Restaram apenas estas últimas chaves na seção de "Coleções não reconhecidas" que precisam ser mapeadas para as tabelas do Supabase:
 
-Por favor, atualize o script para incluir e mapear essas chaves adicionais do arquivo JSON do Base44 para as respectivas tabelas do Supabase, garantindo que elas também apareçam como cartões selecionáveis na interface de restauração.
+- "sale_items" {"->"} itens de venda
+
+- "sale_payments" {"->"} pagamentos de vendas
+
+- "sale_installments" {"->"} parcelas de vendas
+
+- "purchase_items" {"->"} itens de compra
+
+- "app_settings" {"->"} configurações globais (ou configurações)
+
+Por favor, inclua essas chaves finais no script para que elas virem cartões selecionáveis na interface, eliminando completamente a caixa vermelha de coleções não reconhecidas.
       </div>
     </div>
   ),

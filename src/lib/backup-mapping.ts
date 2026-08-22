@@ -144,6 +144,16 @@ export const TABLE_ALIASES: Record<string, string> = {
   itenscompra: "purchase_items",
   itens_compra: "purchase_items",
 
+  // Sistema e Alertas
+  notifications: "notifications",
+  alertas: "notifications",
+  configuracoes_materiais: "material_categories",
+  configuracoesmateriais: "material_categories",
+  configuracoes_globais: "app_settings",
+  configuracoesglobais: "app_settings",
+  app_settings: "app_settings",
+  configuracoes: "app_settings",
+
   // Contas Financeiras
   financial_accounts: "financial_accounts",
   financialaccount: "financial_accounts",
@@ -195,14 +205,6 @@ export const TABLE_ALIASES: Record<string, string> = {
   variacaomaterial: "material_variations",
   variacoesmateriais: "material_variations",
 
-  // Sistema e Alertas
-  notifications: "notifications",
-  alertas: "notifications",
-  configuracoes_materiais: "material_categories",
-  configuracoesmateriais: "material_categories",
-  configuracoes_globais: "app_settings",
-  configuracoesglobais: "app_settings",
-  app_settings: "app_settings",
 };
 
 const slug = (s: string) =>
