@@ -205,13 +205,6 @@ export const TABLE_ALIASES: Record<string, string> = {
   variacaomaterial: "material_variations",
   variacoesmateriais: "material_variations",
 
-  // Promoções e Cupons (Cont.)
-  promotions: "promotions",
-  promotion: "promotions",
-  promocoes: "promotions",
-  promocao: "promotions",
-  descontos: "promotions",
-  cupom: "promotions",
 };
 
 const slug = (s: string) =>
