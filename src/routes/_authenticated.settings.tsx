@@ -82,7 +82,9 @@ function SettingsPage() {
       items: [
         { id: "transactions", label: "Transações Financeiras" },
         { id: "financial_accounts", label: "Contas Financeiras" },
-        { id: "accounts", label: "Categorias de Transação" }, // Assuming accounts table for categories based on types
+        { id: "accounts", label: "Contas a Pagar/Receber" }, // Correcting label for accounts table if needed, or keeping it as Categories if that's what it is. 
+        // Actually, the user wants material_categories for "Configurações de Materiais".
+
       ]
     },
     {
