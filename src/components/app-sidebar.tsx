@@ -284,9 +284,9 @@ export function AppSidebar() {
                         <SidebarMenuItem>
                           <CollapsibleTrigger asChild>
                             <SidebarMenuButton tooltip={item.title} className="w-full justify-between">
-                              <div className="flex w-full items-center justify-center group-data-[state=expanded]/sidebar-wrapper:justify-start gap-2">
-                                <item.icon className="size-4 text-sidebar-foreground/60 transition-colors group-hover/nav:text-sidebar-primary shrink-0" />
-                                <span className="group-data-[state=collapsed]/sidebar-wrapper:hidden">{item.title}</span>
+                              <div className="flex items-center gap-2">
+                                <item.icon className="size-4 text-sidebar-foreground/60 transition-colors group-hover/nav:text-sidebar-primary" />
+                                <span>{item.title}</span>
                               </div>
                               <ChevronRight className="size-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
                             </SidebarMenuButton>
@@ -323,16 +323,16 @@ export function AppSidebar() {
                         isActive={active}
                         tooltip={item.title}
                       >
-                        <Link to={item.url!} className="group/nav flex w-full items-center justify-center group-data-[state=expanded]/sidebar-wrapper:justify-start">
+                        <Link to={item.url!} className="group/nav">
                           <item.icon
                             className={cn(
-                              "size-4 transition-colors shrink-0",
+                              "size-4 transition-colors",
                               active
                                 ? "text-sidebar-primary"
                                 : "text-sidebar-foreground/60 group-hover/nav:text-sidebar-primary"
                             )}
                           />
-                          <span className="truncate group-data-[state=collapsed]/sidebar-wrapper:hidden ml-2">{item.title}</span>
+                          <span className="truncate">{item.title}</span>
                         </Link>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
