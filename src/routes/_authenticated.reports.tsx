@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { 
   ShoppingCart, 
@@ -39,10 +39,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { brl, dateBR } from "@/lib/format";
+import { brl, dateBR, dateTimeBR, num } from "@/lib/format";
 import { useRows } from "@/lib/data";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { ReportLayout } from "@/components/report-layout";
+import { useServerFn } from "@tanstack/react-start";
+import { getAppSettings } from "@/lib/settings.functions";
 
 export const Route = createFileRoute("/_authenticated/reports")({
   head: () => ({
