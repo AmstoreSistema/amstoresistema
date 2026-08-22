@@ -93,7 +93,8 @@ function SettingsPage() {
       items: [
         { id: "suppliers", label: "Fornecedores" },
         { id: "purchases", label: "Compras de Materiais" },
-        { id: "units_of_measure", label: "Itens de Compra" }, // Mapping units for reference
+        { id: "purchase_items", label: "Itens de Compra" },
+        { id: "units_of_measure", label: "Unidades de Medida" },
       ]
     },
     {
