@@ -35,19 +35,11 @@ Prioridade: interpretar corretamente a intenção antes de agir, executar integr
 
 Faça o seguinte:
 
-A listagem de módulos está funcionando perfeitamente e mostrando os registros corretamente. Restaram apenas estas últimas chaves na seção de "Coleções não reconhecidas" que precisam ser mapeadas para as tabelas do Supabase:
+Ainda precisamos corrigir dois pontos críticos na janela de restauração de backup do Base44:
 
-- "sale_items" {"->"} itens de venda
+1. Problema de Layout (Desproporcionalidade): A janela modal está muito longa, cortando o cabeçalho no topo e os botões de ação ("Cancelar" e "Iniciar Restauração") no rodapé. Por favor, ajuste o CSS do modal para que ele tenha uma altura máxima (ex: max-h-[85vh]), use um container com rolagem interna apenas na lista de módulos (`overflow-y-auto`), e mantenha o cabeçalho e o rodapé fixos e visíveis na tela.
 
-- "sale_payments" {"->"} pagamentos de vendas
-
-- "sale_installments" {"->"} parcelas de vendas
-
-- "purchase_items" {"->"} itens de compra
-
-- "app_settings" {"->"} configurações globais (ou configurações)
-
-Por favor, inclua essas chaves finais no script para que elas virem cartões selecionáveis na interface, eliminando completamente a caixa vermelha de coleções não reconhecidas.
+2. Mapeamento Pendente: As chaves do JSON (`sale_items`, `sale_payments`, `sale_installments`, `purchase_items`, `app_settings`) ainda aparecem na caixa vermelha de "Coleções não reconhecidas". Por favor, adicione explicitamente o mapeamento dessas chaves no código para que elas virem cartões selecionáveis na interface e a caixa vermelha suma.
       </div>
     </div>
   ),

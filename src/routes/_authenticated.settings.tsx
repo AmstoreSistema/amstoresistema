@@ -775,8 +775,8 @@ function SettingsPage() {
               {/* Import Selection Modal */}
               {importDialog.open && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-300">
-                  <Card className="w-full max-w-2xl rounded-[2rem] border-gold/20 shadow-2xl overflow-hidden animate-in zoom-in duration-300">
-                    <CardHeader className="bg-muted/50 border-b border-border/40 p-8">
+                  <Card className="w-full max-w-2xl max-h-[85vh] rounded-[2rem] border-gold/20 shadow-2xl overflow-hidden animate-in zoom-in duration-300 flex flex-col">
+                    <CardHeader className="bg-muted/50 border-b border-border/40 p-8 shrink-0">
                       <div className="flex items-center gap-3">
                         <div className="size-12 rounded-2xl bg-gold/10 flex items-center justify-center border border-gold/20">
                           <FileJson className="size-6 text-gold" />
@@ -791,7 +791,7 @@ function SettingsPage() {
                         </div>
                       </div>
                     </CardHeader>
-                    <CardContent className="p-8">
+                    <CardContent className="p-8 overflow-y-auto flex-1">
                       <div className="space-y-6">
                         <div className="flex items-center justify-between border-b pb-4">
                           <h3 className="font-bold text-lg">Módulos encontrados no arquivo</h3>
@@ -875,7 +875,7 @@ function SettingsPage() {
                         )}
                       </div>
                     </CardContent>
-                    <CardFooter className="bg-muted/30 border-t border-border/40 p-8 flex justify-end gap-4">
+                    <CardFooter className="bg-muted/30 border-t border-border/40 p-8 flex justify-end gap-4 shrink-0">
                       <Button 
                         variant="ghost" 
                         onClick={() => closeImportDialog()}
