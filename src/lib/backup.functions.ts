@@ -24,6 +24,25 @@ export const exportSystemData = createServerFn({ method: "POST" })
     };
   });
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** Remove valores indefinidos e IDs externos inválidos (não-UUID) que quebram as FKs. */
+function sanitizeRow(row: Record<string, any>) {
+  const out: Record<string, any> = {};
+  for (const [key, value] of Object.entries(row)) {
+    if (value === undefined) continue;
+    if ((key === "id" || key.endsWith("_id")) && typeof value === "string" && !UUID_RE.test(value)) continue;
+    out[key] = value;
+  }
+  return out;
+}
+
+function chunk<T>(arr: T[], size: number): T[][] {
+  const out: T[][] = [];
+  for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
+  return out;
+}
+
 export const importSystemData = createServerFn({ method: "POST" })
   .inputValidator((data) => z.object({
     payload: z.any(),
@@ -44,7 +63,6 @@ export const importSystemData = createServerFn({ method: "POST" })
           )
         : payload.data;
     } else {
-      // Backup externo (Base44 ou qualquer JSON com coleções de registros)
       dataToImport = mapForeignBackup(payload);
       if (selectedTables) {
         dataToImport = Object.fromEntries(
@@ -52,10 +70,9 @@ export const importSystemData = createServerFn({ method: "POST" })
         );
       }
       if (Object.keys(dataToImport).length === 0) {
-        // Log para ajudar a entender por que não houve mapeamento
-        console.warn("[Import] Nenhuma coleção mapeada para as tabelas internas.", { 
+        console.warn("[Import] Nenhuma coleção mapeada para as tabelas internas.", {
           payloadKeys: Object.keys(payload || {}),
-          selectedTables 
+          selectedTables,
         });
       }
     }
@@ -67,75 +84,138 @@ export const importSystemData = createServerFn({ method: "POST" })
         (IMPORT_ORDER.indexOf(b) === -1 ? 99 : IMPORT_ORDER.indexOf(b)),
     );
 
-    // Chaves de conflito para evitar duplicidade em backups externos
-    const CONFLICT_KEYS: Record<string, string> = {
-      clients: "name",
-      products: "sku",
-      suppliers: "name",
-      materials: "name",
-      material_categories: "name",
-      financial_accounts: "name",
-      units_of_measure: "name",
-      promotions: "name",
+    // Chave natural usada para deduplicar (não depende de índices únicos no banco)
+    const NATURAL_KEY: Record<string, string[]> = {
+      clients: ["name"],
+      products: ["sku", "name"],
+      suppliers: ["name"],
+      materials: ["sku", "name"],
+      material_categories: ["name"],
+      financial_accounts: ["name"],
+      units_of_measure: ["name"],
+      promotions: ["name"],
+      app_settings: ["key"],
     };
 
     for (const table of orderedTables) {
-      const rows = dataToImport[table];
-      if (!Array.isArray(rows)) continue;
-      // Permite que a importação prossiga mesmo se o array estiver vazio,
-      // mas pulamos a parte de inserção no banco se não houver registros.
+      const rawRows = dataToImport[table];
+      if (!Array.isArray(rawRows)) continue;
+
+      const rows = rawRows.filter((r) => r && typeof r === "object").map(sanitizeRow);
+      const res = { inserted: 0, updated: 0, failed: 0 } as {
+        inserted: number; updated: number; failed: number; error?: string;
+      };
+
       if (rows.length === 0) {
-        results[table] = { inserted: 0, updated: 0, failed: 0 };
+        results[table] = res;
         continue;
       }
 
-      const res = { inserted: 0, updated: 0, failed: 0 } as { inserted: number; updated: number; failed: number; error?: string };
-      const onConflict = CONFLICT_KEYS[table];
+      const keys = NATURAL_KEY[table];
+      const toInsert: Record<string, any>[] = [];
+      const toUpdate: { id: string; row: Record<string, any> }[] = [];
 
-      // Tenta upsert se houver chave de conflito, senão insert normal
-      const { data, error: bulkError } = await (onConflict 
-        ? supabaseAdmin.from(table as any).upsert(rows, { onConflict, ignoreDuplicates: false })
-        : supabaseAdmin.from(table as any).insert(rows)
-      ).select("id");
+      if (keys) {
+        // Carrega registros existentes e monta índices por chave natural
+        const { data: existing } = await supabaseAdmin
+          .from(table as any)
+          .select(["id", ...keys].join(","))
+          .limit(20000);
 
-      if (!bulkError) {
-        res.inserted = rows.length;
-      } else {
-        // Fallback linha por linha se o lote falhar
-        for (const row of rows) {
-          try {
-            const { error } = await (onConflict
-              ? supabaseAdmin.from(table as any).upsert(row, { onConflict, ignoreDuplicates: false })
-              : supabaseAdmin.from(table as any).insert(row)
-            );
-            
-            if (error) {
-              res.failed += 1;
-              res.error = res.error ?? error.message;
-            } else {
-              res.inserted += 1;
+        const indexes: Record<string, Map<string, string>> = {};
+        for (const k of keys) indexes[k] = new Map();
+        for (const ex of (existing as any[]) || []) {
+          for (const k of keys) {
+            const v = ex?.[k];
+            if (v !== null && v !== undefined && String(v).trim() !== "") {
+              indexes[k]!.set(String(v).trim().toLowerCase(), ex.id ?? String(v));
             }
-          } catch (e: any) {
+          }
+        }
+
+        const seen: Record<string, Set<string>> = {};
+        for (const k of keys) seen[k] = new Set();
+
+        for (const row of rows) {
+          let matchedId: string | undefined;
+          let duplicateInFile = false;
+          for (const k of keys) {
+            const v = row[k];
+            if (v === null || v === undefined || String(v).trim() === "") continue;
+            const norm = String(v).trim().toLowerCase();
+            if (seen[k]!.has(norm)) { duplicateInFile = true; break; }
+            const hit = indexes[k]!.get(norm);
+            if (hit) { matchedId = hit; break; }
+          }
+          if (duplicateInFile) continue;
+          for (const k of keys) {
+            const v = row[k];
+            if (v !== null && v !== undefined && String(v).trim() !== "") seen[k]!.add(String(v).trim().toLowerCase());
+          }
+          if (matchedId) toUpdate.push({ id: matchedId, row });
+          else toInsert.push(row);
+        }
+      } else {
+        toInsert.push(...rows);
+      }
+
+      // Inserções em lotes, com fallback linha a linha
+      for (const batch of chunk(toInsert, 200)) {
+        const { error } = await supabaseAdmin.from(table as any).insert(batch);
+        if (!error) {
+          res.inserted += batch.length;
+          continue;
+        }
+        for (const row of batch) {
+          const { error: rowError } = await supabaseAdmin.from(table as any).insert(row);
+          if (rowError) {
             res.failed += 1;
-            res.error = res.error ?? e.message;
+            res.error = res.error ?? rowError.message;
+          } else {
+            res.inserted += 1;
           }
         }
       }
+
+      // Atualizações dos registros já existentes (evita duplicidade)
+      for (const { id, row } of toUpdate) {
+        const patch = { ...row };
+        delete patch["id"];
+        delete patch["created_at"];
+        const pkColumn = table === "app_settings" ? "key" : "id";
+        const { error } = await supabaseAdmin.from(table as any).update(patch).eq(pkColumn, id);
+        if (error) {
+          res.failed += 1;
+          res.error = res.error ?? error.message;
+        } else {
+          res.updated += 1;
+        }
+      }
+
       results[table] = res;
     }
 
     const totalInserted = Object.values(results).reduce((s, r) => s + r.inserted, 0);
+    const totalUpdated = Object.values(results).reduce((s, r) => s + r.updated, 0);
     const totalFailed = Object.values(results).reduce((s, r) => s + r.failed, 0);
 
-    if (totalInserted === 0 && totalFailed > 0) {
+    if (totalInserted === 0 && totalUpdated === 0 && totalFailed > 0) {
       const firstError = Object.values(results).find((r) => r.error)?.error;
       throw new Error(
         `Nenhum registro pôde ser restaurado.${firstError ? ` Motivo: ${firstError}` : ""}`,
       );
     }
 
-    return { success: true, results, totalInserted, totalFailed, format: isNative ? "amstore" : "externo" };
+    return {
+      success: true,
+      results,
+      totalInserted,
+      totalUpdated,
+      totalFailed,
+      format: isNative ? "amstore" : "externo",
+    };
   });
+
 
 export const inspectBackupFile = createServerFn({ method: "POST" })
   .inputValidator((data) => z.object({ payload: z.any() }).parse(data))
