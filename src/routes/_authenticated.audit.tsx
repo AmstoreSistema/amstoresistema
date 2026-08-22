@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import * as React from "react";
 import { useRows } from "@/lib/data";
-import { FileText, Eye, Calendar, User, Search, Plus, Pencil, Trash2 } from "lucide-react";
+import { FileText, Eye, Calendar, User, Search, Plus, Pencil, Trash2, Printer, FileDown } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
+import { ReportLayout } from "@/components/report-layout";
+import { useServerFn } from "@tanstack/react-start";
+import { getAppSettings } from "@/lib/settings.functions";
+import { useEffect, useState } from "react";
 
 export const Route = createFileRoute("/_authenticated/audit")({
   head: () => ({
