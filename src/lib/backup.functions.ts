@@ -140,7 +140,7 @@ export const importSystemData = createServerFn({ method: "POST" })
 export const inspectBackupFile = createServerFn({ method: "POST" })
   .inputValidator((data) => z.object({ payload: z.any() }).parse(data))
   .handler(async ({ data: { payload } }) => {
-    const { mapForeignBackup, unrecognizedCollections } = await import("@/lib/backup-mapping");
+    const { mapForeignBackup, unrecognizedCollections, extractAllCollections, TABLE_ALIASES } = await import("@/lib/backup-mapping");
     
     // Log para depuração de backups Base44 / Externos
     console.log("[Backup Inspect] Payload recebido:", JSON.stringify(payload, null, 2));
