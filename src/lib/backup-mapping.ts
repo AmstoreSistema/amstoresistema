@@ -251,6 +251,7 @@ const image = (row: any) => {
   const raw = pick(row, [
     "image_url",
     "imageurl",
+    "imagem_url",
     "imagem",
     "imagens",
     "image",
@@ -268,9 +269,17 @@ const image = (row: any) => {
   ]);
   const first = (v: any): string | undefined => {
     if (!v) return undefined;
-    if (typeof v === "string") return v.trim() || undefined;
+    if (typeof v === "string") {
+      const s = v.trim();
+      if (!s) return undefined;
+      // Se for Base64 puro sem prefixo, adicionamos o prefixo padrão de imagem
+      if (s.length > 100 && !s.includes(":") && !s.includes("/") && !s.includes("http")) {
+        return `data:image/jpeg;base64,${s}`;
+      }
+      return s;
+    }
     if (Array.isArray(v)) return first(v[0]);
-    if (typeof v === "object") return first(v.url ?? v.src ?? v.file_url ?? v.path ?? v.href);
+    if (typeof v === "object") return first(v.url ?? v.src ?? v.file_url ?? v.path ?? v.href ?? v.base64 ?? v.data);
     return undefined;
   };
   return first(raw) ?? null;
