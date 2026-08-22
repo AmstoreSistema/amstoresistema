@@ -5,7 +5,7 @@
 
 export type Collections = Record<string, any[]>;
 
-const TABLE_ALIASES: Record<string, string> = {
+export const TABLE_ALIASES: Record<string, string> = {
   // Clientes
   clients: "clients",
   client: "clients",
@@ -311,11 +311,11 @@ export function extractAllCollections(payload: any): Collections {
     // Caso específico do Base44 onde tudo está dentro de "dados"
     for (const [key, value] of Object.entries(payload.dados)) {
       if (Array.isArray(value)) {
-        // Aceitamos mesmo que o array esteja vazio para que seja mapeado e não descartado
-        out[key] = (out[key] ?? []).concat(value.filter((r) => r && typeof r === "object"));
-        // Se estiver vazio, garantimos que a chave exista no output para o TABLE_ALIASES funcionar
+        // Mapeia para a chave da tabela se houver alias, senão usa a chave original
+        const target = TABLE_ALIASES[slug(key)] || key;
+        out[target] = (out[target] ?? []).concat(value.filter((r) => r && typeof r === "object"));
         if (value.length === 0) {
-          out[key] = out[key] ?? [];
+          out[target] = out[target] ?? [];
         }
       }
     }
@@ -349,13 +349,15 @@ export function extractAllCollections(payload: any): Collections {
 
 /** Coleções reconhecidas (chaveadas pela tabela destino). */
 export function extractCollections(payload: any): Collections {
+  const all = extractAllCollections(payload);
   const out: Collections = {};
-  for (const [key, rows] of Object.entries(extractAllCollections(payload))) {
-    const target = TABLE_ALIASES[slug(key)];
-    if (target) {
-      out[target] = (out[target] ?? []).concat(rows);
-    }
+  
+  // Garantimos que o mapeamento de aliases seja aplicado a todas as chaves extraídas
+  for (const [key, rows] of Object.entries(all)) {
+    const target = TABLE_ALIASES[slug(key)] || key;
+    out[target] = (out[target] ?? []).concat(rows);
   }
+  
   return out;
 }
 

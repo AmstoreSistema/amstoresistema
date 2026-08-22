@@ -140,7 +140,7 @@ export const importSystemData = createServerFn({ method: "POST" })
 export const inspectBackupFile = createServerFn({ method: "POST" })
   .inputValidator((data) => z.object({ payload: z.any() }).parse(data))
   .handler(async ({ data: { payload } }) => {
-    const { mapForeignBackup, unrecognizedCollections } = await import("@/lib/backup-mapping");
+    const { mapForeignBackup, unrecognizedCollections, extractAllCollections, TABLE_ALIASES } = await import("@/lib/backup-mapping");
     
     // Log para depuração de backups Base44 / Externos
     console.log("[Backup Inspect] Payload recebido:", JSON.stringify(payload, null, 2));
@@ -157,10 +157,17 @@ export const inspectBackupFile = createServerFn({ method: "POST" })
         skipped: {} as Record<string, number>,
       };
     }
-    const mapped = mapForeignBackup(payload);
+    const rawCollections = extractAllCollections(payload);
+    
     return {
       format: "externo" as const,
-      collections: Object.fromEntries(Object.entries(mapped).map(([k, v]) => [k, v.length])),
+      collections: Object.fromEntries(
+        Object.entries(rawCollections).map(([k, v]) => {
+          const rows = v as any[];
+          const target = TABLE_ALIASES[k.toLowerCase().replace(/[^a-z0-9]/g, "")];
+          return [target || k, rows.length];
+        })
+      ),
       skipped: unrecognizedCollections(payload),
     };
   });

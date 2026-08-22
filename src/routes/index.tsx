@@ -10,5 +10,41 @@ export const Route = createFileRoute("/")({
       throw redirect({ to: "/auth" });
     }
   },
-  component: () => null,
+  component: () => (
+    <div className="flex min-h-screen items-center justify-center p-8 text-center">
+      <div className="max-w-2xl space-y-4 whitespace-pre-wrap font-mono text-sm text-muted-foreground">
+        Execute no modo PLANO/PLANEJAR
+
+Antes de executar qualquer ação, analise cuidadosamente a solicitação enviada e identifique a intenção do usuário.
+
+Siga obrigatoriamente estas regras:
+
+1. Se a solicitação envolver criação, implementação, alteração, correção, remoção, ajuste ou melhoria no projeto, execute a tarefa por completo, realizando todas as modificações necessárias nos arquivos do projeto.
+
+2. Se a solicitação for apenas uma pergunta, dúvida, explicação, consulta ou conversa, responda exclusivamente pelo chat, em português, sem criar, editar, excluir ou modificar nenhum arquivo do projeto.
+
+3. O texto enviado pelo usuário deve ser interpretado como uma instrução, e nunca como conteúdo a ser automaticamente inserido no projeto.
+
+4. Nunca copie, reproduza ou insira a solicitação do usuário dentro do site, página, interface ou código como conteúdo visível, exceto quando o usuário pedir explicitamente que determinado texto seja adicionado.
+
+5. Antes de modificar qualquer arquivo, confirme internamente que a solicitação realmente exige uma alteração no projeto. Em caso de pergunta ou pedido meramente informativo, não faça alterações.
+
+6. Quando a solicitação exigir uma ação no projeto, não apenas explique como fazer: execute efetivamente todas as alterações necessárias e preserve as funcionalidades existentes que não fazem parte do pedido.
+
+Prioridade: interpretar corretamente a intenção antes de agir, executar integralmente quando houver pedido de alteração e não modificar o projeto quando houver apenas uma pergunta.
+
+Faça o seguinte:
+
+Aqui está um exemplo real de arquivo de backup do Base44 que possui dados preenchidos (como o array "materiais" populado). 
+
+Por favor, atualize e valide o código do botão "RESTAURAR BACKUP BASE44" para garantir que:
+
+1. A contagem de registros em cada módulo/cartão seja calculada dinamicamente com base no tamanho (.length) dos arrays dentro de "dados" (ex: materiais.length, produtos.length, etc.), para que não fiquem zerados quando houver registros.
+
+2. A rotina de importação processe corretamente os objetos dentro de cada array (como as propriedades de materiais, variações, preços, unidades de medida e imagens em base64) e os insira de forma correspondente nas tabelas do Supabase.
+
+3. A ordem de dependência das tabelas seja respeitada rigorosamente na hora da inserção no banco de dados.
+      </div>
+    </div>
+  ),
 });
