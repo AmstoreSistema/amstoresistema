@@ -284,9 +284,9 @@ export function AppSidebar() {
                         <SidebarMenuItem>
                           <CollapsibleTrigger asChild>
                             <SidebarMenuButton tooltip={item.title} className="w-full justify-between">
-                              <div className="flex items-center gap-2">
-                                <item.icon className="size-4 text-sidebar-foreground/60 transition-colors group-hover/nav:text-sidebar-primary" />
-                                <span>{item.title}</span>
+                              <div className="flex w-full items-center justify-center group-data-[state=expanded]/sidebar-wrapper:justify-start gap-2">
+                                <item.icon className="size-4 text-sidebar-foreground/60 transition-colors group-hover/nav:text-sidebar-primary shrink-0" />
+                                <span className="group-data-[state=collapsed]/sidebar-wrapper:hidden">{item.title}</span>
                               </div>
                               <ChevronRight className="size-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
                             </SidebarMenuButton>
