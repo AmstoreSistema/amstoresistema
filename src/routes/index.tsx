@@ -35,7 +35,7 @@ Prioridade: interpretar corretamente a intenção antes de agir, executar integr
 
 Faça o seguinte:
 
-O sistema ainda não está gerando os relatorios dentro da central de relatorios. tem determinadas relatorios que não precisam de filtro, como estoque, produção, clientes, materiais, produtos, fornecedores
+Implemente a exportação/impressão em PDF para cada relatório da Central de Relatórios, mantendo o mesmo layout profissional do cabeçalho e a formatação para @media print.
       </div>
     </div>
   ),
