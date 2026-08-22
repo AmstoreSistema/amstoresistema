@@ -574,9 +574,18 @@ export function mapForeignBackup(payload: any): Collections {
   for (const table of IMPORT_ORDER) {
     const rows = collections[table];
     const mapper = MAPPERS[table];
-    if (!rows?.length || !mapper) continue;
+    if (rows === undefined || !mapper) continue;
+    
+    // Se rows for um array vazio, retornamos o array vazio para manter a intenção de mapeamento.
+    if (rows.length === 0) {
+      mapped[table] = [];
+      continue;
+    }
+    
     const converted = rows.map(mapper).filter(Boolean) as any[];
-    if (converted.length) mapped[table] = converted;
+    if (converted.length) {
+      mapped[table] = converted;
+    }
   }
   return mapped;
 }
