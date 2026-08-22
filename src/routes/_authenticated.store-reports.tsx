@@ -72,9 +72,14 @@ type ReportId =
   | "by-category"
   | "by-hour"
   | "cancelled"
-  | "sales-by-product";
+  | "sales-by-product"
+  | "stock-general"
+  | "production-general"
+  | "materials-general"
+  | "suppliers-general"
+  | "products-general";
 
-const REPORTS: { id: ReportId; label: string; icon: any; grouping?: boolean }[] = [
+const REPORTS: { id: ReportId; label: string; icon: any; grouping?: boolean; noFilter?: boolean }[] = [
   { id: "period", label: "Vendas por Período", icon: TrendingUp, grouping: true },
   { id: "top-products", label: "Produtos Mais Vendidos", icon: Package },
   { id: "clients", label: "Desempenho Clientes", icon: Users },
@@ -89,6 +94,11 @@ const REPORTS: { id: ReportId; label: string; icon: any; grouping?: boolean }[] 
   { id: "by-hour", label: "Por Horário", icon: Clock },
   { id: "cancelled", label: "Canceladas Detalhado", icon: XCircle },
   { id: "sales-by-product", label: "Vendas por Produto", icon: ShoppingBag },
+  { id: "stock-general", label: "Relatório de Estoque", icon: Boxes, noFilter: true },
+  { id: "production-general", label: "Relatório de Produção", icon: Footprints, noFilter: true },
+  { id: "materials-general", label: "Relatório de Materiais", icon: Package, noFilter: true },
+  { id: "suppliers-general", label: "Relatório de Fornecedores", icon: Users, noFilter: true },
+  { id: "products-general", label: "Relatório de Produtos", icon: ShoppingBag, noFilter: true },
 ];
 
 type Column = { key: string; label: string; align?: "right" };
@@ -154,6 +164,9 @@ function StoreReportsPage() {
   const { data: transactions = [] } = useRows<any>("transactions");
   const { data: stock = [] } = useRows<any>("stock_products");
   const { data: profiles = [] } = useRows<any>("user_profiles");
+  const { data: materials = [] } = useRows<any>("materials");
+  const { data: suppliers = [] } = useRows<any>("suppliers");
+  const { data: productionOrders = [] } = useRows<any>("production_orders");
 
 
   const isLoading = l1 || l2;
@@ -517,6 +530,99 @@ function StoreReportsPage() {
           })),
         };
       }
+      case "stock-general": {
+        return {
+          columns: [
+            { key: "sku", label: "SKU" },
+            { key: "product", label: "Produto" },
+            { key: "qty", label: "Disponível", align: "right" },
+            { key: "min", label: "Mínimo", align: "right" },
+            { key: "status", label: "Status" },
+          ],
+          rows: stock.map((s: any) => {
+            const p = products.find((prod: any) => prod.id === s.product_id);
+            const qty = Number(s.quantidade_disponivel ?? 0);
+            const min = Number(p?.estoque_minimo ?? 0);
+            return {
+              sku: p?.sku ?? "—",
+              product: p?.name ?? "—",
+              qty: num(qty, 0),
+              min: num(min, 0),
+              status: qty <= min ? "ABAIXO DO MÍNIMO" : "OK",
+            };
+          }),
+        };
+      }
+      case "production-general": {
+        return {
+          columns: [
+            { key: "code", label: "Código" },
+            { key: "product", label: "Produto" },
+            { key: "qty", label: "Qtd", align: "right" },
+            { key: "status", label: "Status" },
+            { key: "start", label: "Início" },
+            { key: "end", label: "Fim" },
+          ],
+          rows: productionOrders.map((o: any) => ({
+            code: o.codigo_ordem ?? "—",
+            product: o.produto_nome ?? "—",
+            qty: num(o.quantidade, 0),
+            status: o.status?.toUpperCase() ?? "PENDENTE",
+            start: dateBR(o.started_at),
+            end: dateBR(o.completed_at),
+          })),
+        };
+      }
+      case "materials-general": {
+        return {
+          columns: [
+            { key: "name", label: "Material" },
+            { key: "unit", label: "Unidade" },
+            { key: "price", label: "Preço", align: "right" },
+            { key: "category", label: "Categoria" },
+          ],
+          rows: materials.map((m: any) => ({
+            name: m.name ?? "—",
+            unit: m.unit ?? "—",
+            price: brl(m.preco_unitario),
+            category: m.category ?? "—",
+          })),
+        };
+      }
+      case "suppliers-general": {
+        return {
+          columns: [
+            { key: "name", label: "Fornecedor" },
+            { key: "contact", label: "Contato" },
+            { key: "email", label: "E-mail" },
+            { key: "category", label: "Ramo" },
+          ],
+          rows: suppliers.map((s: any) => ({
+            name: s.name ?? "—",
+            contact: s.contact_name ?? "—",
+            email: s.email ?? "—",
+            category: s.category ?? "—",
+          })),
+        };
+      }
+      case "products-general": {
+        return {
+          columns: [
+            { key: "sku", label: "SKU" },
+            { key: "name", label: "Produto" },
+            { key: "category", label: "Categoria" },
+            { key: "retail", label: "Varejo", align: "right" },
+            { key: "wholesale", label: "Atacado", align: "right" },
+          ],
+          rows: products.map((p: any) => ({
+            sku: p.sku ?? "—",
+            name: p.name ?? "—",
+            category: p.category ?? "—",
+            retail: brl(p.price_retail),
+            wholesale: brl(p.price_wholesale),
+          })),
+        };
+      }
       default:
         return { columns: [], rows: [] };
     }
@@ -533,6 +639,9 @@ function StoreReportsPage() {
     transactions,
     stock,
     profiles,
+    materials,
+    suppliers,
+    productionOrders,
   ]);
 
   const handleExport = () => {
@@ -590,38 +699,42 @@ function StoreReportsPage() {
             </div>
           </div>
 
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                Data início
-              </p>
-              <Input
-                type="date"
-                value={range.start}
-                onChange={(e) => setRange({ ...range, start: e.target.value })}
-                className="h-12 rounded-xl font-semibold"
-              />
-            </div>
-            <div className="space-y-2">
-              <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                Data fim
-              </p>
-              <Input
-                type="date"
-                value={range.end}
-                onChange={(e) => setRange({ ...range, end: e.target.value })}
-                className="h-12 rounded-xl font-semibold"
-              />
-            </div>
-          </div>
+          {!current.noFilter && (
+            <>
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                    Data início
+                  </p>
+                  <Input
+                    type="date"
+                    value={range.start}
+                    onChange={(e) => setRange({ ...range, start: e.target.value })}
+                    className="h-12 rounded-xl font-semibold"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                    Data fim
+                  </p>
+                  <Input
+                    type="date"
+                    value={range.end}
+                    onChange={(e) => setRange({ ...range, end: e.target.value })}
+                    className="h-12 rounded-xl font-semibold"
+                  />
+                </div>
+              </div>
 
-          <Button
-            variant="outline"
-            onClick={() => setRange({ start: "", end: "" })}
-            className="h-10 w-full rounded-xl text-xs font-bold uppercase"
-          >
-            Limpar datas
-          </Button>
+              <Button
+                variant="outline"
+                onClick={() => setRange({ start: "", end: "" })}
+                className="h-10 w-full rounded-xl text-xs font-bold uppercase"
+              >
+                Limpar datas
+              </Button>
+            </>
+          )}
 
           {current.grouping && (
             <div className="space-y-2 rounded-2xl bg-muted/30 p-4">
