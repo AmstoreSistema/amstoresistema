@@ -157,16 +157,15 @@ export const inspectBackupFile = createServerFn({ method: "POST" })
         skipped: {} as Record<string, number>,
       };
     }
-    const mapped = mapForeignBackup(payload);
     const rawCollections = extractAllCollections(payload);
     
     return {
       format: "externo" as const,
       collections: Object.fromEntries(
         Object.entries(rawCollections).map(([k, v]) => {
-          // Se a chave for reconhecida, usamos o nome da tabela destino no count
+          const rows = v as any[];
           const target = TABLE_ALIASES[k.toLowerCase().replace(/[^a-z0-9]/g, "")];
-          return [target || k, v.length];
+          return [target || k, rows.length];
         })
       ),
       skipped: unrecognizedCollections(payload),
