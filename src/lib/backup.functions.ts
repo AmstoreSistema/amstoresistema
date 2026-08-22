@@ -81,7 +81,13 @@ export const importSystemData = createServerFn({ method: "POST" })
 
     for (const table of orderedTables) {
       const rows = dataToImport[table];
-      if (!Array.isArray(rows) || rows.length === 0) continue;
+      if (!Array.isArray(rows)) continue;
+      // Permite que a importação prossiga mesmo se o array estiver vazio,
+      // mas pulamos a parte de inserção no banco se não houver registros.
+      if (rows.length === 0) {
+        results[table] = { inserted: 0, updated: 0, failed: 0 };
+        continue;
+      }
 
       const res = { inserted: 0, updated: 0, failed: 0 } as { inserted: number; updated: number; failed: number; error?: string };
       const onConflict = CONFLICT_KEYS[table];

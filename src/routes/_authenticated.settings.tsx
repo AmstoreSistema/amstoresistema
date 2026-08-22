@@ -277,7 +277,7 @@ function SettingsPage() {
         try {
           const info = await inspectBackup({ data: { payload } });
           const counts = Object.fromEntries(
-            Object.entries(info.collections as Record<string, number>).filter(([, n]) => n > 0),
+            Object.entries(info.collections as Record<string, number>),
           );
           
           const hasData = Object.keys(counts).length > 0;
@@ -286,10 +286,6 @@ function SettingsPage() {
           if (!hasData && !hasSkipped) {
             toast.error("Este arquivo parece estar vazio ou não contém dados estruturados.");
             return;
-          }
-
-          if (!hasData) {
-            toast.warning("Não identificamos tabelas conhecidas, mas encontramos outras coleções no arquivo.");
           }
 
           setImportDialog({
