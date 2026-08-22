@@ -125,6 +125,25 @@ const TABLE_ALIASES: Record<string, string> = {
   venda: "transactions",
   faturamento: "transactions",
 
+  // Vendas Específicas
+  sale_items: "sale_items",
+  itensvenda: "sale_items",
+  itens_venda: "sale_items",
+  sale_payments: "sale_payments",
+  pagamentos: "sale_payments",
+  pagamentos_vendas: "sale_payments",
+  sale_installments: "sale_installments",
+  parcelas: "sale_installments",
+  parcelas_vendas: "sale_installments",
+
+  // Compras Específicas
+  purchases: "purchases",
+  compras: "purchases",
+  compras_materiais: "purchases",
+  purchase_items: "purchase_items",
+  itenscompra: "purchase_items",
+  itens_compra: "purchase_items",
+
   // Contas Financeiras
   financial_accounts: "financial_accounts",
   financialaccount: "financial_accounts",
@@ -175,6 +194,15 @@ const TABLE_ALIASES: Record<string, string> = {
   cuponsproducao: "material_variations",
   variacaomaterial: "material_variations",
   variacoesmateriais: "material_variations",
+
+  // Sistema e Alertas
+  notifications: "notifications",
+  alertas: "notifications",
+  configuracoes_materiais: "material_categories",
+  configuracoesmateriais: "material_categories",
+  configuracoes_globais: "app_settings",
+  configuracoesglobais: "app_settings",
+  app_settings: "app_settings",
 };
 
 const slug = (s: string) =>
@@ -548,6 +576,61 @@ const MAPPERS: Record<string, Mapper> = {
       created_at: date(pick(t, ["created_at", "data", "datapagamento", "criadoem", "vencimento"])),
     };
   },
+  sales: (s) => ({
+    client_id: pick(s, ["client_id", "cliente_id"]),
+    total_amount: num(pick(s, ["total_amount", "valor_total", "valor"])),
+    paid_amount: num(pick(s, ["paid_amount", "valor_pago"])),
+    discount: num(pick(s, ["discount", "desconto"])),
+    payment_method: str(pick(s, ["payment_method", "metodo", "forma"])) ?? "dinheiro",
+    status: str(pick(s, ["status", "situacao"])) ?? "finalizado",
+    notes: str(pick(s, ["notes", "observacoes"])),
+    created_at: date(pick(s, ["created_at", "data"])),
+  }),
+  sale_items: (si) => ({
+    sale_id: pick(si, ["sale_id", "venda_id"]),
+    product_id: pick(si, ["product_id", "produto_id"]),
+    quantity: num(pick(si, ["quantity", "quantidade"])),
+    unit_price: num(pick(si, ["unit_price", "preco_unitario", "valor"])),
+    discount: num(pick(si, ["discount", "desconto"])),
+    numeracao: str(pick(si, ["numeracao", "tamanho"])),
+  }),
+  sale_payments: (sp) => ({
+    sale_id: pick(sp, ["sale_id", "venda_id"]),
+    amount: num(pick(sp, ["amount", "valor"])),
+    payment_method: str(pick(sp, ["payment_method", "metodo", "forma"])) ?? "dinheiro",
+    created_at: date(pick(sp, ["created_at", "data"])),
+  }),
+  sale_installments: (si) => ({
+    sale_id: pick(si, ["sale_id", "venda_id"]),
+    installment_number: num(pick(si, ["installment_number", "numero", "parcela"])),
+    amount: num(pick(si, ["amount", "valor"])),
+    due_date: date(pick(si, ["due_date", "vencimento"])),
+    status: str(pick(si, ["status", "situacao"])) ?? "pendente",
+  }),
+  purchases: (p) => ({
+    supplier_id: pick(p, ["supplier_id", "fornecedor_id"]),
+    material_id: pick(p, ["material_id", "material_id"]),
+    quantity: num(pick(p, ["quantity", "quantidade"])),
+    unit_cost: num(pick(p, ["unit_cost", "custo_unitario"])),
+    status: str(pick(p, ["status", "situacao"])) ?? "pendente",
+    received_at: date(pick(p, ["received_at", "data_recebimento"])),
+  }),
+  purchase_items: (pi) => ({
+    purchase_id: pick(pi, ["purchase_id", "compra_id"]),
+    material_id: pick(pi, ["material_id", "material_id"]),
+    quantity: num(pick(pi, ["quantity", "quantidade"])),
+    unit_cost: num(pick(pi, ["unit_cost", "custo_unitario"])),
+  }),
+  notifications: (n) => ({
+    title: str(pick(n, ["title", "titulo"])) ?? "Notificação",
+    message: str(pick(n, ["message", "mensagem"])) ?? "",
+    type: str(pick(n, ["type", "tipo"])) ?? "info",
+    is_read: pick(n, ["is_read", "lido"]) === true,
+  }),
+  app_settings: (s) => ({
+    key: str(pick(s, ["key", "chave"])),
+    value: str(pick(s, ["value", "valor"])),
+  }),
 };
 
 /** Ordem de inserção respeitando dependências simples. */
@@ -566,6 +649,14 @@ export const IMPORT_ORDER = [
   "financial_accounts",
   "promotions",
   "transactions",
+  "sales",
+  "sale_items",
+  "sale_payments",
+  "sale_installments",
+  "purchases",
+  "purchase_items",
+  "notifications",
+  "app_settings",
 ];
 
 export function mapForeignBackup(payload: any): Collections {
