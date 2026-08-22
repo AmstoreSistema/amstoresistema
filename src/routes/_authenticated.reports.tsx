@@ -71,6 +71,7 @@ interface ReportConfig {
   url: string;
   dateColumn: string;
   filters?: { column: string; value: any }[];
+  noFilter?: boolean;
 }
 
 const REPORT_CONFIG: Record<ReportType, ReportConfig> = {
@@ -93,7 +94,8 @@ const REPORT_CONFIG: Record<ReportType, ReportConfig> = {
   stock: { 
     table: "stock_products", 
     url: "/stock", 
-    dateColumn: "created_at" 
+    dateColumn: "created_at",
+    noFilter: true
   },
   financial: { 
     table: "financial_accounts", 
@@ -103,27 +105,32 @@ const REPORT_CONFIG: Record<ReportType, ReportConfig> = {
   production: { 
     table: "production_orders", 
     url: "/production", 
-    dateColumn: "created_at" 
+    dateColumn: "created_at",
+    noFilter: true
   },
   clients: { 
     table: "clients", 
     url: "/clients", 
-    dateColumn: "created_at" 
+    dateColumn: "created_at",
+    noFilter: true
   },
   materials: { 
     table: "materials", 
     url: "/materials", 
-    dateColumn: "created_at" 
+    dateColumn: "created_at",
+    noFilter: true
   },
   products: { 
     table: "products", 
     url: "/products", 
-    dateColumn: "created_at" 
+    dateColumn: "created_at",
+    noFilter: true
   },
   suppliers: { 
     table: "suppliers", 
     url: "/purchase-board", 
-    dateColumn: "created_at" 
+    dateColumn: "created_at",
+    noFilter: true
   },
   purchases: { 
     table: "purchases", 
@@ -136,6 +143,7 @@ const REPORT_CONFIG: Record<ReportType, ReportConfig> = {
     dateColumn: "created_at" 
   },
 };
+
 
 function ReportsPage() {
   const [selectedType, setSelectedType] = useState<ReportType>("sales");
@@ -189,6 +197,7 @@ function ReportsPage() {
   });
 
   const filteredData = useMemo(() => {
+    if (config.noFilter) return reportData;
     if (!dateRange.start || !dateRange.end) return reportData;
     const start = new Date(dateRange.start + 'T00:00:00');
     const end = new Date(dateRange.end + 'T23:59:59');
@@ -429,27 +438,33 @@ function ReportsPage() {
 
           <div className="space-y-4">
             <h2 className="text-sm font-bold flex items-center gap-2">
-              <span className="text-primary">2.</span> Filtro por Período
+              <span className="text-primary">2.</span> {config.noFilter ? "Relatório Completo (sem filtro de período)" : "Filtro por Período"}
             </h2>
             <div className="flex flex-col md:flex-row gap-4">
-              <div className="flex-1 grid grid-cols-2 gap-4">
-                <div className="relative">
-                  <Input 
-                    type="date" 
-                    value={dateRange.start}
-                    onChange={(e) => setDateRange({...dateRange, start: e.target.value})}
-                    className="h-14 rounded-2xl bg-muted/20 border-border/40 font-bold px-4"
-                  />
+              {config.noFilter ? (
+                <div className="flex-1 h-14 flex items-center justify-center border-2 border-dashed border-border/40 rounded-2xl text-muted-foreground text-[10px] uppercase font-bold tracking-widest">
+                  Este relatório é cadastral e exibe todos os registros
                 </div>
-                <div className="relative">
-                  <Input 
-                    type="date" 
-                    value={dateRange.end}
-                    onChange={(e) => setDateRange({...dateRange, end: e.target.value})}
-                    className="h-14 rounded-2xl bg-muted/20 border-border/40 font-bold px-4"
-                  />
+              ) : (
+                <div className="flex-1 grid grid-cols-2 gap-4">
+                  <div className="relative">
+                    <Input 
+                      type="date" 
+                      value={dateRange.start}
+                      onChange={(e) => setDateRange({...dateRange, start: e.target.value})}
+                      className="h-14 rounded-2xl bg-muted/20 border-border/40 font-bold px-4"
+                    />
+                  </div>
+                  <div className="relative">
+                    <Input 
+                      type="date" 
+                      value={dateRange.end}
+                      onChange={(e) => setDateRange({...dateRange, end: e.target.value})}
+                      className="h-14 rounded-2xl bg-muted/20 border-border/40 font-bold px-4"
+                    />
+                  </div>
                 </div>
-              </div>
+              )}
               <Button 
                 onClick={handleGenerateReport}
                 disabled={isLoading}
@@ -460,6 +475,7 @@ function ReportsPage() {
               </Button>
             </div>
           </div>
+
 
           <div className="space-y-4 pt-4 border-t border-border/40">
             <div className="flex items-center justify-between">
@@ -541,8 +557,8 @@ function ReportsPage() {
                 <ReportLayout 
                   id="printable-report"
                   title={reportButtons.find(b => b.id === selectedType)?.label || "Relatório"}
-                  startDate={dateRange.start}
-                  endDate={dateRange.end}
+                  startDate={config.noFilter ? undefined : dateRange.start}
+                  endDate={config.noFilter ? undefined : dateRange.end}
                   storeInfo={storeInfo}
                   columns={reportResult.columns}
                   rows={reportResult.rows}
