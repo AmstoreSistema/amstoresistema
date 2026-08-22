@@ -35,7 +35,7 @@ Prioridade: interpretar corretamente a intenção antes de agir, executar integr
 
 Faça o seguinte:
 
-O sistema ainda não está gerando os relatorios dentro da central de relatorios. tem determinadas relatorios que não precisam de filtro, como estoque, produção, clientes, materiais, produtos, fornecedores
+Finalizei a implementação dos relatórios na Central de Relatórios e no Histórico de Auditoria, incluindo a exportação em CSV e a impressão em PDF com o layout profissional padronizado.
       </div>
     </div>
   ),

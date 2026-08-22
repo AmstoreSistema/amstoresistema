@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import * as React from "react";
 import { useRows } from "@/lib/data";
-import { FileText, Eye, Calendar, User, Search, Plus, Pencil, Trash2 } from "lucide-react";
+import { FileText, Eye, Calendar, User, Search, Plus, Pencil, Trash2, Printer, FileDown } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
+import { ReportLayout } from "@/components/report-layout";
+import { useServerFn } from "@tanstack/react-start";
+import { getAppSettings } from "@/lib/settings.functions";
+import { useEffect, useState } from "react";
 
 export const Route = createFileRoute("/_authenticated/audit")({
   head: () => ({
@@ -116,6 +120,28 @@ function AuditPage() {
   const [entityFilter, setEntityFilter] = React.useState("all");
   const [actionFilter, setActionFilter] = React.useState("all");
   const [selected, setSelected] = React.useState<any>(null);
+  const [storeInfo, setStoreInfo] = useState<{
+    name?: string;
+    cnpj?: string;
+    contact?: string;
+    logo?: string;
+  }>({});
+
+  const fetchSettings = useServerFn(getAppSettings);
+
+  useEffect(() => {
+    fetchSettings().then((data: any) => {
+      const info: any = {};
+      data.forEach((s: any) => {
+        if (s.key === "store_name") info.name = s.value;
+        if (s.key === "store_cnpj") info.cnpj = s.value;
+        if (s.key === "store_contact") info.contact = s.value;
+        if (s.key === "store_logo") info.logo = s.value;
+      });
+      setStoreInfo(info);
+    });
+  }, [fetchSettings]);
+
 
   const displayName = React.useCallback(
     (email: string | null) => {
@@ -167,6 +193,38 @@ function AuditPage() {
     });
   }, [logs, search, entityFilter, actionFilter, displayName]);
 
+  const reportData = React.useMemo(() => {
+    const columns = [
+      { key: "date", label: "Data/Hora" },
+      { key: "user", label: "Usuário" },
+      { key: "action", label: "Ação" },
+      { key: "entity", label: "Entidade" },
+      { key: "entity_id", label: "ID Entidade" },
+    ];
+
+    const rows = filtered.map((log: any) => ({
+      date: formatDateTime(log.created_at),
+      user: displayName(log.user_email),
+      action: actionKind(log.action).toUpperCase(),
+      entity: entityLabel(log.entity),
+      entity_id: log.entity_id || "—",
+    }));
+
+    return { columns, rows };
+  }, [filtered, displayName]);
+
+  const handleExportCsv = () => {
+    const { columns, rows } = reportData;
+    const header = columns.map(c => `"${c.label}"`).join(";");
+    const body = rows.map(r => columns.map(c => `"${String((r as any)[c.key] ?? "")}"`).join(";")).join("\n");
+    const csv = `\uFEFF${header}\n${body}`;
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `auditoria-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+  };
+
   const statCards = [
     { label: "Total de Registros", value: stats.total, icon: FileText, tone: "bg-indigo-50 text-indigo-600" },
     { label: "Criações", value: stats.criacoes, icon: Plus, tone: "bg-emerald-50 text-emerald-600" },
@@ -176,17 +234,27 @@ function AuditPage() {
 
   return (
     <div className="p-6 space-y-6">
-      <div className="flex items-center gap-4">
-        <div className="size-12 rounded-2xl bg-primary flex items-center justify-center shadow-lg">
-          <FileText className="size-6 text-primary-foreground" />
+      <div className="flex flex-wrap items-center justify-between gap-4 print:hidden">
+        <div className="flex items-center gap-4">
+          <div className="size-12 rounded-2xl bg-primary flex items-center justify-center shadow-lg">
+            <FileText className="size-6 text-primary-foreground" />
+          </div>
+          <div>
+            <h1 className="text-3xl font-black tracking-tight">Histórico de Auditoria</h1>
+            <p className="text-sm text-muted-foreground">Rastreamento detalhado de todas as alterações no sistema</p>
+          </div>
         </div>
-        <div>
-          <h1 className="text-3xl font-black tracking-tight">Histórico de Auditoria</h1>
-          <p className="text-sm text-muted-foreground">Rastreamento detalhado de todas as alterações no sistema</p>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" className="rounded-xl border-border/40 hover:bg-muted/50 gap-2 font-bold" onClick={handleExportCsv}>
+            <FileDown className="size-4" /> CSV
+          </Button>
+          <Button variant="outline" className="rounded-xl border-border/40 hover:bg-muted/50 gap-2 font-bold" onClick={() => window.print()}>
+            <Printer className="size-4" /> IMPRIMIR
+          </Button>
         </div>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 print:hidden">
         {statCards.map((card) => (
           <Card key={card.label} className="border-border/60 shadow-sm">
             <CardContent className="flex items-center gap-3 p-4">
@@ -202,7 +270,7 @@ function AuditPage() {
         ))}
       </div>
 
-      <div className="flex flex-col gap-3 lg:flex-row">
+      <div className="flex flex-col gap-3 lg:flex-row print:hidden">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
           <Input
@@ -238,7 +306,7 @@ function AuditPage() {
         </Select>
       </div>
 
-      <div className="space-y-3">
+      <div className="space-y-3 print:hidden">
         {isLoading && <p className="text-sm text-muted-foreground">Carregando registros...</p>}
         {!isLoading && filtered.length === 0 && (
           <Card className="border-dashed">
@@ -290,6 +358,18 @@ function AuditPage() {
             </Card>
           );
         })}
+      </div>
+
+      <div className="hidden print:block">
+        <ReportLayout 
+          id="audit-report"
+          title="Relatório de Auditoria"
+          startDate={filtered.length > 0 ? filtered[filtered.length - 1].created_at : undefined}
+          endDate={filtered.length > 0 ? filtered[0].created_at : undefined}
+          storeInfo={storeInfo}
+          columns={reportData.columns}
+          rows={reportData.rows}
+        />
       </div>
 
       <AuditDetailsModal log={selected} onClose={() => setSelected(null)} displayName={displayName} />
