@@ -197,6 +197,7 @@ function ReportsPage() {
   });
 
   const filteredData = useMemo(() => {
+    if (config.noFilter) return reportData;
     if (!dateRange.start || !dateRange.end) return reportData;
     const start = new Date(dateRange.start + 'T00:00:00');
     const end = new Date(dateRange.end + 'T23:59:59');
