@@ -129,12 +129,15 @@ export const TABLE_ALIASES: Record<string, string> = {
   sale_items: "sale_items",
   itensvenda: "sale_items",
   itens_venda: "sale_items",
+  itensvendas: "sale_items",
   sale_payments: "sale_payments",
   pagamentos: "sale_payments",
   pagamentos_vendas: "sale_payments",
+  pagamentovenda: "sale_payments",
   sale_installments: "sale_installments",
   parcelas: "sale_installments",
   parcelas_vendas: "sale_installments",
+  parcelavenda: "sale_installments",
 
   // Compras Específicas
   purchases: "purchases",
@@ -143,6 +146,7 @@ export const TABLE_ALIASES: Record<string, string> = {
   purchase_items: "purchase_items",
   itenscompra: "purchase_items",
   itens_compra: "purchase_items",
+  itenscompras: "purchase_items",
 
   // Sistema e Alertas
   notifications: "notifications",
@@ -153,6 +157,8 @@ export const TABLE_ALIASES: Record<string, string> = {
   configuracoesglobais: "app_settings",
   app_settings: "app_settings",
   configuracoes: "app_settings",
+  setting: "app_settings",
+  settings: "app_settings",
 
   // Contas Financeiras
   financial_accounts: "financial_accounts",
