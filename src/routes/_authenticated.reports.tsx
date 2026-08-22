@@ -557,8 +557,8 @@ function ReportsPage() {
                 <ReportLayout 
                   id="printable-report"
                   title={reportButtons.find(b => b.id === selectedType)?.label || "Relatório"}
-                  startDate={dateRange.start}
-                  endDate={dateRange.end}
+                  startDate={config.noFilter ? undefined : dateRange.start}
+                  endDate={config.noFilter ? undefined : dateRange.end}
                   storeInfo={storeInfo}
                   columns={reportResult.columns}
                   rows={reportResult.rows}
