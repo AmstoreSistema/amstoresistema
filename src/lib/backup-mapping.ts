@@ -6,6 +6,7 @@
 export type Collections = Record<string, any[]>;
 
 const TABLE_ALIASES: Record<string, string> = {
+  // Clientes
   clients: "clients",
   client: "clients",
   clientes: "clients",
@@ -17,6 +18,7 @@ const TABLE_ALIASES: Record<string, string> = {
   users: "clients",
   user: "clients",
 
+  // Produtos
   products: "products",
   product: "products",
   produtos: "products",
@@ -32,6 +34,7 @@ const TABLE_ALIASES: Record<string, string> = {
   mercadorias: "products",
   mercadoria: "products",
 
+  // Fornecedores
   suppliers: "suppliers",
   supplier: "suppliers",
   fornecedores: "suppliers",
@@ -41,6 +44,7 @@ const TABLE_ALIASES: Record<string, string> = {
   partners: "suppliers",
   partner: "suppliers",
 
+  // Materiais
   materials: "materials",
   material: "materials",
   materiais: "materials",
@@ -53,6 +57,7 @@ const TABLE_ALIASES: Record<string, string> = {
   componentes: "materials",
   componente: "materials",
 
+  // Categorias
   material_categories: "material_categories",
   materialcategory: "material_categories",
   materialcategories: "material_categories",
@@ -65,6 +70,7 @@ const TABLE_ALIASES: Record<string, string> = {
   grupos: "material_categories",
   grupo: "material_categories",
 
+  // Composições / Ficha Técnica
   product_materials: "product_materials",
   productmaterial: "product_materials",
   productmaterials: "product_materials",
@@ -75,6 +81,7 @@ const TABLE_ALIASES: Record<string, string> = {
   receita: "product_materials",
   bom: "product_materials",
 
+  // Ordens de Produção
   production_orders: "production_orders",
   productionorder: "production_orders",
   productionorders: "production_orders",
@@ -84,6 +91,7 @@ const TABLE_ALIASES: Record<string, string> = {
   ordemproducao: "production_orders",
   producao: "production_orders",
 
+  // Estoque
   stock_products: "stock_products",
   stockproduct: "stock_products",
   stockproducts: "stock_products",
@@ -95,6 +103,7 @@ const TABLE_ALIASES: Record<string, string> = {
   inventory: "stock_products",
   armazem: "stock_products",
 
+  // Vendas e Transações
   transactions: "transactions",
   transaction: "transactions",
   transacoes: "transactions",
@@ -113,7 +122,10 @@ const TABLE_ALIASES: Record<string, string> = {
   payment: "transactions",
   sales: "transactions",
   vendas: "transactions",
+  venda: "transactions",
+  faturamento: "transactions",
 
+  // Contas Financeiras
   financial_accounts: "financial_accounts",
   financialaccount: "financial_accounts",
   financialaccounts: "financial_accounts",
@@ -127,6 +139,7 @@ const TABLE_ALIASES: Record<string, string> = {
   banco: "financial_accounts",
   banks: "financial_accounts",
 
+  // Promoções e Cupons
   promotions: "promotions",
   promotion: "promotions",
   promocoes: "promotions",
@@ -134,6 +147,7 @@ const TABLE_ALIASES: Record<string, string> = {
   descontos: "promotions",
   cupom: "promotions",
 
+  // Unidades de Medida
   units_of_measure: "units_of_measure",
   unitofmeasure: "units_of_measure",
   unitsofmeasure: "units_of_measure",
@@ -142,6 +156,7 @@ const TABLE_ALIASES: Record<string, string> = {
   unidadesdemedida: "units_of_measure",
   medidas: "units_of_measure",
 
+  // Cortes de Material
   material_cuts: "material_cuts",
   materialcut: "material_cuts",
   materialcuts: "material_cuts",
@@ -150,6 +165,7 @@ const TABLE_ALIASES: Record<string, string> = {
   cortecouro: "material_cuts",
   cortescouro: "material_cuts",
 
+  // Variações de Material
   material_variations: "material_variations",
   materialvariation: "material_variations",
   materialvariations: "material_variations",
@@ -267,7 +283,12 @@ export function extractAllCollections(payload: any): Collections {
     // Caso específico do Base44 onde tudo está dentro de "dados"
     for (const [key, value] of Object.entries(payload.dados)) {
       if (Array.isArray(value)) {
+        // Aceitamos mesmo que o array esteja vazio para que seja mapeado e não descartado
         out[key] = (out[key] ?? []).concat(value.filter((r) => r && typeof r === "object"));
+        // Se estiver vazio, garantimos que a chave exista no output para o TABLE_ALIASES funcionar
+        if (value.length === 0) {
+          out[key] = out[key] ?? [];
+        }
       }
     }
   }
