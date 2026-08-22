@@ -635,6 +635,7 @@ const MAPPERS: Record<string, Mapper> = {
 
 /** Ordem de inserção respeitando dependências simples. */
 export const IMPORT_ORDER = [
+  "accounts",
   "material_categories",
   "units_of_measure",
   "suppliers",
