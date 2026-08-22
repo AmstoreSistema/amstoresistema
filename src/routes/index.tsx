@@ -35,15 +35,9 @@ Prioridade: interpretar corretamente a intenção antes de agir, executar integr
 
 Faça o seguinte:
 
-Aqui está um exemplo real de arquivo de backup do Base44 que possui dados preenchidos (como o array "materiais" populado). 
+O sistema reconheceu os módulos principais, mas algumas chaves novas do backup ficaram na seção de "Coleções não reconhecidas" (referentes a itens de venda, pagamentos, parcelas, etc.). 
 
-Por favor, atualize e valide o código do botão "RESTAURAR BACKUP BASE44" para garantir que:
-
-1. A contagem de registros em cada módulo/cartão seja calculada dinamicamente com base no tamanho (.length) dos arrays dentro de "dados" (ex: materiais.length, produtos.length, etc.), para que não fiquem zerados quando houver registros.
-
-2. A rotina de importação processe corretamente os objetos dentro de cada array (como as propriedades de materiais, variações, preços, unidades de medida e imagens em base64) e os insira de forma correspondente nas tabelas do Supabase.
-
-3. A ordem de dependência das tabelas seja respeitada rigorosamente na hora da inserção no banco de dados.
+Por favor, atualize o script para incluir e mapear essas chaves adicionais do arquivo JSON do Base44 para as respectivas tabelas do Supabase, garantindo que elas também apareçam como cartões selecionáveis na interface de restauração.
       </div>
     </div>
   ),
