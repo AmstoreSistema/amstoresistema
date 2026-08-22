@@ -35,7 +35,7 @@ Prioridade: interpretar corretamente a intenção antes de agir, executar integr
 
 Faça o seguinte:
 
-Verifique se todos os relatorios dentro de loja/relatorios estão funcionando
+verifique se os relatorios dentro de loja/relatorios estão funcionando
       </div>
     </div>
   ),
