@@ -409,9 +409,11 @@ const MAPPERS: Record<string, Mapper> = {
   },
   products: (p) => {
     const name = str(pick(p, ["name", "nome", "produto", "descricao", "description", "label"]));
-    const sku = str(pick(p, ["sku", "codigo", "code", "referencia", "ref", "id_externo"]));
+    const sku = str(
+      pick(p, ["sku", "codigo_produto", "codigoproduto", "codigo", "code", "referencia", "ref", "id_externo"]),
+    );
     if (!name && !sku) return null;
-    const sale = num(pick(p, ["sale_price", "preco", "precovenda", "price", "valor", "valorvenda", "venda"]));
+    const sale = num(pick(p, ["sale_price", "preco_venda", "preco", "precovenda", "price", "valor", "valorvenda", "venda"]));
     return {
       sku: sku ?? null,
       name: name ?? `Produto ${sku}`,
@@ -420,18 +422,20 @@ const MAPPERS: Record<string, Mapper> = {
       color: str(pick(p, ["color", "cor"])) ?? null,
       image_url: image(p),
       sale_price: sale,
-      wholesale_price: num(pick(p, ["wholesale_price", "precoatacado", "atacado", "valoratacado"]), 0) || null,
-      cost_price: num(pick(p, ["cost_price", "custo", "precocusto", "valorcusto"])),
-      labor_cost: num(pick(p, ["labor_cost", "maodeobra", "custommaodeobra", "mao_de_obra"])),
-      overhead_cost: num(pick(p, ["overhead_cost", "custoindireto", "despesas", "fixo"])),
-      retail_margin: num(pick(p, ["retail_margin", "margemvarejo", "margem", "markup"])),
-      wholesale_margin: num(pick(p, ["wholesale_margin", "margematacado"])),
+      wholesale_price: num(pick(p, ["wholesale_price", "preco_atacado", "precoatacado", "atacado", "valoratacado"]), 0) || null,
+      cost_price: num(pick(p, ["cost_price", "custo_estimado", "custoestimado", "custo", "precocusto", "valorcusto"])),
+      labor_cost: num(pick(p, ["labor_cost", "mao_de_obra", "maodeobra", "custommaodeobra"])),
+      overhead_cost: num(pick(p, ["overhead_cost", "despesas_gerais", "despesasgerais", "custoindireto", "despesas", "fixo"])),
+      retail_margin: num(pick(p, ["retail_margin", "margem_varejo", "margemvarejo", "margem", "markup"])),
+      wholesale_margin: num(pick(p, ["wholesale_margin", "margem_atacado", "margematacado"])),
+      production_time_hours: num(pick(p, ["production_time_hours", "tempo_producao", "tempoproducao"]), 0) || null,
       current_stock: stockQty(p),
-      min_stock: num(pick(p, ["min_stock", "estoqueminimo", "minimo"])),
+      min_stock: num(pick(p, ["min_stock", "estoque_minimo", "estoqueminimo", "minimo"])),
       active: pick(p, ["active", "ativo", "status"]) === false || pick(p, ["status"]) === "inativo" ? false : true,
-      created_at: date(pick(p, ["created_at", "criadoem", "data", "date"])),
+      created_at: date(pick(p, ["created_at", "created_date", "criadoem", "data", "date"])),
     };
   },
+
   suppliers: (s) => {
     const name = str(pick(s, ["name", "nome", "fornecedor", "razaosocial", "empresa"]));
     if (!name) return null;
@@ -463,15 +467,15 @@ const MAPPERS: Record<string, Mapper> = {
       color: str(pick(m, ["color", "cor"])) ?? null,
       unit: str(pick(m, ["unit", "unidade", "un", "unidademedida", "uom"])) ?? "un",
       image_url: image(m),
-      cost_price: num(pick(m, ["cost_price", "custo", "preco", "valor", "precocusto", "custounitario", "compra"])),
+      cost_price: num(pick(m, ["cost_price", "preco_unitario", "precounitario", "custo", "preco", "valor", "precocusto", "custounitario", "compra"])),
       current_stock: stockQty(m),
-      min_stock: num(pick(m, ["min_stock", "estoqueminimo", "minimo"])),
+      min_stock: num(pick(m, ["min_stock", "estoque_minimo", "estoqueminimo", "minimo"])),
       supplier: str(pick(m, ["supplier", "fornecedor", "origem"])) ?? null,
-      specification: str(pick(m, ["specification", "especificacao", "dimensoes"])) ?? null,
+      specification: str(pick(m, ["specification", "especificacao_customizada", "especificacao", "dimensoes"])) ?? null,
       width: num(pick(m, ["width", "largura", "L"]), 0) || null,
       height: num(pick(m, ["height", "altura", "H", "comp"]), 0) || null,
       thickness: num(pick(m, ["thickness", "espessura", "E"]), 0) || null,
-      created_at: date(pick(m, ["created_at", "criadoem", "data", "date"])),
+      created_at: date(pick(m, ["created_at", "created_date", "criadoem", "data", "date"])),
     };
   },
   material_categories: (c) => {
@@ -489,14 +493,18 @@ const MAPPERS: Record<string, Mapper> = {
   },
   production_orders: (po) => {
     return {
-      product_id: pick(po, ["product_id", "produto_id", "id_produto"]),
-      quantity: num(pick(po, ["quantity", "quantidade", "qtd", "total"])),
+      quantity: num(pick(po, ["quantity", "quantidade", "qtd", "total"]), 1) || 1,
       status: str(pick(po, ["status", "situacao", "estado"])) ?? "pendente",
-      start_date: date(pick(po, ["start_date", "data_inicio", "inicio"])),
-      end_date: date(pick(po, ["end_date", "data_fim", "fim"])),
-      created_at: date(pick(po, ["created_at", "criadoem", "data"]))
+      priority: str(pick(po, ["priority", "prioridade"])) ?? null,
+      codigo_ordem: str(pick(po, ["codigo_ordem", "codigo", "numero", "numero_ordem"])) ?? null,
+      produto_nome: str(pick(po, ["produto_nome", "produto", "nome", "produtonome"])) ?? null,
+      notes: str(pick(po, ["notes", "observacoes", "obs"])) ?? null,
+      started_at: pick(po, ["started_at", "data_inicio", "inicio"]) ? date(pick(po, ["started_at", "data_inicio", "inicio"])) : null,
+      completed_at: pick(po, ["completed_at", "data_fim", "fim"]) ? date(pick(po, ["completed_at", "data_fim", "fim"])) : null,
+      created_at: date(pick(po, ["created_at", "created_date", "criadoem", "data"])),
     };
   },
+
   stock_products: (s) => {
     const name = str(pick(s, ["produto_nome", "produtonome", "name", "nome", "produto", "descricao", "item"]));
     if (!name) return null;
