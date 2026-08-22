@@ -301,8 +301,13 @@ export function extractAllCollections(payload: any): Collections {
       if (key === "dados" && depth === 0) continue; // Já processado acima se for raiz
       
       if (Array.isArray(value)) {
-        if (value.length > 0 && value.some((r) => r && typeof r === "object" && !Array.isArray(r))) {
+        // Inclui mesmo arrays vazios se estivermos no objeto 'dados' ou se for provável coleção
+        const looksLikeCollection = value.length === 0 || value.some((r) => r && typeof r === "object" && !Array.isArray(r));
+        if (looksLikeCollection) {
           out[key] = (out[key] ?? []).concat(value.filter((r) => r && typeof r === "object"));
+          if (value.length === 0) {
+            out[key] = out[key] ?? [];
+          }
         }
       } else if (value && typeof value === "object") {
         visit(value, depth + 1);
