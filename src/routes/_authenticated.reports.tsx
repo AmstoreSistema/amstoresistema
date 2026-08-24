@@ -323,16 +323,16 @@ function ReportsPage() {
         case "materials":
           data.name = row.name || "—";
           data.unit = row.unit || "—";
-          data.price = brl(row.preco_unitario);
+          data.price = brl(row.cost_price ?? row.preco_unitario);
           break;
         case "products":
           data.sku = row.sku || "—";
           data.name = row.name || "—";
-          data.price = brl(row.price_retail);
+          data.price = brl(row.sale_price ?? row.price_retail);
           break;
         case "suppliers":
           data.name = row.name || "—";
-          data.contact = row.contact_name || "—";
+          data.contact = row.contact || row.phone || "—";
           data.category = row.category || "—";
           break;
         case "purchases":
