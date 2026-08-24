@@ -3,13 +3,29 @@ import { createRouter } from "@tanstack/react-router";
 import { routeTree } from "./routeTree.gen";
 
 export const getRouter = () => {
-  const queryClient = new QueryClient();
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: {
+        // Dados considerados frescos por 1 minuto: evita refetch a cada navegação
+        staleTime: 60_000,
+        // Mantém em cache por 10 minutos para navegação instantânea (volta à tela = dados na hora)
+        gcTime: 10 * 60_000,
+        refetchOnWindowFocus: false,
+        refetchOnReconnect: true,
+        refetchOnMount: false,
+        retry: 1,
+challenge: undefined as never,
+      },
+    },
+  });
 
   const router = createRouter({
     routeTree,
     context: { queryClient },
     scrollRestoration: true,
-    defaultPreloadStaleTime: 0,
+    // Pré-carrega a rota ao passar o mouse/tocar no link
+    defaultPreload: "intent",
+    defaultPreloadStaleTime: 30_000,
   });
 
   return router;
