@@ -57,7 +57,7 @@ export function useSaveRow(table: string, label: string) {
       }
     },
     onSuccess: () => {
-      qc.invalidateQueries();
+      qc.invalidateQueries({ queryKey: [table] });
       toast.success(`${label} salvo com sucesso`);
     },
     onError: (e: any) => toast.error(e.message ?? "Erro ao salvar"),
@@ -73,7 +73,7 @@ export function useDeleteRow(table: string, label: string) {
       await logAudit("excluir", table, `${label} excluído`, id);
     },
     onSuccess: () => {
-      qc.invalidateQueries();
+      qc.invalidateQueries({ queryKey: [table] });
       toast.success(`${label} excluído`);
     },
     onError: (e: any) => toast.error(e.message ?? "Erro ao excluir"),
