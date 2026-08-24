@@ -584,8 +584,8 @@ function StoreReportsPage() {
           rows: materials.map((m: any) => ({
             name: m.name ?? "—",
             unit: m.unit ?? "—",
-            price: brl(m.preco_unitario),
-            category: m.category ?? "—",
+            price: brl(m.cost_price ?? m.preco_unitario),
+            category: m.type ?? m.category ?? "—",
           })),
         };
       }
@@ -599,7 +599,7 @@ function StoreReportsPage() {
           ],
           rows: suppliers.map((s: any) => ({
             name: s.name ?? "—",
-            contact: s.contact_name ?? "—",
+            contact: s.contact ?? s.phone ?? "—",
             email: s.email ?? "—",
             category: s.category ?? "—",
           })),
@@ -618,8 +618,8 @@ function StoreReportsPage() {
             sku: p.sku ?? "—",
             name: p.name ?? "—",
             category: p.category ?? "—",
-            retail: brl(p.price_retail),
-            wholesale: brl(p.price_wholesale),
+            retail: brl(p.sale_price ?? p.price_retail),
+            wholesale: brl(p.wholesale_price ?? p.price_wholesale),
           })),
         };
       }
