@@ -14,7 +14,6 @@ export const getRouter = () => {
         refetchOnReconnect: true,
         refetchOnMount: false,
         retry: 1,
-challenge: undefined as never,
       },
     },
   });
