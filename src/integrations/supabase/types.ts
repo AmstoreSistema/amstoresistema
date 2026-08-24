@@ -1617,6 +1617,17 @@ export type Database = {
       cancel_purchase: { Args: { p_purchase_id: string }; Returns: undefined }
       check_sale_installments_alerts: { Args: never; Returns: undefined }
       complete_production_order: { Args: { _order_id: string }; Returns: Json }
+      create_complete_purchase: {
+        Args: {
+          p_account_id?: string
+          p_category?: string
+          p_description?: string
+          p_items: Json
+          p_supplier_id?: string
+          p_supplier_name?: string
+        }
+        Returns: string
+      }
       create_complete_sale: {
         Args: {
           p_cashback_earned?: number
