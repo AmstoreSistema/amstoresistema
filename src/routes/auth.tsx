@@ -30,6 +30,23 @@ function AuthPage() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [storeLogo, setStoreLogo] = useState<string>(logoAsset.url);
+
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      const { data } = await supabase.from("app_settings").select("value").eq("key", "store_logo").maybeSingle();
+      if (!active || !data?.value) return;
+      try {
+        setStoreLogo(JSON.parse(data.value) || logoAsset.url);
+      } catch {
+        setStoreLogo(data.value || logoAsset.url);
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
