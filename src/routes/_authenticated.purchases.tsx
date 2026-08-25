@@ -109,47 +109,6 @@ function PurchasesPage() {
       }
 
       const total = items.reduce((s, i) => s + i.quantity * i.cost, 0);
-      
-      const { data: purchase, error } = await supabase
-        .from("purchases")
-        .insert({
-          total_amount: total,
-          supplier_name: supplierName,
-          supplier_id: supplierId || null,
-          status: "recebido",
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      // Registrar itens da compra e atualizar estoque
-      for (const item of items) {
-        const mat = materials.find((m) => m.id === item.material_id);
-        if (!mat) continue;
-        
-        // Inserir item da compra (isso dispara a trigger de atualização de custo se for maior)
-        const { error: itemError } = await supabase
-          .from("purchase_items")
-          .insert({
-            purchase_id: purchase.id,
-            material_id: item.material_id,
-            quantity: item.quantity,
-            unit_cost: item.cost,
-            previous_cost: mat.cost_price || 0
-          });
-
-        if (itemError) throw itemError;
-
-        // Atualizar estoque
-        const nextStock = Number(mat.current_stock) + item.quantity;
-        const { error: matError } = await supabase
-          .from("materials")
-          .update({ current_stock: nextStock })
-          .eq("id", item.material_id);
-        
-        if (matError) throw matError;
-      }
 
       const itemsSummary = items
         .map(i => {
@@ -158,23 +117,24 @@ function PurchasesPage() {
         })
         .join(", ");
 
-      const { error: txError } = await supabase.from("transactions").insert({
-        amount: Math.abs(total),
-        type: "saida",
-        description: `Compra: ${itemsSummary}`,
-        account_id: activeAccount.id,
-        category: selectedSupplier?.category || "Compra de Materiais",
-        status: "pago",
-        due_date: new Date().toISOString().split('T')[0],
-        client_id: null,
-        supplier_id: supplierId || null,
-        purchase_id: purchase.id
+      // Transação atômica: compra + itens + estoque + lançamento financeiro
+      const { data: purchaseId, error } = await supabase.rpc("create_complete_purchase", {
+        p_items: items.map(i => ({
+          material_id: i.material_id,
+          quantity: i.quantity,
+          unit_cost: i.cost,
+        })) as any,
+        p_supplier_id: supplierId || null,
+        p_supplier_name: supplierName,
+        p_account_id: activeAccount.id,
+        p_category: selectedSupplier?.category || "Compra de Materiais",
+        p_description: `Compra: ${itemsSummary}`,
       } as any);
 
-      if (txError) throw txError;
+      if (error) throw error;
 
-      await logAudit("compra", "purchases", `Compra recebida: ${supplierName} - Total ${brl(total)}`, purchase.id);
-      
+      await logAudit("compra", "purchases", `Compra recebida: ${supplierName} - Total ${brl(total)}`, purchaseId as unknown as string);
+
       toast.success("Compra registrada, estoque atualizado (custo ajustado se maior) e despesa lançada");
       setOpen(false);
       setItems([]);
