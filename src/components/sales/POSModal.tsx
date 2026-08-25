@@ -328,7 +328,7 @@ export function POSModal({ open, onOpenChange }: { open: boolean; onOpenChange: 
         sale_code: saleCode,
         created_at: new Date(saleDate || new Date()).toISOString(),
         items: items.map(i => ({
-          stock_id: i.stock_id,
+          stock_id: i.stock_id && !i.stock_id.startsWith("virtual:") ? i.stock_id : null,
           product_id: i.product_id,
           quantity: i.quantity,
           unit_price: i.price,
