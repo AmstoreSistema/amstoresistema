@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import logoAsset from "@/assets/store-logo.png.asset.json";
 import { Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 
