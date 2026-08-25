@@ -60,11 +60,38 @@ export function ProductSearch({
     }
   });
 
+  // Fallback: produtos com estoque no cadastro mas sem registro em stock_products
+  const { data: fallbackProducts = [] } = useQuery({
+    queryKey: ["products_pos_fallback"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("products")
+        .select("id, name, category, sale_price, current_stock, image_url")
+        .gt("current_stock", 0);
+      if (error) throw error;
+      return data || [];
+    }
+  });
+
   const availableItems = React.useMemo(() => {
-    return stockItems
-      .filter(item => (item.quantidade_disponivel ?? 0) > 0)
+    const fromStock = stockItems.filter(item => (item.quantidade_disponivel ?? 0) > 0);
+    const covered = new Set(fromStock.map(i => i.produto_id));
+    const virtuals: StockProduct[] = fallbackProducts
+      .filter(p => !covered.has(p.id))
+      .map(p => ({
+        id: `virtual:${p.id}`,
+        produto_id: p.id,
+        produto_nome: p.name,
+        quantidade_disponivel: Number(p.current_stock ?? 0),
+        preco_venda: Number(p.sale_price ?? 0),
+        numeracoes: null,
+        categoria: p.category ?? null,
+        imagem_url: p.image_url
+      }));
+
+    return [...fromStock, ...virtuals]
       .sort((a, b) => (a.produto_nome || "").localeCompare(b.produto_nome || ""));
-  }, [stockItems]);
+  }, [stockItems, fallbackProducts]);
 
   const handleSelectStock = (item: StockProduct) => {
     if (item.numeracoes && Object.keys(item.numeracoes).length > 0) {
