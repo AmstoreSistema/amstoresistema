@@ -277,8 +277,23 @@ function ClientFormModal({ isOpen, onClose, client }: { isOpen: boolean, onClose
   });
 
   const handleSubmit = () => {
+    if (!values.name?.trim()) {
+      toast.error("Informe o nome do cliente");
+      return;
+    }
+    const columns = [
+      "name", "phone", "email", "address", "notes", "client_type",
+      "document_cpf", "birth_date", "zip_code", "city", "state",
+    ] as const;
+    const payload: Record<string, any> = {};
+    for (const col of columns) {
+      const raw = values[col];
+      if (raw === undefined) continue;
+      const val = typeof raw === "string" ? raw.trim() : raw;
+      payload[col] = val === "" ? null : val;
+    }
     save.mutate(
-      { id: client?.id, values },
+      { id: client?.id, values: payload },
       { onSuccess: onClose }
     );
   };

@@ -47,14 +47,15 @@ export function useSaveRow(table: string, label: string) {
   return useMutation({
     mutationFn: async ({ id, values }: { id?: string | undefined; values: Record<string, any> }) => {
       if (id) {
-        const { error } = await supabase.from(table as any).update(values).eq("id", id);
+        const { data, error } = await supabase.from(table as any).update(values).eq("id", id).select().single();
         if (error) throw error;
         await logAudit("atualizar", table, `${label} atualizado`, id);
-      } else {
-        const { error } = await supabase.from(table as any).insert(values);
-        if (error) throw error;
-        await logAudit("criar", table, `${label} criado`);
+        return data as any;
       }
+      const { data, error } = await supabase.from(table as any).insert(values).select().single();
+      if (error) throw error;
+      await logAudit("criar", table, `${label} criado`, (data as any)?.id);
+      return data as any;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: [table] });
