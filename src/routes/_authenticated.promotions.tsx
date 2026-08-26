@@ -68,9 +68,8 @@ function PromotionsPage() {
   }, [currentConfig]);
 
   const handleSave = async () => {
-    if (!formData) return;
     try {
-      await updateConfigFn({ data: formData });
+      await updateConfigFn({ data: formData ?? buildDefaults(currentConfig) });
       toast.success("Configurações salvas com sucesso");
       refetchConfig();
     } catch (error) {
