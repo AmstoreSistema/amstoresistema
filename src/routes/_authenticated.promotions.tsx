@@ -185,16 +185,16 @@ function PromotionsPage() {
                     <p className="text-xs text-muted-foreground">Habilitar/desabilitar sorteios no PDV</p>
                   </div>
                   <Switch 
-                    checked={formData.active} 
-                    onCheckedChange={(v) => setFormData({ ...formData, active: v })} 
+                    checked={data.active} 
+                    onCheckedChange={(v) => setFormData({ ...data, active: v })} 
                   />
                 </div>
 
                 <div className="space-y-2">
                   <Label>Nome da Campanha</Label>
                   <Input 
-                    value={formData.name} 
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    value={data.name} 
+                    onChange={(e) => setFormData({ ...data, name: e.target.value })}
                     placeholder="Ex: Natal Premiado Amstore"
                   />
                 </div>
@@ -204,16 +204,16 @@ function PromotionsPage() {
                     <Label>Limite de Vendas (Ciclo)</Label>
                     <Input 
                       type="number"
-                      value={formData.sales_limit} 
-                      onChange={(e) => setFormData({ ...formData, sales_limit: Number(e.target.value) })}
+                      value={data.sales_limit} 
+                      onChange={(e) => setFormData({ ...data, sales_limit: Number(e.target.value) })}
                     />
                   </div>
                   <div className="space-y-2">
                     <Label>Valor do Bônus (R$)</Label>
                     <Input 
                       type="number"
-                      value={formData.bonus_value} 
-                      onChange={(e) => setFormData({ ...formData, bonus_value: Number(e.target.value) })}
+                      value={data.bonus_value} 
+                      onChange={(e) => setFormData({ ...data, bonus_value: Number(e.target.value) })}
                     />
                   </div>
                 </div>
@@ -221,8 +221,8 @@ function PromotionsPage() {
                 <div className="space-y-2">
                   <Label>Posições Premiadas (Separadas por vírgula)</Label>
                   <Input 
-                    value={formData.awarded_positions} 
-                    onChange={(e) => setFormData({ ...formData, awarded_positions: e.target.value })}
+                    value={data.awarded_positions} 
+                    onChange={(e) => setFormData({ ...data, awarded_positions: e.target.value })}
                     placeholder="Ex: 5, 10, 25, 50"
                   />
                   <p className="text-[10px] text-muted-foreground">O bônus será concedido quando o contador atingir essas posições.</p>
@@ -249,8 +249,8 @@ function PromotionsPage() {
                   <Label>Mensagem Padrão (Não Premiado)</Label>
                   <Textarea 
                     rows={4}
-                    value={formData.standard_message} 
-                    onChange={(e) => setFormData({ ...formData, standard_message: e.target.value })}
+                    value={data.standard_message} 
+                    onChange={(e) => setFormData({ ...data, standard_message: e.target.value })}
                     placeholder="Ex: Que pena! Continue comprando para concorrer."
                   />
                 </div>
@@ -258,8 +258,8 @@ function PromotionsPage() {
                   <Label>Mensagem do Ganhador</Label>
                   <Textarea 
                     rows={4}
-                    value={formData.awarded_message} 
-                    onChange={(e) => setFormData({ ...formData, awarded_message: e.target.value })}
+                    value={data.awarded_message} 
+                    onChange={(e) => setFormData({ ...data, awarded_message: e.target.value })}
                     placeholder="Ex: PARABÉNS! Você ganhou um bônus de R$ 50,00 na sua próxima compra!"
                   />
                 </div>
@@ -373,14 +373,14 @@ function PromotionsPage() {
                 
                 <div className="text-center py-2">
                   <p className="font-bold mb-2 flex items-center justify-center gap-2">
-                     <Gift className="size-3" /> PROMOÇÃO: {formData.name || "QR Code Premiado"}
+                     <Gift className="size-3" /> PROMOÇÃO: {data.name || "QR Code Premiado"}
                   </p>
                   <div className="mx-auto w-32 h-32 bg-muted/20 flex items-center justify-center border-2 border-dashed border-gray-200 mb-2">
                     <QrCode className="size-16 text-gray-300" />
                   </div>
                   <p className="text-[8px] text-gray-400 mb-2 uppercase">QR-XXXX-SIMULACAO</p>
                   <p className="text-gray-600 font-bold leading-tight px-2 text-[10px]">
-                    {formData.awarded_message || "PARABÉNS! Você foi sorteado!"}
+                    {data.awarded_message || "PARABÉNS! Você foi sorteado!"}
                   </p>
                 </div>
                 
