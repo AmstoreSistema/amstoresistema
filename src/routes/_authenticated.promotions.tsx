@@ -101,7 +101,19 @@ function PromotionsPage() {
   };
 
 
-  if (!formData) return null;
+  const data = formData ?? {
+    active: currentConfig?.active ?? false,
+    name: currentConfig?.name ?? "Promoção QR Code",
+    sales_limit: currentConfig?.sales_limit ?? 100,
+    bonus_value: currentConfig?.bonus_value ?? 0,
+    awarded_positions: currentConfig?.awarded_positions ?? "",
+    standard_message: currentConfig?.standard_message ?? "",
+    awarded_message: currentConfig?.awarded_message ?? "",
+  };
+  if (!formData) {
+    // Garante que a tela sempre renderize, mesmo sem configuração salva no banco
+    setTimeout(() => setFormData(data), 0);
+  }
 
   return (
     <div className="flex flex-col gap-6 p-6">
