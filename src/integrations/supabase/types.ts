@@ -1634,8 +1634,8 @@ export type Database = {
           p_cashback_used?: number
           p_client_id?: string
           p_created_at?: string
-          p_discount?: number
-          p_discount_amount?: number
+          p_discount: number
+          p_discount_amount: number
           p_financial_account_id?: string
           p_installments?: Json
           p_is_debt: boolean
