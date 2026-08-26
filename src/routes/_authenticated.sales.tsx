@@ -124,9 +124,11 @@ function SalesPage() {
   }, [sales]);
 
   const getStatusBadge = (s: any) => {
-    // Para vendas fiado, verificamos o paid_amount vs total_amount
+    // Para vendas fiado, o status vem do saldo devedor (nunca do status default do banco)
     const isFiado = s.payment_method === 'Fiado' || !!s.is_debt;
-    const isPaid = (String(s.status || "") === "paid" || String(s.status || "") === "completed" || String(s.status || "") === "finalizado" || Number(s.paid_amount) >= Number(s.total_amount));
+    const isPaid = isFiado
+      ? Number(s.paid_amount) >= Number(s.total_amount) - 0.009
+      : (["paid", "pago", "completed", "finalizado"].includes(String(s.status || "").toLowerCase()) || Number(s.paid_amount) >= Number(s.total_amount));
     
     if (isFiado && !isPaid) {
       const isPartial = Number(s.paid_amount) > 0;
