@@ -110,10 +110,6 @@ function PromotionsPage() {
     standard_message: currentConfig?.standard_message ?? "",
     awarded_message: currentConfig?.awarded_message ?? "",
   };
-  if (!formData) {
-    // Garante que a tela sempre renderize, mesmo sem configuração salva no banco
-    setTimeout(() => setFormData(data), 0);
-  }
 
   return (
     <div className="flex flex-col gap-6 p-6">
