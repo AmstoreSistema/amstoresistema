@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as Icon192DotpngRouteImport } from './routes/icon-192[.]png'
+import { Route as Icon512DotpngRouteImport } from './routes/icon-512[.]png'
 import { Route as ManifestDotwebmanifestRouteImport } from './routes/manifest[.]webmanifest'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as SorteioRouteImport } from './routes/sorteio'
@@ -59,6 +60,11 @@ const AuthRoute = AuthRouteImport.update({
 const Icon192DotpngRoute = Icon192DotpngRouteImport.update({
   id: '/icon-192.png',
   path: '/icon-192.png',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const Icon512DotpngRoute = Icon512DotpngRouteImport.update({
+  id: '/icon-512.png',
+  path: '/icon-512.png',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ManifestDotwebmanifestRoute = ManifestDotwebmanifestRouteImport.update({
@@ -211,6 +217,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/icon-192.png': typeof Icon192DotpngRoute
+  '/icon-512.png': typeof Icon512DotpngRoute
   '/manifest.webmanifest': typeof ManifestDotwebmanifestRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sorteio': typeof SorteioRoute
@@ -244,6 +251,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/icon-192.png': typeof Icon192DotpngRoute
+  '/icon-512.png': typeof Icon512DotpngRoute
   '/manifest.webmanifest': typeof ManifestDotwebmanifestRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sorteio': typeof SorteioRoute
@@ -279,6 +287,7 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteWithChildren
   '/auth': typeof AuthRoute
   '/icon-192.png': typeof Icon192DotpngRoute
+  '/icon-512.png': typeof Icon512DotpngRoute
   '/manifest.webmanifest': typeof ManifestDotwebmanifestRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sorteio': typeof SorteioRoute
@@ -314,6 +323,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/icon-192.png'
+    | '/icon-512.png'
     | '/manifest.webmanifest'
     | '/reset-password'
     | '/sorteio'
@@ -347,6 +357,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/icon-192.png'
+    | '/icon-512.png'
     | '/manifest.webmanifest'
     | '/reset-password'
     | '/sorteio'
@@ -381,6 +392,7 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/auth'
     | '/icon-192.png'
+    | '/icon-512.png'
     | '/manifest.webmanifest'
     | '/reset-password'
     | '/sorteio'
@@ -416,6 +428,7 @@ export interface RootRouteChildren {
   AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
   AuthRoute: typeof AuthRoute
   Icon192DotpngRoute: typeof Icon192DotpngRoute
+  Icon512DotpngRoute: typeof Icon512DotpngRoute
   ManifestDotwebmanifestRoute: typeof ManifestDotwebmanifestRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   SorteioRoute: typeof SorteioRoute
@@ -450,6 +463,13 @@ declare module '@tanstack/react-router' {
       path: '/icon-192.png'
       fullPath: '/icon-192.png'
       preLoaderRoute: typeof Icon192DotpngRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/icon-512.png': {
+      id: '/icon-512.png'
+      path: '/icon-512.png'
+      fullPath: '/icon-512.png'
+      preLoaderRoute: typeof Icon512DotpngRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/manifest.webmanifest': {
@@ -714,6 +734,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRoute: AuthenticatedRouteWithChildren,
   AuthRoute: AuthRoute,
   Icon192DotpngRoute: Icon192DotpngRoute,
+  Icon512DotpngRoute: Icon512DotpngRoute,
   ManifestDotwebmanifestRoute: ManifestDotwebmanifestRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   SorteioRoute: SorteioRoute,
