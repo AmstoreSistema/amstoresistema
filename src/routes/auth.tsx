@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useEffect, useState } from "react";
-import logoAsset from "@/assets/store-logo.png.asset.json";
+import logoAsset from "@/assets/amstore-symbol.png.asset.json";
 import { Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 
@@ -31,23 +31,28 @@ function AuthPage() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [storeLogo, setStoreLogo] = useState<string>(logoAsset.url);
+  const [storeLogo, setStoreLogo] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
     (async () => {
       const { data } = await supabase.from("app_settings").select("value").eq("key", "store_logo").maybeSingle();
-      if (!active || !data?.value) return;
-      try {
-        setStoreLogo(JSON.parse(data.value) || logoAsset.url);
-      } catch {
-        setStoreLogo(data.value || logoAsset.url);
+      if (!active) return;
+      let url = logoAsset.url;
+      if (data?.value) {
+        try {
+          url = JSON.parse(data.value) || logoAsset.url;
+        } catch {
+          url = data.value || logoAsset.url;
+        }
       }
+      setStoreLogo(url);
     })();
     return () => {
       active = false;
     };
   }, []);
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -92,8 +97,13 @@ function AuthPage() {
         <CardHeader className="text-center space-y-1">
           <div className="flex justify-center mb-4">
             <div className="bg-white p-3 rounded-xl shadow-lg border">
-              <img src={storeLogo} alt="AmStore Gestão" className="h-14 w-auto object-contain" />
+              {storeLogo ? (
+                <img src={storeLogo} alt="AmStore Gestão" className="h-14 w-auto object-contain" />
+              ) : (
+                <div className="h-14 w-14 animate-pulse rounded-md bg-muted" />
+              )}
             </div>
+
           </div>
           <CardTitle className="text-2xl font-bold tracking-tight">{titles[mode].title}</CardTitle>
           <CardDescription>{titles[mode].description}</CardDescription>

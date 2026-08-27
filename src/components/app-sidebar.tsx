@@ -29,7 +29,7 @@ import {
 } from "lucide-react";
 import * as React from "react";
 import { useRows } from "@/lib/data";
-import logoAsset from "@/assets/store-logo.png.asset.json";
+import logoAsset from "@/assets/amstore-symbol.png.asset.json";
 import symbolAsset from "@/assets/amstore-symbol.png.asset.json";
 import { Button } from "@/components/ui/button";
 
