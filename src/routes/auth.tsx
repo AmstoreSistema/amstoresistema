@@ -97,8 +97,13 @@ function AuthPage() {
         <CardHeader className="text-center space-y-1">
           <div className="flex justify-center mb-4">
             <div className="bg-white p-3 rounded-xl shadow-lg border">
-              <img src={storeLogo} alt="AmStore Gestão" className="h-14 w-auto object-contain" />
+              {storeLogo ? (
+                <img src={storeLogo} alt="AmStore Gestão" className="h-14 w-auto object-contain" />
+              ) : (
+                <div className="h-14 w-14 animate-pulse rounded-md bg-muted" />
+              )}
             </div>
+
           </div>
           <CardTitle className="text-2xl font-bold tracking-tight">{titles[mode].title}</CardTitle>
           <CardDescription>{titles[mode].description}</CardDescription>
