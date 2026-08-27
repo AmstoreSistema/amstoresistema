@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as Icon192MaskableDotpngRouteImport } from './routes/icon-192-maskable[.]png'
 import { Route as Icon192DotpngRouteImport } from './routes/icon-192[.]png'
 import { Route as Icon512DotpngRouteImport } from './routes/icon-512[.]png'
 import { Route as ManifestDotwebmanifestRouteImport } from './routes/manifest[.]webmanifest'
@@ -55,6 +56,11 @@ const AuthenticatedRoute = AuthenticatedRouteImport.update({
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const Icon192MaskableDotpngRoute = Icon192MaskableDotpngRouteImport.update({
+  id: '/icon-192-maskable.png',
+  path: '/icon-192-maskable.png',
   getParentRoute: () => rootRouteImport,
 } as any)
 const Icon192DotpngRoute = Icon192DotpngRouteImport.update({
@@ -216,6 +222,7 @@ const ApiPublicSorteioInfoRoute = ApiPublicSorteioInfoRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/icon-192-maskable.png': typeof Icon192MaskableDotpngRoute
   '/icon-192.png': typeof Icon192DotpngRoute
   '/icon-512.png': typeof Icon512DotpngRoute
   '/manifest.webmanifest': typeof ManifestDotwebmanifestRoute
@@ -250,6 +257,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/icon-192-maskable.png': typeof Icon192MaskableDotpngRoute
   '/icon-192.png': typeof Icon192DotpngRoute
   '/icon-512.png': typeof Icon512DotpngRoute
   '/manifest.webmanifest': typeof ManifestDotwebmanifestRoute
@@ -286,6 +294,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteWithChildren
   '/auth': typeof AuthRoute
+  '/icon-192-maskable.png': typeof Icon192MaskableDotpngRoute
   '/icon-192.png': typeof Icon192DotpngRoute
   '/icon-512.png': typeof Icon512DotpngRoute
   '/manifest.webmanifest': typeof ManifestDotwebmanifestRoute
@@ -322,6 +331,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/auth'
+    | '/icon-192-maskable.png'
     | '/icon-192.png'
     | '/icon-512.png'
     | '/manifest.webmanifest'
@@ -356,6 +366,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/auth'
+    | '/icon-192-maskable.png'
     | '/icon-192.png'
     | '/icon-512.png'
     | '/manifest.webmanifest'
@@ -391,6 +402,7 @@ export interface FileRouteTypes {
     | '/'
     | '/_authenticated'
     | '/auth'
+    | '/icon-192-maskable.png'
     | '/icon-192.png'
     | '/icon-512.png'
     | '/manifest.webmanifest'
@@ -427,6 +439,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
   AuthRoute: typeof AuthRoute
+  Icon192MaskableDotpngRoute: typeof Icon192MaskableDotpngRoute
   Icon192DotpngRoute: typeof Icon192DotpngRoute
   Icon512DotpngRoute: typeof Icon512DotpngRoute
   ManifestDotwebmanifestRoute: typeof ManifestDotwebmanifestRoute
@@ -456,6 +469,13 @@ declare module '@tanstack/react-router' {
       path: '/auth'
       fullPath: '/auth'
       preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/icon-192-maskable.png': {
+      id: '/icon-192-maskable.png'
+      path: '/icon-192-maskable.png'
+      fullPath: '/icon-192-maskable.png'
+      preLoaderRoute: typeof Icon192MaskableDotpngRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/icon-192.png': {
@@ -733,6 +753,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRoute: AuthenticatedRouteWithChildren,
   AuthRoute: AuthRoute,
+  Icon192MaskableDotpngRoute: Icon192MaskableDotpngRoute,
   Icon192DotpngRoute: Icon192DotpngRoute,
   Icon512DotpngRoute: Icon512DotpngRoute,
   ManifestDotwebmanifestRoute: ManifestDotwebmanifestRoute,
