@@ -16,7 +16,7 @@ import {
 import { toPng } from 'html-to-image';
 import { toast } from "sonner";
 import { useRows } from "@/lib/data";
-import logoAsset from "@/assets/store-logo.png.asset.json";
+import logoAsset from "@/assets/amstore-symbol.png.asset.json";
 
 declare global {
   interface Window {

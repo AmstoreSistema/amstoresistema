@@ -19,7 +19,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { CheckCircle2, Info, Loader2 as Spinner, ImageIcon, AlertTriangle } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { supabase } from "@/integrations/supabase/client";
-import logoAsset from "@/assets/store-logo.png.asset.json";
+import logoAsset from "@/assets/amstore-symbol.png.asset.json";
 
 export const Route = createFileRoute("/_authenticated/settings")({
   head: () => ({
