@@ -14,6 +14,7 @@ import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as Icon192MaskableDotpngRouteImport } from './routes/icon-192-maskable[.]png'
 import { Route as Icon192DotpngRouteImport } from './routes/icon-192[.]png'
+import { Route as Icon512MaskableDotpngRouteImport } from './routes/icon-512-maskable[.]png'
 import { Route as Icon512DotpngRouteImport } from './routes/icon-512[.]png'
 import { Route as ManifestDotwebmanifestRouteImport } from './routes/manifest[.]webmanifest'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
@@ -66,6 +67,11 @@ const Icon192MaskableDotpngRoute = Icon192MaskableDotpngRouteImport.update({
 const Icon192DotpngRoute = Icon192DotpngRouteImport.update({
   id: '/icon-192.png',
   path: '/icon-192.png',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const Icon512MaskableDotpngRoute = Icon512MaskableDotpngRouteImport.update({
+  id: '/icon-512-maskable.png',
+  path: '/icon-512-maskable.png',
   getParentRoute: () => rootRouteImport,
 } as any)
 const Icon512DotpngRoute = Icon512DotpngRouteImport.update({
@@ -224,6 +230,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/icon-192-maskable.png': typeof Icon192MaskableDotpngRoute
   '/icon-192.png': typeof Icon192DotpngRoute
+  '/icon-512-maskable.png': typeof Icon512MaskableDotpngRoute
   '/icon-512.png': typeof Icon512DotpngRoute
   '/manifest.webmanifest': typeof ManifestDotwebmanifestRoute
   '/reset-password': typeof ResetPasswordRoute
@@ -259,6 +266,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/icon-192-maskable.png': typeof Icon192MaskableDotpngRoute
   '/icon-192.png': typeof Icon192DotpngRoute
+  '/icon-512-maskable.png': typeof Icon512MaskableDotpngRoute
   '/icon-512.png': typeof Icon512DotpngRoute
   '/manifest.webmanifest': typeof ManifestDotwebmanifestRoute
   '/reset-password': typeof ResetPasswordRoute
@@ -296,6 +304,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/icon-192-maskable.png': typeof Icon192MaskableDotpngRoute
   '/icon-192.png': typeof Icon192DotpngRoute
+  '/icon-512-maskable.png': typeof Icon512MaskableDotpngRoute
   '/icon-512.png': typeof Icon512DotpngRoute
   '/manifest.webmanifest': typeof ManifestDotwebmanifestRoute
   '/reset-password': typeof ResetPasswordRoute
@@ -333,6 +342,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/icon-192-maskable.png'
     | '/icon-192.png'
+    | '/icon-512-maskable.png'
     | '/icon-512.png'
     | '/manifest.webmanifest'
     | '/reset-password'
@@ -368,6 +378,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/icon-192-maskable.png'
     | '/icon-192.png'
+    | '/icon-512-maskable.png'
     | '/icon-512.png'
     | '/manifest.webmanifest'
     | '/reset-password'
@@ -404,6 +415,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/icon-192-maskable.png'
     | '/icon-192.png'
+    | '/icon-512-maskable.png'
     | '/icon-512.png'
     | '/manifest.webmanifest'
     | '/reset-password'
@@ -441,6 +453,7 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   Icon192MaskableDotpngRoute: typeof Icon192MaskableDotpngRoute
   Icon192DotpngRoute: typeof Icon192DotpngRoute
+  Icon512MaskableDotpngRoute: typeof Icon512MaskableDotpngRoute
   Icon512DotpngRoute: typeof Icon512DotpngRoute
   ManifestDotwebmanifestRoute: typeof ManifestDotwebmanifestRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
@@ -483,6 +496,13 @@ declare module '@tanstack/react-router' {
       path: '/icon-192.png'
       fullPath: '/icon-192.png'
       preLoaderRoute: typeof Icon192DotpngRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/icon-512-maskable.png': {
+      id: '/icon-512-maskable.png'
+      path: '/icon-512-maskable.png'
+      fullPath: '/icon-512-maskable.png'
+      preLoaderRoute: typeof Icon512MaskableDotpngRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/icon-512.png': {
@@ -755,6 +775,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   Icon192MaskableDotpngRoute: Icon192MaskableDotpngRoute,
   Icon192DotpngRoute: Icon192DotpngRoute,
+  Icon512MaskableDotpngRoute: Icon512MaskableDotpngRoute,
   Icon512DotpngRoute: Icon512DotpngRoute,
   ManifestDotwebmanifestRoute: ManifestDotwebmanifestRoute,
   ResetPasswordRoute: ResetPasswordRoute,
