@@ -191,7 +191,7 @@ function MaterialsPage() {
     return materials.filter(m => {
       const matchesTerm = (m.name || "").toLowerCase().includes(term.toLowerCase()) || 
                           (m.sku || "").toLowerCase().includes(term.toLowerCase());
-      const matchesType = activeType === "Todos" || m.type === activeType;
+      const matchesType = activeType === "Todos" || normType(m.type) === normType(activeType);
       return matchesTerm && matchesType;
     });
   }, [materials, term, activeType]);
@@ -533,7 +533,7 @@ function MaterialsPage() {
 
                 <div className="mt-4 flex flex-col gap-2 border-t border-border/50 pt-4">
                   <div className="grid grid-cols-2 gap-2">
-                    {["Couro", "Estrutura", "Forro"].includes(m.type || "") && (
+                    {isTypeIn(m.type, CUTTABLE_TYPES) && (
                       <Button variant="default" size="sm" className="h-8 gap-1 bg-blue-600 hover:bg-blue-700" onClick={() => openCuts(m)}>
                         <Layers className="size-3" /> Ver Cortes
                       </Button>
@@ -816,7 +816,7 @@ function MaterialsPage() {
                   )}
 
                   {/* Dimensões - Somente para categorias específicas */}
-                  {["Couro", "Estrutura", "Forro", "Tecido"].includes(form.type || "") && (
+                  {isTypeIn(form.type, [...CUTTABLE_TYPES, "Tecido"]) && (
                     <>
                       <div className="space-y-2">
                         <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Largura (m) *</Label>
@@ -855,7 +855,7 @@ function MaterialsPage() {
                 </div>
 
                 {/* Área de Cálculo de Área Total (Somente para Couro, Forro, Estrutura e Tecido) */}
-                {["Couro", "Forro", "Estrutura", "Tecido"].includes(form.type || "") && form.width && form.height && (
+                {isTypeIn(form.type, [...CUTTABLE_TYPES, "Tecido"]) && form.width && form.height && (
                   <div className="rounded-2xl border border-blue-100 bg-blue-50/50 p-6 animate-in zoom-in-95 duration-300 mt-4">
                     <div className="flex flex-col gap-1">
                       <span className="text-xs font-semibold text-blue-600 uppercase tracking-wider">Área Total da Peça:</span>
