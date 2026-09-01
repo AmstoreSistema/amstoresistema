@@ -73,6 +73,15 @@ export const Route = createFileRoute("/_authenticated/materials")({
 
 export const MATERIAL_CATEGORIES = ["Armarinho", "Cola", "Couro", "Embalagens", "Estrutura", "Ferragem", "Forro", "Linha", "Outro", "Papelaria", "Tecido"];
 
+/** Comparação de tipo insensível a acentuação/caixa (dados importados podem vir em minúsculas). */
+const normType = (v?: string | null) =>
+  (v || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase();
+const isTypeIn = (v: string | null | undefined, list: string[]) =>
+  list.map(normType).includes(normType(v));
+/** Tipos que suportam controle de cortes. */
+const CUTTABLE_TYPES = ["Couro", "Estrutura", "Forro"];
+
+
 type Material = {
   id: string;
   name: string;
