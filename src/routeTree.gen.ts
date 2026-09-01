@@ -14,10 +14,12 @@ import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as Icon192MaskableDotpngRouteImport } from './routes/icon-192-maskable[.]png'
 import { Route as Icon192DotpngRouteImport } from './routes/icon-192[.]png'
+import { Route as Icon512MaskableDotpngRouteImport } from './routes/icon-512-maskable[.]png'
 import { Route as Icon512DotpngRouteImport } from './routes/icon-512[.]png'
 import { Route as ManifestDotwebmanifestRouteImport } from './routes/manifest[.]webmanifest'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as SorteioRouteImport } from './routes/sorteio'
+import { Route as SplashStartupDotpngRouteImport } from './routes/splash-startup[.]png'
 import { Route as AuthenticatedAccountsRouteImport } from './routes/_authenticated.accounts'
 import { Route as AuthenticatedAiDocsRouteImport } from './routes/_authenticated.ai-docs'
 import { Route as AuthenticatedAuditRouteImport } from './routes/_authenticated.audit'
@@ -68,6 +70,11 @@ const Icon192DotpngRoute = Icon192DotpngRouteImport.update({
   path: '/icon-192.png',
   getParentRoute: () => rootRouteImport,
 } as any)
+const Icon512MaskableDotpngRoute = Icon512MaskableDotpngRouteImport.update({
+  id: '/icon-512-maskable.png',
+  path: '/icon-512-maskable.png',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const Icon512DotpngRoute = Icon512DotpngRouteImport.update({
   id: '/icon-512.png',
   path: '/icon-512.png',
@@ -86,6 +93,11 @@ const ResetPasswordRoute = ResetPasswordRouteImport.update({
 const SorteioRoute = SorteioRouteImport.update({
   id: '/sorteio',
   path: '/sorteio',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SplashStartupDotpngRoute = SplashStartupDotpngRouteImport.update({
+  id: '/splash-startup.png',
+  path: '/splash-startup.png',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedAccountsRoute = AuthenticatedAccountsRouteImport.update({
@@ -224,10 +236,12 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/icon-192-maskable.png': typeof Icon192MaskableDotpngRoute
   '/icon-192.png': typeof Icon192DotpngRoute
+  '/icon-512-maskable.png': typeof Icon512MaskableDotpngRoute
   '/icon-512.png': typeof Icon512DotpngRoute
   '/manifest.webmanifest': typeof ManifestDotwebmanifestRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sorteio': typeof SorteioRoute
+  '/splash-startup.png': typeof SplashStartupDotpngRoute
   '/accounts': typeof AuthenticatedAccountsRoute
   '/ai-docs': typeof AuthenticatedAiDocsRoute
   '/audit': typeof AuthenticatedAuditRoute
@@ -259,10 +273,12 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/icon-192-maskable.png': typeof Icon192MaskableDotpngRoute
   '/icon-192.png': typeof Icon192DotpngRoute
+  '/icon-512-maskable.png': typeof Icon512MaskableDotpngRoute
   '/icon-512.png': typeof Icon512DotpngRoute
   '/manifest.webmanifest': typeof ManifestDotwebmanifestRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sorteio': typeof SorteioRoute
+  '/splash-startup.png': typeof SplashStartupDotpngRoute
   '/accounts': typeof AuthenticatedAccountsRoute
   '/ai-docs': typeof AuthenticatedAiDocsRoute
   '/audit': typeof AuthenticatedAuditRoute
@@ -296,10 +312,12 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/icon-192-maskable.png': typeof Icon192MaskableDotpngRoute
   '/icon-192.png': typeof Icon192DotpngRoute
+  '/icon-512-maskable.png': typeof Icon512MaskableDotpngRoute
   '/icon-512.png': typeof Icon512DotpngRoute
   '/manifest.webmanifest': typeof ManifestDotwebmanifestRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sorteio': typeof SorteioRoute
+  '/splash-startup.png': typeof SplashStartupDotpngRoute
   '/_authenticated/accounts': typeof AuthenticatedAccountsRoute
   '/_authenticated/ai-docs': typeof AuthenticatedAiDocsRoute
   '/_authenticated/audit': typeof AuthenticatedAuditRoute
@@ -333,10 +351,12 @@ export interface FileRouteTypes {
     | '/auth'
     | '/icon-192-maskable.png'
     | '/icon-192.png'
+    | '/icon-512-maskable.png'
     | '/icon-512.png'
     | '/manifest.webmanifest'
     | '/reset-password'
     | '/sorteio'
+    | '/splash-startup.png'
     | '/accounts'
     | '/ai-docs'
     | '/audit'
@@ -368,10 +388,12 @@ export interface FileRouteTypes {
     | '/auth'
     | '/icon-192-maskable.png'
     | '/icon-192.png'
+    | '/icon-512-maskable.png'
     | '/icon-512.png'
     | '/manifest.webmanifest'
     | '/reset-password'
     | '/sorteio'
+    | '/splash-startup.png'
     | '/accounts'
     | '/ai-docs'
     | '/audit'
@@ -404,10 +426,12 @@ export interface FileRouteTypes {
     | '/auth'
     | '/icon-192-maskable.png'
     | '/icon-192.png'
+    | '/icon-512-maskable.png'
     | '/icon-512.png'
     | '/manifest.webmanifest'
     | '/reset-password'
     | '/sorteio'
+    | '/splash-startup.png'
     | '/_authenticated/accounts'
     | '/_authenticated/ai-docs'
     | '/_authenticated/audit'
@@ -441,10 +465,12 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   Icon192MaskableDotpngRoute: typeof Icon192MaskableDotpngRoute
   Icon192DotpngRoute: typeof Icon192DotpngRoute
+  Icon512MaskableDotpngRoute: typeof Icon512MaskableDotpngRoute
   Icon512DotpngRoute: typeof Icon512DotpngRoute
   ManifestDotwebmanifestRoute: typeof ManifestDotwebmanifestRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   SorteioRoute: typeof SorteioRoute
+  SplashStartupDotpngRoute: typeof SplashStartupDotpngRoute
   ApiPublicSorteioInfoRoute: typeof ApiPublicSorteioInfoRoute
 }
 
@@ -485,6 +511,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof Icon192DotpngRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/icon-512-maskable.png': {
+      id: '/icon-512-maskable.png'
+      path: '/icon-512-maskable.png'
+      fullPath: '/icon-512-maskable.png'
+      preLoaderRoute: typeof Icon512MaskableDotpngRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/icon-512.png': {
       id: '/icon-512.png'
       path: '/icon-512.png'
@@ -511,6 +544,13 @@ declare module '@tanstack/react-router' {
       path: '/sorteio'
       fullPath: '/sorteio'
       preLoaderRoute: typeof SorteioRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/splash-startup.png': {
+      id: '/splash-startup.png'
+      path: '/splash-startup.png'
+      fullPath: '/splash-startup.png'
+      preLoaderRoute: typeof SplashStartupDotpngRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/accounts': {
@@ -755,10 +795,12 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   Icon192MaskableDotpngRoute: Icon192MaskableDotpngRoute,
   Icon192DotpngRoute: Icon192DotpngRoute,
+  Icon512MaskableDotpngRoute: Icon512MaskableDotpngRoute,
   Icon512DotpngRoute: Icon512DotpngRoute,
   ManifestDotwebmanifestRoute: ManifestDotwebmanifestRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   SorteioRoute: SorteioRoute,
+  SplashStartupDotpngRoute: SplashStartupDotpngRoute,
   ApiPublicSorteioInfoRoute: ApiPublicSorteioInfoRoute,
 }
 export const routeTree = rootRouteImport

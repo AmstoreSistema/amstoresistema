@@ -1,49 +1,23 @@
-const SW_URL = "/sw.js";
-
-function isBlockedContext(): boolean {
-  if (typeof window === "undefined") return true;
-  if (!import.meta.env.PROD) return true;
-
-  try {
-    if (window.self !== window.top) return true;
-  } catch {
-    return true;
-  }
-
-  const host = window.location.hostname;
-  if (host.startsWith("id-preview--") || host.startsWith("preview--")) return true;
-  if (host === "lovableproject.com" || host.endsWith(".lovableproject.com")) return true;
-  if (host === "lovableproject-dev.com" || host.endsWith(".lovableproject-dev.com")) return true;
-  if (host === "beta.lovable.dev" || host.endsWith(".beta.lovable.dev")) return true;
-  if (new URLSearchParams(window.location.search).get("sw") === "off") return true;
-
-  return false;
-}
-
-async function unregisterAppServiceWorkers() {
-  if (typeof navigator === "undefined" || !("serviceWorker" in navigator)) return;
-  const registrations = await navigator.serviceWorker.getRegistrations();
-  await Promise.allSettled(
-    registrations
-      .filter((r) => {
-        const url = r.active?.scriptURL ?? r.installing?.scriptURL ?? r.waiting?.scriptURL ?? "";
-        return url.endsWith(SW_URL);
-      })
-      .map((r) => r.unregister()),
-  );
-}
-
+/**
+ * PWA manifest-only: o app é instalável, mas não usa service worker para cache.
+ * Esta função apenas remove registros antigos e limpa caches herdados.
+ */
 export async function setupPWA() {
   if (typeof navigator === "undefined" || !("serviceWorker" in navigator)) return;
 
-  if (isBlockedContext()) {
-    await unregisterAppServiceWorkers().catch(() => undefined);
-    return;
+  try {
+    const registrations = await navigator.serviceWorker.getRegistrations();
+    await Promise.allSettled(registrations.map((r) => r.unregister()));
+  } catch {
+    // best-effort
   }
 
   try {
-    await navigator.serviceWorker.register(SW_URL, { scope: "/" });
+    if (typeof caches !== "undefined") {
+      const keys = await caches.keys();
+      await Promise.allSettled(keys.map((k) => caches.delete(k)));
+    }
   } catch {
-    // registration is best-effort; app works fine without it
+    // best-effort
   }
 }
