@@ -7,7 +7,7 @@ export const Route = createFileRoute("/icon-512-maskable.png")({
       GET: async () => {
         const a = await getAppearance();
         return svgResponse(
-          await buildIconSvg(a, a.app_icon_url || a.site_logo_url || a.splash_logo_url, true),
+          await buildIconSvg(a, a.app_icon_url || a.site_logo_url || a.splash_logo_url, { maskable: true }),
         );
       },
     },
