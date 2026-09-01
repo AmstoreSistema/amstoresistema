@@ -264,6 +264,24 @@ function MaterialsPage() {
     setCutsOpen(true);
   };
 
+  // Dimensões dos materiais são armazenadas em centímetros
+  const cutMetrics = useMemo(() => {
+    const pieceW = Number(activeMaterial?.width || 0);
+    const pieceH = Number(activeMaterial?.height || 0);
+    const totalArea = pieceW * pieceH;
+    const usedArea = cuts.reduce((sum, c) => sum + Number(c.width || 0) * Number(c.height || 0), 0);
+    const availableArea = Math.max(0, totalArea - usedArea);
+    const costPerCm2 = totalArea > 0 ? Number(activeMaterial?.cost_price || 0) / totalArea : 0;
+    const usagePercent = totalArea > 0 ? (usedArea / totalArea) * 100 : 0;
+    const areaByStatus = (status: string) =>
+      cuts.filter(c => (c.status || "disponivel") === status)
+        .reduce((sum, c) => sum + Number(c.width || 0) * Number(c.height || 0), 0);
+    // escala em px por cm para o canvas
+    const scale = pieceW > 0 && pieceH > 0 ? Math.min(620 / pieceW, 420 / pieceH) : 1;
+    return { pieceW, pieceH, totalArea, usedArea, availableArea, costPerCm2, usagePercent, areaByStatus, scale };
+  }, [activeMaterial, cuts]);
+
+
 
   const handleAddSupplier = async () => {
     if (!newSupplierName.trim()) return;
