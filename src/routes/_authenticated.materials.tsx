@@ -305,8 +305,8 @@ function MaterialsPage() {
   const handleOptimize = async () => {
     if (!activeMaterial || cuts.length === 0) return;
 
-    const canvasWidth = (activeMaterial.width || 0) * 100;
-    const canvasHeight = (activeMaterial.height || 0) * 100;
+    const canvasWidth = Number(activeMaterial.width || 0);
+    const canvasHeight = Number(activeMaterial.height || 0);
 
     // Simple shelf-based packing algorithm for rectangle optimization
     const sortedCuts = [...cuts].sort((a, b) => b.height - a.height);
@@ -1192,14 +1192,14 @@ function MaterialsPage() {
               <div 
                 className="relative bg-white shadow-2xl border-2 border-orange-200/50"
                 style={{ 
-                  width: `${(activeMaterial?.width || 1) * 350}px`, 
-                  height: `${(activeMaterial?.height || 1) * 350}px`,
+                  width: `${cutMetrics.pieceW * cutMetrics.scale || 300}px`, 
+                  height: `${cutMetrics.pieceH * cutMetrics.scale || 200}px`,
                   backgroundImage: 'radial-gradient(#fed7aa 0.5px, transparent 0.5px)',
                   backgroundSize: '20px 20px'
                 }}
               >
-                <div className="absolute -top-8 left-1/2 -translate-x-1/2 text-xs font-bold text-orange-400">{(activeMaterial?.width || 0) * 100} cm</div>
-                <div className="absolute -left-12 top-1/2 -translate-y-1/2 -rotate-90 text-xs font-bold text-orange-400">{(activeMaterial?.height || 0) * 100} cm</div>
+                <div className="absolute -top-8 left-1/2 -translate-x-1/2 text-xs font-bold text-orange-400">{num(cutMetrics.pieceW)} cm</div>
+                <div className="absolute -left-12 top-1/2 -translate-y-1/2 -rotate-90 text-xs font-bold text-orange-400">{num(cutMetrics.pieceH)} cm</div>
                 
                 {/* Render real cuts with optimization support */}
                 {cuts.map((cut) => (
@@ -1211,10 +1211,10 @@ function MaterialsPage() {
                         : 'border-blue-600 bg-blue-500/20 text-blue-900'
                     }`}
                     style={{
-                      width: `${(cut.width / 100) * 350}px`,
-                      height: `${(cut.height / 100) * 350}px`,
-                      left: `${((cut.x || 0) / 100) * 350}px`,
-                      top: `${((cut.y || 0) / 100) * 350}px`
+                      width: `${Number(cut.width || 0) * cutMetrics.scale}px`,
+                      height: `${Number(cut.height || 0) * cutMetrics.scale}px`,
+                      left: `${Number(cut.x || 0) * cutMetrics.scale}px`,
+                      top: `${Number(cut.y || 0) * cutMetrics.scale}px`
                     }}
                   >
                     <span className="truncate">{cut.name}</span>
@@ -1255,37 +1255,35 @@ function MaterialsPage() {
                     <div className="flex justify-between items-center text-xs">
                       <span className="text-muted-foreground">Custo por cm²:</span>
                       <span className="font-bold bg-gray-50 px-2 py-0.5 rounded text-[10px]">
-                        {activeMaterial?.cost_price && activeMaterial?.width && activeMaterial?.height
-                          ? `R$ ${(activeMaterial.cost_price / (activeMaterial.width * 100 * activeMaterial.height * 100)).toFixed(6)}`
-                          : brl(0)}
+                        {cutMetrics.costPerCm2 > 0 ? `R$ ${cutMetrics.costPerCm2.toFixed(4)}` : brl(0)}
                       </span>
                     </div>
                     <div className="flex justify-between items-center text-xs">
                       <span className="text-muted-foreground">Área Total da Peça:</span>
                       <span className="font-bold">
-                        {num((activeMaterial?.width || 0) * 100 * (activeMaterial?.height || 0) * 100)} cm²
+                        {num(cutMetrics.totalArea)} cm²
                       </span>
                     </div>
                     <div className="flex justify-between items-center text-xs text-blue-600">
                       <span className="font-medium">Área Utilizada:</span>
-                      <span className="font-bold">{num(cuts.reduce((sum, c) => sum + (c.width * c.height), 0))} cm²</span>
+                      <span className="font-bold">{num(cutMetrics.usedArea)} cm²</span>
                     </div>
                     <div className="flex justify-between items-center text-xs text-success">
                       <span className="font-medium">Área Disponível:</span>
-                      <span className="font-bold">{num(((activeMaterial?.width || 0) * 100 * (activeMaterial?.height || 0) * 100) - cuts.reduce((sum, c) => sum + (c.width * c.height), 0))} cm²</span>
+                      <span className="font-bold">{num(cutMetrics.availableArea)} cm²</span>
                     </div>
                     
                     <div className="pt-2">
                       <div className="flex justify-between items-center text-[10px] mb-1">
                         <span className="text-muted-foreground font-bold uppercase">Aproveitamento</span>
                         <span className="font-bold text-pink-500">
-                          {num((cuts.reduce((sum, c) => sum + (c.width * c.height), 0) / (((activeMaterial?.width || 0) * 100 * (activeMaterial?.height || 0) * 100) || 1)) * 100)}%
+                          {num(cutMetrics.usagePercent)}%
                         </span>
                       </div>
                       <div className="h-2 w-full bg-gray-100 rounded-full overflow-hidden">
                         <div 
                           className="h-full bg-pink-500 transition-all duration-500" 
-                          style={{ width: `${Math.min(100, (cuts.reduce((sum, c) => sum + (c.width * c.height), 0) / (((activeMaterial?.width || 0) * 100 * (activeMaterial?.height || 0) * 100) || 1)) * 100)}%` }}
+                          style={{ width: `${Math.min(100, cutMetrics.usagePercent)}%` }}
                         />
                       </div>
                     </div>
@@ -1296,30 +1294,21 @@ function MaterialsPage() {
                       <p className="text-[8px] text-success font-bold uppercase">Disponível</p>
                       <p className="text-xs font-bold text-success">{cuts.filter(c => c.status === 'disponivel').length}</p>
                       <p className="text-[8px] text-success font-medium">
-                        {brl(cuts.filter(c => c.status === 'disponivel').reduce((sum, c) => {
-                          const costPerCm2 = (activeMaterial?.cost_price || 0) / ((activeMaterial?.width || 0) * 100 * (activeMaterial?.height || 0) * 100 || 1);
-                          return sum + (c.width * c.height * costPerCm2);
-                        }, 0))}
+                        {brl(cutMetrics.areaByStatus('disponivel') * cutMetrics.costPerCm2)}
                       </p>
                     </div>
                     <div className="text-center p-2 rounded-xl border border-blue-200 bg-blue-50">
                       <p className="text-[8px] text-blue-600 font-bold uppercase">Utilizado</p>
                       <p className="text-xs font-bold text-blue-600">{cuts.filter(c => c.status === 'utilizado').length}</p>
                       <p className="text-[8px] text-blue-600 font-medium">
-                        {brl(cuts.filter(c => c.status === 'utilizado').reduce((sum, c) => {
-                          const costPerCm2 = (activeMaterial?.cost_price || 0) / ((activeMaterial?.width || 0) * 100 * (activeMaterial?.height || 0) * 100 || 1);
-                          return sum + (c.width * c.height * costPerCm2);
-                        }, 0))}
+                        {brl(cutMetrics.areaByStatus('utilizado') * cutMetrics.costPerCm2)}
                       </p>
                     </div>
                     <div className="text-center p-2 rounded-xl border border-orange-200 bg-orange-50">
                       <p className="text-[8px] text-orange-500 font-bold uppercase">Reservado</p>
                       <p className="text-xs font-bold text-orange-500">{cuts.filter(c => c.status === 'reservado').length}</p>
                       <p className="text-[8px] text-orange-500 font-medium">
-                        {brl(cuts.filter(c => c.status === 'reservado').reduce((sum, c) => {
-                          const costPerCm2 = (activeMaterial?.cost_price || 0) / ((activeMaterial?.width || 0) * 100 * (activeMaterial?.height || 0) * 100 || 1);
-                          return sum + (c.width * c.height * costPerCm2);
-                        }, 0))}
+                        {brl(cutMetrics.areaByStatus('reservado') * cutMetrics.costPerCm2)}
                       </p>
                     </div>
                   </div>
@@ -1328,10 +1317,7 @@ function MaterialsPage() {
                     <div className="flex justify-between items-center bg-gray-50 p-3 rounded-2xl border border-dashed border-gray-200">
                       <span className="text-[10px] font-bold text-muted-foreground uppercase">Custo dos Cortes:</span>
                       <span className="text-base font-bold text-primary">
-                        {brl(cuts.reduce((sum, c) => {
-                          const costPerCm2 = (activeMaterial?.cost_price || 0) / ((activeMaterial?.width || 0) * 100 * (activeMaterial?.height || 0) * 100 || 1);
-                          return sum + (c.width * c.height * costPerCm2);
-                        }, 0))}
+                        {brl(cutMetrics.usedArea * cutMetrics.costPerCm2)}
                       </span>
                     </div>
                     <div className="flex justify-between items-center bg-gray-50 p-3 rounded-2xl border border-dashed border-gray-200">
@@ -1390,7 +1376,7 @@ function MaterialsPage() {
                           <div className="flex flex-col">
                             <span className="text-[10px] font-bold text-muted-foreground uppercase">Custo Proporcional do Corte</span>
                             <span className="text-sm font-bold text-success">
-                              {brl((activeMaterial.cost_price / (activeMaterial.width * 100 * activeMaterial.height * 100)) * (newCutForm.width * newCutForm.height))}
+                              {brl(cutMetrics.costPerCm2 * newCutForm.width * newCutForm.height)}
                             </span>
                           </div>
                           <span className="text-[10px] font-medium text-blue-600">
