@@ -601,48 +601,76 @@ const MAPPERS: Record<string, Mapper> = {
     if (!amount) return null;
     const rawType = slug(String(pick(t, ["type", "tipo", "natureza", "sentido"]) ?? "income"));
     const isExpense = ["expense", "saida", "despesa", "debito", "out", "pagamento", "pagar", "retirada"].includes(rawType);
+    const due = pick(t, ["due_date", "data_vencimento", "vencimento"]);
     return {
       amount: Math.abs(amount),
       type: isExpense ? "expense" : "income",
       description: str(pick(t, ["description", "descricao", "historico", "titulo", "obs"])) ?? "Importado do backup",
-      category: str(pick(t, ["category", "categoria", "grupo", "fluxo"])) ?? "Importado",
-      payment_method: str(pick(t, ["payment_method", "formapagamento", "pagamento", "meio"])) ?? null,
+      category: str(pick(t, ["category", "categoria_nome", "categorianome", "categoria", "grupo", "fluxo"])) ?? "Importado",
+      payment_method: str(pick(t, ["payment_method", "forma_pagamento", "formapagamento", "pagamento", "meio"])) ?? null,
       status: str(pick(t, ["status", "situacao", "estado"])) ?? "pago",
       notes: str(pick(t, ["notes", "observacoes", "complemento"])) ?? null,
-      created_at: date(pick(t, ["created_at", "data", "datapagamento", "criadoem", "vencimento"])),
+      due_date: due ? date(due).slice(0, 10) : null,
+      created_at: date(pick(t, ["created_at", "data_transacao", "datatransacao", "data", "datapagamento", "criadoem"])),
+      __account_name: str(pick(t, ["conta_nome", "contanome", "account_name", "conta"])) ?? null,
+      __client_name: str(pick(t, ["cliente_nome", "clientenome"])) ?? null,
+      __supplier_name: str(pick(t, ["fornecedor_nome", "fornecedornome"])) ?? null,
     };
   },
-  sales: (s) => ({
-    client_id: pick(s, ["client_id", "cliente_id"]),
-    total_amount: num(pick(s, ["total_amount", "valor_total", "valor"])),
-    paid_amount: num(pick(s, ["paid_amount", "valor_pago"])),
-    discount: num(pick(s, ["discount", "desconto"])),
-    payment_method: str(pick(s, ["payment_method", "metodo", "forma"])) ?? "dinheiro",
-    status: str(pick(s, ["status", "situacao"])) ?? "finalizado",
-    notes: str(pick(s, ["notes", "observacoes"])),
-    created_at: date(pick(s, ["created_at", "data"])),
-  }),
+  sales: (s) => {
+    const total = num(pick(s, ["total_amount", "valor_total", "valor", "subtotal"]));
+    const paid = num(pick(s, ["paid_amount", "valor_pago"]));
+    const method = str(pick(s, ["payment_method", "forma_pagamento", "formapagamento", "metodo", "forma"])) ?? "dinheiro";
+    const remaining = num(pick(s, ["valor_restante", "valorrestante"]), Math.max(total - paid, 0));
+    const isDebt = slug(method) === "fiado" || remaining > 0.009;
+    const rawStatus = str(pick(s, ["status", "situacao"]));
+    const status = rawStatus ?? (remaining <= 0.009 ? "pago" : paid > 0 ? "parcial" : "pendente");
+    return {
+      sale_code: str(pick(s, ["sale_code", "codigo_venda", "codigovenda", "codigo"])) ?? null,
+      total_amount: total,
+      paid_amount: paid,
+      discount: num(pick(s, ["discount", "desconto"])),
+      payment_method: method,
+      is_debt: isDebt,
+      status,
+      sale_type: str(pick(s, ["sale_type", "tipo_venda", "tipovenda"])) ?? "varejo",
+      cashback_used: num(pick(s, ["cashback_used", "cashback_usado"])),
+      cashback_earned: num(pick(s, ["cashback_earned", "cashback_gerado"])),
+      notes: str(pick(s, ["notes", "observacoes"])) ?? null,
+      created_at: date(pick(s, ["created_at", "data_venda", "datavenda", "data"])),
+      __client_name: str(pick(s, ["cliente_nome", "clientenome", "cliente"])) ?? null,
+    };
+  },
   sale_items: (si) => ({
-    sale_id: pick(si, ["sale_id", "venda_id"]),
-    product_id: pick(si, ["product_id", "produto_id"]),
-    quantity: num(pick(si, ["quantity", "quantidade"])),
-    unit_price: num(pick(si, ["unit_price", "preco_unitario", "valor"])),
+    quantity: num(pick(si, ["quantity", "quantidade"]), 1) || 1,
+    unit_price: num(pick(si, ["unit_price", "preco_unitario", "valor_unitario", "valor"])),
     discount: num(pick(si, ["discount", "desconto"])),
-    numeracao: str(pick(si, ["numeracao", "tamanho"])),
+    numeracao: str(pick(si, ["numeracao", "tamanho"])) ?? null,
+    __sale_code: str(pick(si, ["codigo_venda", "codigovenda"])) ?? null,
+    __product_name: str(pick(si, ["produto_nome", "produtonome", "produto", "nome"])) ?? null,
   }),
   sale_payments: (sp) => ({
-    sale_id: pick(sp, ["sale_id", "venda_id"]),
-    amount: num(pick(sp, ["amount", "valor"])),
-    payment_method: str(pick(sp, ["payment_method", "metodo", "forma"])) ?? "dinheiro",
-    created_at: date(pick(sp, ["created_at", "data"])),
+    amount: num(pick(sp, ["amount", "valor_pago", "valor"])),
+    payment_method: str(pick(sp, ["payment_method", "forma_pagamento", "formapagamento", "metodo", "forma"])) ?? "dinheiro",
+    created_at: date(pick(sp, ["created_at", "data_pagamento", "datapagamento", "data"])),
+    __sale_code: str(pick(sp, ["codigo_venda", "codigovenda"])) ?? null,
   }),
-  sale_installments: (si) => ({
-    sale_id: pick(si, ["sale_id", "venda_id"]),
-    installment_number: num(pick(si, ["installment_number", "numero", "parcela"])),
-    amount: num(pick(si, ["amount", "valor"])),
-    due_date: date(pick(si, ["due_date", "vencimento"])),
-    status: str(pick(si, ["status", "situacao"])) ?? "pendente",
-  }),
+  sale_installments: (si) => {
+    const paid = num(pick(si, ["paid_amount", "valor_pago"]));
+    const amount = num(pick(si, ["amount", "valor_parcela", "valorparcela", "valor"]));
+    const paidAt = pick(si, ["paid_at", "data_pagamento", "datapagamento"]);
+    return {
+      installment_number: num(pick(si, ["installment_number", "numero_parcela", "numeroparcela", "numero", "parcela"]), 1) || 1,
+      amount,
+      paid_amount: paid,
+      remaining_amount: Math.max(amount - paid, 0),
+      due_date: date(pick(si, ["due_date", "data_vencimento", "datavencimento", "vencimento"])),
+      paid_at: paidAt ? date(paidAt) : null,
+      status: str(pick(si, ["status", "situacao"])) ?? (paid >= amount && amount > 0 ? "pago" : "pendente"),
+      __sale_code: str(pick(si, ["codigo_venda", "codigovenda"])) ?? null,
+    };
+  },
+
   purchases: (p) => ({
     supplier_id: pick(p, ["supplier_id", "fornecedor_id"]),
     material_id: pick(p, ["material_id", "material_id"]),
