@@ -531,6 +531,8 @@ const MAPPERS: Record<string, Mapper> = {
       localizacao: str(pick(s, ["localizacao", "location", "local", "prateleira"])) ?? null,
       lote: str(pick(s, ["lote", "batch", "num_lote"])) ?? null,
       data_entrada: date(pick(s, ["data_entrada", "created_at", "dataentrada", "data", "date"])),
+      __product_name: name,
+
     };
   },
   financial_accounts: (a) => {
