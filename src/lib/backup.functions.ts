@@ -262,6 +262,7 @@ export const importSystemData = createServerFn({ method: "POST" })
         }
       }
 
+      console.log(`[Import] ${table}`, JSON.stringify(res));
       results[table] = res;
     }
 
