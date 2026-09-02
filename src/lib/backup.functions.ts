@@ -95,21 +95,91 @@ export const importSystemData = createServerFn({ method: "POST" })
       units_of_measure: ["name"],
       promotions: ["name"],
       app_settings: ["key"],
+      sales: ["sale_code"],
     };
+
+    // ---- Resolução de vínculos (IDs externos não existem no nosso banco) ----
+    const lookupCache: Record<string, Map<string, string>> = {};
+    const norm = (v: any) => String(v ?? "").trim().toLowerCase();
+
+    async function lookup(table: string, column: string) {
+      const cacheKey = `${table}.${column}`;
+      const cached = lookupCache[cacheKey];
+      if (cached) return cached;
+      const map = new Map<string, string>();
+      const { data } = await supabaseAdmin
+        .from(table as any)
+        .select(`id,${column}`)
+        .limit(50000);
+      for (const row of (data as any[]) || []) {
+        const key = norm(row?.[column]);
+        if (key && !map.has(key)) map.set(key, row.id);
+      }
+      lookupCache[cacheKey] = map;
+      return map;
+    }
+
+    async function resolveRefs(table: string, rows: Record<string, any>[]) {
+      const needs = rows.some((r) =>
+        Object.keys(r).some((k) => k.startsWith("__")),
+      );
+      if (!needs) return rows;
+
+      const clientMap = await lookup("clients", "name");
+      const accountMap = table === "transactions" ? await lookup("financial_accounts", "name") : null;
+      const supplierMap = table === "transactions" ? await lookup("suppliers", "name") : null;
+      const productMap =
+        table === "stock_products" || table === "sale_items" ? await lookup("products", "name") : null;
+      const saleMap =
+        table === "sale_items" || table === "sale_payments" || table === "sale_installments"
+          ? await lookup("sales", "sale_code")
+          : null;
+
+      const out: Record<string, any>[] = [];
+      for (const row of rows) {
+        const clientName = row["__client_name"];
+        const productName = row["__product_name"];
+        const supplierName = row["__supplier_name"];
+        const accountName = row["__account_name"];
+        const saleCode = row["__sale_code"];
+        for (const key of Object.keys(row)) if (key.startsWith("__")) delete row[key];
+
+        if (clientName && !row["client_id"]) row["client_id"] = clientMap.get(norm(clientName)) ?? null;
+        if (accountMap && accountName && !row["account_id"])
+          row["account_id"] = accountMap.get(norm(accountName)) ?? null;
+        if (supplierMap && supplierName && !row["supplier_id"])
+          row["supplier_id"] = supplierMap.get(norm(supplierName)) ?? null;
+        if (productMap && productName && !row["produto_id"] && table === "stock_products")
+          row["produto_id"] = productMap.get(norm(productName)) ?? null;
+        if (productMap && productName && !row["product_id"] && table === "sale_items")
+          row["product_id"] = productMap.get(norm(productName)) ?? null;
+
+        if (saleMap) {
+          const saleId = row["sale_id"] ?? (saleCode ? saleMap.get(norm(saleCode)) : undefined);
+          if (!saleId) continue; // sem venda vinculada o registro é inválido
+          row["sale_id"] = saleId;
+        }
+        out.push(row);
+      }
+      return out;
+    }
 
     for (const table of orderedTables) {
       const rawRows = dataToImport[table];
       if (!Array.isArray(rawRows)) continue;
 
-      const rows = rawRows.filter((r) => r && typeof r === "object").map(sanitizeRow);
+      let rows = rawRows.filter((r) => r && typeof r === "object").map(sanitizeRow);
       const res = { inserted: 0, updated: 0, failed: 0 } as {
         inserted: number; updated: number; failed: number; error?: string;
       };
+
+      rows = await resolveRefs(table, rows);
 
       if (rows.length === 0) {
         results[table] = res;
         continue;
       }
+
 
       const keys = NATURAL_KEY[table];
       const toInsert: Record<string, any>[] = [];
@@ -192,6 +262,7 @@ export const importSystemData = createServerFn({ method: "POST" })
         }
       }
 
+      console.log(`[Import] ${table}`, JSON.stringify(res));
       results[table] = res;
     }
 
