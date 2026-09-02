@@ -390,12 +390,14 @@ export function extractCollections(payload: any): Collections {
 
 /** Nomes de coleções presentes no arquivo que não conhecemos. */
 export function unrecognizedCollections(payload: any): Record<string, number> {
+  const known = new Set(Object.values(TABLE_ALIASES));
   const out: Record<string, number> = {};
   for (const [key, rows] of Object.entries(extractAllCollections(payload))) {
-    if (!TABLE_ALIASES[slug(key)]) out[key] = rows.length;
+    if (!TABLE_ALIASES[slug(key)] && !known.has(key)) out[key] = rows.length;
   }
   return out;
 }
+
 
 type Mapper = (row: any) => Record<string, any> | null;
 
