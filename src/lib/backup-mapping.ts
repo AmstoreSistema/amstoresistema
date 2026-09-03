@@ -5,7 +5,11 @@
 
 export type Collections = Record<string, any[]>;
 
+/** Marcador para coleções conhecidas que o sistema não importa (não geram alerta). */
+export const IGNORED_TABLE = "__ignorado";
+
 export const TABLE_ALIASES: Record<string, string> = {
+
   // Clientes
   clients: "clients",
   client: "clients",
@@ -209,6 +213,11 @@ export const TABLE_ALIASES: Record<string, string> = {
   corte: "material_cuts",
   cortecouro: "material_cuts",
   cortescouro: "material_cuts",
+  pecacouro: "material_cuts",
+  pecascouro: "material_cuts",
+  moldecorte: "material_cuts",
+  moldescorte: "material_cuts",
+  moldes: "material_cuts",
 
   // Variações de Material
   material_variations: "material_variations",
@@ -218,10 +227,26 @@ export const TABLE_ALIASES: Record<string, string> = {
   cupons: "material_variations",
   cuponproducao: "material_variations",
   cuponsproducao: "material_variations",
+  cupomproducao: "material_variations",
+  cupomsproducao: "material_variations",
   variacaomaterial: "material_variations",
   variacoesmateriais: "material_variations",
 
+  // Composições de Material
+  composicaomaterial: "product_materials",
+  composicoesmateriais: "product_materials",
+  composicaomateriais: "product_materials",
+
+  // Coleções conhecidas que o Amstore não utiliza (ignoradas sem alerta)
+  configuracaomaterial: IGNORED_TABLE,
+  configuracoesmaterial: IGNORED_TABLE,
+  configuracaomateriais: IGNORED_TABLE,
+  categoriatransacao: IGNORED_TABLE,
+  categoriastransacao: IGNORED_TABLE,
+  categoriatransacoes: IGNORED_TABLE,
+  categoriastransacoes: IGNORED_TABLE,
 };
+
 
 const slug = (s: string) =>
   s
@@ -382,6 +407,7 @@ export function extractCollections(payload: any): Collections {
   // Garantimos que o mapeamento de aliases seja aplicado a todas as chaves extraídas
   for (const [key, rows] of Object.entries(all)) {
     const target = TABLE_ALIASES[slug(key)] || key;
+    if (target === IGNORED_TABLE) continue;
     out[target] = (out[target] ?? []).concat(rows);
   }
   
@@ -393,8 +419,11 @@ export function unrecognizedCollections(payload: any): Record<string, number> {
   const known = new Set(Object.values(TABLE_ALIASES));
   const out: Record<string, number> = {};
   for (const [key, rows] of Object.entries(extractAllCollections(payload))) {
-    if (!TABLE_ALIASES[slug(key)] && !known.has(key)) out[key] = rows.length;
+    const target = TABLE_ALIASES[slug(key)];
+    if (target === IGNORED_TABLE) continue;
+    if (!target && !known.has(key)) out[key] = rows.length;
   }
+
   return out;
 }
 
