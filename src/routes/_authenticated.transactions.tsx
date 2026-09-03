@@ -157,12 +157,12 @@ function TransactionsPage() {
   }, [filtered]);
 
   const stats = useMemo(() => {
-    const data = (transactions as any[]).filter(t => t.status === 'pago');
+    const data = filtered.filter(t => ["pago", "paid"].includes(String(t.status || "").toLowerCase()));
     const inflow = data.filter(r => (r.type === "entrada" || r.type === 'income')).reduce((s, r) => s + Number(r.amount), 0);
     const outflow = data.filter(r => (r.type === "saida" || r.type === 'expense')).reduce((s, r) => s + Math.abs(Number(r.amount)), 0);
-    const pending = (transactions as any[]).filter(t => t.status === 'pendente').reduce((s, r) => s + Math.abs(Number(r.amount)), 0);
+    const pending = filtered.filter(t => ["pendente", "pending"].includes(String(t.status || "").toLowerCase())).length;
     return { inflow, outflow, pending, balance: inflow - outflow };
-  }, [transactions]);
+  }, [filtered]);
 
   const getStatusIcon = (status: string) => {
     switch (status) {
