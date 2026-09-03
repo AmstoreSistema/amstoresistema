@@ -244,15 +244,92 @@ function TransactionsPage() {
         </div>
       </div>
 
+      <div className="grid gap-4 sm:grid-cols-2 rounded-2xl border border-border/40 bg-card p-4">
+        <div className="space-y-1.5">
+          <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Data início</label>
+          <Input
+            type="date"
+            lang="pt-BR"
+            className="h-11 rounded-xl"
+            value={startDate}
+            max={endDate || undefined}
+            onChange={e => setStartDate(e.target.value)}
+          />
+        </div>
+        <div className="space-y-1.5">
+          <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Data fim</label>
+          <Input
+            type="date"
+            lang="pt-BR"
+            className="h-11 rounded-xl"
+            value={endDate}
+            min={startDate || undefined}
+            onChange={e => setEndDate(e.target.value)}
+          />
+        </div>
+        {(startDate || endDate || typeFilter !== "todos" || statusFilter !== "todos" || term) && (
+          <div className="sm:col-span-2 flex items-center justify-between gap-2">
+            <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
+              {filtered.length} {filtered.length === 1 ? "lançamento" : "lançamentos"}
+            </p>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="rounded-lg text-[11px] font-bold uppercase h-8"
+              onClick={() => {
+                setStartDate("");
+                setEndDate("");
+                setTypeFilter("todos");
+                setStatusFilter("todos");
+                setTerm("");
+              }}
+            >
+              Limpar filtros
+            </Button>
+          </div>
+        )}
+      </div>
+
       <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-        <Button variant="secondary" size="sm" className="bg-green-500 text-white hover:bg-green-600 rounded-lg text-[11px] font-bold uppercase h-8">Todos</Button>
-        <Button variant="ghost" size="sm" className="rounded-lg text-[11px] font-bold uppercase h-8">Receita</Button>
-        <Button variant="ghost" size="sm" className="rounded-lg text-[11px] font-bold uppercase h-8">Despesa</Button>
-        <Button variant="secondary" size="sm" className="bg-blue-500 text-white rounded-lg text-[11px] font-bold uppercase h-8">Todos</Button>
-        <Button variant="ghost" size="sm" className="rounded-lg text-[11px] font-bold uppercase h-8">Pago</Button>
-        <Button variant="ghost" size="sm" className="rounded-lg text-[11px] font-bold uppercase h-8">Pendente</Button>
-        <Button variant="ghost" size="sm" className="rounded-lg text-[11px] font-bold uppercase h-8">Atrasado</Button>
-        <Button variant="ghost" size="sm" className="rounded-lg text-[11px] font-bold uppercase h-8">Cancelado</Button>
+        {([
+          { key: "todos", label: "Todos" },
+          { key: "receita", label: "Receita" },
+          { key: "despesa", label: "Despesa" },
+        ] as const).map(o => (
+          <Button
+            key={`type-${o.key}`}
+            variant={typeFilter === o.key ? "secondary" : "ghost"}
+            size="sm"
+            className={cn(
+              "rounded-lg text-[11px] font-bold uppercase h-8",
+              typeFilter === o.key && "bg-green-500 text-white hover:bg-green-600"
+            )}
+            onClick={() => setTypeFilter(o.key)}
+          >
+            {o.label}
+          </Button>
+        ))}
+        <span className="w-px bg-border/60 mx-1 shrink-0" />
+        {([
+          { key: "todos", label: "Todos" },
+          { key: "pago", label: "Pago" },
+          { key: "pendente", label: "Pendente" },
+          { key: "atrasado", label: "Atrasado" },
+          { key: "cancelado", label: "Cancelado" },
+        ] as const).map(o => (
+          <Button
+            key={`status-${o.key}`}
+            variant={statusFilter === o.key ? "secondary" : "ghost"}
+            size="sm"
+            className={cn(
+              "rounded-lg text-[11px] font-bold uppercase h-8",
+              statusFilter === o.key && "bg-blue-500 text-white hover:bg-blue-600"
+            )}
+            onClick={() => setStatusFilter(o.key)}
+          >
+            {o.label}
+          </Button>
+        ))}
       </div>
 
       {isLoading ? (
