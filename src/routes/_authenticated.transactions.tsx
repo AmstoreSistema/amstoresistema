@@ -103,15 +103,48 @@ function TransactionsPage() {
   };
 
   const filtered = useMemo(() => {
+    const search = term.toLowerCase();
+    const startTs = startDate ? new Date(`${startDate}T00:00:00`).getTime() : null;
+    const endTs = endDate ? new Date(`${endDate}T23:59:59.999`).getTime() : null;
+
     return (transactions as any[]).filter(t => {
       const desc = (t.description || "").toLowerCase();
-      const type = (t.type || "").toLowerCase();
+      const type = String(t.type || "").toLowerCase();
+      const status = String(t.status || "").toLowerCase();
+      const category = (t.category || "").toLowerCase();
       const client = (t.clients?.name || "").toLowerCase();
       const supplier = (t.suppliers?.name || t.supplier_name || "").toLowerCase();
-      const search = term.toLowerCase();
-      return desc.includes(search) || type.includes(search) || client.includes(search) || supplier.includes(search);
+
+      const matchesSearch =
+        !search ||
+        desc.includes(search) ||
+        category.includes(search) ||
+        client.includes(search) ||
+        supplier.includes(search);
+      if (!matchesSearch) return false;
+
+      const isIncome = type === "entrada" || type === "income";
+      if (typeFilter === "receita" && !isIncome) return false;
+      if (typeFilter === "despesa" && isIncome) return false;
+
+      if (statusFilter === "pago" && !["pago", "paid"].includes(status)) return false;
+      if (statusFilter === "cancelado" && !["cancelado", "cancelled", "canceled"].includes(status)) return false;
+      if (statusFilter === "pendente" || statusFilter === "atrasado") {
+        const isPending = ["pendente", "pending", "aberto"].includes(status);
+        if (!isPending) return false;
+        const due = t.due_date ? new Date(`${String(t.due_date).slice(0, 10)}T23:59:59`).getTime() : null;
+        const late = due !== null && due < Date.now();
+        if (statusFilter === "atrasado" && !late) return false;
+        if (statusFilter === "pendente" && late) return false;
+      }
+
+      const ts = t.created_at ? new Date(t.created_at).getTime() : null;
+      if (startTs !== null && (ts === null || ts < startTs)) return false;
+      if (endTs !== null && (ts === null || ts > endTs)) return false;
+
+      return true;
     });
-  }, [transactions, term]);
+  }, [transactions, term, typeFilter, statusFilter, startDate, endDate]);
 
   const grouped = useMemo(() => {
     const groups: Record<string, any[]> = {};
