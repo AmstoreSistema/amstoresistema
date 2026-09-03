@@ -5,7 +5,11 @@
 
 export type Collections = Record<string, any[]>;
 
+/** Marcador para coleções conhecidas que o sistema não importa (não geram alerta). */
+export const IGNORED_TABLE = "__ignorado";
+
 export const TABLE_ALIASES: Record<string, string> = {
+
   // Clientes
   clients: "clients",
   client: "clients",
