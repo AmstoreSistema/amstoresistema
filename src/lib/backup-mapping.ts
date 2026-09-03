@@ -209,6 +209,11 @@ export const TABLE_ALIASES: Record<string, string> = {
   corte: "material_cuts",
   cortecouro: "material_cuts",
   cortescouro: "material_cuts",
+  pecacouro: "material_cuts",
+  pecascouro: "material_cuts",
+  moldecorte: "material_cuts",
+  moldescorte: "material_cuts",
+  moldes: "material_cuts",
 
   // Variações de Material
   material_variations: "material_variations",
@@ -218,10 +223,26 @@ export const TABLE_ALIASES: Record<string, string> = {
   cupons: "material_variations",
   cuponproducao: "material_variations",
   cuponsproducao: "material_variations",
+  cupomproducao: "material_variations",
+  cupomsproducao: "material_variations",
   variacaomaterial: "material_variations",
   variacoesmateriais: "material_variations",
 
+  // Composições de Material
+  composicaomaterial: "product_materials",
+  composicoesmateriais: "product_materials",
+  composicaomateriais: "product_materials",
+
+  // Coleções conhecidas que o Amstore não utiliza (ignoradas sem alerta)
+  configuracaomaterial: IGNORED_TABLE,
+  configuracoesmaterial: IGNORED_TABLE,
+  configuracaomateriais: IGNORED_TABLE,
+  categoriatransacao: IGNORED_TABLE,
+  categoriastransacao: IGNORED_TABLE,
+  categoriatransacoes: IGNORED_TABLE,
+  categoriastransacoes: IGNORED_TABLE,
 };
+
 
 const slug = (s: string) =>
   s
