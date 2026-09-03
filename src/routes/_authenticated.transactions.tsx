@@ -68,6 +68,10 @@ function TransactionsPage() {
   const { data: accounts = [] } = useRows("financial_accounts", { filters: [{ column: "active", value: true }] });
   
   const [term, setTerm] = useState("");
+  const [typeFilter, setTypeFilter] = useState<"todos" | "receita" | "despesa">("todos");
+  const [statusFilter, setStatusFilter] = useState<"todos" | "pago" | "pendente" | "atrasado" | "cancelado">("todos");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
   const [isNewModalOpen, setIsNewModalOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<any>(null);
   const [viewingTransaction, setViewingTransaction] = useState<any>(null);
