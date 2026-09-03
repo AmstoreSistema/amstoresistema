@@ -407,6 +407,7 @@ export function extractCollections(payload: any): Collections {
   // Garantimos que o mapeamento de aliases seja aplicado a todas as chaves extraídas
   for (const [key, rows] of Object.entries(all)) {
     const target = TABLE_ALIASES[slug(key)] || key;
+    if (target === IGNORED_TABLE) continue;
     out[target] = (out[target] ?? []).concat(rows);
   }
   
@@ -418,8 +419,11 @@ export function unrecognizedCollections(payload: any): Record<string, number> {
   const known = new Set(Object.values(TABLE_ALIASES));
   const out: Record<string, number> = {};
   for (const [key, rows] of Object.entries(extractAllCollections(payload))) {
-    if (!TABLE_ALIASES[slug(key)] && !known.has(key)) out[key] = rows.length;
+    const target = TABLE_ALIASES[slug(key)];
+    if (target === IGNORED_TABLE) continue;
+    if (!target && !known.has(key)) out[key] = rows.length;
   }
+
   return out;
 }
 
