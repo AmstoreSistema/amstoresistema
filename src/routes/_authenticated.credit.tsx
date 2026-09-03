@@ -79,8 +79,15 @@ function CreditPage() {
     }>();
 
     sales.forEach(s => {
-      if (!s.client_id || s.status === 'paid') return;
-      
+      if (!s.client_id) return;
+
+      const status = String(s.status || "").toLowerCase();
+      if (["paid", "pago", "quitado", "cancelado", "cancelled"].includes(status)) return;
+
+      // Saldo devedor real: ignora fiados já quitados (valor zerado)
+      const remaining = Number(s.total_amount || 0) - Number(s.paid_amount || 0);
+      if (remaining <= 0.009) return;
+
       const client = clientById.get(s.client_id);
       if (!client) return;
 
