@@ -68,6 +68,10 @@ function TransactionsPage() {
   const { data: accounts = [] } = useRows("financial_accounts", { filters: [{ column: "active", value: true }] });
   
   const [term, setTerm] = useState("");
+  const [typeFilter, setTypeFilter] = useState<"todos" | "receita" | "despesa">("todos");
+  const [statusFilter, setStatusFilter] = useState<"todos" | "pago" | "pendente" | "atrasado" | "cancelado">("todos");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
   const [isNewModalOpen, setIsNewModalOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<any>(null);
   const [viewingTransaction, setViewingTransaction] = useState<any>(null);
@@ -99,15 +103,48 @@ function TransactionsPage() {
   };
 
   const filtered = useMemo(() => {
+    const search = term.toLowerCase();
+    const startTs = startDate ? new Date(`${startDate}T00:00:00`).getTime() : null;
+    const endTs = endDate ? new Date(`${endDate}T23:59:59.999`).getTime() : null;
+
     return (transactions as any[]).filter(t => {
       const desc = (t.description || "").toLowerCase();
-      const type = (t.type || "").toLowerCase();
+      const type = String(t.type || "").toLowerCase();
+      const status = String(t.status || "").toLowerCase();
+      const category = (t.category || "").toLowerCase();
       const client = (t.clients?.name || "").toLowerCase();
       const supplier = (t.suppliers?.name || t.supplier_name || "").toLowerCase();
-      const search = term.toLowerCase();
-      return desc.includes(search) || type.includes(search) || client.includes(search) || supplier.includes(search);
+
+      const matchesSearch =
+        !search ||
+        desc.includes(search) ||
+        category.includes(search) ||
+        client.includes(search) ||
+        supplier.includes(search);
+      if (!matchesSearch) return false;
+
+      const isIncome = type === "entrada" || type === "income";
+      if (typeFilter === "receita" && !isIncome) return false;
+      if (typeFilter === "despesa" && isIncome) return false;
+
+      if (statusFilter === "pago" && !["pago", "paid"].includes(status)) return false;
+      if (statusFilter === "cancelado" && !["cancelado", "cancelled", "canceled"].includes(status)) return false;
+      if (statusFilter === "pendente" || statusFilter === "atrasado") {
+        const isPending = ["pendente", "pending", "aberto"].includes(status);
+        if (!isPending) return false;
+        const due = t.due_date ? new Date(`${String(t.due_date).slice(0, 10)}T23:59:59`).getTime() : null;
+        const late = due !== null && due < Date.now();
+        if (statusFilter === "atrasado" && !late) return false;
+        if (statusFilter === "pendente" && late) return false;
+      }
+
+      const ts = t.created_at ? new Date(t.created_at).getTime() : null;
+      if (startTs !== null && (ts === null || ts < startTs)) return false;
+      if (endTs !== null && (ts === null || ts > endTs)) return false;
+
+      return true;
     });
-  }, [transactions, term]);
+  }, [transactions, term, typeFilter, statusFilter, startDate, endDate]);
 
   const grouped = useMemo(() => {
     const groups: Record<string, any[]> = {};
@@ -120,12 +157,12 @@ function TransactionsPage() {
   }, [filtered]);
 
   const stats = useMemo(() => {
-    const data = (transactions as any[]).filter(t => t.status === 'pago');
+    const data = filtered.filter(t => ["pago", "paid"].includes(String(t.status || "").toLowerCase()));
     const inflow = data.filter(r => (r.type === "entrada" || r.type === 'income')).reduce((s, r) => s + Number(r.amount), 0);
     const outflow = data.filter(r => (r.type === "saida" || r.type === 'expense')).reduce((s, r) => s + Math.abs(Number(r.amount)), 0);
-    const pending = (transactions as any[]).filter(t => t.status === 'pendente').reduce((s, r) => s + Math.abs(Number(r.amount)), 0);
+    const pending = filtered.filter(t => ["pendente", "pending"].includes(String(t.status || "").toLowerCase())).length;
     return { inflow, outflow, pending, balance: inflow - outflow };
-  }, [transactions]);
+  }, [filtered]);
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -207,15 +244,92 @@ function TransactionsPage() {
         </div>
       </div>
 
+      <div className="grid gap-4 sm:grid-cols-2 rounded-2xl border border-border/40 bg-card p-4">
+        <div className="space-y-1.5">
+          <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Data início</label>
+          <Input
+            type="date"
+            lang="pt-BR"
+            className="h-11 rounded-xl"
+            value={startDate}
+            max={endDate || undefined}
+            onChange={e => setStartDate(e.target.value)}
+          />
+        </div>
+        <div className="space-y-1.5">
+          <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Data fim</label>
+          <Input
+            type="date"
+            lang="pt-BR"
+            className="h-11 rounded-xl"
+            value={endDate}
+            min={startDate || undefined}
+            onChange={e => setEndDate(e.target.value)}
+          />
+        </div>
+        {(startDate || endDate || typeFilter !== "todos" || statusFilter !== "todos" || term) && (
+          <div className="sm:col-span-2 flex items-center justify-between gap-2">
+            <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
+              {filtered.length} {filtered.length === 1 ? "lançamento" : "lançamentos"}
+            </p>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="rounded-lg text-[11px] font-bold uppercase h-8"
+              onClick={() => {
+                setStartDate("");
+                setEndDate("");
+                setTypeFilter("todos");
+                setStatusFilter("todos");
+                setTerm("");
+              }}
+            >
+              Limpar filtros
+            </Button>
+          </div>
+        )}
+      </div>
+
       <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-        <Button variant="secondary" size="sm" className="bg-green-500 text-white hover:bg-green-600 rounded-lg text-[11px] font-bold uppercase h-8">Todos</Button>
-        <Button variant="ghost" size="sm" className="rounded-lg text-[11px] font-bold uppercase h-8">Receita</Button>
-        <Button variant="ghost" size="sm" className="rounded-lg text-[11px] font-bold uppercase h-8">Despesa</Button>
-        <Button variant="secondary" size="sm" className="bg-blue-500 text-white rounded-lg text-[11px] font-bold uppercase h-8">Todos</Button>
-        <Button variant="ghost" size="sm" className="rounded-lg text-[11px] font-bold uppercase h-8">Pago</Button>
-        <Button variant="ghost" size="sm" className="rounded-lg text-[11px] font-bold uppercase h-8">Pendente</Button>
-        <Button variant="ghost" size="sm" className="rounded-lg text-[11px] font-bold uppercase h-8">Atrasado</Button>
-        <Button variant="ghost" size="sm" className="rounded-lg text-[11px] font-bold uppercase h-8">Cancelado</Button>
+        {([
+          { key: "todos", label: "Todos" },
+          { key: "receita", label: "Receita" },
+          { key: "despesa", label: "Despesa" },
+        ] as const).map(o => (
+          <Button
+            key={`type-${o.key}`}
+            variant={typeFilter === o.key ? "secondary" : "ghost"}
+            size="sm"
+            className={cn(
+              "rounded-lg text-[11px] font-bold uppercase h-8",
+              typeFilter === o.key && "bg-green-500 text-white hover:bg-green-600"
+            )}
+            onClick={() => setTypeFilter(o.key)}
+          >
+            {o.label}
+          </Button>
+        ))}
+        <span className="w-px bg-border/60 mx-1 shrink-0" />
+        {([
+          { key: "todos", label: "Todos" },
+          { key: "pago", label: "Pago" },
+          { key: "pendente", label: "Pendente" },
+          { key: "atrasado", label: "Atrasado" },
+          { key: "cancelado", label: "Cancelado" },
+        ] as const).map(o => (
+          <Button
+            key={`status-${o.key}`}
+            variant={statusFilter === o.key ? "secondary" : "ghost"}
+            size="sm"
+            className={cn(
+              "rounded-lg text-[11px] font-bold uppercase h-8",
+              statusFilter === o.key && "bg-blue-500 text-white hover:bg-blue-600"
+            )}
+            onClick={() => setStatusFilter(o.key)}
+          >
+            {o.label}
+          </Button>
+        ))}
       </div>
 
       {isLoading ? (

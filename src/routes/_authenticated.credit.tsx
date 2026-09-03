@@ -79,8 +79,15 @@ function CreditPage() {
     }>();
 
     sales.forEach(s => {
-      if (!s.client_id || s.status === 'paid') return;
-      
+      if (!s.client_id) return;
+
+      const status = String(s.status || "").toLowerCase();
+      if (["paid", "pago", "quitado", "cancelado", "cancelled"].includes(status)) return;
+
+      // Saldo devedor real: ignora fiados já quitados (valor zerado)
+      const remaining = Number(s.total_amount || 0) - Number(s.paid_amount || 0);
+      if (remaining <= 0.009) return;
+
       const client = clientById.get(s.client_id);
       if (!client) return;
 
@@ -93,10 +100,12 @@ function CreditPage() {
       };
 
       current.pendingCount += 1;
-      current.totalDue += (Number(s.total_amount) - Number(s.paid_amount));
-      
+      current.totalDue += remaining;
+
       // Check if any installment for this sale is overdue
-      const saleInstallments = installments.filter(i => i.sale_id === s.id && i.status !== 'paid');
+      const saleInstallments = installments.filter(
+        i => i.sale_id === s.id && !["paid", "pago"].includes(String(i.status || "").toLowerCase())
+      );
       const hasOverdue = saleInstallments.some(i => new Date(i.due_date) < new Date());
       if (hasOverdue) current.isOverdue = true;
 

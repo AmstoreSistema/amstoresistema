@@ -88,7 +88,7 @@ function SalesPage() {
       const matchesSearch = clientName.toLowerCase().includes(term.toLowerCase()) || s.id.toLowerCase().includes(term.toLowerCase());
       
       if (term.toLowerCase() === "pending") {
-        return !!s.is_debt && String(s.status || "") !== "paid";
+        return !!s.is_debt && Number(s.total_amount || 0) - Number(s.paid_amount || 0) > 0.009;
       }
       
       return matchesSearch;
@@ -114,7 +114,7 @@ function SalesPage() {
       const dateStr = typeof createdAt === 'string' ? createdAt : "";
       return dateStr.slice(0, 10) === today;
     });
-    const fiados = data.filter(s => !!s.is_debt && String(s.status || "") !== "paid");
+    const fiados = data.filter(s => !!s.is_debt && Number(s.total_amount || 0) - Number(s.paid_amount || 0) > 0.009);
     
     return {
       countToday: todaySales.length,
