@@ -88,7 +88,7 @@ function SalesPage() {
       const matchesSearch = clientName.toLowerCase().includes(term.toLowerCase()) || s.id.toLowerCase().includes(term.toLowerCase());
       
       if (term.toLowerCase() === "pending") {
-        return !!s.is_debt && String(s.status || "") !== "paid";
+        return !!s.is_debt && Number(s.total_amount || 0) - Number(s.paid_amount || 0) > 0.009;
       }
       
       return matchesSearch;
