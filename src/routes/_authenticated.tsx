@@ -5,6 +5,7 @@ import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
 import { AppSidebar } from "@/components/app-sidebar";
+import { clearActivity, isSessionExpired, touchActivity } from "@/lib/session-timeout";
 
 import { Button } from "@/components/ui/button";
 import { SidebarProvider, SidebarTrigger, useSidebar } from "@/components/ui/sidebar";
@@ -18,10 +19,17 @@ export const Route = createFileRoute("/_authenticated")({
     if (!session) {
       throw redirect({ to: "/auth" });
     }
+    if (isSessionExpired()) {
+      clearActivity();
+      await supabase.auth.signOut();
+      throw redirect({ to: "/auth" });
+    }
+    touchActivity();
     return { user: session.user };
   },
   component: AuthenticatedLayout,
 });
+
 
 function AuthenticatedLayout() {
   const [email, setEmail] = useState("");
