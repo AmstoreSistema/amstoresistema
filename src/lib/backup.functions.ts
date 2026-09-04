@@ -291,10 +291,7 @@ export const importSystemData = createServerFn({ method: "POST" })
 export const inspectBackupFile = createServerFn({ method: "POST" })
   .inputValidator((data) => z.object({ payload: z.any() }).parse(data))
   .handler(async ({ data: { payload } }) => {
-    const { mapForeignBackup, unrecognizedCollections, extractAllCollections, TABLE_ALIASES } = await import("@/lib/backup-mapping");
-    
-    // Log para depuração de backups Base44 / Externos
-    console.log("[Backup Inspect] Payload recebido:", JSON.stringify(payload, null, 2));
+    const { mapForeignBackup, unrecognizedCollections, extractAllCollections, TABLE_ALIASES, IGNORED_TABLE } = await import("@/lib/backup-mapping");
 
     if (payload?.data && payload?.version) {
       return {
@@ -308,17 +305,26 @@ export const inspectBackupFile = createServerFn({ method: "POST" })
         skipped: {} as Record<string, number>,
       };
     }
+
+    // Contagem final considerando o que realmente será importado após o mapeamento
+    const mapped = mapForeignBackup(payload);
     const rawCollections = extractAllCollections(payload);
-    
+    const collections: Record<string, number> = {};
+
+    for (const [key, rows] of Object.entries(rawCollections)) {
+      const target = TABLE_ALIASES[key.toLowerCase().replace(/[^a-z0-9]/g, "")];
+      if (target === IGNORED_TABLE) continue;
+      const name = target || key;
+      const mappedRows = mapped[name];
+      collections[name] = Math.max(
+        collections[name] ?? 0,
+        Array.isArray(mappedRows) ? mappedRows.length : (rows as any[]).length,
+      );
+    }
+
     return {
       format: "externo" as const,
-      collections: Object.fromEntries(
-        Object.entries(rawCollections).map(([k, v]) => {
-          const rows = v as any[];
-          const target = TABLE_ALIASES[k.toLowerCase().replace(/[^a-z0-9]/g, "")];
-          return [target || k, rows.length];
-        })
-      ),
+      collections,
       skipped: unrecognizedCollections(payload),
     };
   });
