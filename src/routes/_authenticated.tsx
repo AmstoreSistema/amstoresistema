@@ -59,7 +59,35 @@ function AuthenticatedLayout() {
     });
   }, [pathname]);
 
+  // Mantém a sessão ativa por 12h de inatividade
+  useEffect(() => {
+    touchActivity();
+    const events: Array<keyof WindowEventMap> = ["click", "keydown", "pointerdown", "visibilitychange"];
+    let last = 0;
+    const onActivity = () => {
+      const now = Date.now();
+      if (now - last < 30_000) return;
+      last = now;
+      touchActivity();
+    };
+    events.forEach((e) => window.addEventListener(e, onActivity));
+
+    const interval = window.setInterval(async () => {
+      if (isSessionExpired()) {
+        clearActivity();
+        await supabase.auth.signOut();
+        window.location.href = "/auth";
+      }
+    }, 60_000);
+
+    return () => {
+      events.forEach((e) => window.removeEventListener(e, onActivity));
+      window.clearInterval(interval);
+    };
+  }, []);
+
   const initials = (email || "AM").slice(0, 2).toUpperCase();
+
 
   return (
     <SidebarProvider>
