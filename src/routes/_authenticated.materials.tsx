@@ -879,10 +879,10 @@ function MaterialsPage() {
                       <span className="text-xs font-semibold text-blue-600 uppercase tracking-wider">Área Total da Peça:</span>
                       <div className="flex items-baseline gap-2">
                         <span className="text-3xl font-bold text-blue-900">
-                          {num(Number(form.width) * Number(form.height))} m²
+                          {num(Number(form.width) * Number(form.height))} cm²
                         </span>
                         <span className="text-sm text-blue-600/70">
-                          ({form.width}m × {form.height}m)
+                          ({form.width}cm × {form.height}cm)
                         </span>
                       </div>
                       <div className="mt-2 flex items-center gap-2 text-xs text-blue-700 font-medium bg-blue-100/50 w-fit px-3 py-1 rounded-full">
@@ -1449,9 +1449,7 @@ function MaterialsPage() {
                             <span className={`text-[11px] font-bold px-2 py-0.5 rounded-md ${
                               cut.status === 'utilizado' ? 'text-green-600 bg-green-100' : 'text-success bg-success/10'
                             }`}>
-                              {brl(activeMaterial?.cost_price && activeMaterial?.width && activeMaterial?.height 
-                                ? (activeMaterial.cost_price / (activeMaterial.width * 100 * activeMaterial.height * 100)) * (cut.width * cut.height) 
-                                : 0)}
+                              {brl(cutMetrics.costPerCm2 * Number(cut.width || 0) * Number(cut.height || 0))}
                             </span>
                             <Select 
                               defaultValue={cut.status} 
