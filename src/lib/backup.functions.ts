@@ -185,6 +185,46 @@ export const importSystemData = createServerFn({ method: "POST" })
       const toInsert: Record<string, any>[] = [];
       const toUpdate: { id: string; row: Record<string, any> }[] = [];
 
+      // 1) Registros que já trazem chave primária: upsert (atualiza para a versão do backup)
+      const pkColumnForTable = table === "app_settings" ? "key" : "id";
+      const withPk: Record<string, any>[] = [];
+      const withoutPk: Record<string, any>[] = [];
+      const seenPk = new Set<string>();
+      for (const row of rows) {
+        const pk = row[pkColumnForTable];
+        if (pk !== null && pk !== undefined && String(pk).trim() !== "") {
+          const norm = String(pk).trim().toLowerCase();
+          if (seenPk.has(norm)) continue; // duplicado dentro do próprio arquivo
+          seenPk.add(norm);
+          withPk.push(row);
+        } else {
+          withoutPk.push(row);
+        }
+      }
+
+      for (const batch of chunk(withPk, 200)) {
+        const { error } = await supabaseAdmin
+          .from(table as any)
+          .upsert(batch, { onConflict: pkColumnForTable });
+        if (!error) {
+          res.updated += batch.length;
+          continue;
+        }
+        for (const row of batch) {
+          const { error: rowError } = await supabaseAdmin
+            .from(table as any)
+            .upsert(row, { onConflict: pkColumnForTable });
+          if (rowError) {
+            res.failed += 1;
+            res.error = res.error ?? rowError.message;
+          } else {
+            res.updated += 1;
+          }
+        }
+      }
+
+      rows = withoutPk;
+
       if (keys) {
         // Carrega registros existentes e monta índices por chave natural
         const { data: existing } = await supabaseAdmin
@@ -228,6 +268,7 @@ export const importSystemData = createServerFn({ method: "POST" })
       } else {
         toInsert.push(...rows);
       }
+
 
       // Inserções em lotes, com fallback linha a linha
       for (const batch of chunk(toInsert, 200)) {
