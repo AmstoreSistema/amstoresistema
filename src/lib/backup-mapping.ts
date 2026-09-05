@@ -631,7 +631,8 @@ const MAPPERS: Record<string, Mapper> = {
   },
   transactions: (t) => {
     const amount = num(pick(t, ["amount", "valor", "value", "total", "saldo"]));
-    if (!amount) return null;
+    const desc = str(pick(t, ["description", "descricao", "historico", "titulo", "obs"]));
+    if (!amount && !desc) return null;
     const rawType = slug(String(pick(t, ["type", "tipo", "natureza", "sentido"]) ?? "income"));
     const isExpense = ["expense", "saida", "despesa", "debito", "out", "pagamento", "pagar", "retirada"].includes(rawType);
     const due = pick(t, ["due_date", "data_vencimento", "vencimento"]);
