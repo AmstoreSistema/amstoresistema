@@ -178,6 +178,168 @@ export type Database = {
           },
         ]
       }
+      CashbackCategoria: {
+        Row: {
+          ativo: boolean
+          categoria_id: string | null
+          categoria_nome: string
+          created_at: string
+          id: string
+          percentual_cashback: number
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          categoria_id?: string | null
+          categoria_nome: string
+          created_at?: string
+          id?: string
+          percentual_cashback?: number
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          categoria_id?: string | null
+          categoria_nome?: string
+          created_at?: string
+          id?: string
+          percentual_cashback?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      CashbackCliente: {
+        Row: {
+          cliente_id: string
+          cliente_nome: string
+          created_at: string
+          id: string
+          saldo: number
+          ultima_atualizacao: string | null
+          updated_at: string
+        }
+        Insert: {
+          cliente_id: string
+          cliente_nome: string
+          created_at?: string
+          id?: string
+          saldo?: number
+          ultima_atualizacao?: string | null
+          updated_at?: string
+        }
+        Update: {
+          cliente_id?: string
+          cliente_nome?: string
+          created_at?: string
+          id?: string
+          saldo?: number
+          ultima_atualizacao?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      CashbackHistorico: {
+        Row: {
+          cliente_id: string
+          cliente_nome: string | null
+          codigo_venda: string | null
+          created_at: string
+          data: string
+          id: string
+          observacao: string | null
+          pagamento_id: string | null
+          percentual_aplicado: number | null
+          tipo: string
+          updated_at: string
+          valor: number
+          valor_pago_referencia: number | null
+          venda_id: string | null
+        }
+        Insert: {
+          cliente_id: string
+          cliente_nome?: string | null
+          codigo_venda?: string | null
+          created_at?: string
+          data?: string
+          id?: string
+          observacao?: string | null
+          pagamento_id?: string | null
+          percentual_aplicado?: number | null
+          tipo: string
+          updated_at?: string
+          valor?: number
+          valor_pago_referencia?: number | null
+          venda_id?: string | null
+        }
+        Update: {
+          cliente_id?: string
+          cliente_nome?: string | null
+          codigo_venda?: string | null
+          created_at?: string
+          data?: string
+          id?: string
+          observacao?: string | null
+          pagamento_id?: string | null
+          percentual_aplicado?: number | null
+          tipo?: string
+          updated_at?: string
+          valor?: number
+          valor_pago_referencia?: number | null
+          venda_id?: string | null
+        }
+        Relationships: []
+      }
+      CashbackMovimentacao: {
+        Row: {
+          categorias: string[] | null
+          cliente_id: string
+          cliente_nome: string | null
+          codigo_venda: string | null
+          created_at: string
+          data: string
+          id: string
+          observacao: string | null
+          percentual_total: number | null
+          status: string
+          updated_at: string
+          valor_cashback: number
+          valor_pago_base: number | null
+          venda_id: string
+        }
+        Insert: {
+          categorias?: string[] | null
+          cliente_id: string
+          cliente_nome?: string | null
+          codigo_venda?: string | null
+          created_at?: string
+          data?: string
+          id?: string
+          observacao?: string | null
+          percentual_total?: number | null
+          status?: string
+          updated_at?: string
+          valor_cashback?: number
+          valor_pago_base?: number | null
+          venda_id: string
+        }
+        Update: {
+          categorias?: string[] | null
+          cliente_id?: string
+          cliente_nome?: string | null
+          codigo_venda?: string | null
+          created_at?: string
+          data?: string
+          id?: string
+          observacao?: string | null
+          percentual_total?: number | null
+          status?: string
+          updated_at?: string
+          valor_cashback?: number
+          valor_pago_base?: number | null
+          venda_id?: string
+        }
+        Relationships: []
+      }
       clients: {
         Row: {
           address: string | null
@@ -229,6 +391,75 @@ export type Database = {
           state?: string | null
           updated_at?: string | null
           zip_code?: string | null
+        }
+        Relationships: []
+      }
+      CompraMaterial: {
+        Row: {
+          conta_id: string | null
+          conta_nome: string | null
+          created_at: string
+          data_compra: string
+          data_entrega_prevista: string | null
+          data_entrega_real: string | null
+          forma_pagamento: string | null
+          fornecedor_id: string
+          fornecedor_nome: string | null
+          id: string
+          materiais_entrada_dada: boolean
+          numero_compra: string
+          numero_nota_fiscal: string | null
+          observacoes: string | null
+          status: string
+          transacao_id: string | null
+          updated_at: string
+          valor_pago: number | null
+          valor_restante: number | null
+          valor_total: number
+        }
+        Insert: {
+          conta_id?: string | null
+          conta_nome?: string | null
+          created_at?: string
+          data_compra?: string
+          data_entrega_prevista?: string | null
+          data_entrega_real?: string | null
+          forma_pagamento?: string | null
+          fornecedor_id: string
+          fornecedor_nome?: string | null
+          id?: string
+          materiais_entrada_dada?: boolean
+          numero_compra: string
+          numero_nota_fiscal?: string | null
+          observacoes?: string | null
+          status?: string
+          transacao_id?: string | null
+          updated_at?: string
+          valor_pago?: number | null
+          valor_restante?: number | null
+          valor_total?: number
+        }
+        Update: {
+          conta_id?: string | null
+          conta_nome?: string | null
+          created_at?: string
+          data_compra?: string
+          data_entrega_prevista?: string | null
+          data_entrega_real?: string | null
+          forma_pagamento?: string | null
+          fornecedor_id?: string
+          fornecedor_nome?: string | null
+          id?: string
+          materiais_entrada_dada?: boolean
+          numero_compra?: string
+          numero_nota_fiscal?: string | null
+          observacoes?: string | null
+          status?: string
+          transacao_id?: string | null
+          updated_at?: string
+          valor_pago?: number | null
+          valor_restante?: number | null
+          valor_total?: number
         }
         Relationships: []
       }
@@ -392,6 +623,65 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      ItemCompraMaterial: {
+        Row: {
+          altura: number | null
+          compra_id: string
+          cor: string | null
+          created_at: string
+          id: string
+          largura: number | null
+          material_id: string | null
+          material_nome: string
+          material_tipo: string | null
+          preco_unitario: number
+          quantidade: number
+          subtotal: number | null
+          unidade_medida: string | null
+          updated_at: string
+        }
+        Insert: {
+          altura?: number | null
+          compra_id: string
+          cor?: string | null
+          created_at?: string
+          id?: string
+          largura?: number | null
+          material_id?: string | null
+          material_nome: string
+          material_tipo?: string | null
+          preco_unitario?: number
+          quantidade?: number
+          subtotal?: number | null
+          unidade_medida?: string | null
+          updated_at?: string
+        }
+        Update: {
+          altura?: number | null
+          compra_id?: string
+          cor?: string | null
+          created_at?: string
+          id?: string
+          largura?: number | null
+          material_id?: string | null
+          material_nome?: string
+          material_tipo?: string | null
+          preco_unitario?: number
+          quantidade?: number
+          subtotal?: number | null
+          unidade_medida?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ItemCompraMaterial_compra_id_fkey"
+            columns: ["compra_id"]
+            isOneToOne: false
+            referencedRelation: "CompraMaterial"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       material_categories: {
         Row: {
