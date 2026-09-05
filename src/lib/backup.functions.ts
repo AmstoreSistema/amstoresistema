@@ -27,11 +27,17 @@ export const exportSystemData = createServerFn({ method: "POST" })
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /** Remove valores indefinidos e IDs externos inválidos (não-UUID) que quebram as FKs. */
-function sanitizeRow(row: Record<string, any>) {
+function sanitizeRow(row: Record<string, any>, keepRawIds = false) {
   const out: Record<string, any> = {};
   for (const [key, value] of Object.entries(row)) {
     if (value === undefined) continue;
-    if ((key === "id" || key.endsWith("_id")) && typeof value === "string" && !UUID_RE.test(value)) continue;
+    if (
+      !keepRawIds &&
+      (key === "id" || key.endsWith("_id")) &&
+      typeof value === "string" &&
+      !UUID_RE.test(value)
+    )
+      continue;
     out[key] = value;
   }
   return out;
@@ -51,7 +57,7 @@ export const importSystemData = createServerFn({ method: "POST" })
   }).parse(data))
   .handler(async ({ data: { payload, tables: selectedTables } }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { mapForeignBackup, IMPORT_ORDER } = await import("@/lib/backup-mapping");
+    const { mapForeignBackup, IMPORT_ORDER, MIRROR_TABLES } = await import("@/lib/backup-mapping");
 
     const isNative = !!payload?.data && !!payload?.version;
     let dataToImport: Record<string, any[]> = {};
@@ -168,7 +174,8 @@ export const importSystemData = createServerFn({ method: "POST" })
       const rawRows = dataToImport[table];
       if (!Array.isArray(rawRows)) continue;
 
-      let rows = rawRows.filter((r) => r && typeof r === "object").map(sanitizeRow);
+      const keepRawIds = MIRROR_TABLES.includes(table);
+      let rows = rawRows.filter((r) => r && typeof r === "object").map((r) => sanitizeRow(r, keepRawIds));
       const res = { inserted: 0, updated: 0, failed: 0 } as {
         inserted: number; updated: number; failed: number; error?: string;
       };

@@ -237,6 +237,22 @@ export const TABLE_ALIASES: Record<string, string> = {
   composicoesmateriais: "product_materials",
   composicaomateriais: "product_materials",
 
+  // Cashback e compras de material (tabelas espelho do backup externo)
+  cashbackcategoria: "CashbackCategoria",
+  cashbackcategorias: "CashbackCategoria",
+  cashbackcliente: "CashbackCliente",
+  cashbackclientes: "CashbackCliente",
+  cashbackmovimentacao: "CashbackMovimentacao",
+  cashbackmovimentacoes: "CashbackMovimentacao",
+  cashbackhistorico: "CashbackHistorico",
+  cashbackhistoricos: "CashbackHistorico",
+  compramaterial: "CompraMaterial",
+  comprasmaterial: "CompraMaterial",
+  comprasmateriais: "CompraMaterial",
+  itemcompramaterial: "ItemCompraMaterial",
+  itenscompramaterial: "ItemCompraMaterial",
+  itemcompramateriais: "ItemCompraMaterial",
+
   // Coleções conhecidas que o Amstore não utiliza (ignoradas sem alerta)
   configuracaomaterial: IGNORED_TABLE,
   configuracoesmaterial: IGNORED_TABLE,
@@ -246,6 +262,7 @@ export const TABLE_ALIASES: Record<string, string> = {
   categoriatransacoes: IGNORED_TABLE,
   categoriastransacoes: IGNORED_TABLE,
 };
+
 
 
 const slug = (s: string) =>
@@ -731,6 +748,46 @@ const MAPPERS: Record<string, Mapper> = {
   }),
 };
 
+/** Tabelas espelho: os campos do arquivo já têm os mesmos nomes das colunas. */
+const MIRROR_COLUMNS: Record<string, string[]> = {
+  CashbackCategoria: ["id", "categoria_id", "categoria_nome", "percentual_cashback", "ativo"],
+  CashbackCliente: ["id", "cliente_id", "cliente_nome", "saldo", "ultima_atualizacao"],
+  CashbackMovimentacao: [
+    "id", "cliente_id", "cliente_nome", "venda_id", "codigo_venda", "valor_pago_base",
+    "percentual_total", "valor_cashback", "status", "data", "categorias", "observacao",
+  ],
+  CashbackHistorico: [
+    "id", "cliente_id", "cliente_nome", "venda_id", "codigo_venda", "pagamento_id", "tipo",
+    "valor", "valor_pago_referencia", "percentual_aplicado", "data", "observacao",
+  ],
+  CompraMaterial: [
+    "id", "numero_compra", "fornecedor_id", "fornecedor_nome", "data_compra",
+    "data_entrega_prevista", "data_entrega_real", "status", "forma_pagamento", "valor_total",
+    "valor_pago", "valor_restante", "conta_id", "conta_nome", "transacao_id",
+    "numero_nota_fiscal", "observacoes", "materiais_entrada_dada",
+  ],
+  ItemCompraMaterial: [
+    "id", "compra_id", "material_id", "material_nome", "material_tipo", "quantidade",
+    "unidade_medida", "preco_unitario", "subtotal", "largura", "altura", "cor",
+  ],
+};
+
+/** Tabelas cujos IDs vêm do arquivo externo em formato livre (não UUID). */
+export const MIRROR_TABLES = Object.keys(MIRROR_COLUMNS);
+
+for (const [table, columns] of Object.entries(MIRROR_COLUMNS)) {
+  MAPPERS[table] = (row: any) => {
+    if (!row || typeof row !== "object") return null;
+    const out: Record<string, any> = {};
+    for (const column of columns) {
+      const value = pick(row, [column]);
+      if (value !== undefined && value !== "") out[column] = value;
+    }
+    return Object.keys(out).length ? out : null;
+  };
+}
+
+
 /** Ordem de inserção respeitando dependências simples. */
 export const IMPORT_ORDER = [
   "accounts",
@@ -752,6 +809,12 @@ export const IMPORT_ORDER = [
   "sale_items",
   "sale_payments",
   "sale_installments",
+  "CashbackCategoria",
+  "CashbackCliente",
+  "CashbackMovimentacao",
+  "CashbackHistorico",
+  "CompraMaterial",
+  "ItemCompraMaterial",
   "purchases",
   "purchase_items",
   "notifications",
