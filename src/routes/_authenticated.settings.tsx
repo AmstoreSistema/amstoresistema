@@ -1,5 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Settings, User, Bell, Database, Zap, Save, UserPlus, Shield, Power, Download, Upload, Store, Loader2, FileJson, CheckCircle } from "lucide-react";
+import { Settings, User, Bell, Database, Zap, Save, UserPlus, Shield, Power, Download, Upload, Store, Loader2, FileJson, CheckCircle, Trash2 } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { resetSystemData } from "@/lib/system-reset.functions";
 import { PageHeader } from "@/components/page-header";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
