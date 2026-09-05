@@ -237,6 +237,22 @@ export const TABLE_ALIASES: Record<string, string> = {
   composicoesmateriais: "product_materials",
   composicaomateriais: "product_materials",
 
+  // Cashback e compras de material (tabelas espelho do backup externo)
+  cashbackcategoria: "CashbackCategoria",
+  cashbackcategorias: "CashbackCategoria",
+  cashbackcliente: "CashbackCliente",
+  cashbackclientes: "CashbackCliente",
+  cashbackmovimentacao: "CashbackMovimentacao",
+  cashbackmovimentacoes: "CashbackMovimentacao",
+  cashbackhistorico: "CashbackHistorico",
+  cashbackhistoricos: "CashbackHistorico",
+  compramaterial: "CompraMaterial",
+  comprasmaterial: "CompraMaterial",
+  comprasmateriais: "CompraMaterial",
+  itemcompramaterial: "ItemCompraMaterial",
+  itenscompramaterial: "ItemCompraMaterial",
+  itemcompramateriais: "ItemCompraMaterial",
+
   // Coleções conhecidas que o Amstore não utiliza (ignoradas sem alerta)
   configuracaomaterial: IGNORED_TABLE,
   configuracoesmaterial: IGNORED_TABLE,
@@ -246,6 +262,7 @@ export const TABLE_ALIASES: Record<string, string> = {
   categoriatransacoes: IGNORED_TABLE,
   categoriastransacoes: IGNORED_TABLE,
 };
+
 
 
 const slug = (s: string) =>
