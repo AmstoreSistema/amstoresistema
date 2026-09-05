@@ -177,5 +177,15 @@ export const createNewUser = createServerFn({ method: "POST" })
 
     if (roleError) throw roleError;
 
+    await supabaseAdmin.from("user_profiles").upsert(
+      {
+        id: authUser.user.id,
+        email: data.email,
+        display_name: data.display_name.trim() || null,
+        active: true,
+      },
+      { onConflict: "id" },
+    );
+
     return { success: true };
   });
