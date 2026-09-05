@@ -957,7 +957,62 @@ function SettingsPage() {
               </Button>
             </CardFooter>
           </Card>
+
+          <Card className="rounded-[2rem] border-destructive/40 shadow-sm overflow-hidden mt-6">
+            <CardHeader className="bg-destructive/10 border-b border-destructive/30 p-8">
+              <CardTitle className="text-xl font-bold flex items-center gap-2 text-destructive">
+                <AlertTriangle className="size-5" /> Zona de Risco
+              </CardTitle>
+              <CardDescription>
+                Apague todos os dados do sistema e comece do zero. Usuários e configurações da loja são preservados.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="p-8 space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Serão apagados: vendas, fiados, pagamentos, transações, compras, estoque, produção, cortes,
+                produtos, materiais, clientes, fornecedores, promoções, etiquetas e notificações. Faça um backup antes.
+              </p>
+              <Dialog open={resetDialogOpen} onOpenChange={(o) => { setResetDialogOpen(o); if (!o) setResetConfirm(""); }}>
+                <DialogTrigger asChild>
+                  <Button variant="destructive" className="font-bold">
+                    <Trash2 className="size-4 mr-2" /> Zerar todos os dados
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle className="flex items-center gap-2 text-destructive">
+                      <AlertTriangle className="size-5" /> Zerar todos os dados
+                    </DialogTitle>
+                    <DialogDescription>
+                      Esta ação é definitiva e não pode ser desfeita. Digite <strong>ZERAR</strong> para confirmar.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <Input
+                    value={resetConfirm}
+                    onChange={(e) => setResetConfirm(e.target.value.toUpperCase())}
+                    placeholder="ZERAR"
+                    className="h-12"
+                  />
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setResetDialogOpen(false)} disabled={resetting}>
+                      Cancelar
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      disabled={resetConfirm !== "ZERAR" || resetting}
+                      onClick={handleResetSystem}
+                      className="font-bold"
+                    >
+                      {resetting ? <Loader2 className="size-4 mr-2 animate-spin" /> : <Trash2 className="size-4 mr-2" />}
+                      Confirmar exclusão
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            </CardContent>
+          </Card>
         </TabsContent>
+
 
         <TabsContent value="usuarios">
           <Card className="rounded-[2rem] border-border/40 shadow-sm overflow-hidden">
