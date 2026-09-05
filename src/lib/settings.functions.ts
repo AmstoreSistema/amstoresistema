@@ -112,12 +112,40 @@ export const updateUserRole = createServerFn({ method: "POST" })
     await assertAdmin(context.userId, context.claims);
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    
+
+    await supabaseAdmin.from("user_roles").delete().eq("user_id", data.userId);
+
     const { error } = await supabaseAdmin
       .from("user_roles")
-      .upsert({ user_id: data.userId, role: data.role }, { onConflict: "user_id" });
-    
+      .insert({ user_id: data.userId, role: data.role });
+
     if (error) throw error;
+    return { success: true };
+  });
+
+/** Atualiza o nome real da pessoa que usa aquele login. */
+export const updateUserName = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data) => z.object({ userId: z.string(), display_name: z.string().min(1) }).parse(data))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.userId, context.claims);
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const display_name = data.display_name.trim();
+
+    const { data: authUser, error: authError } = await supabaseAdmin.auth.admin.updateUserById(data.userId, {
+      user_metadata: { display_name },
+    });
+    if (authError) throw authError;
+
+    const { error } = await supabaseAdmin
+      .from("user_profiles")
+      .upsert(
+        { id: data.userId, display_name, email: authUser.user.email ?? null, active: true },
+        { onConflict: "id" },
+      );
+    if (error) throw error;
+
     return { success: true };
   });
 
@@ -145,9 +173,19 @@ export const createNewUser = createServerFn({ method: "POST" })
 
     const { error: roleError } = await supabaseAdmin
       .from("user_roles")
-      .upsert({ user_id: authUser.user.id, role: data.role }, { onConflict: "user_id" });
+      .upsert({ user_id: authUser.user.id, role: data.role }, { onConflict: "user_id,role" });
 
     if (roleError) throw roleError;
+
+    await supabaseAdmin.from("user_profiles").upsert(
+      {
+        id: authUser.user.id,
+        email: data.email,
+        display_name: data.display_name.trim() || null,
+        active: true,
+      },
+      { onConflict: "id" },
+    );
 
     return { success: true };
   });

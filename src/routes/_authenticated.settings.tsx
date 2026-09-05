@@ -11,7 +11,7 @@ import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { getAppSettings, updateAppSettingsBatch, getUsers, updateUserStatus, updateUserRole, createNewUser } from "@/lib/settings.functions";
+import { getAppSettings, updateAppSettingsBatch, getUsers, updateUserStatus, updateUserRole, createNewUser, updateUserName } from "@/lib/settings.functions";
 import { exportSystemData, importSystemData, inspectBackupFile } from "@/lib/backup.functions";
 import { IMPORT_ORDER } from "@/lib/backup-mapping";
 import { toast } from "sonner";
@@ -139,6 +139,7 @@ function SettingsPage() {
   const updateStatus = useServerFn(updateUserStatus);
   const updateRole = useServerFn(updateUserRole);
   const createUser = useServerFn(createNewUser);
+  const updateName = useServerFn(updateUserName);
   const exportData = useServerFn(exportSystemData);
   const importData = useServerFn(importSystemData);
   const inspectBackup = useServerFn(inspectBackupFile);
@@ -1067,6 +1068,23 @@ function SettingsPage() {
                     </div>
                     <div className="flex items-center gap-2">
                       <Badge className="bg-gold/20 text-gold border-gold/30">Administrador</Badge>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={async () => {
+                          const nome = prompt("Nome de quem usa este acesso:", user.display_name || "");
+                          if (nome === null || !nome.trim()) return;
+                          try {
+                            await updateName({ data: { userId: user.id, display_name: nome.trim() } });
+                            toast.success("Nome atualizado");
+                            loadData();
+                          } catch (error: any) {
+                            toast.error(error.message);
+                          }
+                        }}
+                      >
+                        Editar nome
+                      </Button>
                       {!['amstorebagshoes@gmail.com', 'matosmonica000@gmail.com'].includes(user.email) && (
                         <Button 
                           variant="ghost" 

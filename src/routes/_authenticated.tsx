@@ -33,6 +33,7 @@ export const Route = createFileRoute("/_authenticated")({
 
 function AuthenticatedLayout() {
   const [email, setEmail] = useState("");
+  const [name, setName] = useState("");
   const [role, setRole] = useState("Vendedor");
   const pathname = useRouterState({ select: (s) => s.location.pathname });
 
@@ -41,6 +42,13 @@ function AuthenticatedLayout() {
       const user = data.session?.user;
       if (user) {
         setEmail(user.email ?? "");
+        const metaName = (user.user_metadata as any)?.display_name as string | undefined;
+        const { data: profile } = await supabase
+          .from("user_profiles")
+          .select("display_name")
+          .eq("id", user.id)
+          .maybeSingle();
+        setName((profile?.display_name || metaName || "").trim());
         const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", user.id);
         const userRole = (roles && roles.length > 0) ? (roles[0] as any).role : "user";
         
@@ -86,7 +94,7 @@ function AuthenticatedLayout() {
     };
   }, []);
 
-  const initials = (email || "AM").slice(0, 2).toUpperCase();
+  const initials = (name || email || "AM").slice(0, 2).toUpperCase();
 
 
   return (
@@ -103,8 +111,8 @@ function AuthenticatedLayout() {
             </div>
             <div className="flex-1" />
             <div className="hidden text-right sm:block">
-              <p className="text-xs font-semibold leading-tight">{role}</p>
-              <p className="max-w-[180px] truncate text-[11px] text-muted-foreground">{email}</p>
+              <p className="max-w-[180px] truncate text-xs font-semibold leading-tight">{name || email}</p>
+              <p className="max-w-[180px] truncate text-[11px] text-muted-foreground">{name ? `${role} · ${email}` : role}</p>
             </div>
             <div className="flex size-9 items-center justify-center rounded-full bg-gradient-gold text-xs font-bold text-primary-foreground shadow-gold">
               {initials}
