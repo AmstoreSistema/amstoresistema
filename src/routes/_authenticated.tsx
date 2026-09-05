@@ -62,7 +62,7 @@ function AuthenticatedLayout() {
   // Mantém a sessão ativa por 12h de inatividade
   useEffect(() => {
     touchActivity();
-    const events: Array<keyof WindowEventMap> = ["click", "keydown", "pointerdown", "visibilitychange"];
+    const events: Array<keyof WindowEventMap> = ["click", "keydown", "pointerdown", "focus"];
     let last = 0;
     const onActivity = () => {
       const now = Date.now();

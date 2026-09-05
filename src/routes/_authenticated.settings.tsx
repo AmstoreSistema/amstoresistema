@@ -1,5 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Settings, User, Bell, Database, Zap, Save, UserPlus, Shield, Power, Download, Upload, Store, Loader2, FileJson, CheckCircle } from "lucide-react";
+import { Settings, User, Bell, Database, Zap, Save, UserPlus, Shield, Power, Download, Upload, Store, Loader2, FileJson, CheckCircle, Trash2 } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { resetSystemData } from "@/lib/system-reset.functions";
 import { PageHeader } from "@/components/page-header";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
@@ -44,6 +46,24 @@ function SettingsPage() {
   const [backupProgress, setBackupProgress] = useState<{ active: boolean; currentTable: string; percent: number }>({ active: false, currentTable: "", percent: 0 });
   const [importDialog, setImportDialog] = useState<{ open: boolean; payload: any; selected: string[]; counts: Record<string, number>; skipped: Record<string, number>; format: "amstore" | "externo" }>({ open: false, payload: null, selected: [], counts: {}, skipped: {}, format: "amstore" });
   const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [resetDialogOpen, setResetDialogOpen] = useState(false);
+  const [resetConfirm, setResetConfirm] = useState("");
+  const [resetting, setResetting] = useState(false);
+  const runResetSystem = useServerFn(resetSystemData);
+
+  const handleResetSystem = async () => {
+    setResetting(true);
+    try {
+      await runResetSystem({ data: { confirm: "ZERAR" } });
+      toast.success("Sistema zerado com sucesso. Recarregando...");
+      setResetDialogOpen(false);
+      setTimeout(() => window.location.reload(), 1500);
+    } catch (error: any) {
+      toast.error(`Não foi possível zerar os dados: ${error?.message ?? "falha desconhecida"}`);
+    } finally {
+      setResetting(false);
+    }
+  };
   
   const backupModules = [
     {
@@ -957,7 +977,62 @@ function SettingsPage() {
               </Button>
             </CardFooter>
           </Card>
+
+          <Card className="rounded-[2rem] border-destructive/40 shadow-sm overflow-hidden mt-6">
+            <CardHeader className="bg-destructive/10 border-b border-destructive/30 p-8">
+              <CardTitle className="text-xl font-bold flex items-center gap-2 text-destructive">
+                <AlertTriangle className="size-5" /> Zona de Risco
+              </CardTitle>
+              <CardDescription>
+                Apague todos os dados do sistema e comece do zero. Usuários e configurações da loja são preservados.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="p-8 space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Serão apagados: vendas, fiados, pagamentos, transações, compras, estoque, produção, cortes,
+                produtos, materiais, clientes, fornecedores, promoções, etiquetas e notificações. Faça um backup antes.
+              </p>
+              <Dialog open={resetDialogOpen} onOpenChange={(o) => { setResetDialogOpen(o); if (!o) setResetConfirm(""); }}>
+                <DialogTrigger asChild>
+                  <Button variant="destructive" className="font-bold">
+                    <Trash2 className="size-4 mr-2" /> Zerar todos os dados
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle className="flex items-center gap-2 text-destructive">
+                      <AlertTriangle className="size-5" /> Zerar todos os dados
+                    </DialogTitle>
+                    <DialogDescription>
+                      Esta ação é definitiva e não pode ser desfeita. Digite <strong>ZERAR</strong> para confirmar.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <Input
+                    value={resetConfirm}
+                    onChange={(e) => setResetConfirm(e.target.value.toUpperCase())}
+                    placeholder="ZERAR"
+                    className="h-12"
+                  />
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setResetDialogOpen(false)} disabled={resetting}>
+                      Cancelar
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      disabled={resetConfirm !== "ZERAR" || resetting}
+                      onClick={handleResetSystem}
+                      className="font-bold"
+                    >
+                      {resetting ? <Loader2 className="size-4 mr-2 animate-spin" /> : <Trash2 className="size-4 mr-2" />}
+                      Confirmar exclusão
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            </CardContent>
+          </Card>
         </TabsContent>
+
 
         <TabsContent value="usuarios">
           <Card className="rounded-[2rem] border-border/40 shadow-sm overflow-hidden">
