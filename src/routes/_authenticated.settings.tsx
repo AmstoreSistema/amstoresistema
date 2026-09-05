@@ -46,6 +46,24 @@ function SettingsPage() {
   const [backupProgress, setBackupProgress] = useState<{ active: boolean; currentTable: string; percent: number }>({ active: false, currentTable: "", percent: 0 });
   const [importDialog, setImportDialog] = useState<{ open: boolean; payload: any; selected: string[]; counts: Record<string, number>; skipped: Record<string, number>; format: "amstore" | "externo" }>({ open: false, payload: null, selected: [], counts: {}, skipped: {}, format: "amstore" });
   const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [resetDialogOpen, setResetDialogOpen] = useState(false);
+  const [resetConfirm, setResetConfirm] = useState("");
+  const [resetting, setResetting] = useState(false);
+  const runResetSystem = useServerFn(resetSystemData);
+
+  const handleResetSystem = async () => {
+    setResetting(true);
+    try {
+      await runResetSystem({ data: { confirm: "ZERAR" } });
+      toast.success("Sistema zerado com sucesso. Recarregando...");
+      setResetDialogOpen(false);
+      setTimeout(() => window.location.reload(), 1500);
+    } catch (error: any) {
+      toast.error(`Não foi possível zerar os dados: ${error?.message ?? "falha desconhecida"}`);
+    } finally {
+      setResetting(false);
+    }
+  };
   
   const backupModules = [
     {
