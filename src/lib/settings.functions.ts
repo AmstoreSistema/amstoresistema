@@ -173,7 +173,7 @@ export const createNewUser = createServerFn({ method: "POST" })
 
     const { error: roleError } = await supabaseAdmin
       .from("user_roles")
-      .upsert({ user_id: authUser.user.id, role: data.role }, { onConflict: "user_id" });
+      .upsert({ user_id: authUser.user.id, role: data.role }, { onConflict: "user_id,role" });
 
     if (roleError) throw roleError;
 

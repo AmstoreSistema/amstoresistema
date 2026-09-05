@@ -33,7 +33,7 @@ export async function assertAdmin(userId: string, claims: any) {
       isAdmin = true;
       await supabaseAdmin
         .from("user_roles")
-        .upsert({ user_id: userId, role: "admin" }, { onConflict: "user_id" });
+        .upsert({ user_id: userId, role: "admin" }, { onConflict: "user_id,role" });
     }
   }
 
@@ -41,7 +41,7 @@ export async function assertAdmin(userId: string, claims: any) {
     isAdmin = true;
     await supabaseAdmin
       .from("user_roles")
-      .upsert({ user_id: userId, role: "admin" }, { onConflict: "user_id" });
+      .upsert({ user_id: userId, role: "admin" }, { onConflict: "user_id,role" });
   }
 
   if (!isAdmin) {
