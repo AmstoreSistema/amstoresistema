@@ -23,11 +23,12 @@ export const Route = createFileRoute("/manifest.webmanifest")({
           background_color: appearance.splash_bg,
           theme_color: appearance.splash_bg,
           icons: [
-            { src: `/icon-192-maskable.png?v=${v}`, sizes: "192x192", type: "image/png", purpose: "maskable" },
-            { src: `/icon-512-maskable.png?v=${v}`, sizes: "512x512", type: "image/png", purpose: "maskable" },
-            { src: `/icon-192.png?v=${v}`, sizes: "192x192", type: "image/png", purpose: "any" },
-            { src: `/icon-512.png?v=${v}`, sizes: "512x512", type: "image/png", purpose: "any" },
+            { src: `/app-icon-192-maskable.png?v=${v}`, sizes: "192x192", type: "image/png", purpose: "maskable" },
+            { src: `/app-icon-512-maskable.png?v=${v}`, sizes: "512x512", type: "image/png", purpose: "maskable" },
+            { src: `/app-icon-192.png?v=${v}`, sizes: "192x192", type: "image/png", purpose: "any" },
+            { src: `/app-icon-512.png?v=${v}`, sizes: "512x512", type: "image/png", purpose: "any" },
           ],
+
         };
 
         return new Response(JSON.stringify(manifest), {
