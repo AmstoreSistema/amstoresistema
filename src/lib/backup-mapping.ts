@@ -390,6 +390,36 @@ export function extractAllCollections(payload: any): Collections {
     }
   }
 
+  // Coleções filhas embutidas em cada registro (ex.: cada Venda traz itens_venda,
+  // pagamentos_venda e parcelas_venda dentro dela). Propagamos o código da venda
+  // do pai para cada filho, para que o vínculo seja reconstruído na importação.
+  const EMBEDDED_CHILDREN = ["itens_venda", "pagamentos_venda", "parcelas_venda"];
+  const parentCollections = payload?.dados && typeof payload.dados === "object" && !Array.isArray(payload.dados)
+    ? Object.values(payload.dados)
+    : [];
+  for (const collection of parentCollections) {
+    if (!Array.isArray(collection)) continue;
+    for (const parent of collection) {
+      if (!parent || typeof parent !== "object") continue;
+      const saleCode = parent["codigo_venda"] ?? parent["sale_code"] ?? parent["codigo"] ?? null;
+      const parentId = parent["id"] ?? null;
+      for (const childKey of EMBEDDED_CHILDREN) {
+        const children = parent[childKey];
+        if (!Array.isArray(children) || children.length === 0) continue;
+        const target = TABLE_ALIASES[slug(childKey)] || childKey;
+        const rows = children
+          .filter((c) => c && typeof c === "object" && !Array.isArray(c))
+          .map((c) => ({
+            ...c,
+            codigo_venda: c["codigo_venda"] ?? saleCode ?? undefined,
+            venda_id: c["venda_id"] ?? parentId ?? undefined,
+          }));
+        out[target] = (out[target] ?? []).concat(rows);
+      }
+    }
+  }
+
+
   const visit = (node: any, depth: number) => {
     if (!node || typeof node !== "object" || depth > 4) return;
     if (Array.isArray(node)) return;
@@ -677,8 +707,16 @@ const MAPPERS: Record<string, Mapper> = {
       due_date: due ? date(due).slice(0, 10) : null,
       created_at: date(pick(t, ["created_at", "data_transacao", "datatransacao", "data", "datapagamento", "criadoem"])),
       __account_name: str(pick(t, ["conta_nome", "contanome", "account_name", "conta"])) ?? null,
-      __client_name: str(pick(t, ["cliente_nome", "clientenome"])) ?? null,
+      __client_name:
+        str(pick(t, ["cliente_nome", "clientenome"])) ??
+        str(pick(t?.contexto_cliente ?? {}, ["nome", "name", "cliente_nome"])) ??
+        null,
       __supplier_name: str(pick(t, ["fornecedor_nome", "fornecedornome"])) ?? null,
+      __sale_code:
+        str(pick(t, ["codigo_venda", "codigovenda"])) ??
+        str(pick(t?.contexto_venda ?? {}, ["codigo_venda", "codigovenda", "sale_code", "codigo"])) ??
+        null,
+
     };
   },
   sales: (s) => {
