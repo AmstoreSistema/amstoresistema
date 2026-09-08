@@ -86,7 +86,7 @@ function AuthPage() {
   };
 
   const titles: Record<Mode, { title: string; description: string; action: string }> = {
-    signin: { title: "AmStore Gestão", description: "Entre no sistema para gerenciar sua produção", action: "Entrar" },
+    signin: { title: "AMSTORE GESTÃO FINANCEIRA", description: "Entre no sistema para gerenciar sua produção", action: "Entrar" },
     
     forgot: { title: "Recuperar senha", description: "Enviaremos um link para você definir uma nova senha", action: "Enviar link" },
   };
