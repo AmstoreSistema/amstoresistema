@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Settings, User, Bell, Database, Zap, Save, UserPlus, Shield, Power, Download, Upload, Store, Loader2, FileJson, CheckCircle, Trash2, Link2 } from "lucide-react";
+import { Settings, User, Bell, Database, Zap, Save, UserPlus, Shield, Power, Download, Upload, Store, Loader2, FileJson, CheckCircle, Trash2, Link2, ShoppingBag, DollarSign, Package, Gift, RefreshCw } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { resetSystemData } from "@/lib/system-reset.functions";
 import { PageHeader } from "@/components/page-header";
@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { getAppSettings, updateAppSettingsBatch, getUsers, updateUserStatus, updateUserRole, createNewUser, updateUserName } from "@/lib/settings.functions";
-import { exportSystemData, importSystemData, inspectBackupFile, reconcileOrphanTransactions } from "@/lib/backup.functions";
+import { exportSystemData, importSystemData, inspectBackupFile, reconcileOrphanTransactions, linkSaleItemsAndFillStock, getRestorationAuditReport } from "@/lib/backup.functions";
 import { IMPORT_ORDER } from "@/lib/backup-mapping";
 import { toast } from "sonner";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -63,8 +63,48 @@ function SettingsPage() {
     tableSummaries: {},
     errors: [],
   });
+
+  const [auditReport, setAuditReport] = useState<any>(null);
+  const [loadingAudit, setLoadingAudit] = useState(false);
+  const [linkingStock, setLinkingStock] = useState(false);
   const [reconciling, setReconciling] = useState(false);
+
   const reconcileTransactions = useServerFn(reconcileOrphanTransactions);
+  const runLinkStock = useServerFn(linkSaleItemsAndFillStock);
+  const fetchAudit = useServerFn(getRestorationAuditReport);
+
+  const loadAuditReport = async () => {
+    setLoadingAudit(true);
+    try {
+      const data = await fetchAudit();
+      setAuditReport(data);
+    } catch (err: any) {
+      console.warn("Erro ao carregar relatório de auditoria:", err?.message);
+    } finally {
+      setLoadingAudit(false);
+    }
+  };
+
+  const handleLinkStock = async () => {
+    setLinkingStock(true);
+    try {
+      toast.info("Vinculando itens das vendas aos produtos e preenchendo o estoque...");
+      const res: any = await runLinkStock();
+      if (res?.success) {
+        toast.success(
+          `Concluído: ${res.itemsLinked} itens vinculados, ${res.productsCreated} novos produtos criados e ${res.stockUpdated} estoques sincronizados!`,
+          { duration: 6000 }
+        );
+        loadAuditReport();
+      } else {
+        toast.error(`Erro ao vincular estoque: ${res?.message || "falha desconhecida"}`);
+      }
+    } catch (err: any) {
+      toast.error(`Erro ao vincular estoque: ${err.message}`);
+    } finally {
+      setLinkingStock(false);
+    }
+  };
 
   const handleReconcileTransactions = async () => {
     setReconciling(true);
@@ -76,6 +116,7 @@ function SettingsPage() {
           `Conciliação finalizada: ${res.fixedSales} vendas vinculadas e ${res.fixedClients} clientes vinculados (${res.totalOrphans} transações avaliadas).`,
           { duration: 6000 }
         );
+        loadAuditReport();
       } else {
         toast.error(`Erro ao conciliar transações: ${res?.message || "falha desconhecida"}`);
       }
@@ -159,6 +200,18 @@ function SettingsPage() {
       ]
     },
     {
+      id: "fidelidade",
+      label: "Fidelidade & Cashback",
+      items: [
+        { id: "cashback_config", label: "Regras de Cashback" },
+        { id: "cashback_entries", label: "Movimentações de Cashback" },
+        { id: "CashbackCategoria", label: "Categorias Cashback (Externo)" },
+        { id: "CashbackCliente", label: "Saldos Cashback (Externo)" },
+        { id: "CashbackMovimentacao", label: "Movimentações Cashback (Externo)" },
+        { id: "CashbackHistorico", label: "Histórico Cashback (Externo)" },
+      ]
+    },
+    {
       id: "sistema",
       label: "Sistema",
       items: [
@@ -193,6 +246,8 @@ function SettingsPage() {
         fetchSettings(),
         fetchUsers()
       ]);
+
+      loadAuditReport();
 
       const settingsData = settingsResult.status === "fulfilled" ? settingsResult.value : [];
       if (settingsResult.status === "rejected") {
@@ -765,6 +820,249 @@ function SettingsPage() {
                 </div>
               )}
 
+              {/* PAINEL DE AUDITORIA E RELATÓRIO COMPLETO DA RESTAURAÇÃO */}
+              <div className="rounded-3xl border border-gold/40 bg-gradient-to-br from-card via-card to-gold/5 p-6 sm:p-8 space-y-6 shadow-md">
+                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b pb-6">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className="text-[10px] font-black uppercase tracking-widest px-2.5 py-0.5 border-gold text-gold bg-gold/10">
+                        Status do Banco
+                      </Badge>
+                      <h3 className="text-xl font-black flex items-center gap-2 text-foreground">
+                        <Database className="size-5 text-gold" /> Relatório Completo da Restauração
+                      </h3>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      Contagem consolidada por área (Vendas, Transações, Estoque e Cashback) e pendências restantes.
+                    </p>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2.5">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={loadAuditReport}
+                      disabled={loadingAudit}
+                      className="h-10 text-xs font-bold gap-2 border-border/70 shadow-sm"
+                    >
+                      <RefreshCw className={`size-3.5 ${loadingAudit ? "animate-spin text-gold" : ""}`} />
+                      Atualizar Relatório
+                    </Button>
+
+                    <Button
+                      size="sm"
+                      onClick={handleLinkStock}
+                      disabled={linkingStock}
+                      className="h-10 text-xs font-bold gap-2 bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm"
+                    >
+                      {linkingStock ? <Spinner className="size-3.5 animate-spin" /> : <Package className="size-3.5" />}
+                      Ligar Itens & Preencher Estoque
+                    </Button>
+
+                    <Button
+                      size="sm"
+                      onClick={handleReconcileTransactions}
+                      disabled={reconciling}
+                      className="h-10 text-xs font-bold gap-2 bg-blue-600 hover:bg-blue-700 text-white shadow-sm"
+                    >
+                      {reconciling ? <Spinner className="size-3.5 animate-spin" /> : <Link2 className="size-3.5" />}
+                      Acertar Transações Órfãs
+                    </Button>
+                  </div>
+                </div>
+
+                {/* 4 Cards de Áreas */}
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5">
+                  {/* 1. Vendas */}
+                  <div className="p-5 rounded-2xl bg-card border border-border/70 shadow-sm space-y-4 hover:border-gold/50 transition-all">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2.5">
+                        <div className="p-2.5 rounded-xl bg-gold/10 text-gold border border-gold/20">
+                          <ShoppingBag className="size-4" />
+                        </div>
+                        <h4 className="font-black text-sm text-foreground">Vendas</h4>
+                      </div>
+                      <Badge
+                        variant="outline"
+                        className={`text-[10px] font-black uppercase tracking-wider ${
+                          auditReport?.sales?.status === "ok"
+                            ? "border-emerald-500/40 text-emerald-600 bg-emerald-500/10"
+                            : "border-amber-500/40 text-amber-600 bg-amber-500/10"
+                        }`}
+                      >
+                        {auditReport?.sales?.status === "ok" ? "Integrado" : "Atenção"}
+                      </Badge>
+                    </div>
+
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-baseline text-xs">
+                        <span className="text-muted-foreground">Total de Vendas:</span>
+                        <span className="font-bold text-sm text-foreground">{auditReport?.sales?.total ?? 0}</span>
+                      </div>
+                      <div className="flex justify-between items-baseline text-xs">
+                        <span className="text-muted-foreground">Itens de Venda:</span>
+                        <span className="font-bold text-foreground">{auditReport?.sales?.items ?? 0}</span>
+                      </div>
+                      <div className="flex justify-between items-baseline text-xs">
+                        <span className="text-muted-foreground">Pagamentos / Parcelas:</span>
+                        <span className="font-bold text-foreground">
+                          {auditReport?.sales?.payments ?? 0} / {auditReport?.sales?.installments ?? 0}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-baseline text-xs">
+                        <span className="text-muted-foreground">Vendas com Itens:</span>
+                        <span className="font-bold text-emerald-600">{auditReport?.sales?.salesWithItems ?? 0}</span>
+                      </div>
+                    </div>
+
+                    <div className="pt-3 border-t border-border/40 text-[11px] text-muted-foreground">
+                      <strong className="text-foreground block mb-0.5">O que falta:</strong>
+                      {auditReport?.sales?.missing ?? "Carregando relatório..."}
+                    </div>
+                  </div>
+
+                  {/* 2. Transações */}
+                  <div className="p-5 rounded-2xl bg-card border border-border/70 shadow-sm space-y-4 hover:border-gold/50 transition-all">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2.5">
+                        <div className="p-2.5 rounded-xl bg-blue-500/10 text-blue-600 border border-blue-500/20">
+                          <DollarSign className="size-4" />
+                        </div>
+                        <h4 className="font-black text-sm text-foreground">Transações</h4>
+                      </div>
+                      <Badge
+                        variant="outline"
+                        className={`text-[10px] font-black uppercase tracking-wider ${
+                          auditReport?.transactions?.status === "ok"
+                            ? "border-emerald-500/40 text-emerald-600 bg-emerald-500/10"
+                            : "border-amber-500/40 text-amber-600 bg-amber-500/10"
+                        }`}
+                      >
+                        {auditReport?.transactions?.status === "ok" ? "Conciliado" : "Pendências"}
+                      </Badge>
+                    </div>
+
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-baseline text-xs">
+                        <span className="text-muted-foreground">Total Transações:</span>
+                        <span className="font-bold text-sm text-foreground">{auditReport?.transactions?.total ?? 0}</span>
+                      </div>
+                      <div className="flex justify-between items-baseline text-xs">
+                        <span className="text-muted-foreground">Com Cliente:</span>
+                        <span className="font-bold text-emerald-600">{auditReport?.transactions?.withClient ?? 0}</span>
+                      </div>
+                      <div className="flex justify-between items-baseline text-xs">
+                        <span className="text-muted-foreground">Com Venda Vinculada:</span>
+                        <span className="font-bold text-blue-600">{auditReport?.transactions?.withSale ?? 0}</span>
+                      </div>
+                      <div className="flex justify-between items-baseline text-xs">
+                        <span className="text-muted-foreground">Órfãs (sem vínculo):</span>
+                        <span
+                          className={`font-bold ${
+                            (auditReport?.transactions?.pureOrphans ?? 0) > 0 ? "text-destructive" : "text-emerald-600"
+                          }`}
+                        >
+                          {auditReport?.transactions?.pureOrphans ?? 0}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="pt-3 border-t border-border/40 text-[11px] text-muted-foreground">
+                      <strong className="text-foreground block mb-0.5">O que falta:</strong>
+                      {auditReport?.transactions?.missing ?? "Carregando relatório..."}
+                    </div>
+                  </div>
+
+                  {/* 3. Estoque */}
+                  <div className="p-5 rounded-2xl bg-card border border-border/70 shadow-sm space-y-4 hover:border-gold/50 transition-all">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2.5">
+                        <div className="p-2.5 rounded-xl bg-amber-500/10 text-amber-600 border border-amber-500/20">
+                          <Package className="size-4" />
+                        </div>
+                        <h4 className="font-black text-sm text-foreground">Estoque</h4>
+                      </div>
+                      <Badge
+                        variant="outline"
+                        className={`text-[10px] font-black uppercase tracking-wider ${
+                          auditReport?.stock?.status === "ok"
+                            ? "border-emerald-500/40 text-emerald-600 bg-emerald-500/10"
+                            : "border-amber-500/40 text-amber-600 bg-amber-500/10"
+                        }`}
+                      >
+                        {auditReport?.stock?.status === "ok" ? "Preenchido" : "Ajustar"}
+                      </Badge>
+                    </div>
+
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-baseline text-xs">
+                        <span className="text-muted-foreground">Total de Produtos:</span>
+                        <span className="font-bold text-sm text-foreground">{auditReport?.stock?.totalProducts ?? 0}</span>
+                      </div>
+                      <div className="flex justify-between items-baseline text-xs">
+                        <span className="text-muted-foreground">Com Estoque Positivo:</span>
+                        <span className="font-bold text-emerald-600">{auditReport?.stock?.productsWithStock ?? 0}</span>
+                      </div>
+                      <div className="flex justify-between items-baseline text-xs">
+                        <span className="text-muted-foreground">Com Estoque Zerado:</span>
+                        <span className="font-bold text-amber-600">{auditReport?.stock?.productsZeroStock ?? 0}</span>
+                      </div>
+                      <div className="flex justify-between items-baseline text-xs">
+                        <span className="text-muted-foreground">Estoque Detalhado:</span>
+                        <span className="font-bold text-foreground">{auditReport?.stock?.totalStockRecords ?? 0}</span>
+                      </div>
+                    </div>
+
+                    <div className="pt-3 border-t border-border/40 text-[11px] text-muted-foreground">
+                      <strong className="text-foreground block mb-0.5">O que falta:</strong>
+                      {auditReport?.stock?.missing ?? "Carregando relatório..."}
+                    </div>
+                  </div>
+
+                  {/* 4. Cashback */}
+                  <div className="p-5 rounded-2xl bg-card border border-border/70 shadow-sm space-y-4 hover:border-gold/50 transition-all">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2.5">
+                        <div className="p-2.5 rounded-xl bg-purple-500/10 text-purple-600 border border-purple-500/20">
+                          <Gift className="size-4" />
+                        </div>
+                        <h4 className="font-black text-sm text-foreground">Cashback</h4>
+                      </div>
+                      <Badge
+                        variant="outline"
+                        className={`text-[10px] font-black uppercase tracking-wider ${
+                          auditReport?.cashback?.status === "ok"
+                            ? "border-emerald-500/40 text-emerald-600 bg-emerald-500/10"
+                            : "border-amber-500/40 text-amber-600 bg-amber-500/10"
+                        }`}
+                      >
+                        {auditReport?.cashback?.status === "ok" ? "Configurado" : "Pendente"}
+                      </Badge>
+                    </div>
+
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-baseline text-xs">
+                        <span className="text-muted-foreground">Regras Ativas:</span>
+                        <span className="font-bold text-sm text-foreground">{auditReport?.cashback?.activeConfigs ?? 0}</span>
+                      </div>
+                      <div className="flex justify-between items-baseline text-xs">
+                        <span className="text-muted-foreground">Clientes c/ Saldo:</span>
+                        <span className="font-bold text-purple-600">{auditReport?.cashback?.clientsWithCashback ?? 0}</span>
+                      </div>
+                      <div className="flex justify-between items-baseline text-xs">
+                        <span className="text-muted-foreground">Movimentações:</span>
+                        <span className="font-bold text-foreground">{auditReport?.cashback?.totalEntries ?? 0}</span>
+                      </div>
+                    </div>
+
+                    <div className="pt-3 border-t border-border/40 text-[11px] text-muted-foreground">
+                      <strong className="text-foreground block mb-0.5">O que falta:</strong>
+                      {auditReport?.cashback?.missing ?? "Carregando relatório..."}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 flex gap-4">
                 <div className="bg-white rounded-full p-2 h-fit border border-blue-200">
                   <CheckCircle2 className="size-5 text-blue-500" />
@@ -978,6 +1276,87 @@ function SettingsPage() {
                             Iniciar Restauração
                           </>
                         )}
+                      </Button>
+                    </CardFooter>
+                  </Card>
+                </div>
+              )}
+
+              {/* Relatório Final da Restauração Modal */}
+              {reportDialog.open && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-300">
+                  <Card className="w-full max-w-2xl max-h-[85vh] rounded-[2rem] border-gold/30 shadow-2xl overflow-hidden animate-in zoom-in duration-300 flex flex-col">
+                    <CardHeader className="bg-muted/50 border-b border-border/40 p-8 shrink-0">
+                      <div className="flex items-center gap-3">
+                        <div className="size-12 rounded-2xl bg-gold/10 flex items-center justify-center border border-gold/20">
+                          <CheckCircle className="size-6 text-gold" />
+                        </div>
+                        <div>
+                          <CardTitle className="text-2xl font-black">Relatório da Restauração</CardTitle>
+                          <CardDescription>Resumo dos registros inseridos, atualizados e vinculados aos produtos e clientes.</CardDescription>
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="p-8 overflow-y-auto flex-1 space-y-6">
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                        <div className="p-4 rounded-2xl bg-muted/30 border border-border/40 text-center">
+                          <span className="text-2xl font-black text-foreground">{reportDialog.inserted}</span>
+                          <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider mt-1">Inseridos</p>
+                        </div>
+                        <div className="p-4 rounded-2xl bg-muted/30 border border-border/40 text-center">
+                          <span className="text-2xl font-black text-gold">{reportDialog.updated}</span>
+                          <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider mt-1">Atualizados</p>
+                        </div>
+                        <div className="p-4 rounded-2xl bg-muted/30 border border-border/40 text-center">
+                          <span className="text-2xl font-black text-blue-500">{reportDialog.productsCreated}</span>
+                          <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider mt-1">Produtos Criados</p>
+                        </div>
+                        <div className="p-4 rounded-2xl bg-muted/30 border border-border/40 text-center">
+                          <span className={`text-2xl font-black ${reportDialog.failed > 0 ? "text-destructive" : "text-emerald-500"}`}>{reportDialog.failed}</span>
+                          <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider mt-1">Falhas</p>
+                        </div>
+                      </div>
+
+                      {Object.keys(reportDialog.tableSummaries).length > 0 && (
+                        <div className="space-y-3">
+                          <h4 className="font-bold text-sm text-foreground">Detalhamento por Coleção:</h4>
+                          <div className="divide-y border rounded-2xl overflow-hidden bg-muted/10 max-h-[30vh] overflow-y-auto">
+                            {Object.entries(reportDialog.tableSummaries).map(([table, counts]) => (
+                              <div key={table} className="flex items-center justify-between p-3 px-4 text-xs">
+                                <span className="font-semibold text-foreground">{table}</span>
+                                <div className="flex gap-3 text-muted-foreground">
+                                  <span className="text-emerald-600 font-medium">+{counts.inserted} novos</span>
+                                  <span className="text-gold font-medium">~{counts.updated} atualizados</span>
+                                  {counts.failed > 0 && <span className="text-destructive font-medium">!{counts.failed} erros</span>}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {reportDialog.errors.length > 0 && (
+                        <div className="p-4 rounded-2xl border border-destructive/30 bg-destructive/5 space-y-2">
+                          <h4 className="font-bold text-sm text-destructive flex items-center gap-2">
+                            <AlertTriangle className="size-4" /> Alertas encontrados:
+                          </h4>
+                          <ul className="text-xs text-destructive space-y-1 list-disc list-inside">
+                            {reportDialog.errors.map((err, i) => (
+                              <li key={i}>{err}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </CardContent>
+                    <CardFooter className="bg-muted/30 border-t border-border/40 p-6 flex justify-end shrink-0">
+                      <Button
+                        onClick={() => {
+                          setReportDialog((prev) => ({ ...prev, open: false }));
+                          loadAuditReport();
+                        }}
+                        className="bg-gradient-gold shadow-gold font-bold px-8"
+                      >
+                        Fechar e Atualizar Painel
                       </Button>
                     </CardFooter>
                   </Card>

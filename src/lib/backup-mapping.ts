@@ -769,25 +769,28 @@ const MAPPERS: Record<string, Mapper> = {
     };
   },
   sale_items: (si) => {
-    const prodName = str(pick(si, ["produto_nome", "produtonome", "produto", "nome"])) ?? null;
-    const sku = str(pick(si, ["sku", "codigo_produto", "codigoproduto", "codigo"])) ?? null;
-    const price = num(pick(si, ["unit_price", "preco_unitario", "valor_unitario", "valor"]));
-    const category = str(pick(si, ["category", "categoria", "categoria_nome", "categorianome"])) ?? "Geral";
+    const prodName = str(pick(si, ["produto_nome", "produtonome", "produto", "nome", "descricao", "description", "label", "item"])) ?? null;
+    const sku = str(pick(si, ["sku", "codigo_produto", "codigoproduto", "codigo", "referencia", "ref", "id_externo"])) ?? null;
+    const price = num(pick(si, ["unit_price", "preco_unitario", "valor_unitario", "valor", "preco", "price"]));
+    const category = str(pick(si, ["category", "categoria", "categoria_nome", "categorianome", "tipo"])) ?? "Geral";
     const color = str(pick(si, ["color", "cor"])) ?? null;
+    const finalName = prodName || (sku ? `Produto ${sku}` : null);
     return {
-      quantity: num(pick(si, ["quantity", "quantidade"]), 1) || 1,
+      quantity: num(pick(si, ["quantity", "quantidade", "qtd", "qtde"]), 1) || 1,
       unit_price: price,
       discount: num(pick(si, ["discount", "desconto"])),
-      numeracao: str(pick(si, ["numeracao", "tamanho"])) ?? null,
-      __sale_code: str(pick(si, ["codigo_venda", "codigovenda"])) ?? null,
-      __product_name: prodName,
-      __create_product: prodName
+      numeracao: str(pick(si, ["numeracao", "tamanho", "grade", "tamanho_calcado"])) ?? null,
+      __sale_code: str(pick(si, ["codigo_venda", "codigovenda", "sale_code", "venda_codigo", "venda"])) ?? null,
+      __product_name: finalName,
+      __product_sku: sku,
+      __create_product: finalName
         ? {
-            name: prodName,
+            name: finalName,
             sku,
             category,
             color,
             sale_price: price,
+            current_stock: stockQty(si) || 0,
           }
         : null,
     };
