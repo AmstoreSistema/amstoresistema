@@ -244,6 +244,42 @@ export const importSystemData = createServerFn({ method: "POST" })
       return out;
     }
 
+    // Tabelas de cashback exigem cliente_nome NOT NULL – preenche a partir do ID quando ausente.
+    const CASHBACK_NOME_TABLES = new Set([
+      "CashbackCliente",
+      "CashbackMovimentacao",
+      "CashbackHistorico",
+    ]);
+
+    async function enrichCashbackNomes(table: string, rows: Record<string, any>[]) {
+      if (!CASHBACK_NOME_TABLES.has(table)) return rows;
+      const needsEnrich = rows.some((r) => !r["cliente_nome"] && r["cliente_id"]);
+      if (!needsEnrich) return rows;
+
+      // Monta mapa id -> nome a partir dos clientes que aparecem nos registros
+      const idsToFetch = [...new Set(rows.map((r) => r["cliente_id"]).filter(Boolean))];
+      const idToName = new Map<string, string>();
+      for (const batch of chunk(idsToFetch, 200)) {
+        const { data } = await supabaseAdmin
+          .from("clients" as any)
+          .select("id,name")
+          .in("id", batch);
+        for (const c of (data as any[]) || []) {
+          if (c.id && c.name) idToName.set(String(c.id), String(c.name));
+        }
+      }
+
+      return rows.map((r) => {
+        if (!r["cliente_nome"] && r["cliente_id"]) {
+          const resolved = idToName.get(String(r["cliente_id"]));
+          if (resolved) r["cliente_nome"] = resolved;
+        }
+        // Se ainda não tiver cliente_nome, descarta o registro para evitar violação NOT NULL
+        if (!r["cliente_nome"]) return null;
+        return r;
+      }).filter(Boolean) as Record<string, any>[];
+    }
+
 
     for (const table of orderedTables) {
       const rawRows = dataToImport[table];
@@ -256,6 +292,7 @@ export const importSystemData = createServerFn({ method: "POST" })
       };
 
       rows = await resolveRefs(table, rows);
+      rows = await enrichCashbackNomes(table, rows);
 
       if (rows.length === 0) {
         results[table] = res;
