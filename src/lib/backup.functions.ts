@@ -141,7 +141,47 @@ export const importSystemData = createServerFn({ method: "POST" })
           ? await lookup("sales", "sale_code")
           : null;
 
+      // Estoque: cria os produtos que ainda não existem para o item aparecer na tela de Estoque
+      if (table === "stock_products" && productMap) {
+        const novos = new Map<string, Record<string, any>>();
+        for (const row of rows) {
+          const base = row["__create_product"];
+          if (!base?.name) continue;
+          const key = norm(base.name);
+          if (productMap.get(key) || novos.has(key)) continue;
+          novos.set(key, {
+            name: base.name,
+            sku: base.sku ?? null,
+            category: base.category || "Geral",
+            color: base.color ?? null,
+            image_url: base.image_url ?? null,
+            cost_price: base.cost_price ?? 0,
+            sale_price: base.sale_price ?? 0,
+            wholesale_price: base.wholesale_price ?? null,
+            current_stock: 0,
+            min_stock: 0,
+            labor_cost: 0,
+            overhead_cost: 0,
+            retail_margin: 0,
+            wholesale_margin: 0,
+            active: true,
+          });
+        }
+        for (const batch of chunk([...novos.values()], 100)) {
+          const { data: created, error } = await supabaseAdmin
+            .from("products" as any)
+            .insert(batch)
+            .select("id,name");
+          if (error) {
+            console.error("[Import] falha ao criar produtos do estoque:", error.message);
+            continue;
+          }
+          for (const p of (created as any[]) || []) productMap.set(norm(p.name), p.id);
+        }
+      }
+
       const out: Record<string, any>[] = [];
+
       for (const row of rows) {
         const clientName = row["__client_name"];
         const productName = row["__product_name"];
@@ -313,6 +353,24 @@ export const importSystemData = createServerFn({ method: "POST" })
       console.log(`[Import] ${table}`, JSON.stringify(res));
       results[table] = res;
     }
+
+    // Sincroniza a quantidade dos produtos com o estoque restaurado
+    if (results["stock_products"]) {
+      const { data: stockRows } = await supabaseAdmin
+        .from("stock_products" as any)
+        .select("produto_id,quantidade_disponivel")
+        .limit(50000);
+      const totals = new Map<string, number>();
+      for (const r of (stockRows as any[]) || []) {
+        if (!r?.produto_id) continue;
+        totals.set(r.produto_id, (totals.get(r.produto_id) ?? 0) + Number(r.quantidade_disponivel ?? 0));
+      }
+      for (const [productId, qty] of totals) {
+        await supabaseAdmin.from("products" as any).update({ current_stock: qty }).eq("id", productId);
+      }
+    }
+
+
 
     const totalInserted = Object.values(results).reduce((s, r) => s + r.inserted, 0);
     const totalUpdated = Object.values(results).reduce((s, r) => s + r.updated, 0);

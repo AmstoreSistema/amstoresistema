@@ -568,21 +568,34 @@ const MAPPERS: Record<string, Mapper> = {
     const name = str(pick(s, ["produto_nome", "produtonome", "name", "nome", "produto", "descricao", "item"]));
     if (!name) return null;
     const numeracoes = pick(s, ["numeracoes", "numeracao", "tamanhos", "sizes", "grade", "variacoes"]);
+    const custo = num(pick(s, ["preco_custo", "custo", "cost_price", "valorcusto"]));
+    const venda = num(pick(s, ["preco_venda", "preco", "sale_price", "valor", "valorvenda"]));
     return {
       produto_nome: name,
       categoria: str(pick(s, ["categoria", "category", "tipo", "grupo"])) ?? null,
       quantidade_disponivel: stockQty(s),
       numeracoes:
         numeracoes && typeof numeracoes === "object" && !Array.isArray(numeracoes) ? numeracoes : null,
-      preco_custo: num(pick(s, ["preco_custo", "custo", "cost_price", "valorcusto"])),
-      preco_venda: num(pick(s, ["preco_venda", "preco", "sale_price", "valor", "valorvenda"])),
+      preco_custo: custo,
+      preco_venda: venda,
       localizacao: str(pick(s, ["localizacao", "location", "local", "prateleira"])) ?? null,
       lote: str(pick(s, ["lote", "batch", "num_lote"])) ?? null,
       data_entrada: date(pick(s, ["data_entrada", "created_at", "dataentrada", "data", "date"])),
       __product_name: name,
-
+      // Dados usados para criar o produto correspondente quando ele não existe
+      __create_product: {
+        name,
+        sku: str(pick(s, ["codigo_barras", "codigobarras", "sku", "codigo_produto", "codigo"])) ?? null,
+        category: str(pick(s, ["categoria", "category", "tipo", "grupo"])) ?? "Geral",
+        color: str(pick(s, ["cor", "color"])) ?? null,
+        image_url: image(s),
+        cost_price: custo,
+        sale_price: venda,
+        wholesale_price: num(pick(s, ["preco_atacado", "precoatacado", "atacado"]), 0) || null,
+      },
     };
   },
+
   financial_accounts: (a) => {
     const name = str(pick(a, ["name", "nome", "conta", "descricao", "banco"]));
     if (!name) return null;
