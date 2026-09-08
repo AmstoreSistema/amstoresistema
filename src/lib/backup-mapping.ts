@@ -707,8 +707,16 @@ const MAPPERS: Record<string, Mapper> = {
       due_date: due ? date(due).slice(0, 10) : null,
       created_at: date(pick(t, ["created_at", "data_transacao", "datatransacao", "data", "datapagamento", "criadoem"])),
       __account_name: str(pick(t, ["conta_nome", "contanome", "account_name", "conta"])) ?? null,
-      __client_name: str(pick(t, ["cliente_nome", "clientenome"])) ?? null,
+      __client_name:
+        str(pick(t, ["cliente_nome", "clientenome"])) ??
+        str(pick(t?.contexto_cliente ?? {}, ["nome", "name", "cliente_nome"])) ??
+        null,
       __supplier_name: str(pick(t, ["fornecedor_nome", "fornecedornome"])) ?? null,
+      __sale_code:
+        str(pick(t, ["codigo_venda", "codigovenda"])) ??
+        str(pick(t?.contexto_venda ?? {}, ["codigo_venda", "codigovenda", "sale_code", "codigo"])) ??
+        null,
+
     };
   },
   sales: (s) => {
