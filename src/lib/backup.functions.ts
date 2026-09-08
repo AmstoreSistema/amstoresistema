@@ -354,6 +354,24 @@ export const importSystemData = createServerFn({ method: "POST" })
       results[table] = res;
     }
 
+    // Sincroniza a quantidade dos produtos com o estoque restaurado
+    if (results["stock_products"]) {
+      const { data: stockRows } = await supabaseAdmin
+        .from("stock_products" as any)
+        .select("produto_id,quantidade_disponivel")
+        .limit(50000);
+      const totals = new Map<string, number>();
+      for (const r of (stockRows as any[]) || []) {
+        if (!r?.produto_id) continue;
+        totals.set(r.produto_id, (totals.get(r.produto_id) ?? 0) + Number(r.quantidade_disponivel ?? 0));
+      }
+      for (const [productId, qty] of totals) {
+        await supabaseAdmin.from("products" as any).update({ current_stock: qty }).eq("id", productId);
+      }
+    }
+
+
+
     const totalInserted = Object.values(results).reduce((s, r) => s + r.inserted, 0);
     const totalUpdated = Object.values(results).reduce((s, r) => s + r.updated, 0);
     const totalFailed = Object.values(results).reduce((s, r) => s + r.failed, 0);
