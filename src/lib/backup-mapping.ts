@@ -393,16 +393,39 @@ export function extractAllCollections(payload: any): Collections {
   // Coleções filhas embutidas em cada registro (ex.: cada Venda traz itens_venda,
   // pagamentos_venda e parcelas_venda dentro dela). Propagamos o código da venda
   // do pai para cada filho, para que o vínculo seja reconstruído na importação.
-  const EMBEDDED_CHILDREN = ["itens_venda", "pagamentos_venda", "parcelas_venda"];
-  const parentCollections = payload?.dados && typeof payload.dados === "object" && !Array.isArray(payload.dados)
-    ? Object.values(payload.dados)
-    : [];
+  const EMBEDDED_CHILDREN = [
+    "itens_venda", "itensvenda", "itens", "items", "produtos_venda", "produtosvenda",
+    "pagamentos_venda", "pagamentosvenda", "pagamentos", "payments",
+    "parcelas_venda", "parcelasvenda", "parcelas", "installments",
+  ];
+
+  const parentCollections: any[][] = [];
+  if (Array.isArray(payload)) {
+    parentCollections.push(payload);
+  }
+  if (payload && typeof payload === "object" && !Array.isArray(payload)) {
+    for (const val of Object.values(payload)) {
+      if (Array.isArray(val)) parentCollections.push(val);
+      else if (val && typeof val === "object" && !Array.isArray(val)) {
+        for (const subVal of Object.values(val)) {
+          if (Array.isArray(subVal)) parentCollections.push(subVal);
+        }
+      }
+    }
+  }
+
+  const seenParents = new Set<any>();
   for (const collection of parentCollections) {
     if (!Array.isArray(collection)) continue;
     for (const parent of collection) {
-      if (!parent || typeof parent !== "object") continue;
+      if (!parent || typeof parent !== "object" || seenParents.has(parent)) continue;
+      seenParents.add(parent);
+
       const saleCode = parent["codigo_venda"] ?? parent["sale_code"] ?? parent["codigo"] ?? null;
       const parentId = parent["id"] ?? null;
+      const clientName =
+        parent["cliente_nome"] ?? parent["clientenome"] ?? parent["cliente"] ?? parent?.contexto_cliente?.nome ?? null;
+
       for (const childKey of EMBEDDED_CHILDREN) {
         const children = parent[childKey];
         if (!Array.isArray(children) || children.length === 0) continue;
@@ -413,11 +436,13 @@ export function extractAllCollections(payload: any): Collections {
             ...c,
             codigo_venda: c["codigo_venda"] ?? saleCode ?? undefined,
             venda_id: c["venda_id"] ?? parentId ?? undefined,
+            cliente_nome: c["cliente_nome"] ?? clientName ?? undefined,
           }));
         out[target] = (out[target] ?? []).concat(rows);
       }
     }
   }
+
 
 
   const visit = (node: any, depth: number) => {
@@ -743,14 +768,30 @@ const MAPPERS: Record<string, Mapper> = {
       __client_name: str(pick(s, ["cliente_nome", "clientenome", "cliente"])) ?? null,
     };
   },
-  sale_items: (si) => ({
-    quantity: num(pick(si, ["quantity", "quantidade"]), 1) || 1,
-    unit_price: num(pick(si, ["unit_price", "preco_unitario", "valor_unitario", "valor"])),
-    discount: num(pick(si, ["discount", "desconto"])),
-    numeracao: str(pick(si, ["numeracao", "tamanho"])) ?? null,
-    __sale_code: str(pick(si, ["codigo_venda", "codigovenda"])) ?? null,
-    __product_name: str(pick(si, ["produto_nome", "produtonome", "produto", "nome"])) ?? null,
-  }),
+  sale_items: (si) => {
+    const prodName = str(pick(si, ["produto_nome", "produtonome", "produto", "nome"])) ?? null;
+    const sku = str(pick(si, ["sku", "codigo_produto", "codigoproduto", "codigo"])) ?? null;
+    const price = num(pick(si, ["unit_price", "preco_unitario", "valor_unitario", "valor"]));
+    const category = str(pick(si, ["category", "categoria", "categoria_nome", "categorianome"])) ?? "Geral";
+    const color = str(pick(si, ["color", "cor"])) ?? null;
+    return {
+      quantity: num(pick(si, ["quantity", "quantidade"]), 1) || 1,
+      unit_price: price,
+      discount: num(pick(si, ["discount", "desconto"])),
+      numeracao: str(pick(si, ["numeracao", "tamanho"])) ?? null,
+      __sale_code: str(pick(si, ["codigo_venda", "codigovenda"])) ?? null,
+      __product_name: prodName,
+      __create_product: prodName
+        ? {
+            name: prodName,
+            sku,
+            category,
+            color,
+            sale_price: price,
+          }
+        : null,
+    };
+  },
   sale_payments: (sp) => ({
     amount: num(pick(sp, ["amount", "valor_pago", "valor"])),
     payment_method: str(pick(sp, ["payment_method", "forma_pagamento", "formapagamento", "metodo", "forma"])) ?? "dinheiro",
@@ -761,6 +802,7 @@ const MAPPERS: Record<string, Mapper> = {
     const paid = num(pick(si, ["paid_amount", "valor_pago"]));
     const amount = num(pick(si, ["amount", "valor_parcela", "valorparcela", "valor"]));
     const paidAt = pick(si, ["paid_at", "data_pagamento", "datapagamento"]);
+    const paymentMethod = str(pick(si, ["payment_method", "forma_pagamento", "formapagamento", "metodo", "forma"])) ?? null;
     return {
       installment_number: num(pick(si, ["installment_number", "numero_parcela", "numeroparcela", "numero", "parcela"]), 1) || 1,
       amount,
@@ -768,10 +810,12 @@ const MAPPERS: Record<string, Mapper> = {
       remaining_amount: Math.max(amount - paid, 0),
       due_date: date(pick(si, ["due_date", "data_vencimento", "datavencimento", "vencimento"])),
       paid_at: paidAt ? date(paidAt) : null,
+      payment_method: paymentMethod,
       status: str(pick(si, ["status", "situacao"])) ?? (paid >= amount && amount > 0 ? "pago" : "pendente"),
       __sale_code: str(pick(si, ["codigo_venda", "codigovenda"])) ?? null,
     };
   },
+
 
   purchases: (p) => ({
     supplier_id: pick(p, ["supplier_id", "fornecedor_id"]),

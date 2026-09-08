@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Settings, User, Bell, Database, Zap, Save, UserPlus, Shield, Power, Download, Upload, Store, Loader2, FileJson, CheckCircle, Trash2 } from "lucide-react";
+import { Settings, User, Bell, Database, Zap, Save, UserPlus, Shield, Power, Download, Upload, Store, Loader2, FileJson, CheckCircle, Trash2, Link2 } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { resetSystemData } from "@/lib/system-reset.functions";
 import { PageHeader } from "@/components/page-header";
@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { getAppSettings, updateAppSettingsBatch, getUsers, updateUserStatus, updateUserRole, createNewUser, updateUserName } from "@/lib/settings.functions";
-import { exportSystemData, importSystemData, inspectBackupFile } from "@/lib/backup.functions";
+import { exportSystemData, importSystemData, inspectBackupFile, reconcileOrphanTransactions } from "@/lib/backup.functions";
 import { IMPORT_ORDER } from "@/lib/backup-mapping";
 import { toast } from "sonner";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -22,6 +22,7 @@ import { CheckCircle2, Info, Loader2 as Spinner, ImageIcon, AlertTriangle } from
 import { Progress } from "@/components/ui/progress";
 import { supabase } from "@/integrations/supabase/client";
 import logoAsset from "@/assets/amstore-symbol.png.asset.json";
+
 
 export const Route = createFileRoute("/_authenticated/settings")({
   head: () => ({
@@ -45,11 +46,52 @@ function SettingsPage() {
   const [selectedTables, setSelectedTables] = useState<string[]>([]);
   const [backupProgress, setBackupProgress] = useState<{ active: boolean; currentTable: string; percent: number }>({ active: false, currentTable: "", percent: 0 });
   const [importDialog, setImportDialog] = useState<{ open: boolean; payload: any; selected: string[]; counts: Record<string, number>; skipped: Record<string, number>; format: "amstore" | "externo" }>({ open: false, payload: null, selected: [], counts: {}, skipped: {}, format: "amstore" });
+  const [reportDialog, setReportDialog] = useState<{
+    open: boolean;
+    inserted: number;
+    updated: number;
+    failed: number;
+    productsCreated: number;
+    tableSummaries: Record<string, { inserted: number; updated: number; failed: number }>;
+    errors: string[];
+  }>({
+    open: false,
+    inserted: 0,
+    updated: 0,
+    failed: 0,
+    productsCreated: 0,
+    tableSummaries: {},
+    errors: [],
+  });
+  const [reconciling, setReconciling] = useState(false);
+  const reconcileTransactions = useServerFn(reconcileOrphanTransactions);
+
+  const handleReconcileTransactions = async () => {
+    setReconciling(true);
+    try {
+      toast.info("Verificando e vinculando transações órfãs aos clientes e vendas...");
+      const res: any = await reconcileTransactions();
+      if (res?.success) {
+        toast.success(
+          `Conciliação finalizada: ${res.fixedSales} vendas vinculadas e ${res.fixedClients} clientes vinculados (${res.totalOrphans} transações avaliadas).`,
+          { duration: 6000 }
+        );
+      } else {
+        toast.error(`Erro ao conciliar transações: ${res?.message || "falha desconhecida"}`);
+      }
+    } catch (err: any) {
+      toast.error(`Erro ao conciliar transações: ${err.message}`);
+    } finally {
+      setReconciling(false);
+    }
+  };
+
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [resetDialogOpen, setResetDialogOpen] = useState(false);
   const [resetConfirm, setResetConfirm] = useState("");
   const [resetting, setResetting] = useState(false);
   const runResetSystem = useServerFn(resetSystemData);
+
 
   const handleResetSystem = async () => {
     setResetting(true);
@@ -352,7 +394,10 @@ function SettingsPage() {
     setBackupProgress({ active: true, currentTable: "Iniciando restauração...", percent: 0 });
 
     let inserted = 0;
+    let updated = 0;
     let failed = 0;
+    let productsCreated = 0;
+    const tableSummaries: Record<string, { inserted: number; updated: number; failed: number }> = {};
     const errors: string[] = [];
 
     try {
@@ -371,11 +416,19 @@ function SettingsPage() {
           const result: any = await importData({ data: { payload, tables: [table] } });
           const tableResult = result?.results?.[table];
           
-          inserted += tableResult?.inserted ?? 0;
-          failed += tableResult?.failed ?? 0;
+          const ins = tableResult?.inserted ?? 0;
+          const upd = tableResult?.updated ?? 0;
+          const fail = tableResult?.failed ?? 0;
+
+          inserted += ins;
+          updated += upd;
+          failed += fail;
+          productsCreated += result?.summary?.productsCreated ?? 0;
+
+          tableSummaries[table] = { inserted: ins, updated: upd, failed: fail };
 
           // Se houve falha parcial na tabela, adicionamos aos erros para informar o usuário no final
-          if (tableResult?.failed > 0 && tableResult?.error) {
+          if (fail > 0 && tableResult?.error) {
             errors.push(`${label}: ${tableResult.error}`);
           }
         } catch (error: any) {
@@ -385,27 +438,31 @@ function SettingsPage() {
 
       setBackupProgress({ active: true, currentTable: "Finalizando...", percent: 100 });
 
-      if (inserted === 0 && failed > 0) {
+      if (inserted === 0 && updated === 0 && failed > 0) {
         toast.error(`A restauração falhou.${errors[0] ? ` ${errors[0]}` : ""}`);
-        return;
+      } else {
+        toast.success(`Restauração concluída: ${inserted} inseridos, ${updated} atualizados.`);
       }
 
-      toast.success(
-        `Restauração concluída: ${inserted} registros processados${failed ? ` (${failed} falhas)` : ""}${
-          errors.length ? ` · Algumas tabelas tiveram erros` : ""
-        }.`,
-      );
-      
-      // Delay um pouco maior para o usuário ver o 100%
-      setTimeout(() => window.location.reload(), 2500);
+      // Abre o diálogo com o relatório completo da restauração
+      setReportDialog({
+        open: true,
+        inserted,
+        updated,
+        failed,
+        productsCreated,
+        tableSummaries,
+        errors,
+      });
     } catch (error) {
       console.error("Erro import:", error);
       toast.error("Erro inesperado ao restaurar backup");
     } finally {
       setSaving(false);
-      setTimeout(() => setBackupProgress(prev => ({ ...prev, active: false })), 3000);
+      setTimeout(() => setBackupProgress(prev => ({ ...prev, active: false })), 2000);
     }
   };
+
   
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];

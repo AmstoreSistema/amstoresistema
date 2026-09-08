@@ -12,9 +12,9 @@ import { toast } from "sonner";
 export const Route = createFileRoute("/auth")({
   head: () => ({
     meta: [
-      { title: "Acesso | AmStore Gestão" },
+      { title: "Acesso | AMSTORE GESTÃO FINANCEIRA" },
       { name: "description", content: "Entre no sistema AmStore Gestão para administrar vendas, estoque e financeiro." },
-      { property: "og:title", content: "Acesso | AmStore Gestão" },
+      { property: "og:title", content: "Acesso | AMSTORE GESTÃO FINANCEIRA" },
       { property: "og:description", content: "Entre no sistema AmStore Gestão para administrar vendas, estoque e financeiro." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
@@ -87,7 +87,7 @@ function AuthPage() {
 
   const titles: Record<Mode, { title: string; description: string; action: string }> = {
     signin: { title: "AMSTORE GESTÃO FINANCEIRA", description: "Entre no sistema para gerenciar sua produção", action: "Entrar" },
-    
+
     forgot: { title: "Recuperar senha", description: "Enviaremos um link para você definir uma nova senha", action: "Enviar link" },
   };
 
