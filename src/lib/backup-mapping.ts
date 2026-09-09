@@ -775,9 +775,9 @@ const MAPPERS: Record<string, Mapper> = {
       created_at: date(pick(c, ["created_at", "criadoem"])),
     };
     // Inclui material_id se for UUID válido; caso contrário sinaliza para resolução por nome
-    if (material_id) row.material_id = material_id;
-    if (__material_name) row.__material_name = __material_name;
-    if (__material_sku) row.__material_sku = __material_sku;
+    if (material_id) row["material_id"] = material_id;
+    if (__material_name) row["__material_name"] = __material_name;
+    if (__material_sku) row["__material_sku"] = __material_sku;
     // Descarta se não tiver nenhuma referência de material
     if (!material_id && !__material_name && !__material_sku) return null;
     return row;

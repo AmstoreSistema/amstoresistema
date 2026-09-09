@@ -47,9 +47,9 @@ import { useServerFn } from "@tanstack/react-start";
 import { Badge } from "@/components/ui/badge";
 
 
-interface CartItem {
+export interface POSCartItem {
   id: string; // key
-  stock_id: string;
+  stock_id?: string | null;
   product_id: string;
   name: string;
   price: number;
@@ -57,14 +57,24 @@ interface CartItem {
   numeracao: string | null;
   discount: number;
   imagem_url?: string | null;
+  /** Se true, o estoque já foi debitado na saída do condicional — não debitar novamente */
+  skipStockDecrement?: boolean;
 }
 
+interface POSModalProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  /** Cliente pré-selecionado vindo de um Condicional */
+  initialClient?: any;
+  /** Itens pré-carregados vindos de um Condicional */
+  initialItems?: POSCartItem[];
+}
 
-export function POSModal({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
+export function POSModal({ open, onOpenChange, initialClient, initialItems }: POSModalProps) {
   const qc = useQueryClient();
   const { data: accounts = [] } = useRows<any>("financial_accounts");
   
-  const [items, setItems] = React.useState<CartItem[]>([]);
+  const [items, setItems] = React.useState<POSCartItem[]>([]);
   const [client, setClient] = React.useState<any>(null);
   const [paymentMethod, setPaymentMethod] = React.useState("Dinheiro");
   const [discount, setDiscount] = React.useState(0);
@@ -98,6 +108,14 @@ export function POSModal({ open, onOpenChange }: { open: boolean; onOpenChange: 
   });
 
   const fetchClientDetails = useServerFn(getClientDetails);
+
+  // Injeta cliente e itens vindos de um Condicional quando o modal abre
+  React.useEffect(() => {
+    if (open && initialItems && initialItems.length > 0) {
+      setItems(initialItems.map(i => ({ ...i, discount: (i as any).discount ?? 0 })));
+      if (initialClient) setClient(initialClient);
+    }
+  }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Auto-update accountId based on active account
   React.useEffect(() => {
@@ -328,7 +346,11 @@ export function POSModal({ open, onOpenChange }: { open: boolean; onOpenChange: 
         sale_code: saleCode,
         created_at: new Date(saleDate || new Date()).toISOString(),
         items: items.map(i => ({
-          stock_id: i.stock_id && !i.stock_id.startsWith("virtual:") ? i.stock_id : null,
+          // Se o item veio de condicional (skipStockDecrement), passamos stock_id=null
+          // para que a stored procedure não tente decrementar o estoque novamente
+          stock_id: (i as any).skipStockDecrement
+            ? null
+            : (i.stock_id && !i.stock_id.startsWith("virtual:") ? i.stock_id : null),
           product_id: i.product_id,
           quantity: i.quantity,
           unit_price: i.price,

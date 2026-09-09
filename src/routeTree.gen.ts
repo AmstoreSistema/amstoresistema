@@ -22,6 +22,7 @@ import { Route as AuthenticatedAuditRouteImport } from './routes/_authenticated.
 import { Route as AuthenticatedCashbackRouteImport } from './routes/_authenticated.cashback'
 import { Route as AuthenticatedCatalogRouteImport } from './routes/_authenticated.catalog'
 import { Route as AuthenticatedClientsRouteImport } from './routes/_authenticated.clients'
+import { Route as AuthenticatedCondicionaisRouteImport } from './routes/_authenticated.condicionais'
 import { Route as AuthenticatedCreditRouteImport } from './routes/_authenticated.credit'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated.dashboard'
 import { Route as AuthenticatedLabelsRouteImport } from './routes/_authenticated.labels'
@@ -106,6 +107,12 @@ const AuthenticatedClientsRoute = AuthenticatedClientsRouteImport.update({
   path: '/clients',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedCondicionaisRoute =
+  AuthenticatedCondicionaisRouteImport.update({
+    id: '/condicionais',
+    path: '/condicionais',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedCreditRoute = AuthenticatedCreditRouteImport.update({
   id: '/credit',
   path: '/credit',
@@ -220,6 +227,7 @@ export interface FileRoutesByFullPath {
   '/cashback': typeof AuthenticatedCashbackRoute
   '/catalog': typeof AuthenticatedCatalogRoute
   '/clients': typeof AuthenticatedClientsRoute
+  '/condicionais': typeof AuthenticatedCondicionaisRoute
   '/credit': typeof AuthenticatedCreditRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/labels': typeof AuthenticatedLabelsRoute
@@ -253,6 +261,7 @@ export interface FileRoutesByTo {
   '/cashback': typeof AuthenticatedCashbackRoute
   '/catalog': typeof AuthenticatedCatalogRoute
   '/clients': typeof AuthenticatedClientsRoute
+  '/condicionais': typeof AuthenticatedCondicionaisRoute
   '/credit': typeof AuthenticatedCreditRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/labels': typeof AuthenticatedLabelsRoute
@@ -288,6 +297,7 @@ export interface FileRoutesById {
   '/_authenticated/cashback': typeof AuthenticatedCashbackRoute
   '/_authenticated/catalog': typeof AuthenticatedCatalogRoute
   '/_authenticated/clients': typeof AuthenticatedClientsRoute
+  '/_authenticated/condicionais': typeof AuthenticatedCondicionaisRoute
   '/_authenticated/credit': typeof AuthenticatedCreditRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/labels': typeof AuthenticatedLabelsRoute
@@ -323,6 +333,7 @@ export interface FileRouteTypes {
     | '/cashback'
     | '/catalog'
     | '/clients'
+    | '/condicionais'
     | '/credit'
     | '/dashboard'
     | '/labels'
@@ -356,6 +367,7 @@ export interface FileRouteTypes {
     | '/cashback'
     | '/catalog'
     | '/clients'
+    | '/condicionais'
     | '/credit'
     | '/dashboard'
     | '/labels'
@@ -390,6 +402,7 @@ export interface FileRouteTypes {
     | '/_authenticated/cashback'
     | '/_authenticated/catalog'
     | '/_authenticated/clients'
+    | '/_authenticated/condicionais'
     | '/_authenticated/credit'
     | '/_authenticated/dashboard'
     | '/_authenticated/labels'
@@ -513,6 +526,13 @@ declare module '@tanstack/react-router' {
       path: '/clients'
       fullPath: '/clients'
       preLoaderRoute: typeof AuthenticatedClientsRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/condicionais': {
+      id: '/_authenticated/condicionais'
+      path: '/condicionais'
+      fullPath: '/condicionais'
+      preLoaderRoute: typeof AuthenticatedCondicionaisRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/credit': {
@@ -658,6 +678,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedCashbackRoute: typeof AuthenticatedCashbackRoute
   AuthenticatedCatalogRoute: typeof AuthenticatedCatalogRoute
   AuthenticatedClientsRoute: typeof AuthenticatedClientsRoute
+  AuthenticatedCondicionaisRoute: typeof AuthenticatedCondicionaisRoute
   AuthenticatedCreditRoute: typeof AuthenticatedCreditRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedLabelsRoute: typeof AuthenticatedLabelsRoute
@@ -685,6 +706,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedCashbackRoute: AuthenticatedCashbackRoute,
   AuthenticatedCatalogRoute: AuthenticatedCatalogRoute,
   AuthenticatedClientsRoute: AuthenticatedClientsRoute,
+  AuthenticatedCondicionaisRoute: AuthenticatedCondicionaisRoute,
   AuthenticatedCreditRoute: AuthenticatedCreditRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedLabelsRoute: AuthenticatedLabelsRoute,
