@@ -24,6 +24,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { useRows } from "@/lib/data";
 import { brl, dateTimeBR, num } from "@/lib/format";
+import { BirthdayAlertCard } from "@/components/BirthdayAlertCard";
 
 export const Route = createFileRoute("/_authenticated/store")({
   head: () => ({
@@ -219,6 +220,9 @@ function StorePanel() {
           </div>
         }
       />
+
+      {/* Cartão de Alerta de Aniversariantes de Hoje */}
+      <BirthdayAlertCard />
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard

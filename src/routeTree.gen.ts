@@ -18,6 +18,7 @@ import { Route as SorteioRouteImport } from './routes/sorteio'
 import { Route as SplashStartupDotpngRouteImport } from './routes/splash-startup[.]png'
 import { Route as AuthenticatedAccountsRouteImport } from './routes/_authenticated.accounts'
 import { Route as AuthenticatedAiDocsRouteImport } from './routes/_authenticated.ai-docs'
+import { Route as AuthenticatedAniversariantesRouteImport } from './routes/_authenticated.aniversariantes'
 import { Route as AuthenticatedAuditRouteImport } from './routes/_authenticated.audit'
 import { Route as AuthenticatedCashbackRouteImport } from './routes/_authenticated.cashback'
 import { Route as AuthenticatedCatalogRouteImport } from './routes/_authenticated.catalog'
@@ -87,6 +88,12 @@ const AuthenticatedAiDocsRoute = AuthenticatedAiDocsRouteImport.update({
   path: '/ai-docs',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedAniversariantesRoute =
+  AuthenticatedAniversariantesRouteImport.update({
+    id: '/aniversariantes',
+    path: '/aniversariantes',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedAuditRoute = AuthenticatedAuditRouteImport.update({
   id: '/audit',
   path: '/audit',
@@ -223,6 +230,7 @@ export interface FileRoutesByFullPath {
   '/splash-startup.png': typeof SplashStartupDotpngRoute
   '/accounts': typeof AuthenticatedAccountsRoute
   '/ai-docs': typeof AuthenticatedAiDocsRoute
+  '/aniversariantes': typeof AuthenticatedAniversariantesRoute
   '/audit': typeof AuthenticatedAuditRoute
   '/cashback': typeof AuthenticatedCashbackRoute
   '/catalog': typeof AuthenticatedCatalogRoute
@@ -257,6 +265,7 @@ export interface FileRoutesByTo {
   '/splash-startup.png': typeof SplashStartupDotpngRoute
   '/accounts': typeof AuthenticatedAccountsRoute
   '/ai-docs': typeof AuthenticatedAiDocsRoute
+  '/aniversariantes': typeof AuthenticatedAniversariantesRoute
   '/audit': typeof AuthenticatedAuditRoute
   '/cashback': typeof AuthenticatedCashbackRoute
   '/catalog': typeof AuthenticatedCatalogRoute
@@ -293,6 +302,7 @@ export interface FileRoutesById {
   '/splash-startup.png': typeof SplashStartupDotpngRoute
   '/_authenticated/accounts': typeof AuthenticatedAccountsRoute
   '/_authenticated/ai-docs': typeof AuthenticatedAiDocsRoute
+  '/_authenticated/aniversariantes': typeof AuthenticatedAniversariantesRoute
   '/_authenticated/audit': typeof AuthenticatedAuditRoute
   '/_authenticated/cashback': typeof AuthenticatedCashbackRoute
   '/_authenticated/catalog': typeof AuthenticatedCatalogRoute
@@ -329,6 +339,7 @@ export interface FileRouteTypes {
     | '/splash-startup.png'
     | '/accounts'
     | '/ai-docs'
+    | '/aniversariantes'
     | '/audit'
     | '/cashback'
     | '/catalog'
@@ -363,6 +374,7 @@ export interface FileRouteTypes {
     | '/splash-startup.png'
     | '/accounts'
     | '/ai-docs'
+    | '/aniversariantes'
     | '/audit'
     | '/cashback'
     | '/catalog'
@@ -398,6 +410,7 @@ export interface FileRouteTypes {
     | '/splash-startup.png'
     | '/_authenticated/accounts'
     | '/_authenticated/ai-docs'
+    | '/_authenticated/aniversariantes'
     | '/_authenticated/audit'
     | '/_authenticated/cashback'
     | '/_authenticated/catalog'
@@ -498,6 +511,13 @@ declare module '@tanstack/react-router' {
       path: '/ai-docs'
       fullPath: '/ai-docs'
       preLoaderRoute: typeof AuthenticatedAiDocsRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/aniversariantes': {
+      id: '/_authenticated/aniversariantes'
+      path: '/aniversariantes'
+      fullPath: '/aniversariantes'
+      preLoaderRoute: typeof AuthenticatedAniversariantesRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/audit': {
@@ -674,6 +694,7 @@ declare module '@tanstack/react-router' {
 interface AuthenticatedRouteChildren {
   AuthenticatedAccountsRoute: typeof AuthenticatedAccountsRoute
   AuthenticatedAiDocsRoute: typeof AuthenticatedAiDocsRoute
+  AuthenticatedAniversariantesRoute: typeof AuthenticatedAniversariantesRoute
   AuthenticatedAuditRoute: typeof AuthenticatedAuditRoute
   AuthenticatedCashbackRoute: typeof AuthenticatedCashbackRoute
   AuthenticatedCatalogRoute: typeof AuthenticatedCatalogRoute
@@ -702,6 +723,7 @@ interface AuthenticatedRouteChildren {
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedAccountsRoute: AuthenticatedAccountsRoute,
   AuthenticatedAiDocsRoute: AuthenticatedAiDocsRoute,
+  AuthenticatedAniversariantesRoute: AuthenticatedAniversariantesRoute,
   AuthenticatedAuditRoute: AuthenticatedAuditRoute,
   AuthenticatedCashbackRoute: AuthenticatedCashbackRoute,
   AuthenticatedCatalogRoute: AuthenticatedCatalogRoute,

@@ -18,6 +18,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useRows } from "@/lib/data";
 import { brl } from "@/lib/format";
 import { StatCard } from "@/components/stat-card";
+import { BirthdayAlertCard } from "@/components/BirthdayAlertCard";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({
@@ -80,6 +81,9 @@ function Dashboard() {
         </h1>
         <p className="text-muted-foreground">Bem-vindo à Amstore Gestão. Confira os números de hoje.</p>
       </div>
+
+      {/* Cartão de Alerta de Aniversariantes de Hoje */}
+      <BirthdayAlertCard />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard 
