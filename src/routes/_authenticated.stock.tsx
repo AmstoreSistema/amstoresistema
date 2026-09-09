@@ -93,6 +93,15 @@ type StockRecord = {
   numeracoes: Record<string, number> | null;
 };
 
+// Normalizador tolerante para categorias (ignora acentos, maiúsculas/minúsculas e terminação plural em "s")
+const normalizeCat = (value: unknown) =>
+  String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim()
+    .toLowerCase()
+    .replace(/s$/, "");
+
 function StockPage() {
   const qc = useQueryClient();
   const PAGE_SIZE = 25;
@@ -167,9 +176,30 @@ function StockPage() {
         q = q.or(`name.ilike.%${cleanTerm}%,sku.ilike.%${cleanTerm}%`);
       }
 
-      // Filtro avançado por categoria
+      // Filtro avançado por categoria (tolerante a maiúsculas, acentos e plural/singular)
       if (selectedCategory !== "Todas") {
-        q = q.eq("category", selectedCategory);
+        const targetNorm = normalizeCat(selectedCategory);
+
+        const { data: catProducts } = await supabase
+          .from("products")
+          .select("id, category");
+
+        const matchingIds = (catProducts || [])
+          .filter((p: any) => {
+            const pNorm = normalizeCat(p.category || "");
+            return (
+              pNorm === targetNorm ||
+              (pNorm.length > 0 && targetNorm.length > 0 && (pNorm.includes(targetNorm) || targetNorm.includes(pNorm)))
+            );
+          })
+          .map((p: any) => p.id);
+
+        if (matchingIds.length > 0) {
+          q = q.in("id", matchingIds);
+        } else {
+          // Nenhum produto nessa categoria
+          q = q.in("id", ["00000000-0000-0000-0000-000000000000"]);
+        }
       }
 
       // Filtro avançado por fornecedor
@@ -249,13 +279,13 @@ function StockPage() {
 
   const filtered = products;
 
-  // Consulta consolidada para os 5 StatCards de topo (mantém totais globais)
+  // Consulta consolidada para os 5 StatCards de topo (mantém totais globais) e categorias do banco
   const { data: statsData } = useQuery({
     queryKey: ["stock-stats"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("products")
-        .select("current_stock, min_stock, cost_price, sale_price, wholesale_price");
+        .select("category, current_stock, min_stock, cost_price, sale_price, wholesale_price");
 
       if (error) throw error;
 
@@ -283,6 +313,15 @@ function StockPage() {
         0
       );
 
+      // Extrai categorias reais existentes nos produtos do banco
+      const dbCategories = Array.from(
+        new Set(
+          all
+            .map((p: any) => (typeof p.category === "string" ? p.category.trim() : ""))
+            .filter(Boolean)
+        )
+      ).sort((a, b) => a.localeCompare(b, "pt-BR", { sensitivity: "base" }));
+
       return {
         totalProducts,
         totalUnits,
@@ -290,6 +329,7 @@ function StockPage() {
         totalCost,
         totalRetail,
         totalWholesale,
+        categories: dbCategories,
       };
     },
   });
@@ -301,7 +341,37 @@ function StockPage() {
     totalCost: 0,
     totalRetail: 0,
     totalWholesale: 0,
+    categories: [] as string[],
   };
+
+  // Categorias disponíveis no filtro avançado (reais do banco + padrões)
+  const availableCategories = useMemo(() => {
+    const defaultCats = ["Bolsa", "Sandálias", "Carteiras", "perfumes"];
+    const fromDb = stats.categories || [];
+
+    const seen = new Set<string>();
+    const list: string[] = [];
+
+    // Prioriza categorias do banco de dados
+    for (const cat of fromDb) {
+      const key = normalizeCat(cat);
+      if (key && !seen.has(key)) {
+        seen.add(key);
+        list.push(cat);
+      }
+    }
+
+    // Complementa com as categorias padrão se ainda não adicionadas
+    for (const cat of defaultCats) {
+      const key = normalizeCat(cat);
+      if (key && !seen.has(key)) {
+        seen.add(key);
+        list.push(cat);
+      }
+    }
+
+    return ["Todas", ...list];
+  }, [stats.categories]);
 
   const handleAdjust = async () => {
     if (!selectedProduct) return;
@@ -509,20 +579,27 @@ function StockPage() {
                         Categorias
                       </Label>
                       <div className="flex flex-wrap gap-1.5">
-                        {["Todas", "Bolsa", "Sandálias", "Carteiras", "perfumes"].map((cat) => (
-                          <button
-                            key={cat}
-                            type="button"
-                            onClick={() => setSelectedCategory(cat)}
-                            className={`rounded-lg px-2.5 py-1 text-xs font-medium transition-colors border ${
-                              selectedCategory === cat
-                                ? "bg-primary text-primary-foreground border-primary font-bold shadow-xs"
-                                : "border-border/60 text-muted-foreground hover:bg-muted/50 hover:text-foreground"
-                            }`}
-                          >
-                            {cat}
-                          </button>
-                        ))}
+                        {availableCategories.map((cat) => {
+                          const isSelected =
+                            (cat === "Todas" && selectedCategory === "Todas") ||
+                            (cat !== "Todas" &&
+                              (selectedCategory === cat || normalizeCat(selectedCategory) === normalizeCat(cat)));
+
+                          return (
+                            <button
+                              key={cat}
+                              type="button"
+                              onClick={() => setSelectedCategory(cat)}
+                              className={`rounded-lg px-2.5 py-1 text-xs font-medium transition-colors border ${
+                                isSelected
+                                  ? "bg-primary text-primary-foreground border-primary font-bold shadow-xs"
+                                  : "border-border/60 text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                              }`}
+                            >
+                              {cat}
+                            </button>
+                          );
+                        })}
                       </div>
                     </div>
 
