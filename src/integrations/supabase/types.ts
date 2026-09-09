@@ -463,6 +463,92 @@ export type Database = {
         }
         Relationships: []
       }
+      condicionais: {
+        Row: {
+          client_id: string | null
+          client_name: string | null
+          closed_at: string | null
+          codigo: string
+          created_at: string
+          id: string
+          notes: string | null
+          status: string
+          user_id: string | null
+        }
+        Insert: {
+          client_id?: string | null
+          client_name?: string | null
+          closed_at?: string | null
+          codigo: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          status?: string
+          user_id?: string | null
+        }
+        Update: {
+          client_id?: string | null
+          client_name?: string | null
+          closed_at?: string | null
+          codigo?: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          status?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      condicional_items: {
+        Row: {
+          condicional_id: string
+          created_at: string
+          id: string
+          numeracao: string | null
+          price: number
+          product_id: string
+          product_name: string
+          quantity: number
+          status: string
+          stock_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          condicional_id: string
+          created_at?: string
+          id?: string
+          numeracao?: string | null
+          price?: number
+          product_id: string
+          product_name: string
+          quantity?: number
+          status?: string
+          stock_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          condicional_id?: string
+          created_at?: string
+          id?: string
+          numeracao?: string | null
+          price?: number
+          product_id?: string
+          product_name?: string
+          quantity?: number
+          status?: string
+          stock_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "condicional_items_condicional_id_fkey"
+            columns: ["condicional_id"]
+            isOneToOne: false
+            referencedRelation: "condicionais"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       debt_payments: {
         Row: {
           amount: number
