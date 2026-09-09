@@ -1,1 +1,66 @@
--- ============================================================\n-- Tabela: condicionais (cabeçalho da saída condicional)\n-- ============================================================\nCREATE TABLE IF NOT EXISTS public.condicionais (\n  id          TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,\n  codigo      TEXT NOT NULL,\n  client_id   TEXT,\n  client_name TEXT,\n  status      TEXT NOT NULL DEFAULT 'aberto',  -- aberto | fechado | cancelado\n  notes       TEXT,\n  created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),\n  closed_at   TIMESTAMPTZ,\n  user_id     TEXT\n);\n\nCREATE UNIQUE INDEX IF NOT EXISTS condicionais_codigo_key ON public.condicionais (codigo);\n\nGRANT SELECT, INSERT, UPDATE, DELETE ON public.condicionais TO authenticated;\nGRANT ALL ON public.condicionais TO service_role;\nALTER TABLE public.condicionais ENABLE ROW LEVEL SECURITY;\nCREATE POLICY \"Authenticated can manage condicionais\"\n  ON public.condicionais FOR ALL TO authenticated\n  USING (true) WITH CHECK (true);\n\n-- ============================================================\n-- Tabela: condicional_items (itens de cada saída condicional)\n-- ============================================================\nCREATE TABLE IF NOT EXISTS public.condicional_items (\n  id               TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,\n  condicional_id   TEXT NOT NULL REFERENCES public.condicionais(id) ON DELETE CASCADE,\n  stock_id         TEXT,           -- id em stock_products (null para virtuais)\n  product_id       TEXT NOT NULL,  -- id em products\n  product_name     TEXT NOT NULL,\n  numeracao        TEXT,           -- tamanho/numeração\n  price            NUMERIC NOT NULL DEFAULT 0,\n  quantity         INTEGER NOT NULL DEFAULT 1,\n  status           TEXT NOT NULL DEFAULT 'pendente',  -- pendente | confirmado | devolvido\n  created_at       TIMESTAMPTZ NOT NULL DEFAULT now(),\n  updated_at       TIMESTAMPTZ NOT NULL DEFAULT now()\n);\n\nCREATE INDEX IF NOT EXISTS idx_condicional_items_condicional\n  ON public.condicional_items (condicional_id);\n\nGRANT SELECT, INSERT, UPDATE, DELETE ON public.condicional_items TO authenticated;\nGRANT ALL ON public.condicional_items TO service_role;\nALTER TABLE public.condicional_items ENABLE ROW LEVEL SECURITY;\nCREATE POLICY \"Authenticated can manage condicional_items\"\n  ON public.condicional_items FOR ALL TO authenticated\n  USING (true) WITH CHECK (true);
+-- ============================================================
+-- Tabela: condicionais (cabeçalho da saída condicional)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS public.condicionais (
+  id          TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  codigo      TEXT NOT NULL,
+  client_id   TEXT,
+  client_name TEXT,
+  status      TEXT NOT NULL DEFAULT 'aberto',  -- aberto | fechado | cancelado
+  notes       TEXT,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+  closed_at   TIMESTAMPTZ,
+  user_id     TEXT
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS condicionais_codigo_key ON public.condicionais (codigo);
+
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.condicionais TO authenticated;
+GRANT ALL ON public.condicionais TO service_role;
+ALTER TABLE public.condicionais ENABLE ROW LEVEL SECURITY;
+
+DO $$ 
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE tablename = 'condicionais' AND policyname = 'Authenticated can manage condicionais'
+  ) THEN
+    CREATE POLICY "Authenticated can manage condicionais"
+      ON public.condicionais FOR ALL TO authenticated
+      USING (true) WITH CHECK (true);
+  END IF;
+END $$;
+
+-- ============================================================
+-- Tabela: condicional_items (itens de cada saída condicional)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS public.condicional_items (
+  id               TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  condicional_id   TEXT NOT NULL REFERENCES public.condicionais(id) ON DELETE CASCADE,
+  stock_id         TEXT,           -- id em stock_products (null para virtuais)
+  product_id       TEXT NOT NULL,  -- id em products
+  product_name     TEXT NOT NULL,
+  numeracao        TEXT,           -- tamanho/numeração
+  price            NUMERIC NOT NULL DEFAULT 0,
+  quantity         INTEGER NOT NULL DEFAULT 1,
+  status           TEXT NOT NULL DEFAULT 'pendente',  -- pendente | confirmado | devolvido
+  created_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at       TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_condicional_items_condicional
+  ON public.condicional_items (condicional_id);
+
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.condicional_items TO authenticated;
+GRANT ALL ON public.condicional_items TO service_role;
+ALTER TABLE public.condicional_items ENABLE ROW LEVEL SECURITY;
+
+DO $$ 
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE tablename = 'condicional_items' AND policyname = 'Authenticated can manage condicional_items'
+  ) THEN
+    CREATE POLICY "Authenticated can manage condicional_items"
+      ON public.condicional_items FOR ALL TO authenticated
+      USING (true) WITH CHECK (true);
+  END IF;
+END $$;
