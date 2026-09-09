@@ -15,7 +15,8 @@ import {
   TrendingUp,
   AlertTriangle,
   CreditCard as InstallmentsIcon,
-  FileText
+  FileText,
+  X,
 } from "lucide-react";
 
 
@@ -31,6 +32,11 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { brl, dateBR } from "@/lib/format";
 import { useRows } from "@/lib/data";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
@@ -65,11 +71,57 @@ function SalesPage() {
   const PAGE_SIZE = 25;
   const [page, setPage] = useState(1);
   const [term, setTerm] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [periodPreset, setPeriodPreset] = useState<string>("all");
+  const [filterOpen, setFilterOpen] = useState(false);
 
-  // Reinicia a paginação para a página 1 ao aplicar filtros ou buscas
+  const applyPreset = (preset: string) => {
+    setPeriodPreset(preset);
+    const now = new Date();
+    const todayStr = now.toISOString().split("T")[0];
+
+    if (preset === "today") {
+      setStartDate(todayStr);
+      setEndDate(todayStr);
+    } else if (preset === "yesterday") {
+      const y = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+      const yStr = y.toISOString().split("T")[0];
+      setStartDate(yStr);
+      setEndDate(yStr);
+    } else if (preset === "7days") {
+      const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6);
+      setStartDate(d.toISOString().split("T")[0]);
+      setEndDate(todayStr);
+    } else if (preset === "30days") {
+      const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 29);
+      setStartDate(d.toISOString().split("T")[0]);
+      setEndDate(todayStr);
+    } else if (preset === "thisMonth") {
+      const start = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split("T")[0];
+      setStartDate(start);
+      setEndDate(todayStr);
+    } else if (preset === "lastMonth") {
+      const start = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString().split("T")[0];
+      const end = new Date(now.getFullYear(), now.getMonth(), 0).toISOString().split("T")[0];
+      setStartDate(start);
+      setEndDate(end);
+    } else if (preset === "all") {
+      setStartDate("");
+      setEndDate("");
+    }
+  };
+
+  const clearPeriodFilter = () => {
+    setStartDate("");
+    setEndDate("");
+    setPeriodPreset("all");
+  };
+
+  // Reinicia a paginação para a página 1 ao aplicar filtros, buscas ou período
   useEffect(() => {
     setPage(1);
-  }, [term]);
+  }, [term, startDate, endDate]);
 
   const { data: clients = [] } = useRows("clients");
   const clientById = useMemo(() => new Map(clients.map((c: any) => [c.id, c])), [clients]);
@@ -80,7 +132,7 @@ function SalesPage() {
 
   // Busca paginada no Supabase
   const { data: salesResult, isLoading } = useQuery({
-    queryKey: ["sales", page, term],
+    queryKey: ["sales", page, term, startDate, endDate],
     queryFn: async () => {
       let q = supabase
         .from("sales")
@@ -100,6 +152,13 @@ function SalesPage() {
         } else {
           q = q.or(`sale_code.ilike.%${cleanTerm}%,id.ilike.%${cleanTerm}%`);
         }
+      }
+
+      if (startDate) {
+        q = q.gte("created_at", `${startDate}T00:00:00`);
+      }
+      if (endDate) {
+        q = q.lte("created_at", `${endDate}T23:59:59`);
       }
 
       q = q.range(from, to);
@@ -238,9 +297,149 @@ function SalesPage() {
           >
             <AlertTriangle className="size-4" /> Atrasados
           </Button>
-          <Button variant="outline" size="icon" className="h-11 w-11 rounded-xl"><Filter className="size-4" /></Button>
+          
+          <Popover open={filterOpen} onOpenChange={setFilterOpen}>
+            <PopoverTrigger asChild>
+              <Button 
+                variant={startDate || endDate ? "default" : "outline"} 
+                className={`h-11 rounded-xl gap-2 px-3 font-semibold ${
+                  startDate || endDate ? "bg-gold hover:bg-gold/90 text-white border-none shadow-sm" : ""
+                }`}
+                title="Filtrar por período"
+              >
+                <Filter className="size-4" />
+                <span className="hidden sm:inline">
+                  {startDate || endDate ? "Período Ativo" : "Filtrar"}
+                </span>
+                {(startDate || endDate) && (
+                  <span className="size-2 rounded-full bg-white animate-pulse" />
+                )}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-80 rounded-2xl border-border/60 p-4 shadow-xl">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between border-b border-border/40 pb-2">
+                  <div className="flex items-center gap-2">
+                    <Calendar className="size-4 text-gold" />
+                    <h4 className="text-sm font-bold">Filtrar por Período</h4>
+                  </div>
+                  {(startDate || endDate) && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={clearPeriodFilter}
+                      className="h-7 px-2 text-xs text-muted-foreground hover:text-destructive"
+                    >
+                      Limpar
+                    </Button>
+                  )}
+                </div>
+
+                {/* Presets rápidos */}
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">
+                    Períodos Rápidos
+                  </label>
+                  <div className="grid grid-cols-2 gap-1.5">
+                    {[
+                      { id: "today", label: "Hoje" },
+                      { id: "yesterday", label: "Ontem" },
+                      { id: "7days", label: "Últimos 7 dias" },
+                      { id: "30days", label: "Últimos 30 dias" },
+                      { id: "thisMonth", label: "Este mês" },
+                      { id: "lastMonth", label: "Mês passado" },
+                    ].map((p) => (
+                      <Button
+                        key={p.id}
+                        type="button"
+                        size="sm"
+                        variant={periodPreset === p.id ? "default" : "outline"}
+                        className={`h-8 text-xs justify-start rounded-lg ${
+                          periodPreset === p.id ? "font-bold bg-primary text-primary-foreground" : "text-muted-foreground"
+                        }`}
+                        onClick={() => applyPreset(p.id)}
+                      >
+                        {p.label}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Datas personalizadas */}
+                <div className="space-y-3 pt-1 border-t border-border/40">
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">
+                      Data Inicial
+                    </label>
+                    <Input
+                      type="date"
+                      value={startDate}
+                      onChange={(e) => {
+                        setStartDate(e.target.value);
+                        setPeriodPreset("custom");
+                      }}
+                      className="h-9 rounded-lg text-xs"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">
+                      Data Final
+                    </label>
+                    <Input
+                      type="date"
+                      value={endDate}
+                      onChange={(e) => {
+                        setEndDate(e.target.value);
+                        setPeriodPreset("custom");
+                      }}
+                      className="h-9 rounded-lg text-xs"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between pt-2 border-t border-border/40">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 text-xs"
+                    onClick={clearPeriodFilter}
+                  >
+                    Ver Todas
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    className="h-8 text-xs font-bold bg-gold hover:bg-gold/90 text-white rounded-lg"
+                    onClick={() => setFilterOpen(false)}
+                  >
+                    Concluir
+                  </Button>
+                </div>
+              </div>
+            </PopoverContent>
+          </Popover>
         </div>
       </div>
+
+      {(startDate || endDate) && (
+        <div className="flex items-center gap-2 px-1">
+          <Badge variant="secondary" className="gap-1.5 py-1 px-2.5 rounded-lg text-xs">
+            <Calendar className="size-3 text-gold" />
+            <span>
+              Período: {startDate ? new Date(startDate + "T00:00:00").toLocaleDateString("pt-BR") : "Início"} até{" "}
+              {endDate ? new Date(endDate + "T00:00:00").toLocaleDateString("pt-BR") : "Hoje"}
+            </span>
+            <button
+              onClick={clearPeriodFilter}
+              className="ml-1 rounded-full hover:bg-muted p-0.5"
+              title="Remover filtro de período"
+            >
+              <X className="size-3 text-muted-foreground hover:text-foreground" />
+            </button>
+          </Badge>
+        </div>
+      )}
 
       {isLoading ? (
         <div className="space-y-8">

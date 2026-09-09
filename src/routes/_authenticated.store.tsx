@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
 import {
   ArrowLeftRight,
   BookMarked,
@@ -10,6 +11,7 @@ import {
   ShoppingCart,
   Store,
   TrendingUp,
+  Trophy,
   Users,
   Wallet,
 } from "lucide-react";
@@ -19,6 +21,7 @@ import { StatCard } from "@/components/stat-card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { supabase } from "@/integrations/supabase/client";
 import { useRows } from "@/lib/data";
 import { brl, dateTimeBR, num } from "@/lib/format";
 
@@ -156,6 +159,41 @@ function StorePanel() {
     () => new Map(clients.map((c: any) => [c.id, c.name])),
     [clients],
   );
+
+  const [topClientsScope, setTopClientsScope] = useState<"all" | "period">("all");
+
+  const { data: topClients = [], isLoading: isLoadingTopClients } = useQuery({
+    queryKey: ["store-top-clients", topClientsScope, period],
+    queryFn: async () => {
+      let q = supabase
+        .from("sales")
+        .select("client_id, total_amount, created_at, clients(id, name)")
+        .neq("status", "cancelada")
+        .not("client_id", "is", null);
+
+      if (topClientsScope === "period") {
+        const periodIso = new Date(periodStart).toISOString();
+        q = q.gte("created_at", periodIso);
+      }
+
+      const { data, error } = await q;
+      if (error) throw error;
+
+      const map = new Map<string, { id: string; name: string; total: number; count: number }>();
+      for (const s of (data || []) as any[]) {
+        if (!s.client_id) continue;
+        const name = s.clients?.name || clientName.get(s.client_id) || "Cliente";
+        const cur = map.get(s.client_id) || { id: s.client_id, name, total: 0, count: 0 };
+        cur.total += Number(s.total_amount || 0);
+        cur.count += 1;
+        map.set(s.client_id, cur);
+      }
+
+      return Array.from(map.values())
+        .sort((a, b) => b.total - a.total)
+        .slice(0, 10);
+    },
+  });
 
   const recentSales = salesPeriod.slice(0, 8);
   const maxMix = paymentMix[0]?.[1] ?? 0;
@@ -302,46 +340,133 @@ function StorePanel() {
         </Card>
       </div>
 
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="text-base">Últimas vendas</CardTitle>
-          <Button asChild size="sm" variant="ghost">
-            <Link to="/sales">Ver todas</Link>
-          </Button>
-        </CardHeader>
-        <CardContent className="space-y-2">
-          {recentSales.length === 0 && (
-            <p className="text-sm text-muted-foreground">Nenhuma venda registrada no período.</p>
-          )}
-          {recentSales.map((s: any) => (
-            <div
-              key={s.id}
-              className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border px-3 py-2"
-            >
-              <div className="min-w-0">
-                <p className="truncate text-sm font-medium">
-                  {s.sale_code ?? `Venda ${String(s.id).slice(0, 8)}`}
-                  {" · "}
-                  <span className="text-muted-foreground">
-                    {clientName.get(s.client_id) ?? "Consumidor"}
-                  </span>
-                </p>
-                <p className="text-xs text-muted-foreground">{dateTimeBR(s.created_at)}</p>
+      <div className="grid gap-6 lg:grid-cols-2">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle className="text-base">Últimas vendas</CardTitle>
+            <Button asChild size="sm" variant="ghost">
+              <Link to="/sales">Ver todas</Link>
+            </Button>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {recentSales.length === 0 && (
+              <p className="text-sm text-muted-foreground">Nenhuma venda registrada no período.</p>
+            )}
+            {recentSales.map((s: any) => (
+              <div
+                key={s.id}
+                className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border px-3 py-2"
+              >
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-medium">
+                    {s.sale_code ?? `Venda ${String(s.id).slice(0, 8)}`}
+                    {" · "}
+                    <span className="text-muted-foreground">
+                      {clientName.get(s.client_id) ?? "Consumidor"}
+                    </span>
+                  </p>
+                  <p className="text-xs text-muted-foreground">{dateTimeBR(s.created_at)}</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  {s.is_debt ? (
+                    <Badge variant="outline">Fiado</Badge>
+                  ) : (
+                    <Badge variant="secondary" className="capitalize">
+                      {(s.payment_method ?? "—").toString().replace(/_/g, " ")}
+                    </Badge>
+                  )}
+                  <span className="text-sm font-semibold">{brl(s.total_amount)}</span>
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                {s.is_debt ? (
-                  <Badge variant="outline">Fiado</Badge>
-                ) : (
-                  <Badge variant="secondary" className="capitalize">
-                    {(s.payment_method ?? "—").toString().replace(/_/g, " ")}
-                  </Badge>
-                )}
-                <span className="text-sm font-semibold">{brl(s.total_amount)}</span>
-              </div>
+            ))}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-3">
+            <div className="flex items-center gap-2">
+              <Trophy className="size-4 text-gold" />
+              <CardTitle className="text-base">Top 10 Clientes</CardTitle>
             </div>
-          ))}
-        </CardContent>
-      </Card>
+            <div className="flex items-center gap-1.5">
+              <div className="flex items-center rounded-lg border border-border/60 bg-muted/40 p-0.5 text-xs">
+                <button
+                  type="button"
+                  onClick={() => setTopClientsScope("all")}
+                  className={`rounded-md px-2 py-0.5 text-xs transition-colors ${
+                    topClientsScope === "all"
+                      ? "bg-background text-foreground font-semibold shadow-xs"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  Geral
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTopClientsScope("period")}
+                  className={`rounded-md px-2 py-0.5 text-xs transition-colors ${
+                    topClientsScope === "period"
+                      ? "bg-background text-foreground font-semibold shadow-xs"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {period}d
+                </button>
+              </div>
+              <Button asChild size="sm" variant="ghost" className="h-7 px-2 text-xs">
+                <Link to="/clients">Ver todos</Link>
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {isLoadingTopClients ? (
+              <div className="space-y-2">
+                {[1, 2, 3, 4, 5].map((i) => (
+                  <div key={i} className="h-10 w-full animate-pulse rounded-xl bg-muted/40" />
+                ))}
+              </div>
+            ) : topClients.length === 0 ? (
+              <p className="text-sm text-muted-foreground py-6 text-center">
+                Nenhum cliente com compras registradas.
+              </p>
+            ) : (
+              topClients.map((c, idx) => (
+                <div
+                  key={c.id}
+                  className="flex items-center justify-between gap-3 rounded-xl border border-border/60 bg-card px-3 py-2 hover:bg-muted/10 transition-colors"
+                >
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <span
+                      className={`flex size-6 shrink-0 items-center justify-center rounded-full text-xs font-black ${
+                        idx === 0
+                          ? "bg-gold/20 text-gold font-bold"
+                          : idx === 1
+                          ? "bg-muted-foreground/20 text-foreground font-bold"
+                          : idx === 2
+                          ? "bg-amber-700/20 text-amber-700 dark:text-amber-400 font-bold"
+                          : "text-muted-foreground"
+                      }`}
+                    >
+                      {idx + 1}º
+                    </span>
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium">{c.name}</p>
+                      <p className="text-[11px] text-muted-foreground">
+                        {c.count} {c.count === 1 ? "compra" : "compras"}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <span className="text-sm font-bold text-foreground">
+                      {brl(c.total)}
+                    </span>
+                  </div>
+                </div>
+              ))
+            )}
+          </CardContent>
+        </Card>
+      </div>
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {[
