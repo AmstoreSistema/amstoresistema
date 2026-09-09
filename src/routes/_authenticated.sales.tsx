@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { 
   ShoppingCart, 
@@ -41,6 +41,8 @@ import { SaleInstallmentsModal } from "@/components/sales/SaleInstallmentsModal"
 import { ReceiptModal } from "@/components/sales/ReceiptModal";
 import { SaleDetailsModal } from "@/components/sales/SaleDetailsModal";
 import { getSaleDetails } from "@/lib/sales.functions";
+import { supabase } from "@/integrations/supabase/client";
+import { PaginationBar } from "@/components/ui/pagination-bar";
 
 
 
@@ -60,11 +62,59 @@ export const Route = createFileRoute("/_authenticated/sales")({
 
 function SalesPage() {
   const qc = useQueryClient();
-  const { data: sales = [], isLoading } = useRows("sales", { order: { column: "created_at", ascending: false } });
+  const PAGE_SIZE = 25;
+  const [page, setPage] = useState(1);
+  const [term, setTerm] = useState("");
+
+  // Reinicia a paginação para a página 1 ao aplicar filtros ou buscas
+  useEffect(() => {
+    setPage(1);
+  }, [term]);
 
   const { data: clients = [] } = useRows("clients");
+  const clientById = useMemo(() => new Map(clients.map((c: any) => [c.id, c])), [clients]);
 
-  const [term, setTerm] = useState("");
+  // Cálculo de limites .range(from, to) baseado na página atual
+  const from = (page - 1) * PAGE_SIZE;
+  const to = from + PAGE_SIZE - 1;
+
+  // Busca paginada no Supabase
+  const { data: salesResult, isLoading } = useQuery({
+    queryKey: ["sales", page, term],
+    queryFn: async () => {
+      let q = supabase
+        .from("sales")
+        .select("*, clients(id, name)", { count: "exact" })
+        .order("created_at", { ascending: false });
+
+      if (term.toLowerCase() === "pending") {
+        q = q.eq("is_debt", true);
+      } else if (term.trim()) {
+        const cleanTerm = term.trim();
+        const matchingClientIds = (clients as any[])
+          .filter((c: any) => c.name?.toLowerCase().includes(cleanTerm.toLowerCase()))
+          .map((c: any) => c.id);
+
+        if (matchingClientIds.length > 0) {
+          q = q.or(`sale_code.ilike.%${cleanTerm}%,id.ilike.%${cleanTerm}%,client_id.in.(${matchingClientIds.join(",")})`);
+        } else {
+          q = q.or(`sale_code.ilike.%${cleanTerm}%,id.ilike.%${cleanTerm}%`);
+        }
+      }
+
+      q = q.range(from, to);
+      const { data, count, error } = await q;
+      if (error) throw error;
+      return {
+        sales: (data as any[]) || [],
+        totalCount: count || 0,
+      };
+    },
+  });
+
+  const sales = salesResult?.sales || [];
+  const totalCount = salesResult?.totalCount || 0;
+
   const [posOpen, setPosOpen] = useState(false);
   const [installmentsOpen, setInstallmentsOpen] = useState(false);
   const [receiptOpen, setReceiptOpen] = useState(false);
@@ -79,49 +129,46 @@ function SalesPage() {
     enabled: !!selectedSaleId && receiptOpen,
   });
 
-
-  const clientById = useMemo(() => new Map(clients.map((c: any) => [c.id, c])), [clients]);
-
-  const filtered = useMemo(() => {
-    return (sales as any[]).filter(s => {
-      const clientName = clientById.get(s.client_id || "")?.name || "Consumidor";
-      const matchesSearch = clientName.toLowerCase().includes(term.toLowerCase()) || s.id.toLowerCase().includes(term.toLowerCase());
-      
-      if (term.toLowerCase() === "pending") {
-        return !!s.is_debt && Number(s.total_amount || 0) - Number(s.paid_amount || 0) > 0.009;
-      }
-      
-      return matchesSearch;
-    });
-  }, [sales, term, clientById]);
-
   const groupedSales = useMemo(() => {
     const groups: Record<string, any[]> = {};
-    filtered.forEach(s => {
+    sales.forEach(s => {
       const createdAt = s.created_at;
       const d = dateBR(typeof createdAt === 'string' ? createdAt : "");
       if (!groups[d]) groups[d] = [];
       groups[d].push(s);
     });
     return groups;
-  }, [filtered]);
-
-  const stats = useMemo(() => {
-    const today = new Date().toISOString().split('T')[0];
-    const data = sales as any[];
-    const todaySales = data.filter(s => {
-      const createdAt = s.created_at;
-      const dateStr = typeof createdAt === 'string' ? createdAt : "";
-      return dateStr.slice(0, 10) === today;
-    });
-    const fiados = data.filter(s => !!s.is_debt && Number(s.total_amount || 0) - Number(s.paid_amount || 0) > 0.009);
-    
-    return {
-      countToday: todaySales.length,
-      totalToday: todaySales.reduce((sum, s) => sum + Number(s.total_amount), 0),
-      pendingFiado: fiados.length,
-    };
   }, [sales]);
+
+  // Consulta leve e dedicada para os cartões de estatística do topo (mantém totais globais)
+  const { data: statsData } = useQuery({
+    queryKey: ["sales-stats"],
+    queryFn: async () => {
+      const today = new Date().toISOString().split("T")[0];
+      const { data } = await supabase
+        .from("sales")
+        .select("created_at, total_amount, is_debt, paid_amount, status")
+        .gte("created_at", `${today}T00:00:00`);
+
+      const { count: pendingFiadoCount } = await supabase
+        .from("sales")
+        .select("*", { count: "exact", head: true })
+        .eq("is_debt", true);
+
+      const todaySales = (data || []).filter((s: any) => {
+        const d = typeof s.created_at === "string" ? s.created_at.slice(0, 10) : "";
+        return d === today;
+      });
+
+      return {
+        countToday: todaySales.length,
+        totalToday: todaySales.reduce((sum: number, s: any) => sum + Number(s.total_amount || 0), 0),
+        pendingFiado: pendingFiadoCount || 0,
+      };
+    },
+  });
+
+  const stats = statsData || { countToday: 0, totalToday: 0, pendingFiado: 0 };
 
   const getStatusBadge = (s: any) => {
     // Para vendas fiado, o status vem do saldo devedor (nunca do status default do banco)
@@ -331,6 +378,16 @@ function SalesPage() {
           ))}
         </div>
       )}
+
+      {/* Barra de Paginação */}
+      <PaginationBar
+        page={page}
+        pageSize={PAGE_SIZE}
+        totalItems={totalCount}
+        itemName="vendas"
+        onPageChange={setPage}
+        isLoading={isLoading}
+      />
 
       <POSModal open={posOpen} onOpenChange={setPosOpen} />
       <SaleInstallmentsModal 

@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { 
   ArrowLeftRight, 
@@ -20,7 +20,9 @@ import {
   Eye,
   Pencil
 } from "lucide-react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { PaginationBar } from "@/components/ui/pagination-bar";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/page-header";
 import { StatCard } from "@/components/stat-card";
@@ -61,17 +63,99 @@ export const Route = createFileRoute("/_authenticated/transactions")({
 
 function TransactionsPage() {
   const qc = useQueryClient();
-  const { data: transactions = [], isLoading } = useRows("transactions", { 
-    select: "*, financial_accounts(name), clients(name), suppliers(name)",
-    order: { column: "created_at", ascending: false } 
-  });
-  const { data: accounts = [] } = useRows("financial_accounts", { filters: [{ column: "active", value: true }] });
-  
+  const PAGE_SIZE = 25;
+  const [page, setPage] = useState(1);
   const [term, setTerm] = useState("");
   const [typeFilter, setTypeFilter] = useState<"todos" | "receita" | "despesa">("todos");
   const [statusFilter, setStatusFilter] = useState<"todos" | "pago" | "pendente" | "atrasado" | "cancelado">("todos");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+
+  // Reinicia a paginação para a página 1 ao aplicar ou alterar qualquer filtro/busca
+  useEffect(() => {
+    setPage(1);
+  }, [term, typeFilter, statusFilter, startDate, endDate]);
+
+  const { data: accounts = [] } = useRows("financial_accounts", { filters: [{ column: "active", value: true }] });
+  const { data: clients = [] } = useRows("clients");
+  const { data: suppliers = [] } = useRows("suppliers");
+
+  // Cálculo de limites .range(from, to) baseado na página atual
+  const from = (page - 1) * PAGE_SIZE;
+  const to = from + PAGE_SIZE - 1;
+
+  // Busca paginada no Supabase
+  const { data: transResult, isLoading } = useQuery({
+    queryKey: ["transactions", page, term, typeFilter, statusFilter, startDate, endDate],
+    queryFn: async () => {
+      let q = supabase
+        .from("transactions")
+        .select("*, financial_accounts(name), clients(name), suppliers(name)", { count: "exact" })
+        .order("created_at", { ascending: false });
+
+      // Filtro de tipo
+      if (typeFilter === "receita") {
+        q = q.in("type", ["entrada", "income"]);
+      } else if (typeFilter === "despesa") {
+        q = q.in("type", ["saida", "expense"]);
+      }
+
+      // Filtro de status
+      if (statusFilter === "pago") {
+        q = q.in("status", ["pago", "paid"]);
+      } else if (statusFilter === "cancelado") {
+        q = q.in("status", ["cancelado", "cancelled", "canceled"]);
+      } else if (statusFilter === "pendente") {
+        q = q.in("status", ["pendente", "pending", "aberto"]);
+      } else if (statusFilter === "atrasado") {
+        const todayStr = new Date().toISOString().split("T")[0];
+        q = q.in("status", ["pendente", "pending", "aberto"]).lt("due_date", todayStr);
+      }
+
+      // Filtro por período
+      if (startDate) {
+        q = q.gte("created_at", `${startDate}T00:00:00`);
+      }
+      if (endDate) {
+        q = q.lte("created_at", `${endDate}T23:59:59.999`);
+      }
+
+      // Filtro de busca textual (descrição, categoria, cliente ou fornecedor)
+      if (term.trim()) {
+        const cleanTerm = term.trim();
+        const matchingClientIds = (clients as any[])
+          .filter(c => c.name?.toLowerCase().includes(cleanTerm.toLowerCase()))
+          .map(c => c.id);
+        const matchingSupplierIds = (suppliers as any[])
+          .filter(s => s.name?.toLowerCase().includes(cleanTerm.toLowerCase()))
+          .map(s => s.id);
+
+        const orFilters = [
+          `description.ilike.%${cleanTerm}%`,
+          `category.ilike.%${cleanTerm}%`
+        ];
+        if (matchingClientIds.length > 0) {
+          orFilters.push(`client_id.in.(${matchingClientIds.join(",")})`);
+        }
+        if (matchingSupplierIds.length > 0) {
+          orFilters.push(`supplier_id.in.(${matchingSupplierIds.join(",")})`);
+        }
+        q = q.or(orFilters.join(","));
+      }
+
+      q = q.range(from, to);
+      const { data, count, error } = await q;
+      if (error) throw error;
+      return {
+        transactions: (data as any[]) || [],
+        totalCount: count || 0,
+      };
+    },
+  });
+
+  const transactions = transResult?.transactions || [];
+  const totalCount = transResult?.totalCount || 0;
+
   const [isNewModalOpen, setIsNewModalOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<any>(null);
   const [viewingTransaction, setViewingTransaction] = useState<any>(null);
@@ -102,67 +186,38 @@ function TransactionsPage() {
     }
   };
 
-  const filtered = useMemo(() => {
-    const search = term.toLowerCase();
-    const startTs = startDate ? new Date(`${startDate}T00:00:00`).getTime() : null;
-    const endTs = endDate ? new Date(`${endDate}T23:59:59.999`).getTime() : null;
-
-    return (transactions as any[]).filter(t => {
-      const desc = (t.description || "").toLowerCase();
-      const type = String(t.type || "").toLowerCase();
-      const status = String(t.status || "").toLowerCase();
-      const category = (t.category || "").toLowerCase();
-      const client = (t.clients?.name || "").toLowerCase();
-      const supplier = (t.suppliers?.name || t.supplier_name || "").toLowerCase();
-
-      const matchesSearch =
-        !search ||
-        desc.includes(search) ||
-        category.includes(search) ||
-        client.includes(search) ||
-        supplier.includes(search);
-      if (!matchesSearch) return false;
-
-      const isIncome = type === "entrada" || type === "income";
-      if (typeFilter === "receita" && !isIncome) return false;
-      if (typeFilter === "despesa" && isIncome) return false;
-
-      if (statusFilter === "pago" && !["pago", "paid"].includes(status)) return false;
-      if (statusFilter === "cancelado" && !["cancelado", "cancelled", "canceled"].includes(status)) return false;
-      if (statusFilter === "pendente" || statusFilter === "atrasado") {
-        const isPending = ["pendente", "pending", "aberto"].includes(status);
-        if (!isPending) return false;
-        const due = t.due_date ? new Date(`${String(t.due_date).slice(0, 10)}T23:59:59`).getTime() : null;
-        const late = due !== null && due < Date.now();
-        if (statusFilter === "atrasado" && !late) return false;
-        if (statusFilter === "pendente" && late) return false;
-      }
-
-      const ts = t.created_at ? new Date(t.created_at).getTime() : null;
-      if (startTs !== null && (ts === null || ts < startTs)) return false;
-      if (endTs !== null && (ts === null || ts > endTs)) return false;
-
-      return true;
-    });
-  }, [transactions, term, typeFilter, statusFilter, startDate, endDate]);
-
   const grouped = useMemo(() => {
     const groups: Record<string, any[]> = {};
-    filtered.forEach(t => {
+    transactions.forEach(t => {
       const d = dateBR(t.created_at ? String(t.created_at) : "");
       if (!groups[d]) groups[d] = [];
       groups[d].push(t);
     });
     return groups;
-  }, [filtered]);
+  }, [transactions]);
 
-  const stats = useMemo(() => {
-    const data = filtered.filter(t => ["pago", "paid"].includes(String(t.status || "").toLowerCase()));
-    const inflow = data.filter(r => (r.type === "entrada" || r.type === 'income')).reduce((s, r) => s + Number(r.amount), 0);
-    const outflow = data.filter(r => (r.type === "saida" || r.type === 'expense')).reduce((s, r) => s + Math.abs(Number(r.amount)), 0);
-    const pending = filtered.filter(t => ["pendente", "pending"].includes(String(t.status || "").toLowerCase())).length;
-    return { inflow, outflow, pending, balance: inflow - outflow };
-  }, [filtered]);
+  // Consulta consolidada para os 4 StatCards de topo no período selecionado
+  const { data: statsData } = useQuery({
+    queryKey: ["transactions-stats", startDate, endDate],
+    queryFn: async () => {
+      let q = supabase
+        .from("transactions")
+        .select("type, amount, status, created_at");
+
+      if (startDate) q = q.gte("created_at", `${startDate}T00:00:00`);
+      if (endDate) q = q.lte("created_at", `${endDate}T23:59:59.999`);
+
+      const { data } = await q;
+      const all = (data as any[]) || [];
+      const paid = all.filter(t => ["pago", "paid"].includes(String(t.status || "").toLowerCase()));
+      const inflow = paid.filter(r => (r.type === "entrada" || r.type === "income")).reduce((s, r) => s + Number(r.amount || 0), 0);
+      const outflow = paid.filter(r => (r.type === "saida" || r.type === "expense")).reduce((s, r) => s + Math.abs(Number(r.amount || 0)), 0);
+      const pending = all.filter(t => ["pendente", "pending", "aberto"].includes(String(t.status || "").toLowerCase())).length;
+      return { inflow, outflow, pending, balance: inflow - outflow };
+    },
+  });
+
+  const stats = statsData || { inflow: 0, outflow: 0, pending: 0, balance: 0 };
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -188,7 +243,7 @@ function TransactionsPage() {
                 const start = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
                 const end = new Date().toISOString().split('T')[0];
                 
-                const csvContent = filtered.map(t => ({
+                const csvContent = transactions.map(t => ({
                   Data: dateBR(t.created_at),
                   Descricao: t.description || "",
                   Tipo: t.type || "",
@@ -270,7 +325,7 @@ function TransactionsPage() {
         {(startDate || endDate || typeFilter !== "todos" || statusFilter !== "todos" || term) && (
           <div className="sm:col-span-2 flex items-center justify-between gap-2">
             <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
-              {filtered.length} {filtered.length === 1 ? "lançamento" : "lançamentos"}
+              {totalCount} {totalCount === 1 ? "lançamento encontrado" : "lançamentos encontrados"}
             </p>
             <Button
               variant="ghost"
@@ -443,6 +498,16 @@ function TransactionsPage() {
           })}
         </div>
       )}
+
+      {/* Barra de Paginação */}
+      <PaginationBar
+        page={page}
+        pageSize={PAGE_SIZE}
+        totalItems={totalCount}
+        itemName="transações"
+        onPageChange={setPage}
+        isLoading={isLoading}
+      />
 
       {/* Existing Account Modal preserved */}
       <Dialog open={!!editingAccount} onOpenChange={(open) => !open && setEditingAccount(null)}>
