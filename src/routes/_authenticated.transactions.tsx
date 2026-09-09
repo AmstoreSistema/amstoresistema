@@ -61,6 +61,38 @@ export const Route = createFileRoute("/_authenticated/transactions")({
   component: TransactionsPage,
 });
 
+/**
+ * Remove o nome do cliente da primeira linha da descrição da venda,
+ * exibindo apenas "Pagamento Venda [CÓDIGO]" ou similar, visto que
+ * o nome completo do cliente já é exibido logo abaixo.
+ */
+function formatTransactionTitle(description: string | null | undefined, clientName?: string | null): string {
+  if (!description) return "Sem descrição";
+
+  // Se houver nome do cliente informado e ele estiver no final como " - Nome"
+  if (clientName && clientName.trim()) {
+    const escaped = clientName.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const regex = new RegExp(`\\s*-\\s*${escaped}\\s*$`, "i");
+    if (regex.test(description)) {
+      return description.replace(regex, "").trim();
+    }
+  }
+
+  // Padrão: "Pagamento Venda [CÓDIGO] - [Nome do Cliente]" -> "Pagamento Venda [CÓDIGO]"
+  const paymentSaleMatch = description.match(/^(Pagamento\s+Venda\s+[A-Za-z0-9_-]+)\s*-\s*.+$/i);
+  if (paymentSaleMatch && paymentSaleMatch[1]) {
+    return paymentSaleMatch[1].trim();
+  }
+
+  // Padrão: "Venda [CÓDIGO] - [Nome do Cliente]" -> "Venda [CÓDIGO]"
+  const saleMatch = description.match(/^(Venda\s+[A-Za-z0-9_-]+)\s*-\s*.+$/i);
+  if (saleMatch && saleMatch[1]) {
+    return saleMatch[1].trim();
+  }
+
+  return description;
+}
+
 function TransactionsPage() {
   const qc = useQueryClient();
   const PAGE_SIZE = 25;
@@ -435,7 +467,7 @@ function TransactionsPage() {
                         
                         <div className="flex-1 min-w-0">
                            <div className="flex items-center gap-2">
-                              <h4 className="font-normal text-sm text-gray-800 truncate">{t.description || "Sem descrição"}</h4>
+                              <h4 className="font-normal text-sm text-gray-800 truncate">{formatTransactionTitle(t.description, t.clients?.name)}</h4>
                               <Badge variant="secondary" className={cn(
                                 "text-[9px] font-black uppercase h-5 px-1.5 border-none",
                                 t.status === 'pago' ? "bg-green-100 text-green-700" : "bg-orange-100 text-orange-700"
