@@ -239,10 +239,21 @@ export function SaleDetailsModal({
                       <span className="font-bold text-yellow-900 text-base">{brl(sale?.cashback_earned || 0)}</span>
                     </div>
                     {isCreditSale && Number(sale?.cashback_earned) > 0 && (
-                      <div className="text-[10px] text-muted-foreground px-3 py-1 bg-yellow-50/30 rounded-lg italic border border-yellow-100/50">
-                        * Liberado proporcionalmente a cada pagamento.
-                      </div>
+                      <>
+                        <div className="bg-emerald-50/60 p-3 rounded-xl flex justify-between items-center border border-emerald-100">
+                          <span className="text-xs text-emerald-700 font-medium">A liberar após pagamento</span>
+                          <span className="font-bold text-emerald-900 text-base">
+                            {brl(Number(sale?.total_amount) > 0
+                              ? (Number(sale?.cashback_earned || 0) * remainingBalance) / Number(sale?.total_amount)
+                              : 0)}
+                          </span>
+                        </div>
+                        <div className="text-[10px] text-muted-foreground px-3 py-1 bg-yellow-50/30 rounded-lg italic border border-yellow-100/50">
+                          * Liberado proporcionalmente a cada pagamento.
+                        </div>
+                      </>
                     )}
+
                     <div className="bg-cyan-50/50 p-3 rounded-xl flex justify-between items-center border border-cyan-100">
                       <span className="text-xs text-cyan-700 font-medium">Valor Pago</span>
                       <span className="font-bold text-cyan-900 text-base">{brl(sale?.paid_amount || 0)}</span>
