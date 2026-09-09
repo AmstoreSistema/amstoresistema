@@ -1,6 +1,6 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, useQuery } from "@tanstack/react-query";
 import {
   Boxes,
   Clock,
@@ -44,6 +44,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { logAudit, useDeleteRow, useRows } from "@/lib/data";
 import { brl, num } from "@/lib/format";
+import { PaginationBar } from "@/components/ui/pagination-bar";
 
 export const Route = createFileRoute("/_authenticated/products")({
   head: () => ({
@@ -151,15 +152,57 @@ const genSku = () => `PROD-${Date.now().toString(36).toUpperCase()}${Math.floor(
 
 function ProductsPage() {
   const qc = useQueryClient();
-  const { data: products = [], isLoading } = useRows<Product>("products", { order: { column: "name", ascending: true } });
+  const PAGE_SIZE = 25;
+  const [page, setPage] = useState(1);
+  const [term, setTerm] = useState("");
+  const [activeCategory, setActiveCategory] = useState("Todos");
+
+  // Reinicia a paginação para a página 1 ao alterar filtros de busca ou categoria
+  useEffect(() => {
+    setPage(1);
+  }, [term, activeCategory]);
+
+  // Cálculo de limites .range(from, to) baseado na página atual
+  const from = (page - 1) * PAGE_SIZE;
+  const to = from + PAGE_SIZE - 1;
+
+  // Busca paginada no Supabase
+  const { data: productsResult, isLoading } = useQuery({
+    queryKey: ["products", page, term, activeCategory],
+    queryFn: async () => {
+      let q = supabase
+        .from("products")
+        .select("*", { count: "exact" })
+        .order("name", { ascending: true });
+
+      if (term.trim()) {
+        const cleanTerm = term.trim();
+        q = q.or(`name.ilike.%${cleanTerm}%,sku.ilike.%${cleanTerm}%`);
+      }
+
+      if (activeCategory !== "Todos") {
+        q = q.eq("category", activeCategory);
+      }
+
+      q = q.range(from, to);
+      const { data, count, error } = await q;
+      if (error) throw error;
+      return {
+        products: (data as Product[]) || [],
+        totalCount: count || 0,
+      };
+    },
+  });
+
+  const products = productsResult?.products || [];
+  const totalCount = productsResult?.totalCount || 0;
+
   const { data: materials = [] } = useRows<Material>("materials", { order: { column: "name", ascending: true } });
   const { data: compositions = [] } = useRows<Composition>("product_materials");
   const { data: allVariations = [] } = useRows<MaterialVariation>("material_variations");
   const { data: allCuts = [] } = useRows<MaterialCut>("material_cuts");
   const remove = useDeleteRow("products", "produto");
 
-  const [term, setTerm] = useState("");
-  const [activeCategory, setActiveCategory] = useState("Todos");
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Product | null>(null);
   const [saving, setSaving] = useState(false);
@@ -203,16 +246,7 @@ function ProductsPage() {
 
   const categories = useMemo(() => ["Todos", ...PRODUCT_CATEGORIES], []);
 
-  const filtered = useMemo(
-    () =>
-      products.filter((p) => {
-        const t = term.toLowerCase();
-        const matchesTerm = p.name.toLowerCase().includes(t) || (p.sku ?? "").toLowerCase().includes(t);
-        const matchesCategory = activeCategory === "Todos" || p.category === activeCategory;
-        return matchesTerm && matchesCategory;
-      }),
-    [products, term, activeCategory],
-  );
+  const filtered = products;
 
   // ---------- Resumo de custos do formulário ----------
   const materialsCost = lines.reduce(
@@ -514,6 +548,16 @@ function ProductsPage() {
           })}
         </div>
       )}
+
+      {/* Barra de Paginação */}
+      <PaginationBar
+        page={page}
+        pageSize={PAGE_SIZE}
+        totalItems={totalCount}
+        itemName="produtos"
+        onPageChange={setPage}
+        isLoading={isLoading}
+      />
 
       {/* ================= MODAL FICHA TÉCNICA ================= */}
       <Dialog open={formOpen} onOpenChange={setFormOpen}>

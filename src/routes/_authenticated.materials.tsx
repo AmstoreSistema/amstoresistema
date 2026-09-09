@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { 
   AlertTriangle, 
@@ -60,6 +60,7 @@ import { brl, num } from "@/lib/format";
 import { useRows, useSaveRow, useDeleteRow } from "@/lib/data";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
+import { PaginationBar } from "@/components/ui/pagination-bar";
 
 export const Route = createFileRoute("/_authenticated/materials")({
   head: () => ({
@@ -112,8 +113,69 @@ type MaterialVariation = {
 };
 
 function MaterialsPage() {
+  const PAGE_SIZE = 25;
+  const [page, setPage] = useState(1);
+  const [term, setTerm] = useState("");
+  const [activeType, setActiveType] = useState("Todos");
 
-  const { data: materials = [], isLoading } = useRows<Material>("materials", { order: { column: "name", ascending: true } });
+  // Reinicia a paginação para a página 1 ao alterar filtros de busca ou tipo
+  useEffect(() => {
+    setPage(1);
+  }, [term, activeType]);
+
+  // Cálculo de limites .range(from, to) baseado na página atual
+  const from = (page - 1) * PAGE_SIZE;
+  const to = from + PAGE_SIZE - 1;
+
+  // Busca paginada no Supabase
+  const { data: materialsResult, isLoading } = useQuery({
+    queryKey: ["materials", page, term, activeType],
+    queryFn: async () => {
+      let q = supabase
+        .from("materials")
+        .select("*", { count: "exact" })
+        .order("name", { ascending: true });
+
+      if (term.trim()) {
+        const cleanTerm = term.trim();
+        q = q.or(`name.ilike.%${cleanTerm}%,sku.ilike.%${cleanTerm}%`);
+      }
+
+      if (activeType !== "Todos") {
+        q = q.ilike("type", activeType);
+      }
+
+      q = q.range(from, to);
+      const { data, count, error } = await q;
+      if (error) throw error;
+      return {
+        materials: (data as Material[]) || [],
+        totalCount: count || 0,
+      };
+    },
+  });
+
+  const materials = materialsResult?.materials || [];
+  const totalCount = materialsResult?.totalCount || 0;
+
+  // Consulta leve para os cartões de estatísticas de topo (mantém totais consolidados)
+  const { data: statsData } = useQuery({
+    queryKey: ["materials-stats"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("materials")
+        .select("current_stock, min_stock, cost_price");
+
+      const all = (data as any[]) || [];
+      const total = all.length;
+      const low = all.filter(m => Number(m.current_stock) <= Number(m.min_stock)).length;
+      const totalValue = all.reduce((s, m) => s + (Number(m.current_stock) * Number(m.cost_price)), 0);
+      return { total, low, totalValue };
+    },
+  });
+
+  const stats = statsData || { total: 0, low: 0, totalValue: 0 };
+
   const { data: categories = [] } = useRows<{id: string, name: string}>("material_categories", { order: { column: "name", ascending: true } });
   const { data: suppliers = [] } = useRows<{id: string, name: string}>("suppliers", { order: { column: "name", ascending: true } });
   const { data: units = [] } = useRows<{id: string, name: string, abbreviation: string}>("units_of_measure", { order: { column: "name", ascending: true } });
@@ -123,8 +185,6 @@ function MaterialsPage() {
   const saveConfig = useSaveRow("", ""); // Will be used dynamically
   const removeConfig = useDeleteRow("", ""); // Will be used dynamically
 
-  const [term, setTerm] = useState("");
-  const [activeType, setActiveType] = useState("Todos");
   const [formOpen, setFormOpen] = useState(false);
   const [configOpen, setConfigOpen] = useState(false);
   const [editing, setEditing] = useState<Material | null>(null);
@@ -201,21 +261,7 @@ function MaterialsPage() {
 
 
 
-  const filtered = useMemo(() => {
-    return materials.filter(m => {
-      const matchesTerm = (m.name || "").toLowerCase().includes(term.toLowerCase()) || 
-                          (m.sku || "").toLowerCase().includes(term.toLowerCase());
-      const matchesType = activeType === "Todos" || normType(m.type) === normType(activeType);
-      return matchesTerm && matchesType;
-    });
-  }, [materials, term, activeType]);
-
-  const stats = useMemo(() => {
-    const total = materials.length;
-    const low = materials.filter(m => Number(m.current_stock) <= Number(m.min_stock)).length;
-    const totalValue = materials.reduce((s, m) => s + (Number(m.current_stock) * Number(m.cost_price)), 0);
-    return { total, low, totalValue };
-  }, [materials]);
+  const filtered = materials;
 
   const openNew = () => {
     setEditing(null);
@@ -589,6 +635,16 @@ function MaterialsPage() {
           ))}
         </div>
       )}
+
+      {/* Barra de Paginação */}
+      <PaginationBar
+        page={page}
+        pageSize={PAGE_SIZE}
+        totalItems={totalCount}
+        itemName="materiais"
+        onPageChange={setPage}
+        isLoading={isLoading}
+      />
 
       <Dialog open={formOpen} onOpenChange={setFormOpen}>
         <DialogContent className="max-h-[95vh] w-[95vw] overflow-y-auto sm:max-w-3xl rounded-3xl p-0 border-none bg-white [&>button]:hidden">

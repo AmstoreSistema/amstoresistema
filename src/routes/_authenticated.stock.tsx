@@ -17,7 +17,9 @@ import {
   DollarSign,
   Trash2
 } from "lucide-react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { PaginationBar } from "@/components/ui/pagination-bar";
 import { toast } from "sonner";
 
 import { PageHeader } from "@/components/page-header";
@@ -75,15 +77,68 @@ type StockRecord = {
 
 function StockPage() {
   const qc = useQueryClient();
-  const { data: products = [], isLoading } = useRows<Product>("products", { order: { column: "name", ascending: true } });
+  const PAGE_SIZE = 25;
+  const [page, setPage] = useState(1);
+  const [term, setTerm] = useState("");
+  const [activeTab, setActiveTab] = useState("Todos");
+
+  // Reinicia a paginação para a página 1 ao alterar filtros de busca ou aba
+  useEffect(() => {
+    setPage(1);
+  }, [term, activeTab]);
+
+  // Cálculo de limites .range(from, to) baseado na página atual
+  const from = (page - 1) * PAGE_SIZE;
+  const to = from + PAGE_SIZE - 1;
+
+  // Busca paginada no Supabase
+  const { data: stockResult, isLoading } = useQuery({
+    queryKey: ["stock-products", page, term, activeTab],
+    queryFn: async () => {
+      let q = supabase
+        .from("products")
+        .select("*", { count: "exact" })
+        .order("name", { ascending: true });
+
+      if (term.trim()) {
+        const cleanTerm = term.trim();
+        q = q.or(`name.ilike.%${cleanTerm}%,sku.ilike.%${cleanTerm}%`);
+      }
+
+      if (activeTab === "Crítico") {
+        const { data: allStocks } = await supabase
+          .from("products")
+          .select("id, current_stock, min_stock");
+        const criticalIds = (allStocks || [])
+          .filter((p: any) => Number(p.current_stock || 0) <= Number(p.min_stock || 0))
+          .map((p: any) => p.id);
+
+        if (criticalIds.length > 0) {
+          q = q.in("id", criticalIds);
+        } else {
+          q = q.in("id", ["00000000-0000-0000-0000-000000000000"]);
+        }
+      }
+
+      q = q.range(from, to);
+      const { data, count, error } = await q;
+      if (error) throw error;
+      return {
+        products: (data as Product[]) || [],
+        totalCount: count || 0,
+      };
+    },
+  });
+
+  const products = stockResult?.products || [];
+  const totalCount = stockResult?.totalCount || 0;
+
   const { data: stockRecords = [] } = useRows<StockRecord>("stock_products");
   const save = useSaveRow("products", "estoque");
   const remove = useDeleteRow("products", "estoque");
   const saveStock = useSaveRow("stock_products", "estoque detalhado");
   const removeStock = useDeleteRow("stock_products", "estoque detalhado");
 
-  const [term, setTerm] = useState("");
-  const [activeTab, setActiveTab] = useState("Todos");
   const [adjustOpen, setAdjustOpen] = useState(false);
   const [sizeDetailOpen, setSizeDetailOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
@@ -92,21 +147,25 @@ function StockPage() {
   const [adjustQuantities, setAdjustQuantities] = useState<Record<string, number>>({});
   const [addDirectOpen, setAddDirectOpen] = useState(false);
 
-  const filtered = useMemo(() => {
-    return products.filter(p => {
-      const matchesTerm = (p.name || "").toLowerCase().includes(term.toLowerCase()) || (p.sku || "").toLowerCase().includes(term.toLowerCase());
-      const matchesTab = activeTab === "Todos" || (activeTab === "Crítico" && Number(p.current_stock) <= Number(p.min_stock));
-      return matchesTerm && matchesTab;
-    });
-  }, [products, term, activeTab]);
+  const filtered = products;
 
-  const stats = useMemo(() => {
-    return {
-      total: products.length,
-      low: products.filter(p => Number(p.current_stock) <= Number(p.min_stock)).length,
-      totalValue: products.reduce((s, p) => s + (Number(p.current_stock) * Number(p.cost_price)), 0),
-    };
-  }, [products]);
+  // Consulta consolidada para os 3 StatCards de topo (mantém totais globais)
+  const { data: statsData } = useQuery({
+    queryKey: ["stock-stats"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("products")
+        .select("current_stock, min_stock, cost_price");
+
+      const all = (data as any[]) || [];
+      const total = all.length;
+      const low = all.filter((p: any) => Number(p.current_stock || 0) <= Number(p.min_stock || 0)).length;
+      const totalValue = all.reduce((s: number, p: any) => s + (Number(p.current_stock || 0) * Number(p.cost_price || 0)), 0);
+      return { total, low, totalValue };
+    },
+  });
+
+  const stats = statsData || { total: 0, low: 0, totalValue: 0 };
 
   const handleAdjust = async () => {
     if (!selectedProduct) return;
@@ -386,6 +445,16 @@ function StockPage() {
           })}
         </div>
       )}
+
+      {/* Barra de Paginação */}
+      <PaginationBar
+        page={page}
+        pageSize={PAGE_SIZE}
+        totalItems={totalCount}
+        itemName="produtos no estoque"
+        onPageChange={setPage}
+        isLoading={isLoading}
+      />
 
       <Dialog open={adjustOpen} onOpenChange={setAdjustOpen}>
         <DialogContent className="sm:max-w-md">
