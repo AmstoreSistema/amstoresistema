@@ -15,12 +15,30 @@ import {
   CircleDollarSign,
   TrendingUp,
   DollarSign,
-  Trash2
+  Trash2,
+  SlidersHorizontal,
+  Eye,
+  EyeOff,
+  Check,
+  X,
+  ArrowUpDown,
+  Truck
 } from "lucide-react";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { PaginationBar } from "@/components/ui/pagination-bar";
 import { toast } from "sonner";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 
 import { PageHeader } from "@/components/page-header";
 import { StatCard } from "@/components/stat-card";
@@ -81,11 +99,22 @@ function StockPage() {
   const [page, setPage] = useState(1);
   const [term, setTerm] = useState("");
   const [activeTab, setActiveTab] = useState("Todos");
+  const [selectedCategory, setSelectedCategory] = useState("Todas");
+  const [selectedSupplier, setSelectedSupplier] = useState("Todos");
+  const [sortBy, setSortBy] = useState<"name-asc" | "name-desc" | "price-asc" | "price-desc" | "stock-desc" | "stock-asc" | "recent">("name-asc");
+  const [showZeroStock, setShowZeroStock] = useState(false); // Oculta produtos zerados por padrão
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [sortOpen, setSortOpen] = useState(false);
 
-  // Reinicia a paginação para a página 1 ao alterar filtros de busca ou aba
+  // Lista de fornecedores para filtro
+  const { data: suppliers = [] } = useRows<any>("suppliers", {
+    order: { column: "name", ascending: true },
+  });
+
+  // Reinicia a paginação para a página 1 ao alterar qualquer filtro, busca ou ordenação
   useEffect(() => {
     setPage(1);
-  }, [term, activeTab]);
+  }, [term, activeTab, selectedCategory, selectedSupplier, sortBy, showZeroStock]);
 
   // Cálculo de limites .range(from, to) baseado na página atual
   const from = (page - 1) * PAGE_SIZE;
@@ -93,24 +122,93 @@ function StockPage() {
 
   // Busca paginada no Supabase
   const { data: stockResult, isLoading } = useQuery({
-    queryKey: ["stock-products", page, term, activeTab],
+    queryKey: [
+      "stock-products",
+      page,
+      term,
+      activeTab,
+      selectedCategory,
+      selectedSupplier,
+      sortBy,
+      showZeroStock,
+    ],
     queryFn: async () => {
       let q = supabase
         .from("products")
-        .select("*", { count: "exact" })
-        .order("name", { ascending: true });
+        .select("*", { count: "exact" });
 
+      // Ordenação configurável
+      if (sortBy === "name-asc") {
+        q = q.order("name", { ascending: true });
+      } else if (sortBy === "name-desc") {
+        q = q.order("name", { ascending: false });
+      } else if (sortBy === "price-asc") {
+        q = q.order("sale_price", { ascending: true, nullsFirst: false });
+      } else if (sortBy === "price-desc") {
+        q = q.order("sale_price", { ascending: false, nullsFirst: false });
+      } else if (sortBy === "stock-desc") {
+        q = q.order("current_stock", { ascending: false });
+      } else if (sortBy === "stock-asc") {
+        q = q.order("current_stock", { ascending: true });
+      } else if (sortBy === "recent") {
+        q = q.order("updated_at", { ascending: false, nullsFirst: false });
+      } else {
+        q = q.order("name", { ascending: true });
+      }
+
+      // Ocultar produtos com estoque zerado por padrão
+      if (!showZeroStock) {
+        q = q.gt("current_stock", 0);
+      }
+
+      // Busca por nome ou código (SKU)
       if (term.trim()) {
         const cleanTerm = term.trim();
         q = q.or(`name.ilike.%${cleanTerm}%,sku.ilike.%${cleanTerm}%`);
       }
 
+      // Filtro avançado por categoria
+      if (selectedCategory !== "Todas") {
+        q = q.eq("category", selectedCategory);
+      }
+
+      // Filtro avançado por fornecedor
+      if (selectedSupplier !== "Todos") {
+        const { data: mats } = await supabase
+          .from("materials")
+          .select("id")
+          .eq("supplier", selectedSupplier);
+
+        const matIds = (mats || []).map((m: any) => m.id);
+        if (matIds.length > 0) {
+          const { data: pMats } = await supabase
+            .from("product_materials")
+            .select("product_id")
+            .in("material_id", matIds);
+
+          const productIds = Array.from(new Set((pMats || []).map((pm: any) => pm.product_id)));
+          if (productIds.length > 0) {
+            q = q.in("id", productIds);
+          } else {
+            q = q.in("id", ["00000000-0000-0000-0000-000000000000"]);
+          }
+        } else {
+          q = q.in("id", ["00000000-0000-0000-0000-000000000000"]);
+        }
+      }
+
+      // Abas rápidas
       if (activeTab === "Crítico") {
         const { data: allStocks } = await supabase
           .from("products")
           .select("id, current_stock, min_stock");
         const criticalIds = (allStocks || [])
-          .filter((p: any) => Number(p.current_stock || 0) <= Number(p.min_stock || 0))
+          .filter((p: any) => {
+            const current = Number(p.current_stock || 0);
+            const min = Number(p.min_stock || 0);
+            const isCritical = current <= min;
+            return showZeroStock ? isCritical : isCritical && current > 0;
+          })
           .map((p: any) => p.id);
 
         if (criticalIds.length > 0) {
@@ -118,6 +216,8 @@ function StockPage() {
         } else {
           q = q.in("id", ["00000000-0000-0000-0000-000000000000"]);
         }
+      } else if (activeTab === "Disponível") {
+        q = q.gt("current_stock", 0);
       }
 
       q = q.range(from, to);
@@ -343,19 +443,286 @@ function StockPage() {
           ))}
         </div>
 
-        <div className="flex gap-2">
-           <div className="relative flex-1 max-w-md">
-             <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-             <Input 
-               placeholder="Buscar por código de barras ou nome..." 
-               className="pl-10 h-11 rounded-2xl bg-card border-border/40"
-               value={term}
-               onChange={e => setTerm(e.target.value)}
-             />
-           </div>
-           <Button variant="outline" size="icon" className="h-11 w-11 rounded-xl"><Filter className="size-4" /></Button>
-           <Button variant="outline" size="icon" className="h-11 w-11 rounded-xl"><Settings2 className="size-4" /></Button>
+        <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between">
+          <div className="flex flex-1 flex-wrap gap-2 items-center">
+            <div className="relative flex-1 min-w-[220px] max-w-md">
+              <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+              <Input 
+                placeholder="Buscar por código de barras ou nome..." 
+                className="pl-10 h-11 rounded-2xl bg-card border-border/40"
+                value={term}
+                onChange={e => setTerm(e.target.value)}
+              />
+            </div>
+
+            {/* Tooltip + Popover do Funil (Filtros avançados) */}
+            <TooltipProvider>
+              <Popover open={filterOpen} onOpenChange={setFilterOpen}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <PopoverTrigger asChild>
+                      <Button 
+                        variant={selectedCategory !== "Todas" || selectedSupplier !== "Todos" ? "default" : "outline"} 
+                        size="icon" 
+                        className={`h-11 w-11 rounded-xl relative ${
+                          selectedCategory !== "Todas" || selectedSupplier !== "Todos" 
+                            ? "bg-gold hover:bg-gold/90 text-white border-none shadow-sm" 
+                            : ""
+                        }`}
+                      >
+                        <Filter className="size-4" />
+                        {(selectedCategory !== "Todas" || selectedSupplier !== "Todos") && (
+                          <span className="absolute top-2 right-2 size-2 rounded-full bg-white animate-pulse" />
+                        )}
+                      </Button>
+                    </PopoverTrigger>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Filtros avançados</p>
+                  </TooltipContent>
+                </Tooltip>
+
+                <PopoverContent align="start" className="w-80 rounded-2xl p-4 shadow-xl border-border/60">
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between border-b border-border/40 pb-2">
+                      <div className="flex items-center gap-2">
+                        <Filter className="size-4 text-gold" />
+                        <h4 className="text-sm font-bold">Filtros avançados</h4>
+                      </div>
+                      {(selectedCategory !== "Todas" || selectedSupplier !== "Todos") && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedCategory("Todas");
+                            setSelectedSupplier("Todos");
+                          }}
+                          className="text-xs text-muted-foreground hover:text-destructive transition-colors"
+                        >
+                          Limpar
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Filtro por Categoria */}
+                    <div className="space-y-2">
+                      <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                        Categorias
+                      </Label>
+                      <div className="flex flex-wrap gap-1.5">
+                        {["Todas", "Bolsa", "Sandálias", "Carteiras", "perfumes"].map((cat) => (
+                          <button
+                            key={cat}
+                            type="button"
+                            onClick={() => setSelectedCategory(cat)}
+                            className={`rounded-lg px-2.5 py-1 text-xs font-medium transition-colors border ${
+                              selectedCategory === cat
+                                ? "bg-primary text-primary-foreground border-primary font-bold shadow-xs"
+                                : "border-border/60 text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                            }`}
+                          >
+                            {cat}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Filtro por Fornecedor */}
+                    <div className="space-y-2 pt-2 border-t border-border/40">
+                      <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                        <Truck className="size-3.5" />
+                        Fornecedores
+                      </Label>
+                      <div className="max-h-36 overflow-y-auto space-y-1 pr-1">
+                        <button
+                          type="button"
+                          onClick={() => setSelectedSupplier("Todos")}
+                          className={`w-full text-left rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors flex items-center justify-between ${
+                            selectedSupplier === "Todos"
+                              ? "bg-muted text-foreground font-bold"
+                              : "text-muted-foreground hover:bg-muted/30"
+                          }`}
+                        >
+                          <span>Todos os fornecedores</span>
+                          {selectedSupplier === "Todos" && <Check className="size-3.5 text-primary" />}
+                        </button>
+                        {suppliers.map((sup: any) => (
+                          <button
+                            key={sup.id}
+                            type="button"
+                            onClick={() => setSelectedSupplier(sup.name)}
+                            className={`w-full text-left rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors flex items-center justify-between ${
+                              selectedSupplier === sup.name
+                                ? "bg-muted text-foreground font-bold"
+                                : "text-muted-foreground hover:bg-muted/30"
+                            }`}
+                          >
+                            <span className="truncate">{sup.name}</span>
+                            {selectedSupplier === sup.name && <Check className="size-3.5 text-primary" />}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="pt-2 border-t border-border/40 flex justify-end">
+                      <Button
+                        size="sm"
+                        className="h-8 text-xs font-bold bg-gold hover:bg-gold/90 text-white rounded-lg"
+                        onClick={() => setFilterOpen(false)}
+                      >
+                        Concluir
+                      </Button>
+                    </div>
+                  </div>
+                </PopoverContent>
+              </Popover>
+            </TooltipProvider>
+
+            {/* Tooltip + Popover dos Sliders (Ordenar por...) */}
+            <TooltipProvider>
+              <Popover open={sortOpen} onOpenChange={setSortOpen}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <PopoverTrigger asChild>
+                      <Button 
+                        variant={sortBy !== "name-asc" ? "default" : "outline"} 
+                        size="icon" 
+                        className={`h-11 w-11 rounded-xl relative ${
+                          sortBy !== "name-asc" 
+                            ? "bg-gold hover:bg-gold/90 text-white border-none shadow-sm" 
+                            : ""
+                        }`}
+                      >
+                        <SlidersHorizontal className="size-4" />
+                      </Button>
+                    </PopoverTrigger>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Ordenar por...</p>
+                  </TooltipContent>
+                </Tooltip>
+
+                <PopoverContent align="start" className="w-56 rounded-2xl p-2 shadow-xl border-border/60">
+                  <div className="p-2 border-b border-border/40">
+                    <h4 className="text-xs font-bold flex items-center gap-1.5 text-muted-foreground uppercase tracking-wider">
+                      <ArrowUpDown className="size-3.5 text-gold" />
+                      Ordenar por...
+                    </h4>
+                  </div>
+                  <div className="space-y-0.5 pt-1">
+                    {[
+                      { id: "name-asc", label: "Nome (A-Z)" },
+                      { id: "name-desc", label: "Nome (Z-A)" },
+                      { id: "price-asc", label: "Menor Preço" },
+                      { id: "price-desc", label: "Maior Preço" },
+                      { id: "stock-desc", label: "Maior Estoque" },
+                      { id: "stock-asc", label: "Menor Estoque" },
+                      { id: "recent", label: "Mais Recentes" },
+                    ].map((opt) => (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={() => {
+                          setSortBy(opt.id as any);
+                          setSortOpen(false);
+                        }}
+                        className={`w-full text-left rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors flex items-center justify-between ${
+                          sortBy === opt.id
+                            ? "bg-primary text-primary-foreground font-bold shadow-xs"
+                            : "text-foreground hover:bg-muted/50"
+                        }`}
+                      >
+                        <span>{opt.label}</span>
+                        {sortBy === opt.id && <Check className="size-3.5" />}
+                      </button>
+                    ))}
+                  </div>
+                </PopoverContent>
+              </Popover>
+            </TooltipProvider>
+          </div>
+
+          {/* Botão EXIBIR / OCULTAR ITENS ZERADOS */}
+          <Button
+            variant={showZeroStock ? "default" : "outline"}
+            onClick={() => setShowZeroStock(!showZeroStock)}
+            className={`h-11 rounded-xl gap-2 font-bold px-4 text-xs shrink-0 transition-all ${
+              showZeroStock
+                ? "bg-amber-600 hover:bg-amber-700 text-white border-none shadow-sm"
+                : "border-border/60 text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            {showZeroStock ? (
+              <>
+                <EyeOff className="size-4" />
+                OCULTAR ITENS ZERADOS
+              </>
+            ) : (
+              <>
+                <Eye className="size-4" />
+                EXIBIR ITENS ZERADOS
+              </>
+            )}
+          </Button>
         </div>
+
+        {/* Chips de filtros ativos */}
+        {(selectedCategory !== "Todas" || selectedSupplier !== "Todos" || showZeroStock) && (
+          <div className="flex flex-wrap items-center gap-2 pt-0.5">
+            {selectedCategory !== "Todas" && (
+              <Badge variant="secondary" className="gap-1.5 py-1 px-2.5 rounded-lg text-xs">
+                <span>Categoria: {selectedCategory}</span>
+                <button
+                  type="button"
+                  onClick={() => setSelectedCategory("Todas")}
+                  className="hover:text-destructive transition-colors ml-0.5"
+                  title="Remover filtro de categoria"
+                >
+                  <X className="size-3" />
+                </button>
+              </Badge>
+            )}
+            {selectedSupplier !== "Todos" && (
+              <Badge variant="secondary" className="gap-1.5 py-1 px-2.5 rounded-lg text-xs">
+                <span>Fornecedor: {selectedSupplier}</span>
+                <button
+                  type="button"
+                  onClick={() => setSelectedSupplier("Todos")}
+                  className="hover:text-destructive transition-colors ml-0.5"
+                  title="Remover filtro de fornecedor"
+                >
+                  <X className="size-3" />
+                </button>
+              </Badge>
+            )}
+            {showZeroStock && (
+              <Badge
+                variant="outline"
+                className="gap-1.5 py-1 px-2.5 rounded-lg text-xs bg-amber-500/10 text-amber-600 border-amber-500/30"
+              >
+                <span>Exibindo produtos zerados</span>
+                <button
+                  type="button"
+                  onClick={() => setShowZeroStock(false)}
+                  className="hover:text-destructive transition-colors ml-0.5"
+                  title="Ocultar produtos zerados"
+                >
+                  <X className="size-3" />
+                </button>
+              </Badge>
+            )}
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedCategory("Todas");
+                setSelectedSupplier("Todos");
+                setShowZeroStock(false);
+              }}
+              className="text-[11px] font-semibold text-muted-foreground hover:text-destructive transition-colors underline underline-offset-2 ml-1"
+            >
+              Limpar todos
+            </button>
+          </div>
+        )}
       </div>
 
       {isLoading ? (
