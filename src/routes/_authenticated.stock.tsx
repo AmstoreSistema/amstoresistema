@@ -149,23 +149,59 @@ function StockPage() {
 
   const filtered = products;
 
-  // Consulta consolidada para os 3 StatCards de topo (mantém totais globais)
+  // Consulta consolidada para os 5 StatCards de topo (mantém totais globais)
   const { data: statsData } = useQuery({
     queryKey: ["stock-stats"],
     queryFn: async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("products")
-        .select("current_stock, min_stock, cost_price");
+        .select("current_stock, min_stock, cost_price, sale_price, wholesale_price");
+
+      if (error) throw error;
 
       const all = (data as any[]) || [];
-      const total = all.length;
+      const totalProducts = all.length;
+      const totalUnits = all.reduce((sum: number, p: any) => sum + Number(p.current_stock || 0), 0);
       const low = all.filter((p: any) => Number(p.current_stock || 0) <= Number(p.min_stock || 0)).length;
-      const totalValue = all.reduce((s: number, p: any) => s + (Number(p.current_stock || 0) * Number(p.cost_price || 0)), 0);
-      return { total, low, totalValue };
+
+      // Custo total: soma de (estoque atual * preço de custo)
+      const totalCost = all.reduce(
+        (sum: number, p: any) => sum + (Number(p.current_stock || 0) * Number(p.cost_price || 0)),
+        0
+      );
+
+      // Valor Varejo: soma de (estoque atual * preço de venda/varejo)
+      const totalRetail = all.reduce(
+        (sum: number, p: any) => sum + (Number(p.current_stock || 0) * Number(p.sale_price || 0)),
+        0
+      );
+
+      // Valor Atacado: soma de (estoque atual * preço de atacado)
+      const totalWholesale = all.reduce(
+        (sum: number, p: any) =>
+          sum + (Number(p.current_stock || 0) * (Number(p.wholesale_price || 0) || Number(p.sale_price || 0))),
+        0
+      );
+
+      return {
+        totalProducts,
+        totalUnits,
+        low,
+        totalCost,
+        totalRetail,
+        totalWholesale,
+      };
     },
   });
 
-  const stats = statsData || { total: 0, low: 0, totalValue: 0 };
+  const stats = statsData || {
+    totalProducts: 0,
+    totalUnits: 0,
+    low: 0,
+    totalCost: 0,
+    totalRetail: 0,
+    totalWholesale: 0,
+  };
 
   const handleAdjust = async () => {
     if (!selectedProduct) return;
@@ -255,11 +291,41 @@ function StockPage() {
       />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-        <StatCard title="Total de Itens" value={stats.total} icon={Package} tone="dark" sub="0 produto(s)" />
-        <StatCard title="Estoque baixo" value={stats.low} icon={AlertTriangle} tone="destructive" />
-        <StatCard title="Custo Total" value={brl(0)} icon={CircleDollarSign} tone="destructive" />
-        <StatCard title="Valor Varejo" value={brl(0)} icon={TrendingUp} tone="success" />
-        <StatCard title="Valor Atacado" value={brl(0)} icon={DollarSign} tone="gold" />
+        <StatCard
+          title="Total de Itens"
+          value={stats.totalUnits}
+          icon={Package}
+          tone="dark"
+          sub={`${stats.totalProducts} produto(s) cadastrado(s)`}
+        />
+        <StatCard
+          title="Estoque baixo"
+          value={stats.low}
+          icon={AlertTriangle}
+          tone="destructive"
+          sub={`${stats.low} item(ns) no limite mínimo`}
+        />
+        <StatCard
+          title="Custo Total"
+          value={brl(stats.totalCost)}
+          icon={CircleDollarSign}
+          tone="destructive"
+          sub="Custo do estoque atual"
+        />
+        <StatCard
+          title="Valor Varejo"
+          value={brl(stats.totalRetail)}
+          icon={TrendingUp}
+          tone="success"
+          sub="Preço de venda varejo"
+        />
+        <StatCard
+          title="Valor Atacado"
+          value={brl(stats.totalWholesale)}
+          icon={DollarSign}
+          tone="gold"
+          sub="Preço de venda atacado"
+        />
       </div>
 
       <div className="flex flex-col gap-4">
