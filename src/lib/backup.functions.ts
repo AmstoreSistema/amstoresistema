@@ -97,6 +97,7 @@ export const importSystemData = createServerFn({ method: "POST" })
       suppliers: ["name"],
       materials: ["sku", "name"],
       material_categories: ["name"],
+      material_cuts: ["material_id", "name"],
       financial_accounts: ["name"],
       units_of_measure: ["name"],
       promotions: ["name"],
@@ -145,6 +146,16 @@ export const importSystemData = createServerFn({ method: "POST" })
       const saleMap =
         table === "sale_items" || table === "sale_payments" || table === "sale_installments" || table === "transactions"
           ? await lookup("sales", "sale_code")
+          : null;
+
+      // Mapa de materiais por nome e sku — usado para resolver material_id em cortes e variações
+      const materialNameMap =
+        table === "material_cuts" || table === "material_variations"
+          ? await lookup("materials", "name")
+          : null;
+      const materialSkuMap =
+        table === "material_cuts" || table === "material_variations"
+          ? await lookup("materials", "sku")
           : null;
 
       // Cria produtos que ainda não existem para itens de estoque ou itens de venda
@@ -213,6 +224,8 @@ export const importSystemData = createServerFn({ method: "POST" })
         const supplierName = row["__supplier_name"];
         const accountName = row["__account_name"];
         const saleCode = row["__sale_code"];
+        const materialName = row["__material_name"];
+        const materialSku = row["__material_sku"];
         for (const key of Object.keys(row)) if (key.startsWith("__")) delete row[key];
 
         if (clientName && !row["client_id"]) row["client_id"] = clientMap.get(norm(clientName)) ?? null;
@@ -227,6 +240,19 @@ export const importSystemData = createServerFn({ method: "POST" })
             (productName ? productMap?.get(norm(productName)) : null) ??
             (productSku ? productSkuMap?.get(norm(productSku)) : null);
           if (matchedId) row["product_id"] = matchedId;
+        }
+
+        // Resolve material_id por nome ou SKU para cortes e variações de material
+        if ((table === "material_cuts" || table === "material_variations") && !row["material_id"]) {
+          const resolvedById =
+            (materialName ? materialNameMap?.get(norm(materialName)) : null) ??
+            (materialSku ? materialSkuMap?.get(norm(materialSku)) : null);
+          if (resolvedById) row["material_id"] = resolvedById;
+        }
+        // Descarta cortes sem material_id após tentativa de resolução
+        if (table === "material_cuts" && !row["material_id"]) {
+          console.warn(`[Import] material_cuts: descartando corte "${row["name"]}" sem material_id resolvido`);
+          continue;
         }
 
         if (saleMap && saleCode && !row["sale_id"]) {

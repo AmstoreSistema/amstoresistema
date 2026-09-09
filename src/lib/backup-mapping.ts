@@ -218,6 +218,19 @@ export const TABLE_ALIASES: Record<string, string> = {
   moldecorte: "material_cuts",
   moldescorte: "material_cuts",
   moldes: "material_cuts",
+  pecas: "material_cuts",
+  peca: "material_cuts",
+  cortesmaterial: "material_cuts",
+  cortesmateriais: "material_cuts",
+  cortesdematerial: "material_cuts",
+  cortedecouro: "material_cuts",
+  cortesdecouro: "material_cuts",
+  pecasdecorte: "material_cuts",
+  moldesdecorte: "material_cuts",
+  planocorte: "material_cuts",
+  planoscorte: "material_cuts",
+  cuts: "material_cuts",
+  cut: "material_cuts",
 
   // Variações de Material
   material_variations: "material_variations",
@@ -399,6 +412,16 @@ export function extractAllCollections(payload: any): Collections {
     "parcelas_venda", "parcelasvenda", "parcelas", "installments",
   ];
 
+  // Coleções filhas embutidas em registros de Material (cortes, variações/cupons).
+  // Propagamos referência ao material pai para cada filho.
+  const MATERIAL_CUT_KEYS = [
+    "cortes", "cuts", "material_cuts", "pecas", "pecas_couro", "moldes", "moldescorte",
+    "planocorte", "planoscorte", "cortescouro", "cortesmateriais",
+  ];
+  const MATERIAL_VARIATION_KEYS = [
+    "variacoes", "variations", "cupons", "cupons_producao", "material_variations",
+  ];
+
   const parentCollections: any[][] = [];
   if (Array.isArray(payload)) {
     parentCollections.push(payload);
@@ -439,6 +462,41 @@ export function extractAllCollections(payload: any): Collections {
             cliente_nome: c["cliente_nome"] ?? clientName ?? undefined,
           }));
         out[target] = (out[target] ?? []).concat(rows);
+      }
+
+      // Extrai cortes embutidos dentro de registros de Material
+      const materialId = parent["id"] ?? null;
+      const materialName = parent["name"] ?? parent["nome"] ?? parent["material"] ?? parent["descricao"] ?? null;
+      const materialSku = parent["sku"] ?? parent["codigo"] ?? parent["referencia"] ?? null;
+      const isLikelyMaterial = materialName && (
+        parent["type"] ?? parent["tipo"] ?? parent["material_type"] ?? parent["width"] ?? parent["cost_price"] ?? parent["custo"]
+      ) != null;
+      if (isLikelyMaterial) {
+        for (const cutKey of MATERIAL_CUT_KEYS) {
+          const children = parent[cutKey];
+          if (!Array.isArray(children) || children.length === 0) continue;
+          const rows = children
+            .filter((c) => c && typeof c === "object" && !Array.isArray(c))
+            .map((c) => ({
+              ...c,
+              material_id: c["material_id"] ?? materialId ?? undefined,
+              __material_name: c["__material_name"] ?? materialName ?? undefined,
+              __material_sku: c["__material_sku"] ?? materialSku ?? undefined,
+            }));
+          out["material_cuts"] = (out["material_cuts"] ?? []).concat(rows);
+        }
+        for (const varKey of MATERIAL_VARIATION_KEYS) {
+          const children = parent[varKey];
+          if (!Array.isArray(children) || children.length === 0) continue;
+          const rows = children
+            .filter((c) => c && typeof c === "object" && !Array.isArray(c))
+            .map((c) => ({
+              ...c,
+              material_id: c["material_id"] ?? materialId ?? undefined,
+              __material_name: c["__material_name"] ?? materialName ?? undefined,
+            }));
+          out["material_variations"] = (out["material_variations"] ?? []).concat(rows);
+        }
       }
     }
   }
@@ -601,7 +659,11 @@ const MAPPERS: Record<string, Mapper> = {
     return {
       product_id: pick(pm, ["product_id", "produto_id", "id_produto"]),
       material_id: pick(pm, ["material_id", "id_material", "material_id_fk"]),
+      material_cut_id: pick(pm, ["material_cut_id", "corte_id", "peca_id", "cut_id", "molde_id"]) ?? null,
+      material_variation_id: pick(pm, ["material_variation_id", "variacao_id", "cupom_id", "variation_id"]) ?? null,
       quantity: num(pick(pm, ["quantity", "quantidade", "qtd", "valor"])),
+      unit_cost: num(pick(pm, ["unit_cost", "custo_unitario", "custounitario", "custo"]), 0) || null,
+      total_cost: num(pick(pm, ["total_cost", "custo_total", "custoTotal", "total"]), 0) || null,
       created_at: date(pick(pm, ["created_at", "criadoem"]))
     };
   },
@@ -688,20 +750,37 @@ const MAPPERS: Record<string, Mapper> = {
     };
   },
   material_cuts: (c) => {
-    const name = str(pick(c, ["name", "nome", "corte", "descricao"]));
+    const name = str(pick(c, ["name", "nome", "corte", "descricao", "peca", "molde", "identificacao", "referencia"]));
+    if (!name) return null;
     const material_id = str(pick(c, ["material_id", "material", "id_material", "insumo_id"]));
-    if (!name || !material_id) return null;
-    return {
+    const __material_name = str(pick(c, ["__material_name", "material_nome", "materialnome", "nome_material", "couro", "insumo"])) ?? null;
+    const __material_sku = str(pick(c, ["__material_sku", "material_sku", "material_codigo"])) ?? null;
+    // Normaliza status: mapeia termos do backup para os três estados aceitos pelo sistema
+    const rawStatus = slug(str(pick(c, ["status", "situacao", "estado"])) ?? "");
+    const normalizedStatus = (
+      ["utilizado", "usado", "consumido", "cortado", "usada", "cortada", "consumida", "utilizada"].includes(rawStatus)
+        ? "utilizado"
+        : ["reservado", "reservada", "alocado", "alocada", "bloqueado", "bloqueada", "em_uso", "emuso"].includes(rawStatus)
+        ? "reservado"
+        : "disponivel"
+    );
+    const row: Record<string, any> = {
       name,
-      material_id,
-      width: num(pick(c, ["width", "largura", "L"])),
-      height: num(pick(c, ["height", "altura", "H"])),
+      width: num(pick(c, ["width", "largura", "L", "w", "larg"])),
+      height: num(pick(c, ["height", "altura", "H", "comprimento", "comp", "c", "h", "alt"])),
       x: pick(c, ["x", "pos_x"]) ?? null,
       y: pick(c, ["y", "pos_y"]) ?? null,
       rotation: num(pick(c, ["rotation", "rotacao"]), 0),
-      status: str(pick(c, ["status", "situacao"])) ?? "disponivel",
+      status: normalizedStatus,
       created_at: date(pick(c, ["created_at", "criadoem"])),
     };
+    // Inclui material_id se for UUID válido; caso contrário sinaliza para resolução por nome
+    if (material_id) row.material_id = material_id;
+    if (__material_name) row.__material_name = __material_name;
+    if (__material_sku) row.__material_sku = __material_sku;
+    // Descarta se não tiver nenhuma referência de material
+    if (!material_id && !__material_name && !__material_sku) return null;
+    return row;
   },
   material_variations: (v) => {
     const name = str(pick(v, ["name", "nome", "variacao", "descricao", "cupom"]));

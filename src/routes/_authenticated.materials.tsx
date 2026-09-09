@@ -59,7 +59,7 @@ import {
 import { brl, num } from "@/lib/format";
 import { useRows, useSaveRow, useDeleteRow } from "@/lib/data";
 import { supabase } from "@/integrations/supabase/client";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, useQuery } from "@tanstack/react-query";
 
 export const Route = createFileRoute("/_authenticated/materials")({
   head: () => ({
@@ -180,6 +180,20 @@ function MaterialsPage() {
   });
   const saveCut = useSaveRow("material_cuts", "Corte");
   const removeCut = useDeleteRow("material_cuts", "Corte");
+
+  // Conjunto de material_ids que possuem pelo menos 1 corte no banco
+  // Garante que o botão "Ver Cortes" também apareça em materiais restaurados de backup
+  const { data: materialsWithCutsRaw } = useQuery({
+    queryKey: ["material_cuts_ids"],
+    queryFn: async () => {
+      const { data } = await supabase.from("material_cuts").select("material_id");
+      return data ?? [];
+    },
+    staleTime: 60_000,
+  });
+  const materialsWithCuts = useMemo(() =>
+    new Set((materialsWithCutsRaw ?? []).map((r: any) => r.material_id as string)),
+  [materialsWithCutsRaw]);
   // New states for Config Modal
   const [newConfigValue, setNewConfigValue] = useState("");
   const [newConfigLabel, setNewConfigLabel] = useState("");
@@ -551,7 +565,7 @@ function MaterialsPage() {
 
                 <div className="mt-4 flex flex-col gap-2 border-t border-border/50 pt-4">
                   <div className="grid grid-cols-2 gap-2">
-                    {isTypeIn(m.type, CUTTABLE_TYPES) && (
+                    {(isTypeIn(m.type, CUTTABLE_TYPES) || materialsWithCuts.has(m.id)) && (
                       <Button variant="default" size="sm" className="h-8 gap-1 bg-blue-600 hover:bg-blue-700" onClick={() => openCuts(m)}>
                         <Layers className="size-3" /> Ver Cortes
                       </Button>
