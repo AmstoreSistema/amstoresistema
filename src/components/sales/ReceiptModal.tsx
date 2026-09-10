@@ -16,6 +16,8 @@ import {
 import { toPng } from 'html-to-image';
 import { toast } from "sonner";
 import { useRows } from "@/lib/data";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import logoAsset from "@/assets/amstore-symbol.png.asset.json";
 
 declare global {
@@ -61,8 +63,53 @@ export function ReceiptModal({
   };
 
   const displayClient = client || { name: "CONSUMIDOR", phone: "" };
-  const items = displaySale.items || [];
-  const subtotal = (displaySale?.total_amount || 0) + (displaySale?.discount || 0) + (displaySale?.cashback_used || 0);
+
+  // Fallback seguro: se displaySale não trouxer itens pré-carregados, busca os itens da venda no Supabase
+  const { data: fetchedItems = [] } = useQuery({
+    queryKey: ["receipt-sale-items", displaySale?.id],
+    queryFn: async () => {
+      if (!displaySale?.id || String(displaySale.id).startsWith("temp-") || String(displaySale.id).startsWith("PREVIA-")) {
+        return [];
+      }
+      const { data } = await supabase
+        .from("sale_items")
+        .select("*, products(name)")
+        .eq("sale_id", displaySale.id);
+      return data || [];
+    },
+    enabled: open && (!displaySale?.items || displaySale.items.length === 0) && !!displaySale?.id && !String(displaySale.id).startsWith("PREVIA-"),
+  });
+
+  const rawItems = (displaySale?.items && displaySale.items.length > 0) ? displaySale.items : fetchedItems;
+  const items = (rawItems || []).map((it: any) => ({
+    ...it,
+    name: it.name || it.product_name || it.products?.name || "PRODUTO",
+  }));
+
+  // 1. Soma de todos os produtos com seu preço original sem nenhum desconto (VALOR TOTAL)
+  const itemsGrossTotal = items.reduce(
+    (acc: number, item: any) => acc + (Number(item.quantity || 1) * Number(item.unit_price || 0)),
+    0
+  );
+
+  // 2. Descontos aplicados nos itens
+  const itemsDiscountTotal = items.reduce(
+    (acc: number, item: any) => acc + Number(item.discount || 0),
+    0
+  );
+
+  const saleDiscount = Number(displaySale?.discount || displaySale?.discount_amount || 0);
+  const cashbackUsed = Number(displaySale?.cashback_used || 0);
+  const totalLiquido = Number(displaySale?.total_amount || 0);
+
+  // VALOR TOTAL: soma dos produtos sem desconto
+  const valorTotalSemDesconto = itemsGrossTotal > 0
+    ? itemsGrossTotal
+    : (totalLiquido + itemsDiscountTotal + saleDiscount + cashbackUsed);
+
+  // DESCONTO TOTAL: soma de todos os descontos (descontos nos itens + desconto de cashback acumulado + descontos gerais)
+  const totalDescontos = Math.max(0, valorTotalSemDesconto - totalLiquido);
+
   const isCancelled = displaySale?.status === 'cancelado';
   const isAwarded = displaySale?.is_awarded === true;
 
@@ -254,22 +301,28 @@ export function ReceiptModal({
             
             <div className="space-y-1 mb-4">
               <div className="flex justify-between font-bold">
-                <span>Subtotal:</span>
-                <span>{brl(subtotal || 0)}</span>
+                <span>VALOR TOTAL:</span>
+                <span>{brl(valorTotalSemDesconto || 0)}</span>
               </div>
-              {(displaySale?.discount > 0) && (
+              {totalDescontos > 0 && (
                 <div className="flex justify-between font-bold">
                   <span>Desconto:</span>
-                  <span>{brl(displaySale.discount)}</span>
+                  <span>- {brl(totalDescontos)}</span>
+                </div>
+              )}
+              {cashbackUsed > 0 && (
+                <div className="flex justify-between text-[9px] text-gray-600 italic">
+                  <span>(Cashback Utilizado:</span>
+                  <span>- {brl(cashbackUsed)})</span>
                 </div>
               )}
               <div className="flex justify-between font-bold text-sm pt-1">
                 <span>TOTAL LÍQUIDO:</span>
-                <span>{brl(displaySale?.total_amount || 0)}</span>
+                <span>{brl(totalLiquido || 0)}</span>
               </div>
               <div className="flex justify-between text-[10px]">
                 <span>Qtadd:</span>
-                <span>{items.reduce((acc: number, item: any) => acc + (item.quantity || 0), 0)} itens</span>
+                <span>{items.reduce((acc: number, item: any) => acc + (Number(item.quantity) || 0), 0)} itens</span>
               </div>
             </div>
 
@@ -292,8 +345,8 @@ export function ReceiptModal({
                       <p className="font-bold text-[10px] text-center mb-1">HISTÓRICO DE PAGAMENTOS / FIADO</p>
                       
                       <div className="flex justify-between text-[9px]">
-                        <span>Total Original:</span>
-                        <span>{brl(subtotal)}</span>
+                        <span>Total da Venda:</span>
+                        <span>{brl(totalLiquido)}</span>
                       </div>
 
                       <div className="space-y-0.5 my-1">

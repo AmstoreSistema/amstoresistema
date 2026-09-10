@@ -651,8 +651,15 @@ function SalesPage() {
       <ReceiptModal 
         open={receiptOpen}
         onOpenChange={setReceiptOpen}
-        sale={selectedSaleDetails?.sale || sales.find((s: any) => s.id === selectedSaleId)}
-        client={clientById.get(sales.find((s: any) => s.id === selectedSaleId)?.client_id || "")}
+        sale={
+          selectedSaleDetails?.sale
+            ? { ...selectedSaleDetails.sale, items: selectedSaleDetails.items }
+            : sales.find((s: any) => s.id === selectedSaleId)
+        }
+        client={
+          (selectedSaleDetails?.sale as any)?.clients ||
+          clientById.get(sales.find((s: any) => s.id === selectedSaleId)?.client_id || "")
+        }
         installments={selectedSaleDetails?.installments || []}
         payments={selectedSaleDetails?.payments || []}
       />
