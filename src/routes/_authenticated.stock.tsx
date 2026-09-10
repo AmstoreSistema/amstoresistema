@@ -531,20 +531,20 @@ function StockPage() {
         }
       />
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+      <div className="grid grid-cols-2 gap-2.5 sm:gap-4 lg:grid-cols-5">
         <StatCard
           title="Total de Itens"
           value={stats.totalUnits}
           icon={Package}
           tone="dark"
-          sub={`${stats.totalProducts} produto(s) cadastrado(s)`}
+          sub={`${stats.totalProducts} produto(s)`}
         />
         <StatCard
           title="Estoque baixo"
           value={stats.low}
           icon={AlertTriangle}
           tone="destructive"
-          sub={`${stats.low} item(ns) no limite mínimo`}
+          sub={`${stats.low} no limite`}
         />
         <StatCard
           title="Custo Total"
@@ -558,15 +558,17 @@ function StockPage() {
           value={brl(stats.totalRetail)}
           icon={TrendingUp}
           tone="success"
-          sub="Preço de venda varejo"
+          sub="Preço final de venda"
         />
-        <StatCard
-          title="Valor Atacado"
-          value={brl(stats.totalWholesale)}
-          icon={DollarSign}
-          tone="gold"
-          sub="Preço de venda atacado"
-        />
+        <div className="col-span-2 sm:col-span-1">
+          <StatCard
+            title="Valor Atacado"
+            value={brl(stats.totalWholesale)}
+            icon={DollarSign}
+            tone="gold"
+            sub="Preço para revenda"
+          />
+        </div>
       </div>
 
       <div className="flex flex-col gap-4">
@@ -955,11 +957,11 @@ function StockPage() {
       )}
 
       {isLoading ? (
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {[1, 2, 3, 4].map(i => <div key={i} className="h-72 animate-pulse rounded-[2rem] bg-card" />)}
+        <div className="grid gap-3.5 sm:gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {[1, 2, 3, 4].map(i => <div key={i} className="h-72 animate-pulse rounded-2xl sm:rounded-[2rem] bg-card" />)}
         </div>
       ) : (
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <div className="grid gap-3.5 sm:gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {filtered.map(p => {
             const stockRecord = stockRecords.find(s => s.produto_id === p.id);
             const numeracoes = stockRecord?.numeracoes || {};
@@ -971,7 +973,7 @@ function StockPage() {
             return (
               <Card 
                 key={p.id} 
-                className={`group overflow-hidden rounded-[2rem] bg-card transition-all hover:shadow-xl shadow-elegant flex flex-col relative ${
+                className={`group overflow-hidden rounded-2xl sm:rounded-[2rem] bg-card transition-all hover:shadow-xl shadow-elegant flex flex-col relative ${
                   isSelected
                     ? "ring-2 ring-primary border-primary bg-primary/[0.02]"
                     : "border-border/30"
@@ -979,7 +981,7 @@ function StockPage() {
               >
                 {/* Checkbox de Seleção Múltipla */}
                 <div
-                  className={`absolute top-3 left-3 z-20 transition-all duration-200 ${
+                  className={`absolute top-2.5 sm:top-3 left-2.5 sm:left-3 z-20 transition-all duration-200 ${
                     isSelectMode || isSelected
                       ? "opacity-100 scale-100"
                       : "opacity-0 scale-95 group-hover:opacity-100 group-hover:scale-100"
@@ -995,18 +997,18 @@ function StockPage() {
                   </label>
                 </div>
 
-                <div className="relative aspect-video bg-muted/20 shrink-0">
+                <div className="relative aspect-[16/10] sm:aspect-video bg-muted/20 shrink-0">
                   {p.image_url ? (
                     <img src={p.image_url} alt={p.name} className="h-full w-full object-cover" />
                   ) : (
                     <div className="flex h-full w-full items-center justify-center text-muted-foreground/10">
-                      <Package className="size-16" />
+                      <Package className="size-12 sm:size-16" />
                     </div>
                   )}
                 </div>
                 
-                <CardContent className="p-5 flex-1 flex flex-col">
-                  <div className="mb-4">
+                <CardContent className="p-3.5 sm:p-5 flex-1 flex flex-col">
+                  <div className="mb-3 sm:mb-4">
                     <div className="flex justify-between items-start gap-2">
                        <h3 className="line-clamp-2 font-display font-black leading-tight flex-1 text-sm md:text-base">{p.name}</h3>
                        <div className="bg-success/10 text-success text-[10px] font-black px-2 py-0.5 rounded-full shrink-0">

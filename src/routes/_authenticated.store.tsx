@@ -200,7 +200,7 @@ function StorePanel() {
   const maxMix = paymentMix[0]?.[1] ?? 0;
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-300">
+    <div className="space-y-4 sm:space-y-6 md:space-y-8 animate-in fade-in duration-300">
       <PageHeader
         title="Painel de controle da Loja"
         description="Visão consolidada das vendas, fiado, cashback e caixa da loja."
@@ -224,7 +224,7 @@ function StorePanel() {
       {/* Cartão de Alerta de Aniversariantes de Hoje */}
       <BirthdayAlertCard />
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid grid-cols-2 gap-2.5 sm:gap-4 xl:grid-cols-4">
         <StatCard
           title="Vendas hoje"
           value={salesToday.length}
@@ -259,7 +259,7 @@ function StorePanel() {
         />
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid grid-cols-2 gap-2.5 sm:gap-4 xl:grid-cols-4">
         <StatCard
           title="Clientes"
           value={num(clients.length, 0)}

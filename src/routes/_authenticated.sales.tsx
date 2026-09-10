@@ -272,11 +272,12 @@ function SalesPage() {
         }
       />
 
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid grid-cols-2 gap-2.5 sm:gap-4 sm:grid-cols-3">
         <StatCard title="Vendas Hoje" value={stats.countToday} icon={ShoppingCart} tone="dark" />
         <StatCard title="Faturamento Hoje" value={brl(stats.totalToday)} icon={TrendingUp} tone="gold" />
-        <StatCard title="Fiados em Aberto" value={stats.pendingFiado} icon={AlertTriangle} tone="warning" />
-
+        <div className="col-span-2 sm:col-span-1">
+          <StatCard title="Fiados em Aberto" value={stats.pendingFiado} icon={AlertTriangle} tone="warning" />
+        </div>
       </div>
 
       <div className="flex flex-col sm:flex-row gap-4">
@@ -464,22 +465,25 @@ function SalesPage() {
               
               <div className="space-y-3">
                 {items.map(sale => (
-                  <Card key={sale.id} className="group overflow-hidden rounded-3xl border-border/40 bg-card hover:bg-muted/10 transition-all shadow-sm hover:shadow-md">
+                  <Card key={sale.id} className="group overflow-hidden rounded-2xl sm:rounded-3xl border-border/40 bg-card hover:bg-muted/10 transition-all shadow-sm hover:shadow-md">
                     <CardContent className="p-0">
-                      <div className="flex items-center p-4 gap-4">
-                        <div className="size-12 rounded-2xl bg-muted/50 flex items-center justify-center shrink-0">
-                           <User className="size-6 text-muted-foreground" />
+                      <div className="flex items-center p-3 sm:p-4 gap-3 sm:gap-4">
+                        <div className="size-10 sm:size-12 rounded-xl sm:rounded-2xl bg-muted/50 flex items-center justify-center shrink-0">
+                           <User className="size-5 sm:size-6 text-muted-foreground" />
                         </div>
                         
                         <div className="flex-1 min-w-0">
-                           <div className="flex justify-between items-start">
-                              <div>
-                                 <h4 className="font-bold truncate">{clientById.get(sale.client_id || "")?.name || "Consumidor Final"}</h4>
-                                 <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Venda #{sale.id.slice(0,8)}</p>
+                           <div className="flex justify-between items-start gap-2">
+                              <div className="min-w-0">
+                                 <div className="flex items-center gap-1.5 flex-wrap">
+                                   <h4 className="font-bold text-xs sm:text-sm truncate max-w-[140px] sm:max-w-none">{clientById.get(sale.client_id || "")?.name || "Consumidor Final"}</h4>
+                                   <div className="sm:hidden">{getStatusBadge(sale)}</div>
+                                 </div>
+                                 <p className="text-[9px] sm:text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Venda #{sale.id.slice(0,8)}</p>
                               </div>
-                              <div className="text-right">
-                                 <p className="font-black text-lg font-display text-gold">{brl(sale.total_amount)}</p>
-                                 <div className="flex items-center gap-1 justify-end text-[10px] text-muted-foreground font-bold">
+                              <div className="text-right shrink-0">
+                                 <p className="font-black text-base sm:text-lg font-display text-gold">{brl(sale.total_amount)}</p>
+                                 <div className="flex items-center gap-1 justify-end text-[9px] sm:text-[10px] text-muted-foreground font-bold">
                                     <CreditCard className="size-3" /> {sale.payment_method}
                                  </div>
                               </div>

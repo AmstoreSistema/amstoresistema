@@ -312,7 +312,7 @@ function TransactionsPage() {
         }
       />
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-2.5 sm:gap-4 lg:grid-cols-4">
         <StatCard title="Receitas totais" value={brl(stats.inflow)} icon={TrendingUp} tone="success" />
         <StatCard title="Total Despesas" value={brl(stats.outflow)} icon={TrendingDown} tone="destructive" />
         <StatCard title="Saldo" value={brl(stats.balance)} icon={DollarSign} tone="gold" />
@@ -324,20 +324,20 @@ function TransactionsPage() {
           <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input 
             placeholder="Buscar por descrição ou categoria..." 
-            className="pl-10 h-11 rounded-xl bg-card border-border/40"
+            className="pl-10 h-10 sm:h-11 rounded-xl bg-card border-border/40 text-xs sm:text-sm"
             value={term}
             onChange={e => setTerm(e.target.value)}
           />
         </div>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 rounded-2xl border border-border/40 bg-card p-4">
+      <div className="grid gap-3 sm:gap-4 sm:grid-cols-2 rounded-2xl border border-border/40 bg-card p-3 sm:p-4">
         <div className="space-y-1.5">
           <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Data início</label>
           <Input
             type="date"
             lang="pt-BR"
-            className="h-11 rounded-xl"
+            className="h-10 sm:h-11 rounded-xl text-xs sm:text-sm"
             value={startDate}
             max={endDate || undefined}
             onChange={e => setStartDate(e.target.value)}
@@ -348,7 +348,7 @@ function TransactionsPage() {
           <Input
             type="date"
             lang="pt-BR"
-            className="h-11 rounded-xl"
+            className="h-10 sm:h-11 rounded-xl text-xs sm:text-sm"
             value={endDate}
             min={startDate || undefined}
             onChange={e => setEndDate(e.target.value)}
@@ -356,13 +356,13 @@ function TransactionsPage() {
         </div>
         {(startDate || endDate || typeFilter !== "todos" || statusFilter !== "todos" || term) && (
           <div className="sm:col-span-2 flex items-center justify-between gap-2">
-            <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
+            <p className="text-[10px] sm:text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
               {totalCount} {totalCount === 1 ? "lançamento encontrado" : "lançamentos encontrados"}
             </p>
             <Button
               variant="ghost"
               size="sm"
-              className="rounded-lg text-[11px] font-bold uppercase h-8"
+              className="rounded-lg text-[10px] sm:text-[11px] font-bold uppercase h-7 sm:h-8"
               onClick={() => {
                 setStartDate("");
                 setEndDate("");
@@ -424,31 +424,33 @@ function TransactionsPage() {
           {[1, 2].map(i => <div key={i} className="h-24 bg-card animate-pulse rounded-3xl" />)}
         </div>
       ) : (
-        <div className="space-y-10">
+        <div className="space-y-6 sm:space-y-10">
           {Object.entries(grouped).map(([date, items]) => {
             const dateRevenue = items.filter(t => t.type === 'entrada' || t.type === 'income').reduce((s, t) => s + Number(t.amount), 0);
             const dateExpense = items.filter(t => t.type === 'saida' || t.type === 'expense').reduce((s, t) => s + Math.abs(Number(t.amount)), 0);
             
             return (
-              <div key={date} className="space-y-1 overflow-hidden rounded-[2rem] border border-gray-100 shadow-sm">
-                <div className="bg-blue-600 p-4 flex items-center justify-between text-white">
-                  <div className="flex items-center gap-3">
-                    <Calendar className="size-5" />
-                    <h3 className="font-bold text-sm tracking-tight">{date}</h3>
-                    <Badge variant="secondary" className="bg-white/20 text-white border-none text-[10px] uppercase font-black">{items.length} {items.length === 1 ? 'transação' : 'transações'}</Badge>
+              <div key={date} className="space-y-1 overflow-hidden rounded-2xl sm:rounded-[2rem] border border-gray-100 shadow-sm">
+                <div className="bg-blue-600 p-3 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-4 text-white">
+                  <div className="flex items-center justify-between sm:justify-start gap-2 sm:gap-3">
+                    <div className="flex items-center gap-2 sm:gap-3">
+                      <Calendar className="size-4 sm:size-5 shrink-0" />
+                      <h3 className="font-bold text-xs sm:text-sm tracking-tight">{date}</h3>
+                    </div>
+                    <Badge variant="secondary" className="bg-white/20 text-white border-none text-[9px] sm:text-[10px] uppercase font-black">{items.length} {items.length === 1 ? 'transação' : 'transações'}</Badge>
                   </div>
-                  <div className="flex items-center gap-6">
-                    <div className="text-right">
-                       <p className="text-[9px] uppercase font-black opacity-80">Receitas</p>
-                       <p className="font-bold text-xs">{brl(dateRevenue)}</p>
+                  <div className="grid grid-cols-3 sm:flex sm:items-center gap-2 sm:gap-6 pt-1 sm:pt-0 border-t border-white/15 sm:border-t-0">
+                    <div className="text-left sm:text-right">
+                       <p className="text-[8px] sm:text-[9px] uppercase font-black opacity-80">Receitas</p>
+                       <p className="font-bold text-[11px] sm:text-xs truncate">{brl(dateRevenue)}</p>
+                    </div>
+                    <div className="text-center sm:text-right">
+                       <p className="text-[8px] sm:text-[9px] uppercase font-black opacity-80">Despesas</p>
+                       <p className="font-bold text-[11px] sm:text-xs truncate">-{brl(dateExpense)}</p>
                     </div>
                     <div className="text-right">
-                       <p className="text-[9px] uppercase font-black opacity-80">Despesas</p>
-                       <p className="font-bold text-xs">-{brl(dateExpense)}</p>
-                    </div>
-                    <div className="text-right">
-                       <p className="text-[9px] uppercase font-black opacity-80">Saldo do Dia</p>
-                       <p className="font-bold text-sm">{brl(dateRevenue - dateExpense)}</p>
+                       <p className="text-[8px] sm:text-[9px] uppercase font-black opacity-80">Saldo do Dia</p>
+                       <p className="font-bold text-[11px] sm:text-sm truncate">{brl(dateRevenue - dateExpense)}</p>
                     </div>
                   </div>
                 </div>
@@ -457,19 +459,19 @@ function TransactionsPage() {
                   {items.map(t => {
                     const isIncome = t.type === 'entrada' || t.type === 'income';
                     return (
-                      <div key={t.id} className="group p-4 flex items-center gap-4 hover:bg-gray-50/50 transition-colors">
+                      <div key={t.id} className="group p-3 sm:p-4 flex items-center gap-2.5 sm:gap-4 hover:bg-gray-50/50 transition-colors">
                         <div className={cn(
-                          "size-10 rounded-xl flex items-center justify-center shrink-0",
+                          "size-8 sm:size-10 rounded-xl flex items-center justify-center shrink-0",
                           isIncome ? "bg-green-50 text-green-500" : "bg-red-50 text-red-500"
                         )}>
-                           {isIncome ? <TrendingUp className="size-5" /> : <TrendingDown className="size-5" />}
+                           {isIncome ? <TrendingUp className="size-4 sm:size-5" /> : <TrendingDown className="size-4 sm:size-5" />}
                         </div>
                         
                         <div className="flex-1 min-w-0">
-                           <div className="flex items-center gap-2">
-                              <h4 className="font-normal text-sm text-gray-800 truncate">{formatTransactionTitle(t.description, t.clients?.name)}</h4>
+                           <div className="flex items-center gap-1.5 sm:gap-2">
+                              <h4 className="font-normal text-xs sm:text-sm text-gray-800 truncate">{formatTransactionTitle(t.description, t.clients?.name)}</h4>
                               <Badge variant="secondary" className={cn(
-                                "text-[9px] font-black uppercase h-5 px-1.5 border-none",
+                                "text-[9px] font-black uppercase h-4 sm:h-5 px-1 sm:px-1.5 border-none shrink-0",
                                 t.status === 'pago' ? "bg-green-100 text-green-700" : "bg-orange-100 text-orange-700"
                               )}>
                                 {t.status}
@@ -478,47 +480,47 @@ function TransactionsPage() {
                            
                            {t.clients?.name ? (
                              <div className="mt-0.5">
-                               <p className="text-sm font-bold text-gray-900">{t.clients.name}</p>
+                               <p className="text-xs sm:text-sm font-bold text-gray-900 truncate">{t.clients.name}</p>
                              </div>
                            ) : (t.suppliers?.name || t.supplier_name) ? (
                              <div className="mt-0.5">
-                               <p className="text-sm font-bold text-gray-900">{t.suppliers?.name || t.supplier_name}</p>
+                               <p className="text-xs sm:text-sm font-bold text-gray-900 truncate">{t.suppliers?.name || t.supplier_name}</p>
                              </div>
                            ) : null}
 
-                           <div className="flex items-center gap-2 mt-1">
-                              <span className="text-[10px] text-muted-foreground font-normal uppercase tracking-tight">
+                           <div className="flex flex-wrap items-center gap-1 sm:gap-2 mt-1">
+                              <span className="text-[9px] sm:text-[10px] text-muted-foreground font-normal uppercase tracking-tight">
                                 {t.category || "Vendas"}
                               </span>
                               <span className="size-1 rounded-full bg-gray-300" />
-                              <span className="text-[10px] text-muted-foreground font-normal uppercase tracking-tight">
+                              <span className="text-[9px] sm:text-[10px] text-muted-foreground font-normal uppercase tracking-tight">
                                  {t.financial_accounts?.name || "Caixa Principal"}
                               </span>
                               <span className="size-1 rounded-full bg-gray-300" />
-                              <span className="text-[10px] text-muted-foreground font-normal uppercase tracking-tight">
+                              <span className="text-[9px] sm:text-[10px] text-muted-foreground font-normal uppercase tracking-tight">
                                  {dateBR(t.created_at)}
                               </span>
                            </div>
                         </div>
 
-                        <div className="text-right mr-4">
+                        <div className="text-right sm:mr-4 shrink-0">
                            <p className={cn(
-                             "font-black text-lg font-display",
+                             "font-black text-sm sm:text-lg font-display",
                              isIncome ? "text-green-600" : "text-red-600"
                            )}>
                               {isIncome ? '+' : '-'} {brl(Math.abs(t.amount))}
                            </p>
                         </div>
 
-                        <div className="flex items-center gap-1 opacity-40 group-hover:opacity-100 transition-opacity">
-                            <Button variant="outline" size="icon" className="h-8 w-8 rounded-lg border-gray-100" onClick={() => setViewingTransaction(t)}>
-                                <Eye className="size-3.5" />
+                        <div className="flex items-center gap-1 opacity-100 sm:opacity-40 group-hover:opacity-100 transition-opacity shrink-0">
+                            <Button variant="outline" size="icon" className="h-7 w-7 sm:h-8 sm:w-8 rounded-lg border-gray-100" onClick={() => setViewingTransaction(t)}>
+                                <Eye className="size-3 sm:size-3.5" />
                             </Button>
-                            <Button variant="outline" size="icon" className="h-8 w-8 rounded-lg border-gray-100" onClick={() => setEditingTransaction(t)}>
-                                <Pencil className="size-3.5" />
+                            <Button variant="outline" size="icon" className="h-7 w-7 sm:h-8 sm:w-8 rounded-lg border-gray-100" onClick={() => setEditingTransaction(t)}>
+                                <Pencil className="size-3 sm:size-3.5" />
                             </Button>
-                            <Button variant="outline" size="icon" className="h-8 w-8 rounded-lg border-red-50 text-red-500 hover:bg-red-50" onClick={() => handleDeleteItem(t.id)}>
-                                <Trash2 className="size-3.5" />
+                            <Button variant="outline" size="icon" className="h-7 w-7 sm:h-8 sm:w-8 rounded-lg border-red-50 text-red-500 hover:bg-red-50" onClick={() => handleDeleteItem(t.id)}>
+                                <Trash2 className="size-3 sm:size-3.5" />
                             </Button>
                         </div>
                       </div>

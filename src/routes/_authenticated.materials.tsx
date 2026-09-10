@@ -484,22 +484,22 @@ function MaterialsPage() {
       />
 
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-2.5 sm:gap-4 lg:grid-cols-4">
         <StatCard title="Total de Materiais" value={stats.total} icon={Boxes} tone="dark" sub="couros e outros" />
         <StatCard title="Estoque baixo" value={stats.low} icon={AlertTriangle} tone="destructive" sub="Materiais normais" />
         <StatCard title="Couros Alta Utilização" value={0} icon={Layers} tone="gold" sub=">80% cortado" />
         <StatCard title="Valor Total" value={brl(stats.totalValue)} icon={Package} tone="success" sub="Todos os materiais" />
       </div>
 
-      <div className="flex flex-col gap-4">
-        <div className="flex flex-wrap gap-2">
+      <div className="flex flex-col gap-3 sm:gap-4">
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1.5 custom-scrollbar sm:flex-wrap sm:pb-0">
           {["Todos", ...MATERIAL_CATEGORIES].map(t => (
             <Button 
               key={t}
               variant={activeType === t ? "default" : "outline"}
               size="sm"
               onClick={() => setActiveType(t)}
-              className="rounded-full px-4"
+              className="rounded-full px-3 sm:px-4 text-xs shrink-0"
             >
               {t}
             </Button>
@@ -516,8 +516,8 @@ function MaterialsPage() {
           />
         </div>
 
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border/60 bg-card px-4 py-3">
-          <label className="flex cursor-pointer select-none items-center gap-3 text-sm">
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border/60 bg-card px-3.5 sm:px-4 py-2.5 sm:py-3">
+          <label className="flex cursor-pointer select-none items-center gap-2.5 sm:gap-3 text-xs sm:text-sm">
             <Checkbox
               checked={filtered.length > 0 && selectedIds.length === filtered.length}
               onCheckedChange={(v) =>
@@ -530,35 +530,35 @@ function MaterialsPage() {
             </span>
           </label>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             {selectedIds.length > 0 && (
-              <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              <span className="text-[10px] sm:text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 {selectedIds.length} selecionado(s)
               </span>
             )}
             <Button
               variant="destructive"
               size="sm"
-              className="gap-2"
+              className="gap-1.5 sm:gap-2 text-xs h-8 sm:h-9"
               disabled={selectedIds.length === 0}
               onClick={() => setBulkDeleteOpen(true)}
             >
-              <Trash2 className="size-4" /> Excluir selecionados
+              <Trash2 className="size-3.5 sm:size-4" /> Excluir selecionados
             </Button>
           </div>
         </div>
       </div>
 
       {isLoading ? (
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {[1, 2, 3, 4].map(i => <div key={i} className="h-64 animate-pulse rounded-3xl bg-card" />)}
+        <div className="grid gap-3.5 sm:gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {[1, 2, 3, 4].map(i => <div key={i} className="h-64 animate-pulse rounded-2xl sm:rounded-3xl bg-card" />)}
         </div>
       ) : (
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <div className="grid gap-3.5 sm:gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {filtered.map(m => (
             <Card
               key={m.id}
-              className={`overflow-hidden rounded-3xl border-border/50 bg-card transition-all hover:shadow-xl hover:shadow-gold/5 ${
+              className={`overflow-hidden rounded-2xl sm:rounded-3xl border-border/50 bg-card transition-all hover:shadow-xl hover:shadow-gold/5 ${
                 selectedIds.includes(m.id) ? "ring-2 ring-destructive/60" : ""
               }`}
             >
@@ -567,20 +567,20 @@ function MaterialsPage() {
                   <img src={m.image_url} alt={m.name} className="h-full w-full object-cover" />
                 ) : (
                   <div className="flex h-full w-full items-center justify-center text-muted-foreground/20">
-                    <Boxes className="size-12" />
+                    <Boxes className="size-10 sm:size-12" />
                   </div>
                 )}
-                <div className="absolute left-3 top-3 z-10 flex size-7 items-center justify-center rounded-md bg-background/90 shadow-sm backdrop-blur-sm">
+                <div className="absolute left-2.5 top-2.5 sm:left-3 sm:top-3 z-10 flex size-6 sm:size-7 items-center justify-center rounded-md bg-background/90 shadow-sm backdrop-blur-sm">
                   <Checkbox
                     checked={selectedIds.includes(m.id)}
                     onCheckedChange={() => toggleSelected(m.id)}
                     aria-label={`Selecionar ${m.name}`}
                   />
                 </div>
-                <Badge className="absolute right-3 top-3 bg-white/90 text-success backdrop-blur-sm">Normal</Badge>
-                <Badge variant="secondary" className="absolute bottom-3 left-3 uppercase tracking-wider">{m.type}</Badge>
+                <Badge className="absolute right-2.5 top-2.5 sm:right-3 sm:top-3 bg-white/90 text-success backdrop-blur-sm text-[10px] sm:text-xs">Normal</Badge>
+                <Badge variant="secondary" className="absolute bottom-2.5 left-2.5 sm:bottom-3 sm:left-3 uppercase tracking-wider text-[10px] sm:text-xs">{m.type}</Badge>
               </div>
-              <CardContent className="p-5">
+              <CardContent className="p-3.5 sm:p-5">
                 <div className="mb-4">
                   <h3 className="line-clamp-1 font-display text-lg font-bold">{m.name}</h3>
                   <p className="text-[10px] uppercase tracking-widest text-muted-foreground">SKU: {m.sku || "—"}</p>

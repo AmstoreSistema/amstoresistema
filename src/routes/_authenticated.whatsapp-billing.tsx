@@ -90,7 +90,7 @@ function WhatsAppBillingPage() {
       )}
 
       {/* Metrics */}
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid grid-cols-2 gap-2.5 sm:gap-4 md:grid-cols-4">
         <StatCard 
           title="Com Telefone / Total" 
           value={`${metrics.clientsWithPhone} / ${metrics.totalClients}`} 
@@ -119,25 +119,25 @@ function WhatsAppBillingPage() {
       </div>
 
       {/* Filters and Search */}
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-center gap-2">
-          <div className="relative">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <div className="relative w-full sm:w-64">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
             <Input 
               placeholder="Buscar por nome ou telefone..." 
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-64 pl-9 h-11 rounded-2xl bg-muted/30 border-none font-medium" 
+              className="w-full pl-9 h-10 sm:h-11 rounded-2xl bg-muted/30 border-none font-medium text-xs sm:text-sm" 
             />
           </div>
         </div>
-        <div className="flex p-1 bg-muted/50 rounded-2xl gap-1">
+        <div className="flex p-1 bg-muted/50 rounded-2xl gap-1 overflow-x-auto">
           {["Todos", "Vencidos", "A Vencer"].map((f) => (
             <Button 
               key={f} 
               variant="ghost"
               className={cn(
-                "h-9 px-6 rounded-xl text-xs font-bold uppercase transition-all",
+                "h-8 sm:h-9 px-4 sm:px-6 rounded-xl text-xs font-bold uppercase transition-all shrink-0",
                 filter === f.toLowerCase() ? "bg-white shadow-sm text-primary" : "text-muted-foreground"
               )}
               onClick={() => setFilter(f.toLowerCase())}
@@ -149,61 +149,61 @@ function WhatsAppBillingPage() {
       </div>
 
       {/* Customer List */}
-      <div className="space-y-4">
+      <div className="space-y-3 sm:space-y-4">
         <div className="flex items-center gap-2 px-2 text-[10px] font-black uppercase tracking-wider text-muted-foreground">
           <Checkbox /> <span>Selecionar todos desta página</span>
         </div>
         
         {isLoading ? (
-          [1, 2, 3].map(i => <div key={i} className="h-24 bg-card animate-pulse rounded-[1.5rem]" />)
+          [1, 2, 3].map(i => <div key={i} className="h-24 bg-card animate-pulse rounded-2xl sm:rounded-[1.5rem]" />)
         ) : filteredDebtors.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
             <CheckCircle2 className="size-12 mb-4 opacity-20" />
             <p className="font-bold">Nenhum devedor encontrado com os filtros atuais.</p>
           </div>
         ) : filteredDebtors.map((debtor: any) => (
-          <Card key={debtor.id} className="rounded-[1.5rem] border-border/40 hover:border-gold/30 transition-all group shadow-sm overflow-hidden">
+          <Card key={debtor.id} className="rounded-2xl sm:rounded-[1.5rem] border-border/40 hover:border-gold/30 transition-all group shadow-sm overflow-hidden">
             <CardContent className="p-0">
-              <div className="flex flex-wrap items-center justify-between p-6 gap-6">
-                <div className="flex items-center gap-4 flex-1 min-w-[200px]">
-                  <Checkbox className="rounded-md" />
-                  <div>
-                    <h3 className="font-black text-lg group-hover:text-primary transition-colors">{debtor.name}</h3>
-                    <p className="text-sm text-muted-foreground font-medium flex items-center gap-1">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between p-3.5 sm:p-6 gap-3 sm:gap-6">
+                <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
+                  <Checkbox className="rounded-md shrink-0" />
+                  <div className="min-w-0 flex-1">
+                    <h3 className="font-black text-sm sm:text-lg group-hover:text-primary transition-colors truncate">{debtor.name}</h3>
+                    <p className="text-xs sm:text-sm text-muted-foreground font-medium flex items-center gap-1">
                       {debtor.phone || "Sem telefone"}
                     </p>
                   </div>
                   {debtor.totalOverdue > 0 && (
-                    <Badge variant="destructive" className="h-5 rounded-md px-1.5 font-bold text-[9px] uppercase tracking-wider">
+                    <Badge variant="destructive" className="h-5 rounded-md px-1.5 font-bold text-[9px] uppercase tracking-wider shrink-0">
                       Vencido
                     </Badge>
                   )}
                 </div>
                 
-                <div className="flex gap-8 items-center">
-                  <div className="text-right">
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1">Total Devido</p>
-                    <p className="font-black text-primary text-xl">R$ {debtor.totalDue.toFixed(2)}</p>
+                <div className="flex items-center justify-between sm:justify-end gap-3 sm:gap-8 w-full sm:w-auto border-t sm:border-t-0 pt-2 sm:pt-0 border-border/40">
+                  <div className="text-left sm:text-right">
+                    <p className="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-0.5 sm:mb-1">Total Devido</p>
+                    <p className="font-black text-primary text-base sm:text-xl">R$ {debtor.totalDue.toFixed(2)}</p>
                   </div>
                   
-                  <div className="text-right w-24">
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1">Vencido</p>
-                    <p className={cn("font-black text-xl", debtor.totalOverdue > 0 ? "text-destructive" : "text-success")}>
+                  <div className="text-center sm:text-right sm:w-24">
+                    <p className="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-0.5 sm:mb-1">Vencido</p>
+                    <p className={cn("font-black text-base sm:text-xl", debtor.totalOverdue > 0 ? "text-destructive" : "text-success")}>
                       R$ {debtor.totalOverdue.toFixed(2)}
                     </p>
                   </div>
 
-                  <div className="hidden md:block text-right border-l border-border/50 pl-8">
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1">Vendas / Prox. Vencimento</p>
-                    <p className="font-black text-sm">
-                      {debtor.salesCount} Vendas • {debtor.nextDue ? format(new Date(debtor.nextDue), "dd/MM") : "-"}
+                  <div className="text-right border-l border-border/50 pl-3 sm:pl-8">
+                    <p className="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-0.5 sm:mb-1">Vendas / Venc.</p>
+                    <p className="font-black text-xs sm:text-sm">
+                      {debtor.salesCount} v. • {debtor.nextDue ? format(new Date(debtor.nextDue), "dd/MM") : "-"}
                     </p>
                   </div>
                 </div>
 
                 <Button 
                   onClick={() => handleOpenBilling(debtor)}
-                  className="gap-2 bg-gradient-gold shadow-gold font-bold h-11 px-6 rounded-xl hover:scale-105 transition-transform"
+                  className="w-full sm:w-auto gap-2 bg-gradient-gold shadow-gold font-bold h-10 sm:h-11 px-4 sm:px-6 rounded-xl hover:scale-105 transition-transform text-xs sm:text-sm"
                 >
                   <MessageCircle className="size-4" /> Enviar Cobrança
                 </Button>

@@ -27,20 +27,22 @@ export function StatCard({
   to?: string | undefined;
 }) {
   const body = (
-    <div className="group h-full rounded-2xl border border-border bg-card p-5 shadow-elegant transition-all hover:-translate-y-0.5 hover:border-gold/40">
-      <div className="flex items-start justify-between">
-        <div className={cn("flex size-10 items-center justify-center rounded-xl", tones[tone])}>
-          <Icon className="size-5" />
+    <div className="group h-full rounded-2xl border border-border bg-card p-3.5 sm:p-5 shadow-elegant transition-all hover:-translate-y-0.5 hover:border-gold/40 flex flex-col justify-between">
+      <div>
+        <div className="flex items-start justify-between">
+          <div className={cn("flex size-8 sm:size-10 items-center justify-center rounded-lg sm:rounded-xl shrink-0", tones[tone])}>
+            <Icon className="size-4 sm:size-5" />
+          </div>
+          {to && (
+            <span className="text-[9px] sm:text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground group-hover:text-gold">
+              ver
+            </span>
+          )}
         </div>
-        {to && (
-          <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground group-hover:text-gold">
-            ver
-          </span>
-        )}
+        <p className="mt-2.5 sm:mt-4 text-[10px] sm:text-xs font-semibold uppercase tracking-wide text-muted-foreground line-clamp-1">{title}</p>
+        <p className="mt-0.5 sm:mt-1 text-base sm:text-2xl font-bold tabular-nums truncate">{value}</p>
       </div>
-      <p className="mt-4 text-xs font-medium uppercase tracking-wide text-muted-foreground">{title}</p>
-      <p className="mt-1 text-2xl font-bold tabular-nums">{value}</p>
-      {sub && <p className="mt-1 text-xs text-muted-foreground">{sub}</p>}
+      {sub && <p className="mt-1 text-[10px] sm:text-xs text-muted-foreground line-clamp-1">{sub}</p>}
     </div>
   );
 

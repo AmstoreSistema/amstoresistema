@@ -459,14 +459,14 @@ function ProductsPage() {
             onChange={(e) => setTerm(e.target.value)}
           />
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1.5 custom-scrollbar sm:flex-wrap sm:pb-0">
           {categories.map((c) => (
             <Button
               key={c}
               variant={activeCategory === c ? "default" : "outline"}
               size="sm"
               onClick={() => setActiveCategory(c)}
-              className="rounded-full px-4"
+              className="rounded-full px-3 sm:px-4 text-xs shrink-0"
             >
               {c}
             </Button>
@@ -475,13 +475,13 @@ function ProductsPage() {
       </div>
 
       {isLoading ? (
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-3.5 sm:gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="h-96 animate-pulse rounded-3xl bg-card" />
+            <div key={i} className="h-96 animate-pulse rounded-2xl sm:rounded-3xl bg-card" />
           ))}
         </div>
       ) : (
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-3.5 sm:gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {filtered.map((p) => {
             const cost = savedBomCost(p.id) + Number(p.labor_cost ?? 0) + Number(p.overhead_cost ?? 0);
             const margin = Number(p.sale_price) - cost;
@@ -489,36 +489,36 @@ function ProductsPage() {
             const marginPercent = cost > 0 ? (margin / cost) * 100 : 0;
 
             return (
-              <Card key={p.id} className="group overflow-hidden rounded-3xl border-border/50 bg-card transition-all hover:shadow-xl hover:shadow-gold/5">
-                <div className="relative aspect-video bg-muted/30">
+              <Card key={p.id} className="group overflow-hidden rounded-2xl sm:rounded-3xl border-border/50 bg-card transition-all hover:shadow-xl hover:shadow-gold/5">
+                <div className="relative aspect-[16/10] sm:aspect-video bg-muted/30">
                   {p.image_url ? (
                     <img src={p.image_url} alt={p.name} className="h-full w-full object-cover" loading="lazy" />
                   ) : (
                     <div className="flex h-full w-full items-center justify-center text-muted-foreground/20">
-                      <Package className="size-16" />
+                      <Package className="size-12 sm:size-16" />
                     </div>
                   )}
-                  <Badge variant="secondary" className="absolute left-3 top-3 uppercase tracking-wider">{p.category}</Badge>
+                  <Badge variant="secondary" className="absolute left-2.5 top-2.5 sm:left-3 sm:top-3 uppercase tracking-wider text-[10px] sm:text-xs">{p.category}</Badge>
                 </div>
-                <CardContent className="p-6">
-                  <div className="mb-4">
-                    <h3 className="line-clamp-1 font-display text-xl font-bold">{p.name}</h3>
+                <CardContent className="p-3.5 sm:p-6">
+                  <div className="mb-3 sm:mb-4">
+                    <h3 className="line-clamp-1 font-display text-base sm:text-xl font-bold">{p.name}</h3>
                     <div className="flex items-center gap-2 text-[10px] uppercase tracking-widest text-muted-foreground">
                       <span>Código: {p.sku || "—"}</span>
                       {p.color ? <span>· {p.color}</span> : null}
                     </div>
                   </div>
 
-                  <div className="mb-6 flex items-center gap-2">
-                    <Clock className="size-4 text-gold" />
+                  <div className="mb-3.5 sm:mb-6 flex items-center gap-2">
+                    <Clock className="size-3.5 sm:size-4 text-gold" />
                     <div className="text-xs">
-                      <p className="text-muted-foreground">Produção:</p>
-                      <p className="font-bold">{num(p.production_time_hours)} horas</p>
+                      <p className="text-muted-foreground text-[10px] sm:text-xs">Produção:</p>
+                      <p className="font-bold text-xs sm:text-sm">{num(p.production_time_hours)} horas</p>
                     </div>
                   </div>
 
-                  <div className="space-y-3 rounded-2xl bg-muted/30 p-4 text-xs">
-                    <p className="mb-2 font-bold uppercase tracking-wider text-muted-foreground">Valores Unitários</p>
+                  <div className="space-y-2 sm:space-y-3 rounded-xl sm:rounded-2xl bg-muted/30 p-3 sm:p-4 text-xs">
+                    <p className="mb-1 sm:mb-2 font-bold uppercase tracking-wider text-muted-foreground text-[10px]">Valores Unitários</p>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Custo Produto:</span>
                       <span className="font-bold text-destructive">{brl(cost)}</span>
@@ -547,17 +547,17 @@ function ProductsPage() {
                     </div>
                   </div>
 
-                  <div className="mt-6 flex items-center justify-between gap-2 border-t border-border/50 pt-4">
+                  <div className="mt-3.5 sm:mt-6 flex items-center justify-between gap-2 border-t border-border/50 pt-3 sm:pt-4">
                     <div className="flex gap-1">
-                      <Button variant="outline" size="sm" className="h-9 gap-2" onClick={() => openEdit(p)}>
-                        <Layers className="size-4" /> Ficha Técnica
+                      <Button variant="outline" size="sm" className="h-8 sm:h-9 gap-1.5 sm:gap-2 text-xs px-2.5 sm:px-3" onClick={() => openEdit(p)}>
+                        <Layers className="size-3.5 sm:size-4" /> Ficha Técnica
                       </Button>
-                      <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => openEdit(p)}>
-                        <Pencil className="size-4" />
+                      <Button variant="outline" size="icon" className="h-8 w-8 sm:h-9 sm:w-9" onClick={() => openEdit(p)}>
+                        <Pencil className="size-3.5 sm:size-4" />
                       </Button>
                     </div>
-                    <Button variant="ghost" size="icon" className="h-9 w-9 text-destructive" onClick={() => handleDeleteProduct(p)}>
-                      <Trash2 className="size-4" />
+                    <Button variant="ghost" size="icon" className="h-8 w-8 sm:h-9 sm:w-9 text-destructive" onClick={() => handleDeleteProduct(p)}>
+                      <Trash2 className="size-3.5 sm:size-4" />
                     </Button>
                   </div>
                 </CardContent>
@@ -579,14 +579,14 @@ function ProductsPage() {
 
       {/* ================= MODAL FICHA TÉCNICA ================= */}
       <Dialog open={formOpen} onOpenChange={setFormOpen}>
-        <DialogContent className="max-w-4xl gap-0 overflow-hidden p-0">
-          <DialogHeader className="flex-row items-center justify-between border-b border-border/60 px-6 py-4">
+        <DialogContent className="w-[96vw] sm:max-w-4xl gap-0 overflow-hidden p-0 rounded-2xl sm:rounded-3xl max-h-[90vh] flex flex-col">
+          <DialogHeader className="flex-row items-center justify-between border-b border-border/60 px-4 sm:px-6 py-3.5 sm:py-4">
             <DialogTitle className="font-display text-base font-bold">
               {editing ? "Editar Produto" : "Novo Produto"}
             </DialogTitle>
           </DialogHeader>
 
-          <div className="max-h-[72vh] space-y-5 overflow-y-auto px-6 py-5">
+          <div className="max-h-[72vh] space-y-4 sm:space-y-5 overflow-y-auto px-4 sm:px-6 py-4 sm:py-5">
             {/* ---------- Informações básicas ---------- */}
             <section className="rounded-2xl border border-border/60 p-4">
               <h4 className="mb-4 flex items-center gap-2 text-sm font-bold">

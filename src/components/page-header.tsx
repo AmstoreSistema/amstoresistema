@@ -12,19 +12,19 @@ export function PageHeader({
   actions?: ReactNode | undefined;
 }) {
   return (
-    <div className="flex flex-wrap items-start justify-between gap-4 border-b border-border pb-6">
-      <div className="flex items-start gap-4">
+    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 border-b border-border pb-4 sm:pb-6">
+      <div className="flex items-center gap-3 sm:gap-4 min-w-0">
         {Icon && (
-          <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-gradient-dark text-gold shadow-elegant">
-            <Icon className="size-5" />
+          <div className="flex size-9 sm:size-11 shrink-0 items-center justify-center rounded-xl bg-gradient-dark text-gold shadow-elegant">
+            <Icon className="size-4 sm:size-5" />
           </div>
         )}
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">{title}</h1>
-          {description && <p className="mt-1 text-sm text-muted-foreground">{description}</p>}
+        <div className="min-w-0">
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight truncate">{title}</h1>
+          {description && <p className="mt-0.5 sm:mt-1 text-xs sm:text-sm text-muted-foreground line-clamp-2">{description}</p>}
         </div>
       </div>
-      {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
+      {actions && <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">{actions}</div>}
     </div>
   );
 }
