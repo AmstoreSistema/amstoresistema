@@ -158,7 +158,7 @@ function SettingsPage() {
         { id: "product_materials", label: "Composições de Materiais" },
         { id: "production_orders", label: "Ordens de Produção" },
         { id: "material_cuts", label: "Cortes de Couro" },
-        { id: "material_variations", label: "Cupons de Produção" }, // Mapping to material_variations as context suggests
+        { id: "material_variations", label: "Cupons de Produção" },
       ]
     },
     {
@@ -177,6 +177,8 @@ function SettingsPage() {
         { id: "sale_items", label: "Itens de Venda" },
         { id: "sale_payments", label: "Pagamentos de Vendas" },
         { id: "sale_installments", label: "Parcelas de Vendas" },
+        { id: "condicionais", label: "Saídas Condicionais" },
+        { id: "condicional_items", label: "Itens Condicionais" },
       ]
     },
     {

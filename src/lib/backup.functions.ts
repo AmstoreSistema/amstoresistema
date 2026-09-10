@@ -103,6 +103,8 @@ export const importSystemData = createServerFn({ method: "POST" })
       promotions: ["name"],
       app_settings: ["key"],
       sales: ["sale_code"],
+      cashback_config: ["category_name"],
+      condicionais: ["codigo"],
     };
 
     const auditMetrics = {
@@ -647,6 +649,38 @@ export const importSystemData = createServerFn({ method: "POST" })
       throw new Error(
         `Nenhum registro pôde ser restaurado.${firstError ? ` Motivo: ${firstError}` : ""}`,
       );
+    }
+
+    // Pós-import: sincroniza saldo de cashback dos clientes a partir da tabela espelho CashbackCliente
+    // Isso garante que backups do Base44 (que não exportam cashback nativo) atualizem
+    // o cashback_balance em clients a partir dos dados de saldo que vieram no backup externo.
+    if (results["CashbackCliente"]) {
+      try {
+        const { data: cashbackClientes } = await supabaseAdmin
+          .from("CashbackCliente" as any)
+          .select("cliente_nome, saldo")
+          .limit(5000);
+        if (cashbackClientes && cashbackClientes.length > 0) {
+          const clientNormMap = await lookup("clients", "name");
+          let synced = 0;
+          for (const cc of (cashbackClientes as any[]) || []) {
+            const nomeNorm = norm(cc.cliente_nome ?? "");
+            const clientId = clientNormMap.get(nomeNorm);
+            if (clientId && cc.saldo != null && Number(cc.saldo) > 0) {
+              await supabaseAdmin
+                .from("clients" as any)
+                .update({ cashback_balance: Number(cc.saldo) })
+                .eq("id", clientId);
+              synced++;
+            }
+          }
+          if (synced > 0) {
+            console.log(`[Import] Sincronizados ${synced} saldos de cashback de clientes via CashbackCliente.`);
+          }
+        }
+      } catch (err: any) {
+        console.warn("[Import] Aviso na sincronização de saldos cashback:", err?.message);
+      }
     }
 
     return {

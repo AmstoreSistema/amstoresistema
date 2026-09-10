@@ -6,6 +6,8 @@ import { z } from "zod";
 const DELETE_ORDER = [
   "qr_promo_history",
   "cashback_entries",
+  "condicional_items",
+  "condicionais",
   "debt_payments",
   "sale_payments",
   "sale_installments",
@@ -24,6 +26,7 @@ const DELETE_ORDER = [
   "materials",
   "clients",
   "suppliers",
+  "cashback_config",
   "notifications",
   "promotions",
   "accounts",

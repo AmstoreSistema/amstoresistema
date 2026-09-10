@@ -266,6 +266,28 @@ export const TABLE_ALIASES: Record<string, string> = {
   itenscompramaterial: "ItemCompraMaterial",
   itemcompramateriais: "ItemCompraMaterial",
 
+  // Cashback nativo do Amstore (regras e movimentações)
+  cashback_config: "cashback_config",
+  cashbackconfig: "cashback_config",
+  cashbackregras: "cashback_config",
+  regras_cashback: "cashback_config",
+  reglascashback: "cashback_config",
+  cashback_entries: "cashback_entries",
+  cashbackentries: "cashback_entries",
+  movimentacoescashback: "cashback_entries",
+  movimentacoes_cashback: "cashback_entries",
+  entradascashback: "cashback_entries",
+
+  // Vendas Condicionais
+  condicionais: "condicionais",
+  condicional: "condicionais",
+  saidacondicional: "condicionais",
+  saidascondicionais: "condicionais",
+  condicional_items: "condicional_items",
+  condicionalitems: "condicional_items",
+  itenscondicional: "condicional_items",
+  itenssaidacondicional: "condicional_items",
+
   // Coleções conhecidas que o Amstore não utiliza (ignoradas sem alerta)
   configuracaomaterial: IGNORED_TABLE,
   configuracoesmaterial: IGNORED_TABLE,
@@ -564,6 +586,29 @@ const MAPPERS: Record<string, Mapper> = {
   clients: (c) => {
     const name = str(pick(c, ["name", "nome", "cliente", "razaosocial", "fullname", "nomecompleto"]));
     if (!name) return null;
+    // Normaliza birth_date para ISO date (YYYY-MM-DD)
+    const rawBirth = pick(c, [
+      "birth_date", "birthdate", "data_aniversario", "dataaniversario",
+      "aniversario", "birthday", "data_nascimento", "datanascimento",
+      "nascimento", "dob",
+    ]);
+    let birth_date: string | null = null;
+    if (rawBirth) {
+      const d = new Date(rawBirth);
+      if (!Number.isNaN(d.getTime())) {
+        birth_date = d.toISOString().slice(0, 10);
+      } else {
+        // Tenta formato DD/MM/YYYY
+        const parts = String(rawBirth).split(/[\/\-\.]/);
+        if (parts.length === 3) {
+          const [a, b, c2] = parts.map(Number);
+          // DD/MM/YYYY
+          if (a <= 31 && b <= 12 && c2 >= 1900) {
+            birth_date = `${c2}-${String(b).padStart(2, '0')}-${String(a).padStart(2, '0')}`;
+          }
+        }
+      }
+    }
     return {
       name,
       phone: str(pick(c, ["phone", "telefone", "celular", "whatsapp", "fone", "tel", "cel"])) ?? null,
@@ -576,6 +621,7 @@ const MAPPERS: Record<string, Mapper> = {
       notes: str(pick(c, ["notes", "observacoes", "obs", "comentarios"])) ?? null,
       client_type: str(pick(c, ["client_type", "tipo", "tipocliente", "origem"])) ?? "varejo",
       cashback_balance: num(pick(c, ["cashback_balance", "cashback", "saldocashback", "credito"])),
+      birth_date,
       created_at: date(pick(c, ["created_at", "criadoem", "datacadastro", "data", "date"])),
     };
   },
@@ -923,6 +969,64 @@ const MAPPERS: Record<string, Mapper> = {
     key: str(pick(s, ["key", "chave"])),
     value: str(pick(s, ["value", "valor"])),
   }),
+  cashback_config: (cc) => {
+    const categoryName = str(pick(cc, [
+      "category_name", "categorianame", "categorynome", "category",
+      "categoria_nome", "categoria", "nome",
+    ]));
+    if (!categoryName) return null;
+    const percent = num(pick(cc, [
+      "cashback_percent", "percentual_cashback", "percentual", "percent",
+      "porcentagem", "taxa", "rate",
+    ]));
+    return {
+      category_name: categoryName,
+      cashback_percent: percent,
+      active: pick(cc, ["active", "ativo", "status"]) !== false,
+      created_at: date(pick(cc, ["created_at", "criadoem", "data"])),
+    };
+  },
+  cashback_entries: (ce) => {
+    const clientId = str(pick(ce, ["client_id", "clienteid", "cliente_id"]));
+    const amount = num(pick(ce, ["amount", "valor", "value"]));
+    if (!amount) return null;
+    return {
+      client_id: clientId ?? null,
+      amount,
+      kind: str(pick(ce, ["kind", "tipo", "type", "operacao"])) ?? "credit",
+      description: str(pick(ce, ["description", "descricao", "obs", "observacao"])) ?? null,
+      sale_id: str(pick(ce, ["sale_id", "venda_id", "vendaid"])) ?? null,
+      created_at: date(pick(ce, ["created_at", "criadoem", "data"])),
+    };
+  },
+  condicionais: (cd) => {
+    const codigo = str(pick(cd, ["codigo", "code", "numero", "number"]));
+    if (!codigo) return null;
+    return {
+      codigo,
+      client_id: str(pick(cd, ["client_id", "clienteid", "cliente_id"])) ?? null,
+      client_name: str(pick(cd, ["client_name", "clientename", "cliente_nome", "clientenome", "cliente"])) ?? null,
+      status: str(pick(cd, ["status", "situacao", "estado"])) ?? "aberto",
+      notes: str(pick(cd, ["notes", "observacoes", "obs"])) ?? null,
+      created_at: date(pick(cd, ["created_at", "criadoem", "data"])),
+      closed_at: pick(cd, ["closed_at", "fechadoem", "data_fechamento"]) ? date(pick(cd, ["closed_at", "fechadoem", "data_fechamento"])) : null,
+    };
+  },
+  condicional_items: (ci) => {
+    const productName = str(pick(ci, ["product_name", "produto_nome", "produto", "nome", "product"]));
+    const productId = str(pick(ci, ["product_id", "produto_id", "id_produto"]));
+    if (!productName && !productId) return null;
+    return {
+      condicional_id: str(pick(ci, ["condicional_id", "condicionalid"])) ?? null,
+      product_id: productId ?? null,
+      product_name: productName ?? `Produto ${productId}`,
+      numeracao: str(pick(ci, ["numeracao", "tamanho", "grade", "size"])) ?? null,
+      price: num(pick(ci, ["price", "preco", "valor", "unit_price", "preco_unitario"])),
+      quantity: num(pick(ci, ["quantity", "quantidade", "qtd"]), 1) || 1,
+      status: str(pick(ci, ["status", "situacao"])) ?? "pendente",
+      created_at: date(pick(ci, ["created_at", "criadoem", "data"])),
+    };
+  },
 };
 
 /** Tabelas espelho: os campos do arquivo já têm os mesmos nomes das colunas. */
@@ -981,11 +1085,15 @@ export const IMPORT_ORDER = [
   "stock_products",
   "financial_accounts",
   "promotions",
+  "cashback_config",
   "transactions",
   "sales",
   "sale_items",
   "sale_payments",
   "sale_installments",
+  "cashback_entries",
+  "condicionais",
+  "condicional_items",
   "CashbackCategoria",
   "CashbackCliente",
   "CashbackMovimentacao",
