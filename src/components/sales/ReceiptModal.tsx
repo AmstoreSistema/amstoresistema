@@ -203,7 +203,7 @@ export function ReceiptModal({
   const storeLogo = getSetting("store_logo");
 
   const generateEscPosText = () => {
-    const W = 32; // Largura padrão de 32 colunas para impressoras térmicas (58mm / 80mm)
+    const W = 48; // Largura padrão de 48 colunas para impressoras térmicas de 80mm
     const center = (str: string) => {
       const s = (str || "").trim();
       if (s.length >= W) return s.slice(0, W);
@@ -342,34 +342,72 @@ export function ReceiptModal({
     lines.push(center("Obrigado! Volte sempre!"));
     lines.push(center(new Date().toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })));
     lines.push(div("="));
-    lines.push("\n\n\n\n"); // Alimentação de papel para corte
+    
+    // Avanço de papel e comandos para acionamento da GUILHOTINA / CORTE AUTOMÁTICO
+    lines.push("\n\n\n\n");
+    lines.push("[CUT]"); // Tag nativa do RawBT para corte de papel
+    lines.push("\x1D\x56\x41\x00"); // ESC/POS: GS V 65 0 (Avança e corta)
+    lines.push("\x1D\x56\x01");     // ESC/POS: GS V 1 (Corte parcial)
+    lines.push("\x1D\x56\x00");     // ESC/POS: GS V 0 (Corte total)
+    lines.push("\x1B\x69");         // ESC i (Corte automático Star/Epson)
+    lines.push("\x1B\x6D");         // ESC m (Corte parcial)
 
     return lines.join("\n");
   };
 
-  const handleEscPosPrint = () => {
+  // 1. Impressão Gráfica de Alta Definição 80mm no RawBT (100% fiel à tela, com Logomarca e corte automático)
+  const [printingThermal, setPrintingThermal] = React.useState(false);
+
+  const handleRawBTPrint = async () => {
+    if (!receiptRef.current) return;
+    setPrintingThermal(true);
+    try {
+      toast.info("Preparando cupom térmico 80mm com logomarca...");
+      const dataUrl = await toPng(receiptRef.current, {
+        backgroundColor: '#ffffff',
+        pixelRatio: 2,
+      });
+
+      const base64Data = dataUrl.replace(/^data:image\/png;base64,/, "");
+
+      // Android Intent enviando imagem PNG para RawBT
+      const intentUrl = `intent:image/png;base64,${base64Data}#Intent;scheme=rawbt:data;package=ru.a402d.rawbtprinter;S.browser_fallback_url=https%3A%2F%2Fplay.google.com%2Fstore%2Fapps%2Fdetails%3Fid%3Dru.a402d.rawbtprinter;end;`;
+
+      const isAndroid = /android/i.test(navigator.userAgent);
+      if (!isAndroid) {
+        toast.info("Atenção: A impressão direta via RawBT é para celulares Android. No computador, utilize o botão 'Imprimir (Navegador)'.", { duration: 5000 });
+      } else {
+        toast.success("Enviando cupom 80mm com logomarca para o RawBT...");
+      }
+
+      window.location.href = intentUrl;
+    } catch (err) {
+      console.error("Erro ao imprimir imagem no RawBT:", err);
+      toast.error("Erro na impressão gráfica. Alternando para modo texto 80mm...");
+      handleEscPosTextPrint();
+    } finally {
+      setPrintingThermal(false);
+    }
+  };
+
+  // 2. Impressão ESC/POS em Texto 80mm com comandos de corte
+  const handleEscPosTextPrint = () => {
     try {
       const text = generateEscPosText();
       const encodedText = encodeURIComponent(text);
 
-      // 1. Android Intent para o app RawBT (recomendado pelo desenvolvedor do RawBT para navegadores Android/Chrome)
       const intentUrl = `intent:${encodedText}#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;S.browser_fallback_url=https%3A%2F%2Fplay.google.com%2Fstore%2Fapps%2Fdetails%3Fid%3Dru.a402d.rawbtprinter;end;`;
 
-      // 2. Custom Scheme direto para RawBT
-      const rawbtSchemeUrl = `rawbt:${encodedText}`;
-
       const isAndroid = /android/i.test(navigator.userAgent);
-
       if (!isAndroid) {
-        toast.info("Atenção: A impressão ESC/POS via RawBT é para celulares e tablets Android. No computador, utilize o botão 'Imprimir'.", { duration: 5000 });
+        toast.info("Atenção: A impressão ESC/POS via RawBT é para celulares Android. No computador, utilize 'Imprimir (Navegador)'.", { duration: 5000 });
       } else {
-        toast.success("Abrindo RawBT para impressão...");
+        toast.success("Enviando cupom texto 80mm com comando de corte...");
       }
 
-      // Executa o disparo do intent
       window.location.href = intentUrl;
     } catch (err) {
-      console.error("Erro ao disparar impressão RawBT:", err);
+      console.error("Erro ao disparar impressão texto RawBT:", err);
       toast.error("Erro ao preparar cupom para o RawBT");
     }
   };
@@ -381,7 +419,7 @@ export function ReceiptModal({
         <div className="flex items-center justify-between p-4 border-b bg-muted/30 sticky top-0 z-10 print:hidden">
           <div className="flex items-center gap-2">
             <h3 className="font-bold text-sm">{isPreview ? "Prévia do Cupom" : "Cupom de Venda"}</h3>
-            <span className="text-[10px] text-muted-foreground uppercase font-medium font-mono tracking-tighter">Padrao Fiscal 80mm</span>
+            <span className="text-[10px] text-muted-foreground uppercase font-medium font-mono tracking-tighter">Padrão Fiscal 80mm</span>
           </div>
           <Button variant="ghost" size="icon" onClick={() => onOpenChange(false)} className="rounded-full">
             <X className="size-4" />
@@ -389,20 +427,32 @@ export function ReceiptModal({
         </div>
 
         <div className="flex-1 overflow-y-auto p-4 sm:p-6 print:p-0">
-          <div className="flex flex-col gap-4 print:hidden mb-6">
+          <div className="flex flex-col gap-3 print:hidden mb-6">
             <Button onClick={handleShareWhatsApp} className="w-full bg-[#25D366] hover:bg-[#128C7E] text-white gap-2 font-bold h-12 rounded-xl shadow-lg">
               <Share2 className="size-4" /> Gerar Imagem para WhatsApp
             </Button>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <Button 
                 variant="outline" 
                 className="gap-2 font-bold h-12 rounded-xl bg-[#6B46C1] text-white hover:bg-[#553C9A] border-none shadow-md" 
-                onClick={handleEscPosPrint}
+                onClick={handleRawBTPrint}
+                disabled={printingThermal}
               >
-                <Smartphone className="size-4" /> ESC/POS (RawBT)
+                {printingThermal ? <Loader2 className="size-4 animate-spin" /> : <Printer className="size-4" />}
+                Imprimir 80mm (RawBT)
               </Button>
               <Button variant="outline" className="gap-2 font-bold h-12 rounded-xl shadow-sm" onClick={handlePrint}>
-                <Printer className="size-4" /> Imprimir
+                <Printer className="size-4" /> Imprimir (Navegador)
+              </Button>
+            </div>
+            <div className="flex justify-center pt-1">
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="text-[11px] text-muted-foreground hover:text-foreground gap-1.5 h-7"
+                onClick={handleEscPosTextPrint}
+              >
+                <Smartphone className="size-3.5" /> Modo Texto ESC/POS (80mm + Corte)
               </Button>
             </div>
           </div>
@@ -669,12 +719,17 @@ export function ReceiptModal({
               position: absolute !important; 
               left: 0 !important; 
               top: 0 !important; 
-              width: 100% !important;
-              margin: 0 !important;
-              padding: 4mm !important;
+              width: 78mm !important;
+              max-width: 78mm !important;
+              margin: 0 auto !important;
+              padding: 2mm !important;
               border: none !important;
+              box-shadow: none !important;
             }
-            @page { size: auto; margin: 0; }
+            @page { 
+              size: 80mm auto; 
+              margin: 0; 
+            }
           }
         `}} />
       </DialogContent>

@@ -1082,7 +1082,34 @@ function SettingsPage() {
                     </div>
                   </div>
                 </CardContent>
+                <CardFooter className="bg-muted/30 border-t border-border/40 p-4 sm:p-6 flex flex-col sm:flex-row items-center justify-between gap-3">
+                  <p className="text-xs text-muted-foreground">
+                    O cupom acima é exatamente o que será impresso pela impressora de 80mm.
+                  </p>
+                  <Button 
+                    variant="outline"
+                    size="sm"
+                    className="gap-2 font-bold text-xs"
+                    onClick={() => window.print()}
+                  >
+                    <Printer className="size-3.5" /> Testar Impressão (80mm)
+                  </Button>
+                </CardFooter>
               </Card>
+
+              {/* Dica para configuração no aplicativo RawBT */}
+              <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-xs space-y-2">
+                <div className="flex items-center gap-2 font-bold text-amber-700 dark:text-amber-400">
+                  <AlertTriangle className="size-4 shrink-0" />
+                  <span>Dica importante para corte automático e 80mm no aplicativo RawBT:</span>
+                </div>
+                <ul className="list-disc list-inside space-y-1 text-muted-foreground text-[11px] leading-relaxed pl-1">
+                  <li>No aplicativo <strong>RawBT</strong> no seu celular, acesse <strong>Configurações &gt; Impressora</strong>.</li>
+                  <li>Em <strong>Largura do Papel</strong>, certifique-se de selecionar <strong>80mm</strong> (e não 58mm).</li>
+                  <li>Em <strong>Corte de Papel (Paper Cut)</strong>, ative a opção <strong>Corte ao Final do Trabalho</strong> para acionar a guilhotina automaticamente.</li>
+                  <li>Ao imprimir pelo botão <strong>Imprimir 80mm (RawBT)</strong>, o sistema enviará a imagem gráfica em alta definição com sua logomarca no topo e o corte automático.</li>
+                </ul>
+              </div>
             </div>
           </div>
         </TabsContent>
