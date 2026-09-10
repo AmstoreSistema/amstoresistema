@@ -309,7 +309,11 @@ export const importSystemData = createServerFn({ method: "POST" })
     }
 
 
+    // Cashback usado nas vendas, aplicado após a importação
+    const pendingCashbackUsed: { id: string | null; sale_code: string | null; amount: number }[] = [];
+
     for (const table of orderedTables) {
+
       const rawRows = dataToImport[table];
       if (!Array.isArray(rawRows)) continue;
 
@@ -321,6 +325,53 @@ export const importSystemData = createServerFn({ method: "POST" })
 
       rows = await resolveRefs(table, rows);
       rows = await enrichCashbackNomes(table, rows);
+
+      // Normaliza o status das parcelas para os valores aceitos pelo banco
+      if (table === "sale_installments") {
+        const ALLOWED_INST_STATUS = new Set([
+          "pending", "paid", "overdue", "cancelled",
+          "pendente", "pago", "aberto", "vencido", "parcial", "partial",
+        ]);
+        const STATUS_ALIAS: Record<string, string> = {
+          quitado: "pago", quitada: "pago", pagas: "pago", paga: "pago", liquidado: "pago",
+          atrasado: "vencido", atrasada: "vencido", vencida: "vencido", em_atraso: "vencido",
+          cancelado: "cancelled", cancelada: "cancelled",
+          em_aberto: "aberto", aberta: "aberto",
+          parcialmente_pago: "parcial", parcialmente_paga: "parcial", parcialmente: "parcial",
+        };
+        for (const row of rows) {
+          const raw = String(row["status"] ?? "")
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .trim()
+            .toLowerCase()
+            .replace(/\s+/g, "_");
+          const mapped = STATUS_ALIAS[raw] ?? raw;
+          row["status"] = ALLOWED_INST_STATUS.has(mapped)
+            ? mapped
+            : Number(row["paid_amount"] ?? 0) > 0 &&
+              Number(row["paid_amount"] ?? 0) >= Number(row["amount"] ?? 0)
+              ? "pago"
+              : "pendente";
+        }
+      }
+
+      // Vendas: o cashback usado é aplicado depois da importação, para não
+      // disparar a validação de saldo (que ainda não existe durante a restauração)
+      if (table === "sales") {
+        for (const row of rows) {
+          const used = Number(row["cashback_used"] ?? 0);
+          if (used > 0) {
+            pendingCashbackUsed.push({
+              id: row["id"] ? String(row["id"]) : null,
+              sale_code: row["sale_code"] ? String(row["sale_code"]) : null,
+              amount: used,
+            });
+            row["cashback_used"] = 0;
+          }
+        }
+      }
+
 
       if (rows.length === 0) {
         results[table] = res;
@@ -573,8 +624,20 @@ export const importSystemData = createServerFn({ method: "POST" })
       results[table] = res;
     }
 
+    // Aplica o cashback usado nas vendas restauradas (update não dispara a validação de saldo)
+    for (const entry of pendingCashbackUsed) {
+      try {
+        const query = supabaseAdmin.from("sales" as any).update({ cashback_used: entry.amount });
+        if (entry.id) await query.eq("id", entry.id);
+        else if (entry.sale_code) await query.eq("sale_code", entry.sale_code);
+      } catch (err: any) {
+        console.warn("[Import] cashback_used não aplicado:", err?.message);
+      }
+    }
+
     // Conciliação de parcelas com pagamentos da mesma venda:
     // Sincroniza forma de pagamento e data para parcelas quitadas
+
     if (results["sale_installments"] || results["sale_payments"]) {
       try {
         const { data: allSalesWithInst } = await supabaseAdmin

@@ -14,18 +14,19 @@ export function isBirthdayToday(dateStr: string | null | undefined): boolean {
 
   // Se vier no formato ISO: YYYY-MM-DD ou YYYY-MM-DDTHH:mm:ss...
   if (clean.includes("-")) {
-    const onlyDate = clean.split("T")[0];
+    const onlyDate = clean.split("T")[0] ?? clean;
     const parts = onlyDate.split("-");
     if (parts.length === 3) {
-      if (parts[0].length === 4) {
+      const [p0 = "", p1 = "", p2 = ""] = parts;
+      if (p0.length === 4) {
         // YYYY-MM-DD
-        const month = parseInt(parts[1], 10);
-        const day = parseInt(parts[2], 10);
+        const month = parseInt(p1, 10);
+        const day = parseInt(p2, 10);
         return day === currentDay && month === currentMonth;
       } else {
         // DD-MM-YYYY
-        const day = parseInt(parts[0], 10);
-        const month = parseInt(parts[1], 10);
+        const day = parseInt(p0, 10);
+        const month = parseInt(p1, 10);
         return day === currentDay && month === currentMonth;
       }
     }
@@ -35,11 +36,12 @@ export function isBirthdayToday(dateStr: string | null | undefined): boolean {
   if (clean.includes("/")) {
     const parts = clean.split("/");
     if (parts.length >= 2) {
-      const day = parseInt(parts[0], 10);
-      const month = parseInt(parts[1], 10);
+      const day = parseInt(parts[0] ?? "", 10);
+      const month = parseInt(parts[1] ?? "", 10);
       return day === currentDay && month === currentMonth;
     }
   }
+
 
   // Tentativa de fallback com Date
   const parsed = new Date(clean);

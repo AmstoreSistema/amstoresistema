@@ -601,7 +601,7 @@ const MAPPERS: Record<string, Mapper> = {
         // Tenta formato DD/MM/YYYY
         const parts = String(rawBirth).split(/[\/\-\.]/);
         if (parts.length === 3) {
-          const [a, b, c2] = parts.map(Number);
+          const [a = NaN, b = NaN, c2 = NaN] = parts.map(Number);
           // DD/MM/YYYY
           if (a <= 31 && b <= 12 && c2 >= 1900) {
             birth_date = `${c2}-${String(b).padStart(2, '0')}-${String(a).padStart(2, '0')}`;
