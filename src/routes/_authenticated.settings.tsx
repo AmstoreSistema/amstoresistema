@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Settings, User, Bell, Database, Zap, Save, UserPlus, Shield, Power, Download, Upload, Store, Loader2, FileJson, CheckCircle, Trash2, Link2, ShoppingBag, DollarSign, Package, Gift, RefreshCw } from "lucide-react";
+import { Settings, User, Bell, Database, Zap, Save, UserPlus, Shield, Power, Download, Upload, Store, Loader2, FileJson, CheckCircle, Trash2, Link2, ShoppingBag, DollarSign, Package, Gift, RefreshCw, Printer } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { resetSystemData } from "@/lib/system-reset.functions";
 import { PageHeader } from "@/components/page-header";
@@ -557,6 +557,21 @@ function SettingsPage() {
     }
   };
 
+  const handleRemoveLogo = async () => {
+    setUploadingLogo(true);
+    try {
+      setLocalSettings((prev) => ({ ...prev, store_logo: "" }));
+      await saveSettingsBatch({ data: [{ key: "store_logo", value: "" }] });
+      toast.success("Logomarca excluída! O nome 'AMSTORE BAGSHOES' voltou a ser exibido no cabeçalho.");
+      await loadData();
+    } catch (error: any) {
+      console.error("Erro ao remover logo:", error);
+      toast.error(`Erro ao excluir logomarca: ${error.message}`);
+    } finally {
+      setUploadingLogo(false);
+    }
+  };
+
   if (loading) {
     return <div className="flex h-96 items-center justify-center">Carregando...</div>;
   }
@@ -570,9 +585,12 @@ function SettingsPage() {
       />
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-5 h-auto bg-transparent border-b border-border p-0 rounded-none mb-6 overflow-x-auto">
+        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 h-auto bg-transparent border-b border-border p-0 rounded-none mb-6 overflow-x-auto">
           <TabsTrigger value="geral" className="gap-2 data-[state=active]:border-b-2 data-[state=active]:border-gold rounded-none py-3">
             <Settings className="size-4" /> Geral
+          </TabsTrigger>
+          <TabsTrigger value="cupom" className="gap-2 data-[state=active]:border-b-2 data-[state=active]:border-gold rounded-none py-3">
+            <Printer className="size-4" /> Cupom Fiscal
           </TabsTrigger>
           <TabsTrigger value="alertas" className="gap-2 data-[state=active]:border-b-2 data-[state=active]:border-gold rounded-none py-3">
             <Bell className="size-4" /> Alertas
@@ -622,23 +640,37 @@ function SettingsPage() {
                           className="hidden"
                           disabled={uploadingLogo}
                         />
-                        <Button 
-                          type="button" 
-                          variant="outline" 
-                          className="w-full gap-2 border-dashed border-gold/50 hover:border-gold hover:bg-gold/5"
-                          onClick={() => document.getElementById('logo-upload')?.click()}
-                          disabled={uploadingLogo}
-                        >
-                          {uploadingLogo ? (
-                            <Spinner className="size-4 animate-spin" />
-                          ) : (
-                            <Upload className="size-4" />
+                        <div className="flex gap-2">
+                          <Button 
+                            type="button" 
+                            variant="outline" 
+                            className="flex-1 gap-2 border-dashed border-gold/50 hover:border-gold hover:bg-gold/5"
+                            onClick={() => document.getElementById('logo-upload')?.click()}
+                            disabled={uploadingLogo}
+                          >
+                            {uploadingLogo ? (
+                              <Spinner className="size-4 animate-spin" />
+                            ) : (
+                              <Upload className="size-4" />
+                            )}
+                            {getSettingValue("store_logo") ? "Trocar Logomarca" : "Carregar Logomarca"}
+                          </Button>
+                          {getSettingValue("store_logo") && (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              className="text-destructive hover:text-destructive hover:bg-destructive/10 border-destructive/30"
+                              onClick={handleRemoveLogo}
+                              disabled={uploadingLogo}
+                              title="Excluir Logomarca"
+                            >
+                              <Trash2 className="size-4" />
+                            </Button>
                           )}
-                          Carregar Logomarca
-                        </Button>
+                        </div>
                       </div>
                       <p className="text-[10px] text-muted-foreground italic">
-                        Recomendado: PNG ou JPG com fundo transparente.
+                        Recomendado: PNG ou JPG com fundo transparente ou branco.
                       </p>
                     </div>
                   </div>
@@ -719,6 +751,340 @@ function SettingsPage() {
               </Button>
             </CardFooter>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="cupom" className="space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+            {/* Coluna da Esquerda: Upload e Configurações */}
+            <div className="lg:col-span-6 space-y-6">
+              {/* Card de Logomarca do Cupom */}
+              <Card className="rounded-[2rem] border-border/40 shadow-sm overflow-hidden">
+                <CardHeader className="bg-muted/50 border-b border-border/40 p-6 sm:p-8">
+                  <CardTitle className="text-xl font-bold flex items-center gap-2">
+                    <ImageIcon className="size-5 text-gold" /> Logomarca do Cupom Fiscal
+                  </CardTitle>
+                  <CardDescription className="mt-1">
+                    A imagem enviada substituirá o título "AMSTORE BAGSHOES" no topo dos cupons impressos e compartilhados.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="p-6 sm:p-8 space-y-6">
+                  {/* Status atual da logomarca */}
+                  <div className="flex flex-col sm:flex-row items-center gap-6 p-5 rounded-2xl bg-muted/20 border border-border/40">
+                    <div className="size-32 rounded-2xl bg-white border-2 border-dashed border-border flex items-center justify-center overflow-hidden shrink-0 shadow-inner p-2">
+                      {uploadingLogo ? (
+                        <Spinner className="size-8 animate-spin text-gold" />
+                      ) : getSettingValue("store_logo") ? (
+                        <img
+                          src={getSettingValue("store_logo")}
+                          alt="Logomarca do cupom"
+                          className="max-h-full max-w-full object-contain"
+                        />
+                      ) : (
+                        <div className="text-center p-2">
+                          <Store className="size-8 text-muted-foreground/40 mx-auto mb-1" />
+                          <span className="text-[10px] text-muted-foreground uppercase font-bold leading-tight block">
+                            Sem Logomarca
+                          </span>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="space-y-3 flex-1 text-center sm:text-left">
+                      <div>
+                        {getSettingValue("store_logo") ? (
+                          <div className="flex flex-wrap items-center gap-2 justify-center sm:justify-start mb-1">
+                            <Badge className="bg-emerald-500/15 text-emerald-600 border-emerald-500/30 text-xs font-bold">
+                              <CheckCircle2 className="size-3 mr-1" /> Logomarca Ativa no Topo
+                            </Badge>
+                          </div>
+                        ) : (
+                          <div className="flex flex-wrap items-center gap-2 justify-center sm:justify-start mb-1">
+                            <Badge variant="outline" className="border-amber-500/30 text-amber-600 bg-amber-500/10 text-xs font-bold">
+                              Exibindo Nome em Texto
+                            </Badge>
+                          </div>
+                        )}
+                        <p className="text-xs text-muted-foreground">
+                          {getSettingValue("store_logo")
+                            ? "A logomarca está ativa e visível no cabeçalho do cupom impresso."
+                            : "Nenhuma logomarca cadastrada. O cupom exibirá o nome 'AMSTORE BAGSHOES'."}
+                        </p>
+                      </div>
+
+                      <div className="flex flex-wrap gap-2 justify-center sm:justify-start">
+                        <Input 
+                          id="cupom-logo-upload"
+                          type="file"
+                          accept="image/*"
+                          onChange={handleLogoUpload}
+                          className="hidden"
+                          disabled={uploadingLogo}
+                        />
+                        <Button 
+                          type="button" 
+                          variant="outline" 
+                          className="gap-2 border-dashed border-gold/50 hover:border-gold hover:bg-gold/5 font-semibold text-xs h-10 rounded-xl"
+                          onClick={() => document.getElementById('cupom-logo-upload')?.click()}
+                          disabled={uploadingLogo}
+                        >
+                          {uploadingLogo ? <Spinner className="size-4 animate-spin" /> : <Upload className="size-4" />}
+                          {getSettingValue("store_logo") ? "Trocar Logomarca" : "Fazer Upload da Logomarca"}
+                        </Button>
+
+                        {getSettingValue("store_logo") && (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            className="gap-2 text-destructive hover:text-destructive hover:bg-destructive/10 border-destructive/30 font-semibold text-xs h-10 rounded-xl"
+                            onClick={handleRemoveLogo}
+                            disabled={uploadingLogo}
+                          >
+                            <Trash2 className="size-4" />
+                            Excluir Logomarca
+                          </Button>
+                        )}
+                      </div>
+
+                      <p className="text-[11px] text-muted-foreground italic">
+                        Dica: use imagens com fundo transparente (PNG) ou branco com bom contraste para uma impressão térmica nítida.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Informações impressas no rodapé e cabeçalho */}
+                  <div className="space-y-4 pt-2">
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+                      <Store className="size-4 text-gold" /> Dados do Cabeçalho e Rodapé do Cupom
+                    </h4>
+                    
+                    <div className="space-y-3">
+                      <div className="space-y-1">
+                        <Label className="text-xs">Endereço da Loja</Label>
+                        <Input 
+                          value={getSettingValue("store_address", "Rua Medeiros Neto, 12-A - Centro")} 
+                          onChange={(e) => handleLocalUpdate("store_address", e.target.value)}
+                          placeholder="Rua Medeiros Neto, 12-A - Centro"
+                          className="h-10 border-border/60"
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div className="space-y-1">
+                          <Label className="text-xs">Cidade / UF</Label>
+                          <Input 
+                            value={getSettingValue("store_city", "Jequié - BA")} 
+                            onChange={(e) => handleLocalUpdate("store_city", e.target.value)}
+                            placeholder="Jequié - BA"
+                            className="h-10 border-border/60"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">Telefone de Contato</Label>
+                          <Input 
+                            value={getSettingValue("store_phone", "73999269136")} 
+                            onChange={(e) => handleLocalUpdate("store_phone", e.target.value)}
+                            placeholder="73999269136"
+                            className="h-10 border-border/60"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div className="space-y-1">
+                          <Label className="text-xs">Site</Label>
+                          <Input 
+                            value={getSettingValue("store_website", "www.amstorebagshoes.com.br")} 
+                            onChange={(e) => handleLocalUpdate("store_website", e.target.value)}
+                            placeholder="www.amstorebagshoes.com.br"
+                            className="h-10 border-border/60"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">Instagram</Label>
+                          <Input 
+                            value={getSettingValue("store_instagram", "@amstorebagshoes")} 
+                            onChange={(e) => handleLocalUpdate("store_instagram", e.target.value)}
+                            placeholder="@amstorebagshoes"
+                            className="h-10 border-border/60"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+                <CardFooter className="bg-muted/30 border-t border-border/40 p-4 sm:p-6 flex justify-end">
+                  <Button 
+                    onClick={handleSaveAll} 
+                    disabled={saving}
+                    className="bg-gradient-gold shadow-gold font-bold"
+                  >
+                    {saving ? <Loader2 className="size-4 mr-2 animate-spin" /> : <Save className="size-4 mr-2" />}
+                    Salvar Informações
+                  </Button>
+                </CardFooter>
+              </Card>
+            </div>
+
+            {/* Coluna da Direita: Visualização Real do Cupom Fiscal */}
+            <div className="lg:col-span-6 space-y-4">
+              <Card className="rounded-[2rem] border-border/40 shadow-sm overflow-hidden bg-muted/10">
+                <CardHeader className="bg-muted/50 border-b border-border/40 p-6 sm:p-8">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle className="text-xl font-bold flex items-center gap-2">
+                        <Printer className="size-5 text-gold" /> Visualização Real do Cupom Fiscal
+                      </CardTitle>
+                      <CardDescription className="mt-1">
+                        Demonstração fiel de como o cupom será impresso na impressora térmica (80mm / 58mm).
+                      </CardDescription>
+                    </div>
+                    <Badge variant="outline" className="font-mono text-[10px] bg-background">
+                      80mm Padrão
+                    </Badge>
+                  </div>
+                </CardHeader>
+                <CardContent className="p-6 sm:p-8 flex flex-col items-center">
+                  {/* Simulação do Papel Térmico */}
+                  <div 
+                    className="bg-white text-black p-6 border border-gray-300 font-mono text-[11px] leading-tight shadow-xl rounded-sm w-full max-w-[360px]"
+                    style={{ fontFamily: "'Courier New', Courier, monospace" }}
+                  >
+                    {/* Topo do Cupom: Logomarca ou Nome Textual */}
+                    <div className="text-center space-y-2 mb-4">
+                      {getSettingValue("store_logo") ? (
+                        <div className="flex justify-center items-center py-2">
+                          <img 
+                            src={getSettingValue("store_logo")} 
+                            alt="Logomarca da loja" 
+                            className="max-h-20 max-w-[200px] object-contain" 
+                          />
+                        </div>
+                      ) : (
+                        <h2 className="font-bold text-base uppercase tracking-[0.2em] py-2">
+                          AMSTORE BAGSHOES
+                        </h2>
+                      )}
+
+                      <div className="text-[10px] space-y-0.5 text-gray-800">
+                        <p>{getSettingValue("store_address", "Rua Medeiros Neto, 12-A - Centro")}</p>
+                        <p>{getSettingValue("store_city", "Jequié - BA")}</p>
+                        <p>Telefone: {getSettingValue("store_phone", "73999269136")}</p>
+                      </div>
+                      
+                      <div className="border-t border-black my-2" />
+                      <h3 className="font-bold text-[11px] uppercase tracking-wider">CUPOM FISCAL</h3>
+                      <div className="border-t border-black my-2" />
+                    </div>
+
+                    {/* Dados da Venda (Exemplo Real) */}
+                    <div className="space-y-1 mb-3 text-[10px]">
+                      <div className="flex justify-between">
+                        <span className="w-20">Pedido:</span>
+                        <span className="flex-1 text-right font-bold">#V080926141811GA</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="w-20">Data:</span>
+                        <span className="flex-1 text-right">{new Date().toLocaleDateString('pt-BR')} {new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="w-20">Cliente:</span>
+                        <span className="flex-1 text-right font-bold">GALEGA</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="w-20">Vendedor:</span>
+                        <span className="flex-1 text-right">AMSTORE</span>
+                      </div>
+                    </div>
+
+                    <div className="border-t border-black my-2" />
+                    <div className="text-center font-bold mb-2 text-[10px]">ITENS</div>
+                    
+                    {/* Itens de Exemplo */}
+                    <div className="space-y-2 mb-3 text-[10px]">
+                      <div className="space-y-0.5">
+                        <div className="flex justify-between font-bold">
+                          <span className="flex-1 truncate pr-2">1 x RASTEIRA METALIZADA (Nº 37)</span>
+                        </div>
+                        <div className="flex justify-between text-[9px] text-gray-700">
+                          <span>(R$ 130,00)</span>
+                          <span className="font-bold">R$ 130,00</span>
+                        </div>
+                      </div>
+
+                      <div className="space-y-0.5">
+                        <div className="flex justify-between font-bold">
+                          <span className="flex-1 truncate pr-2">1 x BOLSA TRANSVERSAL COURO</span>
+                        </div>
+                        <div className="flex justify-between text-[9px] text-gray-700">
+                          <span>(R$ 100,00)</span>
+                          <span className="font-bold">R$ 100,00</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="border-t border-black my-2" />
+                    
+                    {/* Totais */}
+                    <div className="space-y-1 mb-3 text-[10px]">
+                      <div className="flex justify-between font-bold">
+                        <span>VALOR TOTAL:</span>
+                        <span>R$ 230,00</span>
+                      </div>
+                      <div className="flex justify-between font-bold text-gray-700">
+                        <span>Desconto:</span>
+                        <span>- R$ 20,00</span>
+                      </div>
+                      <div className="flex justify-between font-bold text-xs pt-1 border-t border-dotted border-gray-400">
+                        <span>TOTAL LÍQUIDO:</span>
+                        <span>R$ 210,00</span>
+                      </div>
+                      <div className="flex justify-between text-[9px] text-gray-600">
+                        <span>Qtd Total:</span>
+                        <span>2 itens</span>
+                      </div>
+                    </div>
+
+                    <div className="border-t border-black my-2" />
+                    <div className="text-center font-bold mb-1 text-[10px]">PAGAMENTO</div>
+                    <div className="border-t border-black my-2" />
+
+                    <div className="space-y-1 mb-3 text-[10px]">
+                      <div className="flex justify-between font-bold">
+                        <span>CARTÃO DE CRÉDITO:</span>
+                        <span>R$ 210,00</span>
+                      </div>
+                      <div className="flex justify-between font-bold">
+                        <span>Total Pago:</span>
+                        <span>R$ 210,00</span>
+                      </div>
+                    </div>
+
+                    <div className="border-t border-black my-2" />
+
+                    {/* Destaque Cashback */}
+                    <div className="text-center py-2 space-y-1">
+                      <div className="bg-[#FFF9C4] border border-[#FBC02D] p-2 rounded text-center">
+                        <div className="font-bold text-[9px] text-orange-800">CASHBACK DESTA VENDA</div>
+                        <div className="text-xs font-black my-0.5">R$ 10,50</div>
+                        <p className="text-[8px] font-bold text-orange-900">Saldo liberado e disponível!</p>
+                      </div>
+                    </div>
+
+                    {/* Rodapé */}
+                    <div className="mt-3 pt-2 border-t border-black text-center text-[9px] text-gray-700 space-y-0.5">
+                      <p className="font-bold">{getSettingValue("store_website", "www.amstorebagshoes.com.br")}</p>
+                      <p className="font-bold">{getSettingValue("store_instagram", "@amstorebagshoes")}</p>
+                      
+                      <div className="mt-4 pt-1">
+                        <p className="font-semibold">Obrigado! Volte sempre!</p>
+                        <p className="text-[8px] text-gray-500 mt-0.5">{new Date().toLocaleString('pt-BR')}</p>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
         </TabsContent>
 
         <TabsContent value="alertas">
