@@ -31,10 +31,36 @@ import { z } from "zod";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useRows } from "@/lib/data";
-import { createTransaction, updateTransaction } from "@/lib/finance.functions.ts";
-import { Plus, X, Search, User } from "lucide-react";
+import { createTransaction, updateTransaction, saveCustomTransactionCategory, syncExistingTransactionCategories } from "@/lib/finance.functions.ts";
+import { Plus, X, Search, User, Loader2 } from "lucide-react";
 import { brl } from "@/lib/format";
 import { cn } from "@/lib/utils";
+
+const DEFAULT_EXPENSE_CATEGORIES = [
+  "Compra de Materiais",
+  "Equipamentos",
+  "Suprimentos",
+  "Pessoal",
+  "Marketing",
+  "Aluguel",
+  "Energia",
+  "Água",
+  "Internet",
+  "Impostos",
+  "Manutenção",
+  "Transporte",
+  "Embalagens",
+  "Serviços de Terceiros",
+  "Outros",
+];
+
+const DEFAULT_INCOME_CATEGORIES = [
+  "Vendas",
+  "Serviços",
+  "Recebimentos Diversos",
+  "Rendimentos",
+  "Outros",
+];
 
 const transactionSchema = z.object({
   type: z.enum(["entrada", "saida"]),
@@ -63,10 +89,24 @@ export function TransactionModal({
 }: TransactionModalProps) {
   const qc = useQueryClient();
   const isEditing = !!transaction;
+
+  const [isAddCategoryOpen, setIsAddCategoryOpen] = React.useState(false);
+  const [newCategoryName, setNewCategoryName] = React.useState("");
+  const [savingCategory, setSavingCategory] = React.useState(false);
+  const [localCustomCategories, setLocalCustomCategories] = React.useState<string[]>([]);
   
   const { data: accounts = [] } = useRows("financial_accounts", { filters: [{ column: "active", value: true }] });
   const { data: clients = [] } = useRows("clients", { order: { column: "name", ascending: true } });
   const { data: suppliers = [] } = useRows("suppliers", { order: { column: "name", ascending: true } });
+  const { data: allTransactions = [] } = useRows<any>("transactions", { select: "category, type" });
+  const { data: appSettings = [] } = useRows<any>("app_settings");
+
+  // Sincroniza em segundo plano categorias já existentes nas despesas/receitas do banco
+  useEffect(() => {
+    if (isOpen) {
+      syncExistingTransactionCategories().catch(() => {});
+    }
+  }, [isOpen]);
 
   const form = useForm<z.infer<typeof transactionSchema>>({
     resolver: zodResolver(transactionSchema),
@@ -85,6 +125,77 @@ export function TransactionModal({
     },
   });
 
+  const currentType = form.watch("type");
+
+  // Extrai automaticamente categorias de transações existentes no banco
+  const dbExpenseCategories = useMemo(() => {
+    const set = new Set<string>();
+    allTransactions.forEach((t: any) => {
+      const isExpense = t.type === "saida" || t.type === "expense";
+      if (isExpense && t.category && typeof t.category === "string" && t.category.trim()) {
+        set.add(t.category.trim());
+      }
+    });
+    return Array.from(set);
+  }, [allTransactions]);
+
+  const dbIncomeCategories = useMemo(() => {
+    const set = new Set<string>();
+    allTransactions.forEach((t: any) => {
+      const isIncome = t.type === "entrada" || t.type === "income";
+      if (isIncome && t.category && typeof t.category === "string" && t.category.trim()) {
+        set.add(t.category.trim());
+      }
+    });
+    return Array.from(set);
+  }, [allTransactions]);
+
+  // Categorias personalizadas salvas no app_settings
+  const settingsCustomCategories = useMemo(() => {
+    const key = currentType === "saida" ? "custom_expense_categories" : "custom_income_categories";
+    const setting = appSettings.find((s: any) => s.key === key);
+    if (!setting?.value) return [];
+    try {
+      const parsed = typeof setting.value === "string" ? JSON.parse(setting.value) : setting.value;
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }, [appSettings, currentType]);
+
+  // Lista consolidada e ordenada de categorias
+  const availableCategories = useMemo(() => {
+    const defaults = currentType === "saida" ? DEFAULT_EXPENSE_CATEGORIES : DEFAULT_INCOME_CATEGORIES;
+    const fromDb = currentType === "saida" ? dbExpenseCategories : dbIncomeCategories;
+
+    const set = new Set<string>();
+    defaults.forEach((c) => set.add(c));
+    fromDb.forEach((c) => c && set.add(c));
+    settingsCustomCategories.forEach((c: any) => typeof c === "string" && c.trim() && set.add(c.trim()));
+    localCustomCategories.forEach((c) => c && set.add(c));
+
+    if (transaction?.category && typeof transaction.category === "string" && transaction.category.trim()) {
+      set.add(transaction.category.trim());
+    }
+
+    return Array.from(set).sort((a, b) => a.localeCompare(b, "pt-BR"));
+  }, [currentType, dbExpenseCategories, dbIncomeCategories, settingsCustomCategories, localCustomCategories, transaction]);
+
+  // Ao alternar entre receita e despesa, ajusta a categoria padrão
+  const prevTypeRef = React.useRef(currentType);
+  useEffect(() => {
+    if (!isOpen) return;
+    if (prevTypeRef.current !== currentType) {
+      prevTypeRef.current = currentType;
+      const currentCat = form.getValues("category");
+      if (currentType === "saida" && (currentCat === "Vendas" || !currentCat)) {
+        form.setValue("category", "Compra de Materiais");
+      } else if (currentType === "entrada" && (currentCat === "Compra de Materiais" || !currentCat)) {
+        form.setValue("category", "Vendas");
+      }
+    }
+  }, [currentType, isOpen, form]);
+
   useEffect(() => {
     if (transaction && isOpen) {
       form.reset({
@@ -92,7 +203,7 @@ export function TransactionModal({
         amount: Math.abs(transaction.amount),
         description: transaction.description || "",
         account_id: transaction.account_id || "",
-        category: transaction.category || "Vendas",
+        category: transaction.category || ((transaction.type === 'income' || transaction.type === 'entrada') ? "Vendas" : "Compra de Materiais"),
         status: transaction.status === 'pago' ? 'pago' : 'pendente',
         due_date: transaction.due_date ? transaction.due_date.split('T')[0] : (transaction.created_at ? transaction.created_at.split('T')[0] : ""),
         payment_method: transaction.payment_method || "Dinheiro",
@@ -117,6 +228,38 @@ export function TransactionModal({
     }
   }, [transaction, isOpen, form, accounts, suppliers]);
 
+  const handleCreateNewCategory = async () => {
+    const trimmed = newCategoryName.trim();
+    if (!trimmed) {
+      toast.error("Digite o nome da categoria");
+      return;
+    }
+
+    setSavingCategory(true);
+    try {
+      setLocalCustomCategories((prev) => [...prev, trimmed]);
+      form.setValue("category", trimmed, { shouldValidate: true, shouldDirty: true });
+      setIsAddCategoryOpen(false);
+      setNewCategoryName("");
+
+      await saveCustomTransactionCategory({
+        data: {
+          type: currentType as "saida" | "entrada",
+          category: trimmed,
+        },
+      });
+
+      qc.invalidateQueries({ queryKey: ["app_settings"] });
+      qc.invalidateQueries({ queryKey: ["transactions"] });
+      toast.success(`Categoria "${trimmed}" adicionada com sucesso!`);
+    } catch (err: any) {
+      console.warn("Aviso ao salvar categoria:", err?.message);
+      toast.success(`Categoria "${trimmed}" selecionada`);
+    } finally {
+      setSavingCategory(false);
+    }
+  };
+
   const onSubmit = async (values: z.infer<typeof transactionSchema>) => {
     const formattedValues = {
       ...values,
@@ -138,15 +281,15 @@ export function TransactionModal({
     }
   };
 
-  const currentType = form.watch("type");
   const currentAmount = form.watch("amount");
   const currentAccountId = form.watch("account_id");
   const selectedAccount = accounts.find((a: any) => a.id === currentAccountId);
 
   return (
-    <Dialog open={isOpen} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="sm:max-w-xl p-0 overflow-hidden bg-white border-none shadow-2xl flex flex-col sm:rounded-[1.5rem] max-h-[90vh]">
-        <div className="flex items-center justify-between p-4 border-b shrink-0">
+    <>
+      <Dialog open={isOpen} onOpenChange={(o) => !o && onClose()}>
+        <DialogContent className="sm:max-w-xl p-0 overflow-hidden bg-white border-none shadow-2xl flex flex-col sm:rounded-[1.5rem] max-h-[90vh]">
+          <div className="flex items-center justify-between p-4 border-b shrink-0">
           <DialogTitle className="text-xl font-bold">
             {isEditing ? "Editar Transação" : "Nova Transação"}
           </DialogTitle>
@@ -164,7 +307,6 @@ export function TransactionModal({
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger className="h-10 rounded-xl border-gray-100 bg-gray-50/50" tabIndex={0}>
-
                           <SelectValue placeholder="Selecione" />
                         </SelectTrigger>
                       </FormControl>
@@ -181,12 +323,13 @@ export function TransactionModal({
                 control={form.control}
                 name="category"
                 render={({ field }) => {
-                  // If we have a transaction and it's a purchase/sale, the category is usually fixed
                   const isSystemTransaction = !!(transaction?.sale_id || transaction?.purchase_id);
                   
                   return (
                     <FormItem>
-                      <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Categoria</FormLabel>
+                      <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                        Categoria {currentType === "saida" ? "(Despesa)" : "(Receita)"}
+                      </FormLabel>
                       <div className="flex gap-2">
                         <Select 
                           onValueChange={field.onChange} 
@@ -195,21 +338,24 @@ export function TransactionModal({
                         >
                           <FormControl>
                             <SelectTrigger className="h-10 rounded-xl border-gray-100 bg-gray-50/50" tabIndex={0}>
-                              <SelectValue placeholder="Selecione" />
+                              <SelectValue placeholder="Selecione a categoria" />
                             </SelectTrigger>
                           </FormControl>
-                          <SelectContent className="rounded-xl z-[9999]" position="popper" sideOffset={5}>
-                            <SelectItem value="Vendas">Vendas</SelectItem>
-                            <SelectItem value="Compra de Materiais">Compra de Materiais</SelectItem>
-                            <SelectItem value="Equipamentos">Equipamentos</SelectItem>
-                            <SelectItem value="Suprimentos">Suprimentos</SelectItem>
-                            <SelectItem value="Pessoal">Pessoal</SelectItem>
-                            <SelectItem value="Marketing">Marketing</SelectItem>
-                            <SelectItem value="Outros">Outros</SelectItem>
+                          <SelectContent className="rounded-xl z-[9999] max-h-60" position="popper" sideOffset={5}>
+                            {availableCategories.map((cat) => (
+                              <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                            ))}
                           </SelectContent>
                         </Select>
                         {!isSystemTransaction && (
-                          <Button type="button" variant="outline" size="icon" className="h-10 w-10 rounded-xl border-gray-100 bg-gray-50/50">
+                          <Button 
+                            type="button" 
+                            variant="outline" 
+                            size="icon" 
+                            onClick={() => setIsAddCategoryOpen(true)}
+                            title="Adicionar nova categoria"
+                            className="h-10 w-10 rounded-xl border-gray-200 bg-gray-50/50 hover:bg-gold/10 hover:border-gold/30 hover:text-gold transition-colors shrink-0"
+                          >
                             <Plus className="size-4" />
                           </Button>
                         )}
@@ -444,5 +590,58 @@ export function TransactionModal({
         </div>
       </DialogContent>
     </Dialog>
+
+    {/* Diálogo rápido para Adicionar Nova Categoria de Despesa/Receita */}
+    <Dialog open={isAddCategoryOpen} onOpenChange={setIsAddCategoryOpen}>
+      <DialogContent className="sm:max-w-md p-6 bg-white rounded-2xl shadow-2xl z-[10000]">
+        <DialogHeader>
+          <DialogTitle className="text-lg font-bold flex items-center gap-2">
+            <Plus className="size-5 text-gold" />
+            {currentType === "saida" ? "Nova Categoria de Despesa" : "Nova Categoria de Receita"}
+          </DialogTitle>
+          <DialogDescription className="text-xs text-muted-foreground">
+            Digite o nome da nova categoria para utilizá-la em seus lançamentos.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="py-3">
+          <Input
+            value={newCategoryName}
+            onChange={(e) => setNewCategoryName(e.target.value)}
+            placeholder={currentType === "saida" ? "Ex: Aluguel, Combustível, Embalagens..." : "Ex: Venda Direta, Serviços..."}
+            className="h-11 rounded-xl"
+            autoFocus
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                handleCreateNewCategory();
+              }
+            }}
+          />
+        </div>
+
+        <DialogFooter className="gap-2 sm:gap-0">
+          <Button 
+            type="button" 
+            variant="ghost" 
+            onClick={() => { setIsAddCategoryOpen(false); setNewCategoryName(""); }} 
+            className="rounded-xl"
+          >
+            Cancelar
+          </Button>
+          <Button 
+            type="button" 
+            onClick={handleCreateNewCategory} 
+            disabled={savingCategory || !newCategoryName.trim()}
+            className="bg-gradient-gold shadow-gold font-bold rounded-xl gap-2"
+          >
+            {savingCategory ? <Loader2 className="size-4 animate-spin" /> : <Plus className="size-4" />}
+            Adicionar Categoria
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  </>
   );
 }
+

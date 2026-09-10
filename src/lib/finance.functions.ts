@@ -171,3 +171,102 @@ export const deleteFinancialAccount = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { success: true };
   });
+
+export const saveCustomTransactionCategory = createServerFn({ method: "POST" })
+  .inputValidator((data) => z.object({
+    type: z.enum(["saida", "entrada"]),
+    category: z.string().min(1, "Nome da categoria é obrigatório")
+  }).parse(data))
+  .handler(async ({ data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const key = data.type === "saida" ? "custom_expense_categories" : "custom_income_categories";
+    
+    const { data: existing } = await supabaseAdmin
+      .from("app_settings")
+      .select("value")
+      .eq("key", key)
+      .maybeSingle();
+
+    let currentList: string[] = [];
+    if (existing?.value) {
+      try {
+        currentList = typeof existing.value === "string" ? JSON.parse(existing.value) : existing.value;
+      } catch {
+        currentList = [];
+      }
+    }
+    if (!Array.isArray(currentList)) currentList = [];
+
+    const trimmed = data.category.trim();
+    if (!currentList.includes(trimmed)) {
+      currentList.push(trimmed);
+      await supabaseAdmin
+        .from("app_settings")
+        .upsert({
+          key,
+          value: JSON.stringify(currentList),
+          updated_at: new Date().toISOString()
+        });
+    }
+
+    return { success: true, categories: currentList };
+  });
+
+export const syncExistingTransactionCategories = createServerFn({ method: "POST" })
+  .handler(async () => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    
+    // 1. Busca todas as categorias já lançadas no banco
+    const { data: txs } = await supabaseAdmin
+      .from("transactions")
+      .select("category, type")
+      .not("category", "is", null);
+
+    const expenseCats = new Set<string>();
+    const incomeCats = new Set<string>();
+
+    (txs || []).forEach((t: any) => {
+      const cat = typeof t.category === "string" ? t.category.trim() : "";
+      if (!cat) return;
+      if (t.type === "saida" || t.type === "expense") {
+        expenseCats.add(cat);
+      } else if (t.type === "entrada" || t.type === "income") {
+        incomeCats.add(cat);
+      }
+    });
+
+    // 2. Busca o que já estiver salvo em app_settings
+    const { data: settings } = await supabaseAdmin
+      .from("app_settings")
+      .select("key, value")
+      .in("key", ["custom_expense_categories", "custom_income_categories"]);
+
+    const expSetting = settings?.find((s: any) => s.key === "custom_expense_categories");
+    const incSetting = settings?.find((s: any) => s.key === "custom_income_categories");
+
+    let currentExp: string[] = [];
+    if (expSetting?.value) {
+      try {
+        currentExp = typeof expSetting.value === "string" ? JSON.parse(expSetting.value) : expSetting.value;
+      } catch {}
+    }
+    let currentInc: string[] = [];
+    if (incSetting?.value) {
+      try {
+        currentInc = typeof incSetting.value === "string" ? JSON.parse(incSetting.value) : incSetting.value;
+      } catch {}
+    }
+
+    if (Array.isArray(currentExp)) currentExp.forEach(c => c && expenseCats.add(c.trim()));
+    if (Array.isArray(currentInc)) currentInc.forEach(c => c && incomeCats.add(c.trim()));
+
+    const finalExp = Array.from(expenseCats);
+    const finalInc = Array.from(incomeCats);
+
+    await supabaseAdmin.from("app_settings").upsert([
+      { key: "custom_expense_categories", value: JSON.stringify(finalExp), updated_at: new Date().toISOString() },
+      { key: "custom_income_categories", value: JSON.stringify(finalInc), updated_at: new Date().toISOString() },
+    ]);
+
+    return { success: true, expenseCategories: finalExp, incomeCategories: finalInc };
+  });
