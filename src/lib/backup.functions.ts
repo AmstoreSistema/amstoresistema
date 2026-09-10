@@ -743,6 +743,7 @@ export const importSystemData = createServerFn({ method: "POST" })
         }
       } catch (err: any) {
         console.warn("[Import] Aviso na sincronização de saldos cashback:", err?.message);
+      }
     }
 
     // Regra de Negócio: Somente cashbacks de vendas a partir de Outubro/2025 (2025-10-01) são mantidos
