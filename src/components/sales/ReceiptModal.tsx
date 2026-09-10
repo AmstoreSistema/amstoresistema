@@ -504,19 +504,11 @@ export function ReceiptModal({
     appendText(new Date().toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }));
     appendText(div("="));
 
-    // 5. AVANÇO DE PAPEL E DISPARO DE CORTE / GUILHOTINA
-    // Avançar 5 linhas completas
-    bytes.push(0x0A, 0x0A, 0x0A, 0x0A, 0x0A);
-    // GS V 66 0 (Avanço e corte total automático)
-    bytes.push(0x1D, 0x56, 0x42, 0x00);
-    // GS V 0 (Corte total)
+    // 5. AVANÇO DE PAPEL E DISPARO DE CORTE ÚNICO (GUILHOTINA)
+    // Avançar linhas suficientes para o rodapé passar da lâmina de corte
+    bytes.push(0x0A, 0x0A, 0x0A, 0x0A);
+    // GS V 0 (Comando universal ESC/POS de corte total da guilhotina - APENAS UM CORTE)
     bytes.push(0x1D, 0x56, 0x00);
-    // GS V 1 (Corte parcial)
-    bytes.push(0x1D, 0x56, 0x01);
-    // ESC i (Corte Star/Epson)
-    bytes.push(0x1B, 0x69);
-    // ESC m (Corte parcial Star/Epson)
-    bytes.push(0x1B, 0x6D);
 
     return new Uint8Array(bytes);
   };
@@ -583,11 +575,12 @@ export function ReceiptModal({
             </div>
           </div>
 
-          <div 
-            ref={receiptRef}
-            className="print-only bg-white text-black p-6 border-2 border-black font-mono text-[13px] leading-snug mx-auto w-full max-w-[540px] print:border-none print:p-0"
-            style={{ fontFamily: "'Courier New', Courier, monospace" }}
-          >
+          <div className="print-only w-full">
+            <div 
+              ref={receiptRef}
+              className="cupom-container bg-white text-black p-4 sm:p-6 border-2 border-black font-mono text-xs sm:text-[13px] leading-snug mx-auto w-full max-w-[480px] shadow-sm print:border-none print:shadow-none"
+              style={{ fontFamily: "'Courier New', Consolas, monospace" }}
+            >
             {/* --- CABEÇALHO DA LOJA --- */}
             <div className="text-center space-y-2 mb-4">
               {storeLogo ? (
@@ -831,27 +824,63 @@ export function ReceiptModal({
               </div>
             </div>
           </div>
-
         </div>
+
+      </div>
 
         <style dangerouslySetInnerHTML={{ __html: `
           @media print {
-            body * { visibility: hidden !important; }
-            .print-only, .print-only * { visibility: visible !important; }
-            .print-only { 
-              position: absolute !important; 
-              left: 0 !important; 
-              top: 0 !important; 
-              width: 78mm !important;
-              max-width: 78mm !important;
-              margin: 0 auto !important;
-              padding: 2mm !important;
+            /* 1. Oculta TODOS os elementos da página */
+            body * {
+              visibility: hidden !important;
+            }
+
+            /* 2. Exibe apenas o container do cupom e seus filhos */
+            .print-only,
+            .print-only * {
+              visibility: visible !important;
+            }
+
+            /* 3. Posiciona o cupom no topo esquerdo, ocupando largura total */
+            .print-only {
+              position: absolute !important;
+              left: 0 !important;
+              top: 0 !important;
+              width: 100% !important;
+              margin: 0 !important;
+              padding: 0 !important;
               border: none !important;
               box-shadow: none !important;
+              break-inside: avoid !important;
+              page-break-inside: avoid !important;
             }
-            @page { 
-              size: 80mm auto; 
-              margin: 0; 
+
+            /* 4. Estilo de container do cupom térmico padrão 80mm */
+            .cupom-container {
+              max-width: 80mm !important;
+              width: 80mm !important;
+              margin: 0 auto !important;
+              padding: 4mm !important;
+              font-family: 'Courier New', 'Consolas', monospace !important;
+              font-size: 11px !important;
+              color: #000000 !important;
+              line-height: 1.4 !important;
+              border: none !important;
+              box-shadow: none !important;
+              break-inside: avoid !important;
+              page-break-inside: avoid !important;
+            }
+
+            /* 5. Remove margens da página física para evitar quebras e múltiplos cortes */
+            @page {
+              size: auto;
+              margin: 0;
+            }
+
+            /* 6. Garante que contraste e cores sejam impressos com fidelidade */
+            * {
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
             }
           }
         `}} />

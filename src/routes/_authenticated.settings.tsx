@@ -22,6 +22,7 @@ import { CheckCircle2, Info, Loader2 as Spinner, ImageIcon, AlertTriangle } from
 import { Progress } from "@/components/ui/progress";
 import { supabase } from "@/integrations/supabase/client";
 import logoAsset from "@/assets/amstore-symbol.png.asset.json";
+import { ReceiptModal } from "@/components/sales/ReceiptModal";
 
 
 export const Route = createFileRoute("/_authenticated/settings")({
@@ -63,6 +64,8 @@ function SettingsPage() {
     tableSummaries: {},
     errors: [],
   });
+
+  const [showTestReceiptModal, setShowTestReceiptModal] = useState(false);
 
   const [auditReport, setAuditReport] = useState<any>(null);
   const [loadingAudit, setLoadingAudit] = useState(false);
@@ -1090,7 +1093,7 @@ function SettingsPage() {
                     variant="outline"
                     size="sm"
                     className="gap-2 font-bold text-xs"
-                    onClick={() => window.print()}
+                    onClick={() => setShowTestReceiptModal(true)}
                   >
                     <Printer className="size-3.5" /> Testar Impressão (80mm)
                   </Button>
@@ -2020,6 +2023,31 @@ function SettingsPage() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {showTestReceiptModal && (
+        <ReceiptModal
+          open={showTestReceiptModal}
+          onOpenChange={setShowTestReceiptModal}
+          isPreview={true}
+          sale={{
+            id: "PREVIA-TESTE-80MM",
+            sale_code: "VND-TESTE80",
+            created_at: new Date().toISOString(),
+            status: "pago",
+            payment_method: "Cartão de Crédito",
+            total_amount: 210.0,
+            discount: 20.0,
+            cashback_used: 0,
+            cashback_earned: 10.5,
+            seller_name: "AMSTORE",
+            items: [
+              { name: "RASTEIRA METALIZADA", quantity: 1, unit_price: 130.0, discount: 0, numeracao: "37" },
+              { name: "BOLSA TRANSVERSAL COURO", quantity: 1, unit_price: 100.0, discount: 20.0 }
+            ]
+          }}
+          client={{ name: "GALEGA", phone: "73999269136" }}
+        />
+      )}
     </div>
   );
 }
