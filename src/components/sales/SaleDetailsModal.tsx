@@ -127,26 +127,26 @@ export function SaleDetailsModal({
   return (
     <>
       <Dialog open={isModalOpen} onOpenChange={(o) => !o && handleClose()}>
-        <DialogContent className="max-w-4xl p-0 overflow-hidden bg-[#F8F9FB] border-none shadow-2xl flex flex-col h-[90vh] sm:rounded-[1.5rem]">
-          <div className="flex items-center justify-between p-4 bg-white border-b relative shrink-0">
-            <div className="flex items-center gap-4">
-              <div className="size-8 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
-                <ShoppingBag className="size-5" />
+        <DialogContent className="w-[96vw] sm:max-w-4xl p-0 overflow-hidden bg-[#F8F9FB] border-none shadow-2xl flex flex-col h-[92vh] sm:h-[90vh] rounded-2xl sm:rounded-[1.5rem]">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between p-3 sm:p-4 bg-white border-b relative shrink-0 gap-2.5 sm:gap-4 pr-10 sm:pr-4">
+            <div className="flex items-center gap-2.5 sm:gap-4 min-w-0">
+              <div className="size-8 rounded-xl bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                <ShoppingBag className="size-4 sm:size-5" />
               </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <DialogTitle className="text-lg font-bold text-foreground">
-                    Venda # {sale?.sale_code || saleId?.slice(0, 8)}
+              <div className="min-w-0">
+                <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+                  <DialogTitle className="text-base sm:text-lg font-bold text-foreground truncate">
+                    Venda #{sale?.sale_code || saleId?.slice(0, 8)}
                   </DialogTitle>
                   {sale && (
-                    <div className="flex gap-2">
+                    <div className="flex gap-1.5 flex-wrap">
                       <span className={cn(
-                        "text-[10px] font-bold px-2 py-0.5 rounded uppercase",
+                        "text-[9px] sm:text-[10px] font-bold px-1.5 sm:px-2 py-0.5 rounded uppercase",
                         (sale.status === 'paid' || sale.status === 'completed' || sale.status === 'finalizado' || Number(sale.paid_amount) >= Number(sale.total_amount)) && installments.every((i: any) => i.status === 'paid' || i.status === 'pago') ? "bg-green-100 text-green-700" : "bg-orange-100 text-orange-700"
                       )}>
                         {!hasOutstandingDebt && (sale.status === 'paid' || sale.status === 'completed' || sale.status === 'finalizado' || Number(sale.paid_amount) >= Number(sale.total_amount)) ? 'Pago' : isCreditSale ? 'Pendente / Fiado' : 'Pendente'}
                       </span>
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded uppercase bg-blue-100 text-blue-700">
+                      <span className="text-[9px] sm:text-[10px] font-bold px-1.5 sm:px-2 py-0.5 rounded uppercase bg-blue-100 text-blue-700">
                         {sale.sale_type || 'Varejo'}
                       </span>
                     </div>
@@ -154,19 +154,19 @@ export function SaleDetailsModal({
                 </div>
               </div>
             </div>
-            <div className="flex items-center gap-2 mr-8">
+            <div className="flex items-center gap-2 sm:mr-8">
               <Button 
                 variant="outline" 
                 size="sm" 
-                className="rounded-xl font-bold h-8 text-[10px] gap-2 shadow-sm"
+                className="rounded-xl font-bold h-7 sm:h-8 text-xs gap-1.5 shadow-sm px-3"
                 onClick={() => setReceiptOpen(true)}
               >
-                <Printer className="size-4" /> Cupom
+                <Printer className="size-3.5 sm:size-4 text-primary" /> Cupom
               </Button>
               <Button 
                 variant="ghost" 
                 size="sm" 
-                className="rounded-xl font-bold h-8 text-[10px] gap-2 text-destructive hover:text-destructive hover:bg-destructive/10"
+                className="rounded-xl font-bold h-7 sm:h-8 text-xs gap-1.5 text-destructive hover:text-destructive hover:bg-destructive/10 px-2.5"
                 onClick={async () => {
                   if (confirm("Deseja realmente estornar esta venda? O estoque será devolvido, o saldo das contas financeiras será ajustado e o cashback liberado será estornado.")) {
                     try {
@@ -189,9 +189,9 @@ export function SaleDetailsModal({
 
           <div className="flex-1 overflow-hidden flex flex-col sm:flex-row">
             <ScrollArea className="flex-1">
-              <div className="p-5 space-y-6">
+              <div className="p-3.5 sm:p-5 space-y-4 sm:space-y-6">
                 {/* Sale Info Grid */}
-                <div className="grid grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                   <div className="space-y-3">
                     <div>
                       <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1 block">Cliente</label>

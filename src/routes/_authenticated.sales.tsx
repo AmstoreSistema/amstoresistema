@@ -502,26 +502,151 @@ function SalesPage() {
 
                   const remaining = Math.max(0, total - paid);
                   const saleCodeDisplay = sale.sale_code || sale.id.slice(0, 8).toUpperCase();
+                  const clientName = (sale.clients as any)?.name || clientById.get(sale.client_id || "")?.name || "Consumidor Final";
 
                   return (
                     <Card key={sale.id} className="group overflow-hidden rounded-2xl sm:rounded-3xl border-border/40 bg-card hover:bg-muted/10 transition-all shadow-sm hover:shadow-md">
                       <CardContent className="p-0">
-                        <div className="flex items-center p-3 sm:p-4 gap-3 sm:gap-4">
-                          <div className="size-10 sm:size-12 rounded-xl sm:rounded-2xl bg-muted/50 flex items-center justify-center shrink-0">
-                             <User className="size-5 sm:size-6 text-muted-foreground" />
+                        {/* --- LAYOUT MOBILE DEDICADO --- */}
+                        <div className="p-3 space-y-2 sm:hidden">
+                          {/* Topo do card: Avatar, Cliente, Status e Valor Total */}
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                              <div className="size-9 rounded-xl bg-muted/50 flex items-center justify-center shrink-0">
+                                <User className="size-4 text-muted-foreground" />
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <h4 className="font-bold text-sm truncate text-foreground leading-tight">
+                                  {clientName}
+                                </h4>
+                                <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                                  <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
+                                    Venda #{saleCodeDisplay}
+                                  </span>
+                                  {getStatusBadge(sale)}
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Valor Total destacado no canto direito */}
+                            <div className="text-right shrink-0">
+                              <p className="font-black text-base font-display text-gold leading-none">
+                                {brl(sale.total_amount)}
+                              </p>
+                              <div className="flex items-center gap-1 justify-end text-[10px] text-muted-foreground font-medium mt-1">
+                                <CreditCard className="size-3" /> {sale.payment_method}
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Rodapé do card: Valor Pago, Restante e Botões de Ação */}
+                          <div className="pt-2 border-t border-border/40 flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-3 text-xs flex-wrap">
+                              <span className="text-muted-foreground text-[11px]">
+                                Pago: <strong className="text-blue-600 font-bold">{brl(paid)}</strong>
+                              </span>
+                              <span className="text-muted-foreground text-[11px]">
+                                Restante: <strong className={remaining > 0 ? "text-amber-600 font-bold" : "text-emerald-600 font-bold"}>{brl(remaining)}</strong>
+                              </span>
+                            </div>
+
+                            <div className="flex items-center gap-0.5 shrink-0">
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                className="h-8 w-8 rounded-lg text-muted-foreground hover:text-foreground"
+                                onClick={() => {
+                                  setSelectedSaleId(sale.id);
+                                  setReceiptOpen(true);
+                                }}
+                                title="Imprimir Cupom"
+                              >
+                                <Printer className="size-4" />
+                              </Button>
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-muted-foreground hover:text-foreground">
+                                    <MoreVertical className="size-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="rounded-2xl p-2">
+                                  <DropdownMenuItem 
+                                    className="rounded-xl gap-2"
+                                    onClick={() => {
+                                      setSelectedSaleId(sale.id);
+                                      setDetailsOpen(true);
+                                    }}
+                                  >
+                                    <FileText className="size-4" /> Detalhes da Venda
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem className="rounded-xl gap-2"><FileDown className="size-4" /> Baixar PDF</DropdownMenuItem>
+                                  <DropdownMenuItem 
+                                    className="rounded-xl gap-2"
+                                    onClick={() => {
+                                      setSelectedSaleId(sale.id);
+                                      setReceiptOpen(true);
+                                    }}
+                                  >
+                                    <Printer className="size-4" /> Imprimir Cupom
+                                  </DropdownMenuItem>
+                                  {sale.is_debt && (
+                                    <DropdownMenuItem 
+                                      className="rounded-xl gap-2"
+                                      onClick={() => {
+                                        setSelectedSaleId(sale.id);
+                                        setInstallmentsOpen(true);
+                                      }}
+                                    >
+                                       <InstallmentsIcon className="size-4" /> Ver Parcelas
+                                    </DropdownMenuItem>
+                                  )}
+
+                                  <DropdownMenuItem 
+                                     className="rounded-xl gap-2 text-destructive"
+                                     onClick={async () => {
+                                        if (confirm("Deseja realmente estornar esta venda? O estoque será devolvido, o saldo das contas financeiras será ajustado e o cashback liberado será estornado.")) {
+                                           try {
+                                              const { cancelSale } = await import("@/lib/sales.functions");
+                                              await cancelSale({ data: { sale_id: sale.id } });
+                                              toast.success("Venda estornada e dados financeiros sincronizados com sucesso");
+                                              qc.invalidateQueries();
+                                           } catch (err: any) {
+                                              toast.error(err.message);
+                                           }
+                                        }
+                                     }}
+                                  >
+                                     <AlertTriangle className="size-4" /> Estornar Venda
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                              <ChevronRight 
+                                className="size-5 text-muted-foreground/40 hover:text-gold transition-colors cursor-pointer" 
+                                onClick={() => {
+                                  setSelectedSaleId(sale.id);
+                                  setDetailsOpen(true);
+                                }}
+                              />
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* --- LAYOUT DESKTOP --- */}
+                        <div className="hidden sm:flex items-center p-4 gap-4">
+                          <div className="size-12 rounded-2xl bg-muted/50 flex items-center justify-center shrink-0">
+                             <User className="size-6 text-muted-foreground" />
                           </div>
                           
                           <div className="flex-1 min-w-0">
-                             <div className="flex justify-between items-start gap-2">
+                             <div className="flex justify-between items-start gap-4">
                                 <div className="min-w-0">
-                                   <div className="flex items-center gap-1.5 flex-wrap">
-                                     <h4 className="font-bold text-xs sm:text-sm truncate max-w-[140px] sm:max-w-none">{clientById.get(sale.client_id || "")?.name || "Consumidor Final"}</h4>
-                                     <div className="sm:hidden">{getStatusBadge(sale)}</div>
+                                   <div className="flex items-center gap-2">
+                                     <h4 className="font-bold text-sm truncate">{clientName}</h4>
                                    </div>
-                                   <p className="text-[9px] sm:text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Venda #{saleCodeDisplay}</p>
+                                   <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Venda #{saleCodeDisplay}</p>
                                    
-                                   {/* Valor Pago e Restante solicitados pelo usuário */}
-                                   <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[11px] sm:text-xs">
+                                   {/* Valor Pago e Restante */}
+                                   <div className="mt-1 flex items-center gap-3 text-xs">
                                      <span className="text-muted-foreground font-medium">
                                        Valor Pago: <strong className="text-blue-600 font-bold">{brl(paid)}</strong>
                                      </span>
@@ -531,15 +656,15 @@ function SalesPage() {
                                    </div>
                                 </div>
                                 <div className="text-right shrink-0">
-                                   <p className="font-black text-base sm:text-lg font-display text-gold">{brl(sale.total_amount)}</p>
-                                   <div className="flex items-center gap-1 justify-end text-[9px] sm:text-[10px] text-muted-foreground font-bold">
+                                   <p className="font-black text-lg font-display text-gold">{brl(sale.total_amount)}</p>
+                                   <div className="flex items-center gap-1 justify-end text-[10px] text-muted-foreground font-bold">
                                       <CreditCard className="size-3" /> {sale.payment_method}
                                    </div>
                                 </div>
                              </div>
                           </div>
 
-                          <div className="hidden sm:flex items-center gap-4 px-4 border-l border-border/40">
+                          <div className="flex items-center gap-4 px-4 border-l border-border/40">
                              {getStatusBadge(sale)}
                           </div>
 
