@@ -202,6 +202,178 @@ export function ReceiptModal({
   const storeInstagram = getSetting("store_instagram");
   const storeLogo = getSetting("store_logo");
 
+  const generateEscPosText = () => {
+    const W = 32; // Largura padrão de 32 colunas para impressoras térmicas (58mm / 80mm)
+    const center = (str: string) => {
+      const s = (str || "").trim();
+      if (s.length >= W) return s.slice(0, W);
+      const pad = Math.floor((W - s.length) / 2);
+      return " ".repeat(pad) + s;
+    };
+    const leftRight = (left: string, right: string) => {
+      const r = (right || "").trim();
+      const maxL = Math.max(0, W - r.length - 1);
+      const l = left.length > maxL ? left.slice(0, maxL) : left;
+      const spaces = Math.max(1, W - l.length - r.length);
+      return l + " ".repeat(spaces) + r;
+    };
+    const div = (char = "-") => char.repeat(W);
+
+    const lines: string[] = [];
+
+    // Cabeçalho da loja
+    lines.push(center("AMSTORE BAGSHOES"));
+    lines.push(center("Rua Medeiros Neto, 12-A - Centro"));
+    lines.push(center("Jequie - BA"));
+    const phone = getSetting("store_phone") || "73999269136";
+    lines.push(center(`Telefone: ${phone}`));
+    lines.push(div("="));
+    lines.push(center(isCancelled ? "*** CANCELADA ***" : "CUPOM DE VENDA"));
+    lines.push(div("="));
+
+    // Dados da venda
+    const saleCode = displaySale?.sale_code || displaySale?.id?.toString().slice(0, 8);
+    lines.push(leftRight("Pedido:", `#${saleCode}`));
+    const saleDate = new Date(displaySale?.created_at || new Date()).toLocaleString('pt-BR', {
+      day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'
+    });
+    lines.push(leftRight("Data:", saleDate));
+    lines.push(leftRight("Cliente:", (displayClient?.name || "CONSUMIDOR").toUpperCase()));
+    if (displayClient?.cpf) {
+      lines.push(leftRight("CPF:", displayClient.cpf));
+    }
+    lines.push(leftRight("Vendedor:", displaySale?.seller_name || "amstorebagshoes"));
+    lines.push(div("-"));
+
+    // Itens
+    lines.push(center("ITENS"));
+    lines.push(div("-"));
+    items.forEach((item: any) => {
+      const q = Number(item.quantity || 1);
+      const name = (item.name || item.product_name || "PRODUTO").toUpperCase();
+      const num = item.numeracao ? ` (Nº ${item.numeracao})` : '';
+      const itemTitle = `${q}x ${name}${num}`;
+      const itemTotal = brl(q * (item.unit_price || 0) - (item.discount || 0));
+      lines.push(leftRight(itemTitle, itemTotal));
+
+      const unitPriceStr = `(${brl(item.unit_price || 0)})`;
+      if (item.discount > 0) {
+        lines.push(leftRight(` ${unitPriceStr} Desc:`, `- ${brl(item.discount)}`));
+      }
+    });
+    lines.push(div("-"));
+
+    // Totais
+    lines.push(leftRight("VALOR TOTAL:", brl(valorTotalSemDesconto || 0)));
+    if (totalDescontos > 0) {
+      lines.push(leftRight("Desconto:", `- ${brl(totalDescontos)}`));
+    }
+    if (cashbackUsed > 0) {
+      lines.push(leftRight("Cashback Usado:", `- ${brl(cashbackUsed)}`));
+    }
+    lines.push(leftRight("TOTAL LIQUIDO:", brl(totalLiquido || 0)));
+    const totalQtd = items.reduce((acc: number, item: any) => acc + (Number(item.quantity) || 0), 0);
+    lines.push(leftRight("Qtd Itens:", `${totalQtd}`));
+    lines.push(div("-"));
+
+    // Forma de Pagamento
+    lines.push(center("PAGAMENTO"));
+    lines.push(div("-"));
+    const isDebt = displaySale?.payment_method === 'Fiado' || displaySale?.is_debt;
+    if (isDebt) {
+      lines.push(center("VENDA A PRAZO (FIADO)"));
+      const paid = Number(displaySale.paid_amount || 0);
+      const remaining = Math.max(0, (displaySale.total_amount || 0) - paid);
+      lines.push(leftRight("Total Venda:", brl(totalLiquido)));
+      lines.push(leftRight("Total Ja Pago:", brl(paid)));
+      lines.push(leftRight("Saldo Devedor:", brl(remaining)));
+      lines.push(leftRight("Status:", displaySale.status === 'paid' || displaySale.status === 'pago' ? 'QUITADO' : (paid > 0 ? 'PARCIAL' : 'PENDENTE')));
+
+      if (payments && payments.length > 0) {
+        lines.push(div("."));
+        lines.push(center("HISTORICO DE PAGAMENTOS"));
+        payments.forEach((pay: any) => {
+          const payDate = new Date(pay.created_at).toLocaleDateString('pt-BR');
+          lines.push(leftRight(`${payDate} (${pay.payment_method || 'Pgto'}):`, brl(pay.amount)));
+        });
+      }
+
+      const parcels = (installments && installments.length > 0) 
+        ? installments 
+        : (displaySale.installments || displaySale.parcelas || []);
+      if (parcels.length > 0) {
+        lines.push(div("."));
+        lines.push(center("PLANO DE PARCELAMENTO"));
+        parcels.forEach((inst: any, idx: number) => {
+          const num = inst.installment_number || inst.number || (idx + 1);
+          const dDate = inst.due_date ? new Date(inst.due_date).toLocaleDateString('pt-BR') : '';
+          const isPaid = inst.status === 'paid' || inst.status === 'pago';
+          lines.push(leftRight(`${num}a Parc ${dDate}:`, `${brl(inst.amount)}${isPaid ? ' (PAGO)' : ''}`));
+        });
+      }
+    } else {
+      lines.push(leftRight("Forma:", (displaySale?.payment_method || "DINHEIRO").toUpperCase()));
+      lines.push(leftRight("Total Pago:", brl(displaySale?.total_amount || 0)));
+    }
+
+    // Cashback gerado
+    if (displaySale?.cashback_earned > 0) {
+      lines.push(div("-"));
+      lines.push(center("CASHBACK DESTA VENDA:"));
+      lines.push(center(brl(displaySale.cashback_earned)));
+      if (isDebt) {
+        lines.push(center("* Liberado com pgto das parcelas"));
+      } else {
+        lines.push(center("Saldo liberado e disponivel!"));
+      }
+    }
+
+    // Promoção
+    if (!isPreview && !isCancelled && promoConfig && promoConfig.active && displaySale.promo_qr) {
+      lines.push(div("-"));
+      lines.push(center(promoConfig.name || "PROMOCAO AMSTORE"));
+      lines.push(center(`Cod Promo: ${displaySale.promo_qr}`));
+    }
+
+    // Rodapé
+    lines.push(div("="));
+    lines.push(center(storeWebsite || "www.amstorebagshoes.com.br"));
+    if (storeInstagram) lines.push(center(storeInstagram));
+    lines.push(center("Obrigado! Volte sempre!"));
+    lines.push(center(new Date().toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })));
+    lines.push(div("="));
+    lines.push("\n\n\n\n"); // Alimentação de papel para corte
+
+    return lines.join("\n");
+  };
+
+  const handleEscPosPrint = () => {
+    try {
+      const text = generateEscPosText();
+      const encodedText = encodeURIComponent(text);
+
+      // 1. Android Intent para o app RawBT (recomendado pelo desenvolvedor do RawBT para navegadores Android/Chrome)
+      const intentUrl = `intent:${encodedText}#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;S.browser_fallback_url=https%3A%2F%2Fplay.google.com%2Fstore%2Fapps%2Fdetails%3Fid%3Dru.a402d.rawbtprinter;end;`;
+
+      // 2. Custom Scheme direto para RawBT
+      const rawbtSchemeUrl = `rawbt:${encodedText}`;
+
+      const isAndroid = /android/i.test(navigator.userAgent);
+
+      if (!isAndroid) {
+        toast.info("Atenção: A impressão ESC/POS via RawBT é para celulares e tablets Android. No computador, utilize o botão 'Imprimir'.", { duration: 5000 });
+      } else {
+        toast.success("Abrindo RawBT para impressão...");
+      }
+
+      // Executa o disparo do intent
+      window.location.href = intentUrl;
+    } catch (err) {
+      console.error("Erro ao disparar impressão RawBT:", err);
+      toast.error("Erro ao preparar cupom para o RawBT");
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md p-0 overflow-hidden bg-background sm:rounded-[2rem] border-none shadow-2xl flex flex-col h-[95vh] sm:max-h-[90vh] [&>button]:hidden">
@@ -222,8 +394,12 @@ export function ReceiptModal({
               <Share2 className="size-4" /> Gerar Imagem para WhatsApp
             </Button>
             <div className="grid grid-cols-2 gap-3">
-               <Button variant="outline" className="gap-2 font-bold h-12 rounded-xl bg-[#6B46C1] text-white hover:bg-[#553C9A] border-none shadow-md" onClick={() => window.location.href = `intent://...`}>
-                <Smartphone className="size-4" /> ESC/POS
+              <Button 
+                variant="outline" 
+                className="gap-2 font-bold h-12 rounded-xl bg-[#6B46C1] text-white hover:bg-[#553C9A] border-none shadow-md" 
+                onClick={handleEscPosPrint}
+              >
+                <Smartphone className="size-4" /> ESC/POS (RawBT)
               </Button>
               <Button variant="outline" className="gap-2 font-bold h-12 rounded-xl shadow-sm" onClick={handlePrint}>
                 <Printer className="size-4" /> Imprimir
