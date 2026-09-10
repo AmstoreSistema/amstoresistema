@@ -202,99 +202,255 @@ export function ReceiptModal({
   const storeInstagram = getSetting("store_instagram");
   const storeLogo = getSetting("store_logo");
 
-  const generateEscPosText = () => {
-    const W = 48; // Largura padrão de 48 colunas para impressoras térmicas de 80mm
+  const [printingThermal, setPrintingThermal] = React.useState(false);
+
+  // Converte imagem em mapa de bits 1-bit raster ESC/POS centralizado para 80mm (576 pontos)
+  const imageToEscPosRaster = (imageUrl: string, targetWidth = 384, totalWidth = 576): Promise<number[]> => {
+    if (!imageUrl) return Promise.resolve([]);
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      img.onload = () => {
+        try {
+          const scale = targetWidth / img.width;
+          const width = targetWidth - (targetWidth % 8);
+          const height = Math.round(img.height * scale);
+
+          const canvas = document.createElement("canvas");
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext("2d");
+          if (!ctx) { resolve([]); return; }
+
+          ctx.fillStyle = "#ffffff";
+          ctx.fillRect(0, 0, width, height);
+          ctx.drawImage(img, 0, 0, width, height);
+
+          const imgData = ctx.getImageData(0, 0, width, height);
+          const data = imgData.data;
+
+          const totalBytesPerRow = Math.floor(totalWidth / 8); // 72 bytes em 80mm
+          const imgBytesPerRow = Math.floor(width / 8);
+          const leftPadBytes = Math.floor((totalBytesPerRow - imgBytesPerRow) / 2);
+          const rightPadBytes = totalBytesPerRow - imgBytesPerRow - leftPadBytes;
+
+          const bytes: number[] = [];
+
+          // Comando GS v 0 0 xL xH yL yH
+          const xL = totalBytesPerRow & 0xff;
+          const xH = (totalBytesPerRow >> 8) & 0xff;
+          const yL = height & 0xff;
+          const yH = (height >> 8) & 0xff;
+
+          bytes.push(0x1d, 0x76, 0x30, 0, xL, xH, yL, yH);
+
+          for (let y = 0; y < height; y++) {
+            for (let p = 0; p < leftPadBytes; p++) bytes.push(0);
+
+            for (let xByte = 0; xByte < imgBytesPerRow; xByte++) {
+              let byteVal = 0;
+              for (let bit = 0; bit < 8; bit++) {
+                const px = (xByte * 8) + bit;
+                const idx = (y * width + px) * 4;
+                const r = data[idx] ?? 255;
+                const g = data[idx + 1] ?? 255;
+                const b = data[idx + 2] ?? 255;
+                const a = data[idx + 3] ?? 0;
+                const brightness = 0.299 * r + 0.587 * g + 0.114 * b;
+                if (a > 128 && brightness < 170) {
+                  byteVal |= (1 << (7 - bit));
+                }
+              }
+              bytes.push(byteVal);
+            }
+
+            for (let p = 0; p < rightPadBytes; p++) bytes.push(0);
+          }
+
+          resolve(bytes);
+        } catch (e) {
+          console.warn("Falha ao rasterizar logo:", e);
+          resolve([]);
+        }
+      };
+      img.onerror = () => resolve([]);
+      img.src = imageUrl;
+    });
+  };
+
+  const uint8ArrayToBase64 = (bytes: Uint8Array): string => {
+    let binary = '';
+    const len = bytes.byteLength;
+    const chunkSize = 8192;
+    for (let i = 0; i < len; i += chunkSize) {
+      const chunk = bytes.subarray(i, Math.min(i + chunkSize, len));
+      binary += String.fromCharCode.apply(null, chunk as any);
+    }
+    return btoa(binary);
+  };
+
+  const generateEscPosBinary = async (): Promise<Uint8Array> => {
+    const W = 48; // 80mm = 48 colunas padrão Font A
+    const cleanStr = (str: string) => {
+      return (str || "")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^\x20-\x7E\n\r\t]/g, " ")
+        .trim();
+    };
+
     const center = (str: string) => {
-      const s = (str || "").trim();
+      const s = cleanStr(str);
       if (s.length >= W) return s.slice(0, W);
       const pad = Math.floor((W - s.length) / 2);
       return " ".repeat(pad) + s;
     };
+
     const leftRight = (left: string, right: string) => {
-      const r = (right || "").trim();
+      const l = cleanStr(left);
+      const r = cleanStr(right);
       const maxL = Math.max(0, W - r.length - 1);
-      const l = left.length > maxL ? left.slice(0, maxL) : left;
-      const spaces = Math.max(1, W - l.length - r.length);
-      return l + " ".repeat(spaces) + r;
+      const truncatedL = l.length > maxL ? l.slice(0, maxL) : l;
+      const spaces = Math.max(1, W - truncatedL.length - r.length);
+      return truncatedL + " ".repeat(spaces) + r;
     };
+
     const div = (char = "-") => char.repeat(W);
 
-    const lines: string[] = [];
+    const bytes: number[] = [];
 
-    // Cabeçalho da loja
-    lines.push(center("AMSTORE BAGSHOES"));
-    lines.push(center("Rua Medeiros Neto, 12-A - Centro"));
-    lines.push(center("Jequie - BA"));
-    const phone = getSetting("store_phone") || "73999269136";
-    lines.push(center(`Telefone: ${phone}`));
-    lines.push(div("="));
-    lines.push(center(isCancelled ? "*** CANCELADA ***" : "CUPOM DE VENDA"));
-    lines.push(div("="));
+    // 1. Inicializar impressora (ESC @) e selecionar tabela de caracteres
+    bytes.push(0x1B, 0x40);
 
-    // Dados da venda
+    // 2. Alinhamento central para o topo
+    bytes.push(0x1B, 0x61, 0x01);
+
+    // 3. Imprimir Logomarca em formato nativo ESC/POS Raster se cadastrada
+    let hasLogo = false;
+    if (storeLogo) {
+      try {
+        const logoBytes = await imageToEscPosRaster(storeLogo, 384, 576);
+        if (logoBytes.length > 0) {
+          bytes.push(...logoBytes);
+          bytes.push(0x0A, 0x0A);
+          hasLogo = true;
+        }
+      } catch (e) {
+        console.warn("Logo não pôde ser gerada para ESC/POS:", e);
+      }
+    }
+
+    const appendText = (t: string) => {
+      const c = cleanStr(t);
+      for (let i = 0; i < c.length; i++) {
+        bytes.push(c.charCodeAt(i));
+      }
+      bytes.push(0x0A);
+    };
+
+    // 4. Se não tiver logo, imprime nome em Negrito e Tamanho Duplo
+    if (!hasLogo) {
+      bytes.push(0x1D, 0x21, 0x11, 0x1B, 0x45, 0x01);
+      appendText("AMSTORE BAGSHOES");
+      bytes.push(0x1D, 0x21, 0x00, 0x1B, 0x45, 0x00);
+    }
+
+    appendText(getSetting("store_address") || "Rua Medeiros Neto, 12-A - Centro");
+    appendText(getSetting("store_city") || "Jequie - BA");
+    appendText(`Telefone: ${getSetting("store_phone") || "73999269136"}`);
+
+    // Alinhamento à esquerda
+    bytes.push(0x1B, 0x61, 0x00);
+    appendText(div("="));
+
+    // Título Centralizado
+    bytes.push(0x1B, 0x61, 0x01, 0x1B, 0x45, 0x01);
+    appendText(isCancelled ? "*** CANCELADA ***" : "CUPOM FISCAL");
+    bytes.push(0x1B, 0x61, 0x00, 0x1B, 0x45, 0x00);
+    appendText(div("="));
+
+    // Dados da Venda
     const saleCode = displaySale?.sale_code || displaySale?.id?.toString().slice(0, 8);
-    lines.push(leftRight("Pedido:", `#${saleCode}`));
+    appendText(leftRight("Pedido:", `#${saleCode}`));
     const saleDate = new Date(displaySale?.created_at || new Date()).toLocaleString('pt-BR', {
       day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'
     });
-    lines.push(leftRight("Data:", saleDate));
-    lines.push(leftRight("Cliente:", (displayClient?.name || "CONSUMIDOR").toUpperCase()));
+    appendText(leftRight("Data:", saleDate));
+    appendText(leftRight("Cliente:", (displayClient?.name || "CONSUMIDOR").toUpperCase()));
     if (displayClient?.cpf) {
-      lines.push(leftRight("CPF:", displayClient.cpf));
+      appendText(leftRight("CPF:", displayClient.cpf));
     }
-    lines.push(leftRight("Vendedor:", displaySale?.seller_name || "amstorebagshoes"));
-    lines.push(div("-"));
+    appendText(leftRight("Vendedor:", displaySale?.seller_name || "amstorebagshoes"));
+    appendText(div("-"));
 
     // Itens
-    lines.push(center("ITENS"));
-    lines.push(div("-"));
+    bytes.push(0x1B, 0x61, 0x01, 0x1B, 0x45, 0x01);
+    appendText("ITENS");
+    bytes.push(0x1B, 0x61, 0x00, 0x1B, 0x45, 0x00);
+    appendText(div("-"));
+
     items.forEach((item: any) => {
       const q = Number(item.quantity || 1);
       const name = (item.name || item.product_name || "PRODUTO").toUpperCase();
-      const num = item.numeracao ? ` (Nº ${item.numeracao})` : '';
+      const num = item.numeracao ? ` (N. ${item.numeracao})` : '';
       const itemTitle = `${q}x ${name}${num}`;
       const itemTotal = brl(q * (item.unit_price || 0) - (item.discount || 0));
-      lines.push(leftRight(itemTitle, itemTotal));
+      appendText(leftRight(itemTitle, itemTotal));
 
       const unitPriceStr = `(${brl(item.unit_price || 0)})`;
       if (item.discount > 0) {
-        lines.push(leftRight(` ${unitPriceStr} Desc:`, `- ${brl(item.discount)}`));
+        appendText(leftRight(` ${unitPriceStr} Desc:`, `- ${brl(item.discount)}`));
       }
     });
-    lines.push(div("-"));
+    appendText(div("-"));
 
     // Totais
-    lines.push(leftRight("VALOR TOTAL:", brl(valorTotalSemDesconto || 0)));
+    bytes.push(0x1B, 0x45, 0x01);
+    appendText(leftRight("VALOR TOTAL:", brl(valorTotalSemDesconto || 0)));
     if (totalDescontos > 0) {
-      lines.push(leftRight("Desconto:", `- ${brl(totalDescontos)}`));
+      appendText(leftRight("Desconto:", `- ${brl(totalDescontos)}`));
     }
     if (cashbackUsed > 0) {
-      lines.push(leftRight("Cashback Usado:", `- ${brl(cashbackUsed)}`));
+      appendText(leftRight("Cashback Usado:", `- ${brl(cashbackUsed)}`));
     }
-    lines.push(leftRight("TOTAL LIQUIDO:", brl(totalLiquido || 0)));
-    const totalQtd = items.reduce((acc: number, item: any) => acc + (Number(item.quantity) || 0), 0);
-    lines.push(leftRight("Qtd Itens:", `${totalQtd}`));
-    lines.push(div("-"));
 
-    // Forma de Pagamento
-    lines.push(center("PAGAMENTO"));
-    lines.push(div("-"));
+    // Total Líquido em Dupla Altura
+    bytes.push(0x1D, 0x21, 0x01);
+    appendText(leftRight("TOTAL LIQUIDO:", brl(totalLiquido || 0)));
+    bytes.push(0x1D, 0x21, 0x00);
+
+    const totalQtd = items.reduce((acc: number, item: any) => acc + (Number(item.quantity) || 0), 0);
+    appendText(leftRight("Qtd Itens:", `${totalQtd}`));
+    bytes.push(0x1B, 0x45, 0x00);
+    appendText(div("-"));
+
+    // Pagamento
+    bytes.push(0x1B, 0x61, 0x01, 0x1B, 0x45, 0x01);
+    appendText("PAGAMENTO");
+    bytes.push(0x1B, 0x61, 0x00, 0x1B, 0x45, 0x00);
+    appendText(div("-"));
+
     const isDebt = displaySale?.payment_method === 'Fiado' || displaySale?.is_debt;
     if (isDebt) {
-      lines.push(center("VENDA A PRAZO (FIADO)"));
+      bytes.push(0x1B, 0x61, 0x01, 0x1B, 0x45, 0x01);
+      appendText("VENDA A PRAZO (FIADO)");
+      bytes.push(0x1B, 0x61, 0x00, 0x1B, 0x45, 0x00);
+
       const paid = Number(displaySale.paid_amount || 0);
       const remaining = Math.max(0, (displaySale.total_amount || 0) - paid);
-      lines.push(leftRight("Total Venda:", brl(totalLiquido)));
-      lines.push(leftRight("Total Ja Pago:", brl(paid)));
-      lines.push(leftRight("Saldo Devedor:", brl(remaining)));
-      lines.push(leftRight("Status:", displaySale.status === 'paid' || displaySale.status === 'pago' ? 'QUITADO' : (paid > 0 ? 'PARCIAL' : 'PENDENTE')));
+      appendText(leftRight("Total Venda:", brl(totalLiquido)));
+      appendText(leftRight("Total Ja Pago:", brl(paid)));
+      appendText(leftRight("Saldo Devedor:", brl(remaining)));
+      appendText(leftRight("Status:", displaySale.status === 'paid' || displaySale.status === 'pago' ? 'QUITADO' : (paid > 0 ? 'PARCIAL' : 'PENDENTE')));
 
       if (payments && payments.length > 0) {
-        lines.push(div("."));
-        lines.push(center("HISTORICO DE PAGAMENTOS"));
+        appendText(div("."));
+        bytes.push(0x1B, 0x61, 0x01);
+        appendText("HISTORICO DE PAGAMENTOS");
+        bytes.push(0x1B, 0x61, 0x00);
         payments.forEach((pay: any) => {
           const payDate = new Date(pay.created_at).toLocaleDateString('pt-BR');
-          lines.push(leftRight(`${payDate} (${pay.payment_method || 'Pgto'}):`, brl(pay.amount)));
+          appendText(leftRight(`${payDate} (${pay.payment_method || 'Pgto'}):`, brl(pay.amount)));
         });
       }
 
@@ -302,119 +458,99 @@ export function ReceiptModal({
         ? installments 
         : (displaySale.installments || displaySale.parcelas || []);
       if (parcels.length > 0) {
-        lines.push(div("."));
-        lines.push(center("PLANO DE PARCELAMENTO"));
+        appendText(div("."));
+        bytes.push(0x1B, 0x61, 0x01);
+        appendText("PLANO DE PARCELAMENTO");
+        bytes.push(0x1B, 0x61, 0x00);
         parcels.forEach((inst: any, idx: number) => {
           const num = inst.installment_number || inst.number || (idx + 1);
           const dDate = inst.due_date ? new Date(inst.due_date).toLocaleDateString('pt-BR') : '';
           const isPaid = inst.status === 'paid' || inst.status === 'pago';
-          lines.push(leftRight(`${num}a Parc ${dDate}:`, `${brl(inst.amount)}${isPaid ? ' (PAGO)' : ''}`));
+          appendText(leftRight(`${num}a Parc ${dDate}:`, `${brl(inst.amount)}${isPaid ? ' (PAGO)' : ''}`));
         });
       }
     } else {
-      lines.push(leftRight("Forma:", (displaySale?.payment_method || "DINHEIRO").toUpperCase()));
-      lines.push(leftRight("Total Pago:", brl(displaySale?.total_amount || 0)));
+      appendText(leftRight("Forma:", (displaySale?.payment_method || "DINHEIRO").toUpperCase()));
+      appendText(leftRight("Total Pago:", brl(displaySale?.total_amount || 0)));
     }
 
-    // Cashback gerado
+    // Cashback
     if (displaySale?.cashback_earned > 0) {
-      lines.push(div("-"));
-      lines.push(center("CASHBACK DESTA VENDA:"));
-      lines.push(center(brl(displaySale.cashback_earned)));
-      if (isDebt) {
-        lines.push(center("* Liberado com pgto das parcelas"));
-      } else {
-        lines.push(center("Saldo liberado e disponivel!"));
-      }
+      appendText(div("-"));
+      bytes.push(0x1B, 0x61, 0x01);
+      appendText("CASHBACK DESTA VENDA:");
+      bytes.push(0x1D, 0x21, 0x01, 0x1B, 0x45, 0x01);
+      appendText(brl(displaySale.cashback_earned));
+      bytes.push(0x1D, 0x21, 0x00, 0x1B, 0x45, 0x00);
+      appendText(isDebt ? "* Liberado com pgto das parcelas" : "Saldo liberado e disponivel!");
+      bytes.push(0x1B, 0x61, 0x00);
     }
 
     // Promoção
     if (!isPreview && !isCancelled && promoConfig && promoConfig.active && displaySale.promo_qr) {
-      lines.push(div("-"));
-      lines.push(center(promoConfig.name || "PROMOCAO AMSTORE"));
-      lines.push(center(`Cod Promo: ${displaySale.promo_qr}`));
+      appendText(div("-"));
+      bytes.push(0x1B, 0x61, 0x01);
+      appendText(promoConfig.name || "PROMOCAO AMSTORE");
+      appendText(`Cod Promo: ${displaySale.promo_qr}`);
+      bytes.push(0x1B, 0x61, 0x00);
     }
 
     // Rodapé
-    lines.push(div("="));
-    lines.push(center(storeWebsite || "www.amstorebagshoes.com.br"));
-    if (storeInstagram) lines.push(center(storeInstagram));
-    lines.push(center("Obrigado! Volte sempre!"));
-    lines.push(center(new Date().toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })));
-    lines.push(div("="));
-    
-    // Avanço de papel e comandos para acionamento da GUILHOTINA / CORTE AUTOMÁTICO
-    lines.push("\n\n\n\n");
-    lines.push("[CUT]"); // Tag nativa do RawBT para corte de papel
-    lines.push("\x1D\x56\x41\x00"); // ESC/POS: GS V 65 0 (Avança e corta)
-    lines.push("\x1D\x56\x01");     // ESC/POS: GS V 1 (Corte parcial)
-    lines.push("\x1D\x56\x00");     // ESC/POS: GS V 0 (Corte total)
-    lines.push("\x1B\x69");         // ESC i (Corte automático Star/Epson)
-    lines.push("\x1B\x6D");         // ESC m (Corte parcial)
+    appendText(div("="));
+    bytes.push(0x1B, 0x61, 0x01);
+    appendText(storeWebsite || "www.amstorebagshoes.com.br");
+    if (storeInstagram) appendText(storeInstagram);
+    appendText("Obrigado! Volte sempre!");
+    appendText(new Date().toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }));
+    appendText(div("="));
 
-    return lines.join("\n");
+    // 5. AVANÇO DE PAPEL E DISPARO DE CORTE / GUILHOTINA
+    // Avançar 5 linhas completas
+    bytes.push(0x0A, 0x0A, 0x0A, 0x0A, 0x0A);
+    // GS V 66 0 (Avanço e corte total automático)
+    bytes.push(0x1D, 0x56, 0x42, 0x00);
+    // GS V 0 (Corte total)
+    bytes.push(0x1D, 0x56, 0x00);
+    // GS V 1 (Corte parcial)
+    bytes.push(0x1D, 0x56, 0x01);
+    // ESC i (Corte Star/Epson)
+    bytes.push(0x1B, 0x69);
+    // ESC m (Corte parcial Star/Epson)
+    bytes.push(0x1B, 0x6D);
+
+    return new Uint8Array(bytes);
   };
 
-  // 1. Impressão Gráfica de Alta Definição 80mm no RawBT (100% fiel à tela, com Logomarca e corte automático)
-  const [printingThermal, setPrintingThermal] = React.useState(false);
-
-  const handleRawBTPrint = async () => {
-    if (!receiptRef.current) return;
+  // Disparo direto de ESC/POS em Bytes Base64 (Hardware nativo 80mm com Logomarca e Guilhotina)
+  const handleDirectThermalPrint80mm = async () => {
     setPrintingThermal(true);
     try {
-      toast.info("Preparando cupom térmico 80mm com logomarca...");
-      const dataUrl = await toPng(receiptRef.current, {
-        backgroundColor: '#ffffff',
-        pixelRatio: 2,
-      });
+      toast.info("Gerando comandos térmicos 80mm com logomarca e guilhotina...");
+      const binaryBytes = await generateEscPosBinary();
+      const base64Data = uint8ArrayToBase64(binaryBytes);
 
-      const base64Data = dataUrl.replace(/^data:image\/png;base64,/, "");
-
-      // Android Intent enviando imagem PNG para RawBT
-      const intentUrl = `intent:image/png;base64,${base64Data}#Intent;scheme=rawbt:data;package=ru.a402d.rawbtprinter;S.browser_fallback_url=https%3A%2F%2Fplay.google.com%2Fstore%2Fapps%2Fdetails%3Fid%3Dru.a402d.rawbtprinter;end;`;
+      // Intent oficial do RawBT para envio de bytes puros ESC/POS
+      const intentUrl = `intent:base64,${base64Data}#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;S.browser_fallback_url=https%3A%2F%2Fplay.google.com%2Fstore%2Fapps%2Fdetails%3Fid%3Dru.a402d.rawbtprinter;end;`;
 
       const isAndroid = /android/i.test(navigator.userAgent);
       if (!isAndroid) {
-        toast.info("Atenção: A impressão direta via RawBT é para celulares Android. No computador, utilize o botão 'Imprimir (Navegador)'.", { duration: 5000 });
+        toast.info("Enviando comandos ESC/POS. No computador, utilize também o botão 'Imprimir (Navegador)'.", { duration: 5000 });
       } else {
-        toast.success("Enviando cupom 80mm com logomarca para o RawBT...");
+        toast.success("Cupom 80mm enviado com corte automático para a impressora!");
       }
 
       window.location.href = intentUrl;
     } catch (err) {
-      console.error("Erro ao imprimir imagem no RawBT:", err);
-      toast.error("Erro na impressão gráfica. Alternando para modo texto 80mm...");
-      handleEscPosTextPrint();
+      console.error("Erro ao gerar ESC/POS 80mm:", err);
+      toast.error("Erro ao preparar comandos de impressão");
     } finally {
       setPrintingThermal(false);
     }
   };
 
-  // 2. Impressão ESC/POS em Texto 80mm com comandos de corte
-  const handleEscPosTextPrint = () => {
-    try {
-      const text = generateEscPosText();
-      const encodedText = encodeURIComponent(text);
-
-      const intentUrl = `intent:${encodedText}#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;S.browser_fallback_url=https%3A%2F%2Fplay.google.com%2Fstore%2Fapps%2Fdetails%3Fid%3Dru.a402d.rawbtprinter;end;`;
-
-      const isAndroid = /android/i.test(navigator.userAgent);
-      if (!isAndroid) {
-        toast.info("Atenção: A impressão ESC/POS via RawBT é para celulares Android. No computador, utilize 'Imprimir (Navegador)'.", { duration: 5000 });
-      } else {
-        toast.success("Enviando cupom texto 80mm com comando de corte...");
-      }
-
-      window.location.href = intentUrl;
-    } catch (err) {
-      console.error("Erro ao disparar impressão texto RawBT:", err);
-      toast.error("Erro ao preparar cupom para o RawBT");
-    }
-  };
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md p-0 overflow-hidden bg-background sm:rounded-[2rem] border-none shadow-2xl flex flex-col h-[95vh] sm:max-h-[90vh] [&>button]:hidden">
+      <DialogContent className="max-w-md sm:max-w-lg p-0 overflow-hidden bg-background sm:rounded-[2rem] border-none shadow-2xl flex flex-col h-[95vh] sm:max-h-[90vh] [&>button]:hidden">
         
         <div className="flex items-center justify-between p-4 border-b bg-muted/30 sticky top-0 z-10 print:hidden">
           <div className="flex items-center gap-2">
@@ -428,38 +564,28 @@ export function ReceiptModal({
 
         <div className="flex-1 overflow-y-auto p-4 sm:p-6 print:p-0">
           <div className="flex flex-col gap-3 print:hidden mb-6">
-            <Button onClick={handleShareWhatsApp} className="w-full bg-[#25D366] hover:bg-[#128C7E] text-white gap-2 font-bold h-12 rounded-xl shadow-lg">
-              <Share2 className="size-4" /> Gerar Imagem para WhatsApp
+            <Button 
+              className="w-full bg-[#6B46C1] hover:bg-[#553C9A] text-white font-bold h-14 rounded-xl shadow-lg gap-2 text-sm sm:text-base"
+              onClick={handleDirectThermalPrint80mm}
+              disabled={printingThermal}
+            >
+              {printingThermal ? <Loader2 className="size-5 animate-spin" /> : <Printer className="size-5" />}
+              Imprimir Cupom 80mm (ESC/POS Direto + Guilhotina)
             </Button>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <Button 
-                variant="outline" 
-                className="gap-2 font-bold h-12 rounded-xl bg-[#6B46C1] text-white hover:bg-[#553C9A] border-none shadow-md" 
-                onClick={handleRawBTPrint}
-                disabled={printingThermal}
-              >
-                {printingThermal ? <Loader2 className="size-4 animate-spin" /> : <Printer className="size-4" />}
-                Imprimir 80mm (RawBT)
+
+            <div className="grid grid-cols-2 gap-3">
+              <Button onClick={handleShareWhatsApp} variant="outline" className="gap-2 font-bold h-11 rounded-xl shadow-sm text-xs">
+                <Share2 className="size-4 text-[#25D366]" /> WhatsApp
               </Button>
-              <Button variant="outline" className="gap-2 font-bold h-12 rounded-xl shadow-sm" onClick={handlePrint}>
+              <Button variant="outline" className="gap-2 font-bold h-11 rounded-xl shadow-sm text-xs" onClick={handlePrint}>
                 <Printer className="size-4" /> Imprimir (Navegador)
-              </Button>
-            </div>
-            <div className="flex justify-center pt-1">
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className="text-[11px] text-muted-foreground hover:text-foreground gap-1.5 h-7"
-                onClick={handleEscPosTextPrint}
-              >
-                <Smartphone className="size-3.5" /> Modo Texto ESC/POS (80mm + Corte)
               </Button>
             </div>
           </div>
 
           <div 
             ref={receiptRef}
-            className="print-only bg-white text-black p-4 sm:p-6 border border-gray-300 font-mono text-[11px] leading-tight mx-auto max-w-[400px] print:border-none"
+            className="print-only bg-white text-black p-6 border-2 border-black font-mono text-[13px] leading-snug mx-auto w-full max-w-[540px] print:border-none print:p-0"
             style={{ fontFamily: "'Courier New', Courier, monospace" }}
           >
             {/* --- CABEÇALHO DA LOJA --- */}
@@ -469,29 +595,29 @@ export function ReceiptModal({
                   <img 
                     src={storeLogo} 
                     alt="Logomarca da loja" 
-                    className="max-h-20 max-w-[220px] object-contain" 
+                    className="max-h-24 max-w-[280px] object-contain" 
                   />
                 </div>
               ) : (
-                <h2 className="font-bold text-lg uppercase tracking-[0.2em] py-2">
+                <h2 className="font-black text-xl uppercase tracking-[0.2em] py-2">
                   AMSTORE BAGSHOES
                 </h2>
               )}
-              <div className="text-[10px] space-y-0.5">
+              <div className="text-xs space-y-0.5 font-bold">
                 <p>Rua Medeiros Neto, 12-A - Centro</p>
                 <p>Jequié - Ba</p>
                 <p>Telefone: {getSetting("store_phone") || "73999269136"}</p>
               </div>
               
-              <div className="border-t border-black my-2" />
-              <h3 className="font-bold text-[11px] uppercase">CUPOM FISCAL</h3>
-              <div className="border-t border-black my-2" />
+              <div className="border-t-2 border-black my-2" />
+              <h3 className="font-black text-sm uppercase tracking-wider">CUPOM FISCAL</h3>
+              <div className="border-t-2 border-black my-2" />
               
-              {isCancelled && <p className="text-destructive font-bold text-lg border-2 border-destructive py-1 my-2 rotate-[-5deg]">CANCELADA</p>}
+              {isCancelled && <p className="text-destructive font-black text-xl border-4 border-destructive py-1 my-2 rotate-[-5deg]">CANCELADA</p>}
             </div>
 
             {/* --- DADOS DA VENDA --- */}
-            <div className="space-y-1 mb-4">
+            <div className="space-y-1.5 mb-4 text-xs font-bold">
               <div className="flex justify-between">
                 <span className="w-20">Pedido:</span>
                 <span className="flex-1 text-right">{displaySale?.sale_code || displaySale?.id?.toString().slice(0, 8)}</span>
@@ -506,37 +632,37 @@ export function ReceiptModal({
               </div>
             </div>
 
-            <div className="border-t border-black my-2" />
-            <div className="text-center font-bold mb-2">ITENS</div>
+            <div className="border-t-2 border-black my-2" />
+            <div className="text-center font-black text-sm mb-2">ITENS</div>
+            <div className="border-t-2 border-black my-2" />
             
             <div className="space-y-3 mb-4">
               {items.map((item: any, i: number) => (
                 <div key={i} className="space-y-1">
-                  <div className="flex justify-between font-bold">
+                  <div className="flex justify-between font-black text-xs">
                     <span className="flex-1 truncate pr-2">
                       {item.quantity || 0} x {(item.name || item.product_name || "PRODUTO").toUpperCase()} 
-                      {item.numeracao ? ` (Nº ${item.numeracao} )` : ''}
+                      {item.numeracao ? ` (Nº ${item.numeracao})` : ''}
                     </span>
                   </div>
-                  <div className="flex justify-between text-[10px]">
-                    <span>({brl(item.unit_price || 0)} )</span>
-                    <span className="font-bold">{brl((item.quantity || 0) * (item.unit_price || 0) - (item.discount || 0))}</span>
+                  <div className="flex justify-between text-xs font-bold">
+                    <span>({brl(item.unit_price || 0)})</span>
+                    <span className="font-black">{brl((item.quantity || 0) * (item.unit_price || 0) - (item.discount || 0))}</span>
                   </div>
                   {item.discount > 0 && (
-                    <div className="flex justify-between text-[9px] text-gray-600 italic">
+                    <div className="flex justify-between text-xs font-bold">
                       <span>Desconto Item:</span>
                       <span>- {brl(item.discount)}</span>
                     </div>
                   )}
-
                 </div>
               ))}
             </div>
 
-            <div className="border-t border-black my-2" />
+            <div className="border-t-2 border-black my-2" />
             
-            <div className="space-y-1 mb-4">
-              <div className="flex justify-between font-bold">
+            <div className="space-y-1.5 mb-4 text-xs font-bold">
+              <div className="flex justify-between font-black">
                 <span>VALOR TOTAL:</span>
                 <span>{brl(valorTotalSemDesconto || 0)}</span>
               </div>
@@ -547,75 +673,73 @@ export function ReceiptModal({
                 </div>
               )}
               {cashbackUsed > 0 && (
-                <div className="flex justify-between text-[9px] text-gray-600 italic">
+                <div className="flex justify-between font-bold">
                   <span>(Cashback Utilizado:</span>
                   <span>- {brl(cashbackUsed)})</span>
                 </div>
               )}
-              <div className="flex justify-between font-bold text-sm pt-1">
+              <div className="flex justify-between font-black text-base pt-1 border-t-2 border-black">
                 <span>TOTAL LÍQUIDO:</span>
                 <span>{brl(totalLiquido || 0)}</span>
               </div>
-              <div className="flex justify-between text-[10px]">
-                <span>Qtadd:</span>
+              <div className="flex justify-between text-xs font-bold">
+                <span>Qtd Total:</span>
                 <span>{items.reduce((acc: number, item: any) => acc + (Number(item.quantity) || 0), 0)} itens</span>
               </div>
             </div>
 
-            <div className="border-t border-black my-2" />
-            <div className="text-center font-bold mb-2">PAGAMENTO</div>
-            <div className="border-t border-black my-2" />
+            <div className="border-t-2 border-black my-2" />
+            <div className="text-center font-black text-sm mb-2">PAGAMENTO</div>
+            <div className="border-t-2 border-black my-2" />
 
-            <div className="space-y-1 mb-4">
-              <p className="font-bold">Pagamento:</p>
-              
+            <div className="space-y-1 mb-4 text-xs font-bold">
               {displaySale?.payment_method === 'Fiado' || displaySale?.is_debt ? (
                 <>
-                  <div className="flex justify-between font-bold border-2 border-black p-1 text-center my-1">
+                  <div className="flex justify-between font-black border-2 border-black p-1 text-center my-1">
                     <span className="w-full">VENDA A PRAZO (FIADO)</span>
                   </div>
                   
                   {/* --- HISTÓRICO DE PAGAMENTOS / FIADO --- */}
                   {(payments.length > 0 || (displaySale.paid_amount > 0 && payments.length === 0)) && (
-                    <div className="mt-2 space-y-1 border-t border-dashed border-black pt-2">
-                      <p className="font-bold text-[10px] text-center mb-1">HISTÓRICO DE PAGAMENTOS / FIADO</p>
+                    <div className="mt-2 space-y-1 border-t-2 border-dashed border-black pt-2">
+                      <p className="font-black text-xs text-center mb-1">HISTÓRICO DE PAGAMENTOS / FIADO</p>
                       
-                      <div className="flex justify-between text-[9px]">
+                      <div className="flex justify-between text-xs font-bold">
                         <span>Total da Venda:</span>
                         <span>{brl(totalLiquido)}</span>
                       </div>
 
                       <div className="space-y-0.5 my-1">
                         {payments.map((pay: any, idx: number) => (
-                          <div key={idx} className="flex justify-between text-[9px] italic">
+                          <div key={idx} className="flex justify-between text-xs">
                             <span>{new Date(pay.created_at).toLocaleDateString('pt-BR')} ({pay.payment_method}):</span>
-                            <span>{brl(pay.amount)}</span>
+                            <span className="font-bold">{brl(pay.amount)}</span>
                           </div>
                         ))}
                         {payments.length === 0 && displaySale.paid_amount > 0 && (
-                           <div className="flex justify-between text-[9px] italic">
+                          <div className="flex justify-between text-xs">
                             <span>Pagamento Inicial:</span>
-                            <span>{brl(displaySale.paid_amount)}</span>
+                            <span className="font-bold">{brl(displaySale.paid_amount)}</span>
                           </div>
                         )}
                       </div>
 
-                      <div className="border-t border-dotted border-black my-1" />
+                      <div className="border-t-2 border-dotted border-black my-1" />
                       
-                      <div className="flex justify-between text-[10px] font-bold">
+                      <div className="flex justify-between text-xs font-black">
                         <span>Total Já Pago:</span>
                         <span>{brl(displaySale.paid_amount || 0)}</span>
                       </div>
-                      <div className="flex justify-between text-[10px] font-bold">
+                      <div className="flex justify-between text-xs font-black">
                         <span>Saldo Devedor:</span>
                         <span>{brl(Math.max(0, (displaySale.total_amount || 0) - (displaySale.paid_amount || 0)))}</span>
                       </div>
                     </div>
                   )}
 
-                  <div className="flex justify-between text-[10px] mt-2">
+                  <div className="flex justify-between text-xs font-black mt-2">
                     <span>Status:</span>
-                    <span className="font-bold">
+                    <span>
                       {displaySale.status === 'paid' || displaySale.status === 'pago' 
                         ? 'QUITADO' 
                         : (displaySale.paid_amount > 0 ? 'PARCIALMENTE PAGO' : 'PENDENTE')}
@@ -623,12 +747,12 @@ export function ReceiptModal({
                   </div>
 
                   {(installments.length > 0 || displaySale.installments?.length > 0 || displaySale.parcelas?.length > 0) && (
-                    <div className="mt-2 space-y-1 border-t border-dashed border-black pt-1">
-                      <p className="font-bold text-[9px]">PLANO DE PARCELAMENTO:</p>
+                    <div className="mt-2 space-y-1 border-t-2 border-dashed border-black pt-1 text-xs">
+                      <p className="font-black">PLANO DE PARCELAMENTO:</p>
                       {(installments.length > 0 ? installments : (displaySale.installments || displaySale.parcelas)).map((inst: any, idx: number) => (
-                        <div key={idx} className="flex justify-between text-[9px]">
+                        <div key={idx} className="flex justify-between text-xs">
                           <span>{inst.installment_number || inst.number || (idx + 1)}ª Parcela ({new Date(inst.due_date).toLocaleDateString('pt-BR')}):</span>
-                          <span>
+                          <span className="font-bold">
                             {brl(inst.amount)} 
                             {inst.status === 'paid' || inst.status === 'pago' ? ' (PAGO)' : ''}
                           </span>
@@ -639,17 +763,17 @@ export function ReceiptModal({
                 </>
               ) : (
                 <>
-                  <div className="flex justify-between text-[10px]">
+                  <div className="flex justify-between text-xs font-bold">
                     <span>Data:</span>
                     <span>{new Date(displaySale?.created_at || new Date()).toLocaleDateString('pt-BR')}</span>
                   </div>
-                  <div className="flex justify-between font-bold">
+                  <div className="flex justify-between font-black text-xs">
                     <span>{displaySale?.payment_method?.toUpperCase() || "DINHEIRO"} :</span>
                     <span>{brl(displaySale?.total_amount || 0)}</span>
                   </div>
                   
-                  <div className="border-t border-gray-300 my-1" />
-                  <div className="flex justify-between font-bold">
+                  <div className="border-t-2 border-black my-1" />
+                  <div className="flex justify-between font-black text-sm">
                     <span>Total Pago:</span>
                     <span>{brl(displaySale?.total_amount || 0)}</span>
                   </div>
@@ -657,43 +781,42 @@ export function ReceiptModal({
               )}
             </div>
 
-            <div className="border-t border-black my-2" />
+            <div className="border-t-2 border-black my-2" />
 
             {/* --- CASHBACK DISPONÍVEL --- */}
             {displaySale?.cashback_earned > 0 && (
               <div className="text-center py-2 space-y-2">
-                <div className="bg-[#FFF9C4] border border-[#FBC02D] p-3 rounded-md text-center">
-                  <div className="flex items-center justify-center gap-1 font-bold text-[10px]">
-                    <Gift className="size-3 text-orange-500" /> CASHBACK DESTA VENDA
+                <div className="border-2 border-black bg-white p-3 text-center text-black">
+                  <div className="flex items-center justify-center gap-1 font-black text-xs uppercase">
+                    <Gift className="size-3.5" /> CASHBACK DESTA VENDA
                   </div>
-                  <div className="text-sm font-black my-1">{brl(displaySale.cashback_earned)}</div>
+                  <div className="text-base font-black my-1">{brl(displaySale.cashback_earned)}</div>
                   {displaySale?.payment_method === 'Fiado' || displaySale?.is_debt ? (
-                    <p className="text-[9px] font-bold text-orange-700 italic">
+                    <p className="text-xs font-bold italic">
                       * O cashback será liberado proporcionalmente aos pagamentos das parcelas.
                     </p>
                   ) : (
-                    <p className="text-[9px] font-bold">Saldo liberado e disponível!</p>
+                    <p className="text-xs font-black">Saldo liberado e disponível!</p>
                   )}
                 </div>
               </div>
             )}
 
-
             {/* --- QR CODE PROMOCIONAL (CAIXA PONTILHADA) --- */}
             {!isPreview && !isCancelled && promoConfig && promoConfig.active && (
-              <div className="border-2 border-dashed border-[#D53F8C] bg-[#FDF2F8] p-4 rounded-2xl text-center space-y-2">
-                <div className="flex items-center justify-center gap-1 font-bold text-[#D53F8C] uppercase">
+              <div className="border-2 border-black bg-white p-3 text-center text-black space-y-2">
+                <div className="flex items-center justify-center gap-1 font-black text-xs uppercase">
                   <Gift className="size-4" /> {promoConfig.name || "PROMOÇÃO AMSTORE"}
                 </div>
                 <div className="flex justify-center my-2">
                   {!qrLoaded ? (
-                    <Loader2 className="size-8 animate-spin text-muted-foreground/20" />
+                    <Loader2 className="size-8 animate-spin text-black" />
                   ) : (
                     <div ref={qrcodeRef} className="bg-white p-2 rounded-lg" />
                   )}
                 </div>
-                <p className="text-[10px] font-bold text-black">Escaneie e veja sua surpresa!</p>
-                <p className="text-[9px] font-mono text-gray-600">código: {displaySale.promo_qr || "QR-PROM-ERROR"}</p>
+                <p className="text-xs font-black">Escaneie e veja sua surpresa!</p>
+                <p className="text-xs font-mono font-bold">código: {displaySale.promo_qr || "QR-PROM-ERROR"}</p>
               </div>
             )}
 
