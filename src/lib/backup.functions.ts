@@ -1225,11 +1225,9 @@ export const inspectBackupFile = createServerFn({ method: "POST" })
     const collections: Record<string, number> = {};
 
     for (const [key, rows] of Object.entries(rawCollections)) {
-      if (key === IGNORED_TABLE || key.startsWith("__") || key === "ignorado") continue;
       const target = TABLE_ALIASES[key.toLowerCase().replace(/[^a-z0-9]/g, "")];
-      if (target === IGNORED_TABLE || target?.startsWith("__") || target === "ignorado") continue;
+      if (target === IGNORED_TABLE) continue;
       const name = target || key;
-      if (name === IGNORED_TABLE || name.startsWith("__") || name === "ignorado") continue;
       const mappedRows = mapped[name];
       collections[name] = Math.max(
         collections[name] ?? 0,

@@ -398,11 +398,8 @@ function SettingsPage() {
         setSaving(true);
         try {
           const info = await inspectBackup({ data: { payload } });
-          const rawCounts = (info.collections as Record<string, number>) || {};
           const counts = Object.fromEntries(
-            Object.entries(rawCounts).filter(
-              ([k]) => k !== "__ignorado" && !k.startsWith("__") && k !== "ignorado"
-            )
+            Object.entries(info.collections as Record<string, number>),
           );
           
           const hasData = Object.keys(counts).length > 0;
@@ -1197,9 +1194,7 @@ function SettingsPage() {
                         </div>
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 max-h-[40vh] overflow-y-auto p-2 pr-4 custom-scrollbar">
-                          {Object.keys(importDialog.counts)
-                            .filter(tableId => tableId !== "__ignorado" && !tableId.startsWith("__") && tableId !== "ignorado")
-                            .map((tableId) => {
+                          {Object.keys(importDialog.counts).map((tableId) => {
                             const label = backupModules.flatMap(m => m.items).find(item => item.id === tableId)?.label || tableId;
                             const rowCount = importDialog.counts[tableId] || 0;
                             
