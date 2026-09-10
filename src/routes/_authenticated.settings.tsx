@@ -396,6 +396,7 @@ function SettingsPage() {
         // Backup externo (Base44 e similares): inspeciona, mapeia e abre o mesmo diálogo de seleção
         toast.info("Backup externo detectado. Analisando dados...");
         setSaving(true);
+        try {
           const info = await inspectBackup({ data: { payload } });
           const rawCounts = (info.collections as Record<string, number>) || {};
           const counts = Object.fromEntries(
