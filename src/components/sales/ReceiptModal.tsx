@@ -592,7 +592,7 @@ export function ReceiptModal({
           <div className="print-only w-full">
             <div 
               ref={receiptRef}
-              className="cupom-container bg-white text-black p-4 sm:p-6 border-2 border-black font-mono text-xs sm:text-[13px] leading-snug mx-auto w-full max-w-[480px] shadow-sm print:border-none print:shadow-none"
+              className="cupom-container bg-white text-black p-4 sm:p-6 border-2 border-black font-mono text-xs sm:text-[13px] leading-snug mx-auto w-full max-w-[380px] shadow-md"
               style={{ fontFamily: "'Courier New', Consolas, monospace" }}
             >
             {/* --- CABEÇALHO DA LOJA --- */}
@@ -602,7 +602,7 @@ export function ReceiptModal({
                   <img 
                     src={storeLogo} 
                     alt="Logomarca da loja" 
-                    className="max-h-24 max-w-[280px] object-contain" 
+                    className="max-h-24 max-w-[240px] object-contain" 
                   />
                 </div>
               ) : (
@@ -627,7 +627,13 @@ export function ReceiptModal({
             <div className="space-y-1.5 mb-4 text-xs font-bold">
               <div className="flex justify-between">
                 <span className="w-20">Pedido:</span>
-                <span className="flex-1 text-right">{displaySale?.sale_code || displaySale?.id?.toString().slice(0, 8)}</span>
+                <span className="flex-1 text-right">#{displaySale?.sale_code || displaySale?.id?.toString().slice(0, 8)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="w-20">Data:</span>
+                <span className="flex-1 text-right">
+                  {new Date(displaySale?.created_at || new Date()).toLocaleDateString('pt-BR')} {new Date(displaySale?.created_at || new Date()).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                </span>
               </div>
               <div className="flex justify-between">
                 <span className="w-20">Cliente:</span>
@@ -793,17 +799,17 @@ export function ReceiptModal({
             {/* --- CASHBACK DISPONÍVEL --- */}
             {displaySale?.cashback_earned > 0 && (
               <div className="text-center py-2 space-y-2">
-                <div className="border-2 border-black bg-white p-3 text-center text-black">
-                  <div className="flex items-center justify-center gap-1 font-black text-xs uppercase">
-                    <Gift className="size-3.5" /> CASHBACK DESTA VENDA
+                <div className="bg-[#FFF9C4] border border-[#FBC02D] p-3 rounded-md text-center">
+                  <div className="flex items-center justify-center gap-1 font-bold text-xs text-orange-800 uppercase">
+                    <Gift className="size-3.5 text-orange-600" /> CASHBACK DESTA VENDA
                   </div>
-                  <div className="text-base font-black my-1">{brl(displaySale.cashback_earned)}</div>
+                  <div className="text-base font-black my-1 text-black">{brl(displaySale.cashback_earned)}</div>
                   {displaySale?.payment_method === 'Fiado' || displaySale?.is_debt ? (
-                    <p className="text-xs font-bold italic">
+                    <p className="text-xs font-bold text-orange-800 italic">
                       * O cashback será liberado proporcionalmente aos pagamentos das parcelas.
                     </p>
                   ) : (
-                    <p className="text-xs font-black">Saldo liberado e disponível!</p>
+                    <p className="text-xs font-bold text-orange-900">Saldo liberado e disponível!</p>
                   )}
                 </div>
               </div>
@@ -811,29 +817,29 @@ export function ReceiptModal({
 
             {/* --- QR CODE PROMOCIONAL (CAIXA PONTILHADA) --- */}
             {!isPreview && !isCancelled && promoConfig && promoConfig.active && (
-              <div className="border-2 border-black bg-white p-3 text-center text-black space-y-2">
-                <div className="flex items-center justify-center gap-1 font-black text-xs uppercase">
-                  <Gift className="size-4" /> {promoConfig.name || "PROMOÇÃO AMSTORE"}
+              <div className="border-2 border-dashed border-[#D53F8C] bg-[#FDF2F8] p-3 rounded-xl text-center space-y-2">
+                <div className="flex items-center justify-center gap-1 font-black text-xs uppercase text-[#D53F8C]">
+                  <Gift className="size-4 text-[#D53F8C]" /> {promoConfig.name || "PROMOÇÃO AMSTORE"}
                 </div>
                 <div className="flex justify-center my-2">
                   {!qrLoaded ? (
-                    <Loader2 className="size-8 animate-spin text-black" />
+                    <Loader2 className="size-8 animate-spin text-[#D53F8C]" />
                   ) : (
-                    <div ref={qrcodeRef} className="bg-white p-2 rounded-lg" />
+                    <div ref={qrcodeRef} className="bg-white p-2 rounded-lg shadow-sm border border-pink-200 inline-block" />
                   )}
                 </div>
-                <p className="text-xs font-black">Escaneie e veja sua surpresa!</p>
-                <p className="text-xs font-mono font-bold">código: {displaySale.promo_qr || "QR-PROM-ERROR"}</p>
+                <p className="text-xs font-black text-black">Escaneie e veja sua surpresa!</p>
+                <p className="text-xs font-mono font-bold text-gray-700">código: {displaySale.promo_qr || "QR-PROM-ERROR"}</p>
               </div>
             )}
 
             {/* --- RODAPÉ FINAL --- */}
-            <div className="mt-4 pt-2 border-t border-black text-center">
+            <div className="mt-4 pt-2 border-t-2 border-black text-center">
               <p className="text-[10px] font-bold">{storeWebsite || "www.amstorebagshoes.com.br"}</p>
               {storeInstagram && <p className="text-[10px] font-bold mt-0.5">{storeInstagram}</p>}
               
-              <div className="mt-6 text-[10px]">
-                <p>Obrigado! Volte sempre!</p>
+              <div className="mt-5 text-[10px]">
+                <p className="font-semibold">Obrigado! Volte sempre!</p>
                 <p className="mt-1 font-bold">{new Date(displaySale?.created_at || new Date()).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
               </div>
             </div>
@@ -844,18 +850,18 @@ export function ReceiptModal({
 
         <style dangerouslySetInnerHTML={{ __html: `
           @media print {
-            /* 1. Oculta TODOS os elementos da página */
+            /* 1. Oculta TODOS os elementos da tela exceto a área de impressão */
             body * {
               visibility: hidden !important;
             }
 
-            /* 2. Exibe apenas o container do cupom e seus filhos */
+            /* 2. Exibe apenas o container do cupom e seus elementos */
             .print-only,
             .print-only * {
               visibility: visible !important;
             }
 
-            /* 3. Posiciona o cupom no topo esquerdo, ocupando largura total */
+            /* 3. Posiciona no topo esquerdo da página/rolo térmico */
             .print-only {
               position: absolute !important;
               left: 0 !important;
@@ -865,36 +871,41 @@ export function ReceiptModal({
               padding: 0 !important;
               border: none !important;
               box-shadow: none !important;
-              break-inside: avoid !important;
-              page-break-inside: avoid !important;
+              display: flex !important;
+              justify-content: center !important;
+              background: transparent !important;
             }
 
-            /* 4. Estilo de container do cupom térmico padrão 80mm */
+            /* 4. Fidelidade total da largura 80mm com bordas 2px pretas, cores e tipografia idênticas à tela */
             .cupom-container {
-              max-width: 80mm !important;
-              width: 80mm !important;
+              width: 78mm !important;
+              max-width: 78mm !important;
+              min-width: 78mm !important;
+              box-sizing: border-box !important;
               margin: 0 auto !important;
-              padding: 4mm !important;
-              font-family: 'Courier New', 'Consolas', monospace !important;
+              padding: 3.5mm 4mm !important;
+              font-family: 'Courier New', Consolas, monospace !important;
               font-size: 11px !important;
               color: #000000 !important;
-              line-height: 1.4 !important;
-              border: none !important;
+              line-height: 1.35 !important;
+              border: 2px solid #000000 !important;
+              background-color: #ffffff !important;
               box-shadow: none !important;
               break-inside: avoid !important;
               page-break-inside: avoid !important;
             }
 
-            /* 5. Remove margens da página física para evitar quebras e múltiplos cortes */
-            @page {
-              size: auto;
-              margin: 0;
-            }
-
-            /* 6. Garante que contraste e cores sejam impressos com fidelidade */
+            /* 5. Força a impressão exata de todas as cores de fundo, bordas coloridas e textos */
             * {
               -webkit-print-color-adjust: exact !important;
               print-color-adjust: exact !important;
+              color-adjust: exact !important;
+            }
+
+            /* 6. Remove margens automáticas da impressora para corte perfeito no rolo de 80mm */
+            @page {
+              size: 80mm auto;
+              margin: 0mm !important;
             }
           }
         `}} />

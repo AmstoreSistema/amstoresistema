@@ -958,8 +958,8 @@ function SettingsPage() {
                 <CardContent className="p-6 sm:p-8 flex flex-col items-center">
                   {/* Simulação do Papel Térmico */}
                   <div 
-                    className="bg-white text-black p-6 border border-gray-300 font-mono text-[11px] leading-tight shadow-xl rounded-sm w-full max-w-[360px]"
-                    style={{ fontFamily: "'Courier New', Courier, monospace" }}
+                    className="bg-white text-black p-6 border-2 border-black font-mono text-[11px] leading-tight shadow-xl rounded-sm w-full max-w-[360px]"
+                    style={{ fontFamily: "'Courier New', Consolas, monospace" }}
                   >
                     {/* Topo do Cupom: Logomarca ou Nome Textual */}
                     <div className="text-center space-y-2 mb-4">
@@ -989,9 +989,9 @@ function SettingsPage() {
                         <p>Telefone: {getSettingValue("store_phone", "73999269136")}</p>
                       </div>
                       
-                      <div className="border-t border-black my-2" />
+                      <div className="border-t-2 border-black my-2" />
                       <h3 className="font-bold text-[11px] uppercase tracking-wider">CUPOM FISCAL</h3>
-                      <div className="border-t border-black my-2" />
+                      <div className="border-t-2 border-black my-2" />
                     </div>
 
                     {/* Dados da Venda (Exemplo Real) */}
@@ -1014,8 +1014,9 @@ function SettingsPage() {
                       </div>
                     </div>
 
-                    <div className="border-t border-black my-2" />
+                    <div className="border-t-2 border-black my-2" />
                     <div className="text-center font-bold mb-2 text-[10px]">ITENS</div>
+                    <div className="border-t-2 border-black my-2" />
                     
                     {/* Itens de Exemplo */}
                     <div className="space-y-2 mb-3 text-[10px]">
@@ -1040,7 +1041,7 @@ function SettingsPage() {
                       </div>
                     </div>
 
-                    <div className="border-t border-black my-2" />
+                    <div className="border-t-2 border-black my-2" />
                     
                     {/* Totais */}
                     <div className="space-y-1 mb-3 text-[10px]">
@@ -1052,7 +1053,7 @@ function SettingsPage() {
                         <span>Desconto:</span>
                         <span>- R$ 20,00</span>
                       </div>
-                      <div className="flex justify-between font-bold text-xs pt-1 border-t border-dotted border-gray-400">
+                      <div className="flex justify-between font-bold text-xs pt-1 border-t-2 border-black">
                         <span>TOTAL LÍQUIDO:</span>
                         <span>R$ 210,00</span>
                       </div>
@@ -1062,9 +1063,9 @@ function SettingsPage() {
                       </div>
                     </div>
 
-                    <div className="border-t border-black my-2" />
+                    <div className="border-t-2 border-black my-2" />
                     <div className="text-center font-bold mb-1 text-[10px]">PAGAMENTO</div>
-                    <div className="border-t border-black my-2" />
+                    <div className="border-t-2 border-black my-2" />
 
                     <div className="space-y-1 mb-3 text-[10px]">
                       <div className="flex justify-between font-bold">
@@ -1077,11 +1078,11 @@ function SettingsPage() {
                       </div>
                     </div>
 
-                    <div className="border-t border-black my-2" />
+                    <div className="border-t-2 border-black my-2" />
 
                     {/* Destaque Cashback */}
                     <div className="text-center py-2 space-y-1">
-                      <div className="bg-[#FFF9C4] border border-[#FBC02D] p-2 rounded text-center">
+                      <div className="bg-[#FFF9C4] border border-[#FBC02D] p-2.5 rounded text-center">
                         <div className="font-bold text-[9px] text-orange-800">CASHBACK DESTA VENDA</div>
                         <div className="text-xs font-black my-0.5">R$ 10,50</div>
                         <p className="text-[8px] font-bold text-orange-900">Saldo liberado e disponível!</p>
