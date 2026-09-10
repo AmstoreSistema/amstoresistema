@@ -63,3 +63,92 @@ export const resetAllCashbacks = createServerFn({ method: "POST" })
 
     return { success: true };
   });
+
+/**
+ * Aplica a regra de corte de Outubro/2025:
+ * 1. Zera cashback_earned e cashback_used em vendas com data < 2025-10-01.
+ * 2. Remove cashback_entries com data < 2025-10-01 ou vinculadas a vendas < 2025-10-01.
+ * 3. Recalcula o cashback_balance de cada cliente considerando apenas vendas/movimentações de Outubro/2025 em diante.
+ */
+export const cleanPreOctober2025Cashbacks = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async () => {
+    const { supabaseAdmin: admin } = await import("@/integrations/supabase/client.server");
+
+    // 1. Zera cashback_earned e cashback_used nas vendas anteriores a Outubro/2025 (< 2025-10-01)
+    const { error: salesError } = await admin
+      .from("sales")
+      .update({ cashback_earned: 0, cashback_used: 0 })
+      .lt("created_at", "2025-10-01");
+
+    if (salesError) console.error("Erro ao zerar cashback de vendas antigas:", salesError);
+
+    // 2. Remove cashback_entries com data anterior a 01/10/2025
+    try {
+      await admin
+        .from("cashback_entries")
+        .delete()
+        .lt("created_at", "2025-10-01");
+    } catch (e) {
+      console.warn("Aviso ao remover entries antigas:", e);
+    }
+
+    // 3. Remove cashback_entries associadas a vendas anteriores a 01/10/2025
+    const { data: oldSales } = await admin
+      .from("sales")
+      .select("id")
+      .lt("created_at", "2025-10-01")
+      .limit(5000);
+
+    if (oldSales && oldSales.length > 0) {
+      const oldSaleIds = oldSales.map((s: any) => s.id);
+      for (let i = 0; i < oldSaleIds.length; i += 100) {
+        const batch = oldSaleIds.slice(i, i + 100);
+        try {
+          await admin
+            .from("cashback_entries")
+            .delete()
+            .in("sale_id", batch);
+        } catch (e) {}
+      }
+    }
+
+    // 4. Recalcula o cashback_balance dos clientes
+    const { data: validSales } = await admin
+      .from("sales")
+      .select("client_id, cashback_earned, cashback_used")
+      .gte("created_at", "2025-10-01")
+      .not("client_id", "is", null);
+
+    const clientBalanceMap = new Map<string, number>();
+    if (validSales) {
+      for (const s of validSales) {
+        if (!s.client_id) continue;
+        const current = clientBalanceMap.get(s.client_id) || 0;
+        const earned = Number(s.cashback_earned || 0);
+        const used = Number(s.cashback_used || 0);
+        clientBalanceMap.set(s.client_id, Math.max(0, current + (earned - used)));
+      }
+    }
+
+    // Atualiza saldo dos clientes
+    const { data: allClients } = await admin
+      .from("clients")
+      .select("id, cashback_balance");
+
+    let updatedCount = 0;
+    if (allClients) {
+      for (const client of allClients) {
+        const newBalance = clientBalanceMap.get(client.id) || 0;
+        if (Number(client.cashback_balance || 0) !== newBalance) {
+          await admin
+            .from("clients")
+            .update({ cashback_balance: newBalance })
+            .eq("id", client.id);
+          updatedCount++;
+        }
+      }
+    }
+
+    return { success: true, updatedClients: updatedCount };
+  });

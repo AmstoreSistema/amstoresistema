@@ -680,6 +680,42 @@ export const importSystemData = createServerFn({ method: "POST" })
         }
       } catch (err: any) {
         console.warn("[Import] Aviso na sincronização de saldos cashback:", err?.message);
+    }
+
+    // Regra de Negócio: Somente cashbacks de vendas a partir de Outubro/2025 (2025-10-01) são mantidos
+    if (results["sales"] || results["cashback_entries"] || results["CashbackCliente"] || results["clients"]) {
+      try {
+        // 1. Zera cashback_earned e cashback_used em vendas anteriores a 01/10/2025
+        await supabaseAdmin
+          .from("sales" as any)
+          .update({ cashback_earned: 0, cashback_used: 0 })
+          .lt("created_at", "2025-10-01");
+
+        // 2. Remove cashback_entries com data anterior a 01/10/2025
+        await supabaseAdmin
+          .from("cashback_entries" as any)
+          .delete()
+          .lt("created_at", "2025-10-01");
+
+        // 3. Remove cashback_entries vinculadas a vendas anteriores a 01/10/2025
+        const { data: oldSales } = await supabaseAdmin
+          .from("sales" as any)
+          .select("id")
+          .lt("created_at", "2025-10-01")
+          .limit(5000);
+
+        if (oldSales && oldSales.length > 0) {
+          const oldSaleIds = oldSales.map((s: any) => s.id);
+          for (let i = 0; i < oldSaleIds.length; i += 100) {
+            const batch = oldSaleIds.slice(i, i + 100);
+            await supabaseAdmin
+              .from("cashback_entries" as any)
+              .delete()
+              .in("sale_id", batch);
+          }
+        }
+      } catch (err: any) {
+        console.warn("[Import] Aviso ao aplicar corte de cashback Out/2025:", err?.message);
       }
     }
 

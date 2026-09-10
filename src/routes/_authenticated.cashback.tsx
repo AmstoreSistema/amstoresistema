@@ -10,7 +10,9 @@ import {
   Coins,
   TrendingUp,
   BarChart3,
-  Eraser
+  Eraser,
+  Filter,
+  Loader2
 } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { StatCard } from "@/components/stat-card";
@@ -39,7 +41,7 @@ import { useRows, useSaveRow, useDeleteRow } from "@/lib/data";
 import { useState, useMemo } from "react";
 import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
-import { resetAllCashbacks } from "@/lib/cashback-cleanup.functions";
+import { resetAllCashbacks, cleanPreOctober2025Cashbacks } from "@/lib/cashback-cleanup.functions";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { NotifyClientsModal } from "@/components/cashback/NotifyClientsModal";
@@ -62,6 +64,8 @@ function CashbackPage() {
   
   const queryClient = useQueryClient();
   const resetAllCashbacksFn = useServerFn(resetAllCashbacks);
+  const cleanPreOct2025Fn = useServerFn(cleanPreOctober2025Cashbacks);
+  const [cleaningPreOct, setCleaningPreOct] = useState(false);
   
   const save = useSaveRow("cashback_config", "Configuração de Cashback");
   const remove = useDeleteRow("cashback_config", "Configuração de Cashback");
@@ -146,6 +150,23 @@ function CashbackPage() {
     }
   };
 
+  const handleCleanPreOct2025 = async () => {
+    if (!confirm("Deseja remover todos os cashbacks de vendas anteriores a Outubro/2025 (< 01/10/2025) e recalcular os saldos dos clientes apenas com as vendas de Outubro/2025 em diante?")) return;
+    setCleaningPreOct(true);
+    try {
+      const res = await cleanPreOct2025Fn();
+      toast.success(`Filtragem concluída! ${res.updatedClients ?? 0} cliente(s) atualizados.`);
+      queryClient.invalidateQueries({ queryKey: ["clients"] });
+      queryClient.invalidateQueries({ queryKey: ["sales"] });
+      queryClient.invalidateQueries({ queryKey: ["cashback_entries"] });
+    } catch (error: any) {
+      console.error("Erro ao filtrar cashbacks:", error);
+      toast.error(`Erro ao filtrar cashbacks: ${error?.message || "falha desconhecida"}`);
+    } finally {
+      setCleaningPreOct(false);
+    }
+  };
+
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       <div className="flex flex-wrap items-center justify-between gap-4">
@@ -159,7 +180,16 @@ function CashbackPage() {
           </div>
         </div>
         
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          <Button 
+            variant="outline"
+            onClick={handleCleanPreOct2025}
+            disabled={cleaningPreOct}
+            className="border-amber-500/30 text-amber-600 hover:bg-amber-500/10 font-bold gap-2"
+          >
+            {cleaningPreOct ? <Loader2 className="size-4 animate-spin" /> : <Filter className="size-4" />}
+            Manter Apenas Out/2025 em Diante
+          </Button>
           <Button 
             variant="destructive" 
             onClick={handleResetAllCashbacks}

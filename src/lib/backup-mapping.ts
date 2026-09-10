@@ -929,6 +929,8 @@ const MAPPERS: Record<string, Mapper> = {
     const isDebt = slug(method) === "fiado" || remaining > 0.009;
     const rawStatus = str(pick(s, ["status", "situacao"]));
     const status = rawStatus ?? (remaining <= 0.009 ? "pago" : paid > 0 ? "parcial" : "pendente");
+    const createdAt = date(pick(s, ["created_at", "data_venda", "datavenda", "data"]));
+    const isBeforeOct2025 = createdAt < "2025-10-01";
     return {
       sale_code: str(pick(s, ["sale_code", "codigo_venda", "codigovenda", "codigo"])) ?? null,
       total_amount: total,
@@ -938,10 +940,10 @@ const MAPPERS: Record<string, Mapper> = {
       is_debt: isDebt,
       status,
       sale_type: str(pick(s, ["sale_type", "tipo_venda", "tipovenda"])) ?? "varejo",
-      cashback_used: num(pick(s, ["cashback_used", "cashback_usado"])),
-      cashback_earned: num(pick(s, ["cashback_earned", "cashback_gerado"])),
+      cashback_used: isBeforeOct2025 ? 0 : num(pick(s, ["cashback_used", "cashback_usado"])),
+      cashback_earned: isBeforeOct2025 ? 0 : num(pick(s, ["cashback_earned", "cashback_gerado"])),
       notes: str(pick(s, ["notes", "observacoes"])) ?? null,
-      created_at: date(pick(s, ["created_at", "data_venda", "datavenda", "data"])),
+      created_at: createdAt,
       __client_name: str(pick(s, ["cliente_nome", "clientenome", "cliente"])) ?? null,
     };
   },
@@ -1039,6 +1041,9 @@ const MAPPERS: Record<string, Mapper> = {
     };
   },
   cashback_entries: (ce) => {
+    const createdAt = date(pick(ce, ["created_at", "criadoem", "data"]));
+    // Regra: Somente movimentações de cashback a partir de Outubro/2025 (2025-10-01) são preservadas
+    if (createdAt < "2025-10-01") return null;
     const clientId = str(pick(ce, ["client_id", "clienteid", "cliente_id"]));
     const amount = num(pick(ce, ["amount", "valor", "value"]));
     if (!amount) return null;
@@ -1048,7 +1053,7 @@ const MAPPERS: Record<string, Mapper> = {
       kind: str(pick(ce, ["kind", "tipo", "type", "operacao"])) ?? "credit",
       description: str(pick(ce, ["description", "descricao", "obs", "observacao"])) ?? null,
       sale_id: str(pick(ce, ["sale_id", "venda_id", "vendaid"])) ?? null,
-      created_at: date(pick(ce, ["created_at", "criadoem", "data"])),
+      created_at: createdAt,
     };
   },
   condicionais: (cd) => {
