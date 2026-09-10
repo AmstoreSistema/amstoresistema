@@ -17,6 +17,8 @@ import {
   CreditCard as InstallmentsIcon,
   FileText,
   X,
+  ShoppingBag,
+  DollarSign,
 } from "lucide-react";
 
 
@@ -204,30 +206,52 @@ function SalesPage() {
     queryKey: ["sales-stats"],
     queryFn: async () => {
       const today = new Date().toISOString().split("T")[0];
-      const { data } = await supabase
+
+      // 1. Vendas e Faturamento de Hoje
+      const { data: todayData } = await supabase
         .from("sales")
-        .select("created_at, total_amount, is_debt, paid_amount, status")
+        .select("created_at, total_amount, status")
         .gte("created_at", `${today}T00:00:00`);
 
+      // 2. Fiados em Aberto
       const { count: pendingFiadoCount } = await supabase
         .from("sales")
         .select("*", { count: "exact", head: true })
         .eq("is_debt", true);
 
-      const todaySales = (data || []).filter((s: any) => {
+      // 3. Contagem Total de Vendas
+      const { count: totalSalesCount } = await supabase
+        .from("sales")
+        .select("*", { count: "exact", head: true });
+
+      // 4. Faturamento Total (vendas válidas não canceladas)
+      const { data: allSalesData } = await supabase
+        .from("sales")
+        .select("total_amount, status");
+
+      const todaySales = (todayData || []).filter((s: any) => {
+        const isCancelled = ["cancelled", "cancelada", "estornado"].includes(String(s.status || "").toLowerCase());
         const d = typeof s.created_at === "string" ? s.created_at.slice(0, 10) : "";
-        return d === today;
+        return d === today && !isCancelled;
       });
+
+      const validAllSales = (allSalesData || []).filter((s: any) => {
+        return !["cancelled", "cancelada", "estornado"].includes(String(s.status || "").toLowerCase());
+      });
+
+      const totalRevenue = validAllSales.reduce((sum: number, s: any) => sum + Number(s.total_amount || 0), 0);
 
       return {
         countToday: todaySales.length,
         totalToday: todaySales.reduce((sum: number, s: any) => sum + Number(s.total_amount || 0), 0),
+        totalSalesCount: totalSalesCount || (allSalesData || []).length,
+        totalRevenue,
         pendingFiado: pendingFiadoCount || 0,
       };
     },
   });
 
-  const stats = statsData || { countToday: 0, totalToday: 0, pendingFiado: 0 };
+  const stats = statsData || { countToday: 0, totalToday: 0, totalSalesCount: 0, totalRevenue: 0, pendingFiado: 0 };
 
   const getStatusBadge = (s: any) => {
     // Para vendas fiado, o status vem do saldo devedor (nunca do status default do banco)
@@ -272,11 +296,13 @@ function SalesPage() {
         }
       />
 
-      <div className="grid grid-cols-2 gap-2.5 sm:gap-4 sm:grid-cols-3">
-        <StatCard title="Vendas Hoje" value={stats.countToday} icon={ShoppingCart} tone="dark" />
-        <StatCard title="Faturamento Hoje" value={brl(stats.totalToday)} icon={TrendingUp} tone="gold" />
-        <div className="col-span-2 sm:col-span-1">
-          <StatCard title="Fiados em Aberto" value={stats.pendingFiado} icon={AlertTriangle} tone="warning" />
+      <div className="grid grid-cols-2 gap-2 sm:gap-2.5 sm:grid-cols-3 lg:grid-cols-5">
+        <StatCard title="Vendas Hoje" value={stats.countToday} icon={ShoppingCart} tone="dark" compact />
+        <StatCard title="Faturamento Hoje" value={brl(stats.totalToday)} icon={TrendingUp} tone="gold" compact />
+        <StatCard title="Total de Vendas" value={stats.totalSalesCount} icon={ShoppingBag} tone="info" compact />
+        <StatCard title="Faturamento Total" value={brl(stats.totalRevenue)} icon={DollarSign} tone="success" compact />
+        <div className="col-span-2 sm:col-span-1 lg:col-span-1">
+          <StatCard title="Fiados em Aberto" value={stats.pendingFiado} icon={AlertTriangle} tone="warning" compact />
         </div>
       </div>
 
@@ -464,118 +490,142 @@ function SalesPage() {
               </div>
               
               <div className="space-y-3">
-                {items.map(sale => (
-                  <Card key={sale.id} className="group overflow-hidden rounded-2xl sm:rounded-3xl border-border/40 bg-card hover:bg-muted/10 transition-all shadow-sm hover:shadow-md">
-                    <CardContent className="p-0">
-                      <div className="flex items-center p-3 sm:p-4 gap-3 sm:gap-4">
-                        <div className="size-10 sm:size-12 rounded-xl sm:rounded-2xl bg-muted/50 flex items-center justify-center shrink-0">
-                           <User className="size-5 sm:size-6 text-muted-foreground" />
-                        </div>
-                        
-                        <div className="flex-1 min-w-0">
-                           <div className="flex justify-between items-start gap-2">
-                              <div className="min-w-0">
-                                 <div className="flex items-center gap-1.5 flex-wrap">
-                                   <h4 className="font-bold text-xs sm:text-sm truncate max-w-[140px] sm:max-w-none">{clientById.get(sale.client_id || "")?.name || "Consumidor Final"}</h4>
-                                   <div className="sm:hidden">{getStatusBadge(sale)}</div>
-                                 </div>
-                                 <p className="text-[9px] sm:text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Venda #{sale.id.slice(0,8)}</p>
-                              </div>
-                              <div className="text-right shrink-0">
-                                 <p className="font-black text-base sm:text-lg font-display text-gold">{brl(sale.total_amount)}</p>
-                                 <div className="flex items-center gap-1 justify-end text-[9px] sm:text-[10px] text-muted-foreground font-bold">
-                                    <CreditCard className="size-3" /> {sale.payment_method}
-                                 </div>
-                              </div>
-                           </div>
-                        </div>
+                {items.map(sale => {
+                  const total = Number(sale.total_amount || 0);
+                  let paid = Number(sale.paid_amount || 0);
+                  const isFiado = sale.payment_method === 'Fiado' || !!sale.is_debt;
+                  const isFullyPaid = !isFiado && (["paid", "pago", "completed", "finalizado"].includes(String(sale.status || "").toLowerCase()) || paid >= total);
 
-                        <div className="hidden sm:flex items-center gap-4 px-4 border-l border-border/40">
-                           {getStatusBadge(sale)}
-                        </div>
+                  if (isFullyPaid && paid === 0 && total > 0) {
+                    paid = total;
+                  }
 
-                        <div className="flex items-center gap-1">
-                           <Button 
-                             variant="ghost" 
-                             size="icon" 
-                             className="h-9 w-9 rounded-xl transition-opacity"
-                             onClick={() => {
-                               setSelectedSaleId(sale.id);
-                               setReceiptOpen(true);
-                             }}
-                           >
-                              <Printer className="size-4" />
-                           </Button>
-                           <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                 <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl">
-                                    <MoreVertical className="size-4" />
-                                 </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end" className="rounded-2xl p-2">
-                                 <DropdownMenuItem 
-                                   className="rounded-xl gap-2"
-                                   onClick={() => {
-                                     setSelectedSaleId(sale.id);
-                                     setDetailsOpen(true);
-                                   }}
-                                 >
-                                   <FileText className="size-4" /> Detalhes da Venda
-                                 </DropdownMenuItem>
-                                 <DropdownMenuItem className="rounded-xl gap-2"><FileDown className="size-4" /> Baixar PDF</DropdownMenuItem>
-                                 <DropdownMenuItem 
-                                   className="rounded-xl gap-2"
-                                   onClick={() => {
-                                     setSelectedSaleId(sale.id);
-                                     setReceiptOpen(true);
-                                   }}
-                                 >
-                                   <Printer className="size-4" /> Imprimir Cupom
-                                 </DropdownMenuItem>
-                                 {sale.is_debt && (
+                  const remaining = Math.max(0, total - paid);
+                  const saleCodeDisplay = sale.sale_code || sale.id.slice(0, 8).toUpperCase();
+
+                  return (
+                    <Card key={sale.id} className="group overflow-hidden rounded-2xl sm:rounded-3xl border-border/40 bg-card hover:bg-muted/10 transition-all shadow-sm hover:shadow-md">
+                      <CardContent className="p-0">
+                        <div className="flex items-center p-3 sm:p-4 gap-3 sm:gap-4">
+                          <div className="size-10 sm:size-12 rounded-xl sm:rounded-2xl bg-muted/50 flex items-center justify-center shrink-0">
+                             <User className="size-5 sm:size-6 text-muted-foreground" />
+                          </div>
+                          
+                          <div className="flex-1 min-w-0">
+                             <div className="flex justify-between items-start gap-2">
+                                <div className="min-w-0">
+                                   <div className="flex items-center gap-1.5 flex-wrap">
+                                     <h4 className="font-bold text-xs sm:text-sm truncate max-w-[140px] sm:max-w-none">{clientById.get(sale.client_id || "")?.name || "Consumidor Final"}</h4>
+                                     <div className="sm:hidden">{getStatusBadge(sale)}</div>
+                                   </div>
+                                   <p className="text-[9px] sm:text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Venda #{saleCodeDisplay}</p>
+                                   
+                                   {/* Valor Pago e Restante solicitados pelo usuário */}
+                                   <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[11px] sm:text-xs">
+                                     <span className="text-muted-foreground font-medium">
+                                       Valor Pago: <strong className="text-blue-600 font-bold">{brl(paid)}</strong>
+                                     </span>
+                                     <span className="text-muted-foreground font-medium">
+                                       Restante: <strong className={remaining > 0 ? "text-amber-600 font-bold" : "text-emerald-600 font-bold"}>{brl(remaining)}</strong>
+                                     </span>
+                                   </div>
+                                </div>
+                                <div className="text-right shrink-0">
+                                   <p className="font-black text-base sm:text-lg font-display text-gold">{brl(sale.total_amount)}</p>
+                                   <div className="flex items-center gap-1 justify-end text-[9px] sm:text-[10px] text-muted-foreground font-bold">
+                                      <CreditCard className="size-3" /> {sale.payment_method}
+                                   </div>
+                                </div>
+                             </div>
+                          </div>
+
+                          <div className="hidden sm:flex items-center gap-4 px-4 border-l border-border/40">
+                             {getStatusBadge(sale)}
+                          </div>
+
+                          <div className="flex items-center gap-1">
+                             <Button 
+                               variant="ghost" 
+                               size="icon" 
+                               className="h-9 w-9 rounded-xl transition-opacity"
+                               onClick={() => {
+                                 setSelectedSaleId(sale.id);
+                                 setReceiptOpen(true);
+                               }}
+                             >
+                                <Printer className="size-4" />
+                             </Button>
+                             <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                   <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl">
+                                      <MoreVertical className="size-4" />
+                                   </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="rounded-2xl p-2">
                                    <DropdownMenuItem 
                                      className="rounded-xl gap-2"
                                      onClick={() => {
                                        setSelectedSaleId(sale.id);
-                                       setInstallmentsOpen(true);
+                                       setDetailsOpen(true);
                                      }}
                                    >
-                                      <InstallmentsIcon className="size-4" /> Ver Parcelas
+                                     <FileText className="size-4" /> Detalhes da Venda
                                    </DropdownMenuItem>
-                                 )}
+                                   <DropdownMenuItem className="rounded-xl gap-2"><FileDown className="size-4" /> Baixar PDF</DropdownMenuItem>
+                                   <DropdownMenuItem 
+                                     className="rounded-xl gap-2"
+                                     onClick={() => {
+                                       setSelectedSaleId(sale.id);
+                                       setReceiptOpen(true);
+                                     }}
+                                   >
+                                     <Printer className="size-4" /> Imprimir Cupom
+                                   </DropdownMenuItem>
+                                   {sale.is_debt && (
+                                     <DropdownMenuItem 
+                                       className="rounded-xl gap-2"
+                                       onClick={() => {
+                                         setSelectedSaleId(sale.id);
+                                         setInstallmentsOpen(true);
+                                       }}
+                                     >
+                                        <InstallmentsIcon className="size-4" /> Ver Parcelas
+                                     </DropdownMenuItem>
+                                   )}
 
-                                 <DropdownMenuItem 
-                                    className="rounded-xl gap-2 text-destructive"
-                                    onClick={async () => {
-                                       if (confirm("Deseja realmente estornar esta venda? O estoque será devolvido, o saldo das contas financeiras será ajustado e o cashback liberado será estornado.")) {
-                                          try {
-                                             const { cancelSale } = await import("@/lib/sales.functions");
-                                             await cancelSale({ data: { sale_id: sale.id } });
-                                             toast.success("Venda estornada e dados financeiros sincronizados com sucesso");
-                                             qc.invalidateQueries();
-                                          } catch (err: any) {
-                                             toast.error(err.message);
-                                          }
-                                       }
-                                    }}
-                                 >
-                                    <AlertTriangle className="size-4" /> Estornar Venda
-                                 </DropdownMenuItem>
+                                   <DropdownMenuItem 
+                                      className="rounded-xl gap-2 text-destructive"
+                                      onClick={async () => {
+                                         if (confirm("Deseja realmente estornar esta venda? O estoque será devolvido, o saldo das contas financeiras será ajustado e o cashback liberado será estornado.")) {
+                                            try {
+                                               const { cancelSale } = await import("@/lib/sales.functions");
+                                               await cancelSale({ data: { sale_id: sale.id } });
+                                               toast.success("Venda estornada e dados financeiros sincronizados com sucesso");
+                                               qc.invalidateQueries();
+                                            } catch (err: any) {
+                                               toast.error(err.message);
+                                            }
+                                         }
+                                      }}
+                                   >
+                                      <AlertTriangle className="size-4" /> Estornar Venda
+                                   </DropdownMenuItem>
 
-                              </DropdownMenuContent>
-                           </DropdownMenu>
-                           <ChevronRight 
-                             className="size-5 text-muted-foreground/30 group-hover:text-gold transition-colors ml-1 cursor-pointer" 
-                             onClick={() => {
-                               setSelectedSaleId(sale.id);
-                               setDetailsOpen(true);
-                             }}
-                           />
+                                </DropdownMenuContent>
+                             </DropdownMenu>
+                             <ChevronRight 
+                               className="size-5 text-muted-foreground/30 group-hover:text-gold transition-colors ml-1 cursor-pointer" 
+                               onClick={() => {
+                                 setSelectedSaleId(sale.id);
+                                 setDetailsOpen(true);
+                               }}
+                             />
+                          </div>
                         </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
+                      </CardContent>
+                    </Card>
+                  );
+                })}
               </div>
             </div>
           ))}
