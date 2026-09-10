@@ -397,7 +397,7 @@ function AniversariantesPage() {
                     min={0}
                     max={100}
                     step={1}
-                    onValueChange={(val) => setPosX(val[0])}
+                    onValueChange={(val) => setPosX(val[0] ?? 0)}
                     className="cursor-pointer"
                   />
                 </div>
@@ -416,7 +416,7 @@ function AniversariantesPage() {
                     min={0}
                     max={100}
                     step={1}
-                    onValueChange={(val) => setPosY(val[0])}
+                    onValueChange={(val) => setPosY(val[0] ?? 0)}
                     className="cursor-pointer"
                   />
                 </div>
