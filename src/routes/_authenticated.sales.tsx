@@ -79,31 +79,31 @@ function SalesPage() {
   const applyPreset = (preset: string) => {
     setPeriodPreset(preset);
     const now = new Date();
-    const todayStr = now.toISOString().split("T")[0];
+    const todayStr = now.toISOString().split("T")[0] ?? "";
 
     if (preset === "today") {
       setStartDate(todayStr);
       setEndDate(todayStr);
     } else if (preset === "yesterday") {
       const y = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
-      const yStr = y.toISOString().split("T")[0];
+      const yStr = y.toISOString().split("T")[0] ?? "";
       setStartDate(yStr);
       setEndDate(yStr);
     } else if (preset === "7days") {
       const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6);
-      setStartDate(d.toISOString().split("T")[0]);
+      setStartDate(d.toISOString().split("T")[0] ?? "");
       setEndDate(todayStr);
     } else if (preset === "30days") {
       const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 29);
-      setStartDate(d.toISOString().split("T")[0]);
+      setStartDate(d.toISOString().split("T")[0] ?? "");
       setEndDate(todayStr);
     } else if (preset === "thisMonth") {
-      const start = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split("T")[0];
+      const start = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split("T")[0] ?? "";
       setStartDate(start);
       setEndDate(todayStr);
     } else if (preset === "lastMonth") {
-      const start = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString().split("T")[0];
-      const end = new Date(now.getFullYear(), now.getMonth(), 0).toISOString().split("T")[0];
+      const start = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString().split("T")[0] ?? "";
+      const end = new Date(now.getFullYear(), now.getMonth(), 0).toISOString().split("T")[0] ?? "";
       setStartDate(start);
       setEndDate(end);
     } else if (preset === "all") {

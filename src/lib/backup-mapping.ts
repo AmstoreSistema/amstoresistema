@@ -289,6 +289,9 @@ export const TABLE_ALIASES: Record<string, string> = {
   itenssaidacondicional: "condicional_items",
 
   // Coleções conhecidas que o Amstore não utiliza (ignoradas sem alerta)
+  configuracaomaterial: IGNORED_TABLE,
+  configuracoesmaterial: IGNORED_TABLE,
+  configuracaomateriais: IGNORED_TABLE,
   categoriatransacao: IGNORED_TABLE,
   categoriastransacao: IGNORED_TABLE,
   categoriatransacoes: IGNORED_TABLE,
@@ -409,55 +412,11 @@ export function extractAllCollections(payload: any): Collections {
   }
 
   if (payload?.dados && typeof payload.dados === "object" && !Array.isArray(payload.dados)) {
-    // Descompacta configurações de materiais (Base44) em coleções nativas (categorias, unidades de medida, fornecedores)
-    for (const [rawKey, rawVal] of Object.entries(payload.dados)) {
-      const sKey = slug(rawKey);
-      if (sKey.includes("configuracaomaterial") || sKey.includes("configuracoesmaterial") || sKey.includes("configuracaomateriais")) {
-        if (Array.isArray(rawVal)) {
-          for (const cfg of rawVal) {
-            if (!cfg || typeof cfg !== "object") continue;
-            const tipo = String(cfg.tipo_configuracao || cfg.tipo || "").toLowerCase();
-            const valores = Array.isArray(cfg.valores) ? cfg.valores : [];
-            if (tipo.includes("categoria")) {
-              const cats = valores
-                .map((v: any) => ({ name: typeof v === "object" ? (v.label || v.nome || v.valor || "") : String(v) }))
-                .filter((c: any) => c.name);
-              if (cats.length > 0) {
-                out["material_categories"] = (out["material_categories"] ?? []).concat(cats);
-              }
-            } else if (tipo.includes("unidade") || tipo.includes("medida")) {
-              const uoms = valores
-                .map((v: any) => ({
-                  name: typeof v === "object" ? (v.label || v.nome || v.valor || "") : String(v),
-                  abbreviation: typeof v === "object" ? (v.valor || v.sigla || v.label || "") : String(v),
-                }))
-                .filter((u: any) => u.name);
-              if (uoms.length > 0) {
-                out["units_of_measure"] = (out["units_of_measure"] ?? []).concat(uoms);
-              }
-            } else if (tipo.includes("fornecedor")) {
-              const sups = valores
-                .map((v: any) => ({ name: typeof v === "object" ? (v.label || v.nome || v.valor || "") : String(v) }))
-                .filter((s: any) => s.name);
-              if (sups.length > 0) {
-                out["suppliers"] = (out["suppliers"] ?? []).concat(sups);
-              }
-            }
-          }
-        }
-      }
-    }
-
     // Caso específico do Base44 onde tudo está dentro de "dados"
     for (const [key, value] of Object.entries(payload.dados)) {
-      const sKey = slug(key);
-      if (sKey.includes("configuracaomaterial") || sKey.includes("configuracoesmaterial") || sKey.includes("configuracaomateriais")) {
-        continue; // Já descompactado acima
-      }
       if (Array.isArray(value)) {
         // Mapeia para a chave da tabela se houver alias, senão usa a chave original
-        const target = TABLE_ALIASES[sKey] || key;
-        if (target === IGNORED_TABLE || target.startsWith("__") || sKey === "ignorado") continue;
+        const target = TABLE_ALIASES[slug(key)] || key;
         out[target] = (out[target] ?? []).concat(value.filter((r) => r && typeof r === "object"));
         if (value.length === 0) {
           out[target] = out[target] ?? [];
@@ -572,21 +531,14 @@ export function extractAllCollections(payload: any): Collections {
     
     for (const [key, value] of Object.entries(node)) {
       if (key === "dados" && depth === 0) continue; // Já processado acima se for raiz
-      const sKey = slug(key);
-      if (sKey.includes("configuracaomaterial") || sKey.includes("configuracoesmaterial") || sKey.includes("configuracaomateriais")) {
-        continue;
-      }
       
       if (Array.isArray(value)) {
-        const target = TABLE_ALIASES[sKey] || key;
-        if (target === IGNORED_TABLE || target.startsWith("__") || sKey === "ignorado") continue;
-
         // Inclui mesmo arrays vazios se estivermos no objeto 'dados' ou se for provável coleção
         const looksLikeCollection = value.length === 0 || value.some((r) => r && typeof r === "object" && !Array.isArray(r));
         if (looksLikeCollection) {
-          out[target] = (out[target] ?? []).concat(value.filter((r) => r && typeof r === "object"));
+          out[key] = (out[key] ?? []).concat(value.filter((r) => r && typeof r === "object"));
           if (value.length === 0) {
-            out[target] = out[target] ?? [];
+            out[key] = out[key] ?? [];
           }
         }
       } else if (value && typeof value === "object") {
@@ -606,9 +558,8 @@ export function extractCollections(payload: any): Collections {
   
   // Garantimos que o mapeamento de aliases seja aplicado a todas as chaves extraídas
   for (const [key, rows] of Object.entries(all)) {
-    if (key === IGNORED_TABLE || key.startsWith("__") || key === "ignorado") continue;
     const target = TABLE_ALIASES[slug(key)] || key;
-    if (target === IGNORED_TABLE || target.startsWith("__") || target === "ignorado") continue;
+    if (target === IGNORED_TABLE) continue;
     out[target] = (out[target] ?? []).concat(rows);
   }
   
@@ -620,9 +571,8 @@ export function unrecognizedCollections(payload: any): Record<string, number> {
   const known = new Set(Object.values(TABLE_ALIASES));
   const out: Record<string, number> = {};
   for (const [key, rows] of Object.entries(extractAllCollections(payload))) {
-    if (key === IGNORED_TABLE || key.startsWith("__") || key === "ignorado") continue;
     const target = TABLE_ALIASES[slug(key)];
-    if (target === IGNORED_TABLE || target?.startsWith("__") || target === "ignorado") continue;
+    if (target === IGNORED_TABLE) continue;
     if (!target && !known.has(key)) out[key] = rows.length;
   }
 
@@ -651,9 +601,7 @@ const MAPPERS: Record<string, Mapper> = {
         // Tenta formato DD/MM/YYYY
         const parts = String(rawBirth).split(/[\/\-\.]/);
         if (parts.length === 3) {
-          const a = Number(parts[0]);
-          const b = Number(parts[1]);
-          const c2 = Number(parts[2]);
+          const [a = NaN, b = NaN, c2 = NaN] = parts.map(Number);
           // DD/MM/YYYY
           if (a <= 31 && b <= 12 && c2 >= 1900) {
             birth_date = `${c2}-${String(b).padStart(2, '0')}-${String(a).padStart(2, '0')}`;
@@ -709,23 +657,43 @@ const MAPPERS: Record<string, Mapper> = {
   suppliers: (s) => {
     const name = str(pick(s, ["name", "nome", "fornecedor", "razaosocial", "empresa"]));
     if (!name) return null;
+    const rawType = String(str(pick(s, ["type", "tipo", "tipo_pessoa", "pessoa"])) ?? "")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase();
+    const doc = str(pick(s, ["document", "cnpj", "cpf", "cpf_cnpj", "documento", "doc"])) ?? null;
+    const onlyDigits = (doc ?? "").replace(/\D/g, "");
+    const type =
+      rawType.includes("jurid") || rawType === "pj" || rawType.includes("cnpj")
+        ? "Pessoa Jurídica"
+        : rawType.includes("fisic") || rawType === "pf" || rawType.includes("cpf")
+          ? "Pessoa Física"
+          : onlyDigits.length === 11
+            ? "Pessoa Física"
+            : onlyDigits.length === 14
+              ? "Pessoa Jurídica"
+              : null;
     return {
       name,
       contact: str(pick(s, ["contact", "contato", "responsavel", "atendente"])) ?? null,
       phone: str(pick(s, ["phone", "telefone", "celular", "whatsapp", "fone"])) ?? null,
+      phone_secondary: str(pick(s, ["phone_secondary", "telefone_secundario", "telefone2"])) ?? null,
       email: str(pick(s, ["email", "mail"])) ?? null,
-      document: str(pick(s, ["document", "cnpj", "cpf", "documento", "doc"])) ?? null,
-      category: str(pick(s, ["category", "categoria", "tipo", "ramo"])) ?? null,
-      type: str(pick(s, ["type", "tipo"])) ?? null,
+      document: doc,
+      category: str(pick(s, ["category", "categoria", "ramo"])) ?? null,
+      type,
       city: str(pick(s, ["city", "cidade"])) ?? null,
       state: str(pick(s, ["state", "estado", "uf"])) ?? null,
       address: str(pick(s, ["address", "endereco"])) ?? null,
       zip_code: str(pick(s, ["zip_code", "cep"])) ?? null,
+      payment_method: str(pick(s, ["payment_method", "forma_pagamento_preferencial", "forma_pagamento"])) ?? null,
+      delivery_time: num(pick(s, ["delivery_time", "prazo_entrega_medio", "prazo_entrega"])) || null,
       notes: str(pick(s, ["notes", "observacoes", "obs"])) ?? null,
       active: pick(s, ["active", "ativo"]) === false ? false : true,
       created_at: date(pick(s, ["created_at", "criadoem", "data", "date"])),
     };
   },
+
   materials: (m) => {
     const name = str(pick(m, ["name", "nome", "material", "descricao", "insumo"]));
     if (!name) return null;
