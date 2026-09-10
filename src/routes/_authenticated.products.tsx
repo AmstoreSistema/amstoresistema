@@ -45,6 +45,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { logAudit, useDeleteRow, useRows } from "@/lib/data";
 import { brl, num } from "@/lib/format";
 import { PaginationBar } from "@/components/ui/pagination-bar";
+import { deleteProductsSafe } from "@/lib/products.functions";
 
 export const Route = createFileRoute("/_authenticated/products")({
   head: () => ({
@@ -266,6 +267,23 @@ function ProductsPage() {
   const wholesalePrice = totalCost * (1 + wholesaleMargin / 100);
   const retailProfit = retailPrice - totalCost;
   const wholesaleProfit = wholesalePrice - totalCost;
+
+  const handleDeleteProduct = async (product: any) => {
+    if (!confirm(`Deseja realmente excluir o produto "${product.name}"? Esta ação removerá o produto e o estoque com segurança.`)) {
+      return;
+    }
+    try {
+      await deleteProductsSafe({ data: { productIds: [product.id] } });
+      toast.success(`Produto "${product.name}" excluído com sucesso!`);
+      qc.invalidateQueries({ queryKey: ["products"] });
+      qc.invalidateQueries({ queryKey: ["stock-products"] });
+      qc.invalidateQueries({ queryKey: ["stock-stats"] });
+      qc.invalidateQueries({ queryKey: ["stock_products"] });
+    } catch (err: any) {
+      console.error("Erro ao excluir produto:", err);
+      toast.error(err.message || "Erro ao excluir produto");
+    }
+  };
 
   const openNew = () => {
     setEditing(null);
@@ -538,7 +556,7 @@ function ProductsPage() {
                         <Pencil className="size-4" />
                       </Button>
                     </div>
-                    <Button variant="ghost" size="icon" className="h-9 w-9 text-destructive" onClick={() => remove.mutate(p.id)}>
+                    <Button variant="ghost" size="icon" className="h-9 w-9 text-destructive" onClick={() => handleDeleteProduct(p)}>
                       <Trash2 className="size-4" />
                     </Button>
                   </div>

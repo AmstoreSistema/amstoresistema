@@ -22,12 +22,26 @@ import {
   Check,
   X,
   ArrowUpDown,
-  Truck
+  Truck,
+  CheckSquare,
+  Loader2,
 } from "lucide-react";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { PaginationBar } from "@/components/ui/pagination-bar";
 import { toast } from "sonner";
+import { Checkbox } from "@/components/ui/checkbox";
+import { deleteProductsSafe } from "@/lib/products.functions";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
   Tooltip,
   TooltipContent,
@@ -277,7 +291,37 @@ function StockPage() {
   const [adjustQuantities, setAdjustQuantities] = useState<Record<string, number>>({});
   const [addDirectOpen, setAddDirectOpen] = useState(false);
 
+  // Estados para seleção múltipla e exclusão em lote / segura
+  const [selectedProductIds, setSelectedProductIds] = useState<string[]>([]);
+  const [isSelectMode, setIsSelectMode] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<{ ids: string[]; name?: string } | null>(null);
+
   const filtered = products;
+
+  const toggleSelectProduct = (productId: string) => {
+    setSelectedProductIds((prev) =>
+      prev.includes(productId) ? prev.filter((id) => id !== productId) : [...prev, productId]
+    );
+  };
+
+  const isAllCurrentPageSelected =
+    filtered.length > 0 && filtered.every((p) => selectedProductIds.includes(p.id));
+
+  const toggleSelectAllPage = () => {
+    if (isAllCurrentPageSelected) {
+      const currentPageIds = new Set(filtered.map((p) => p.id));
+      setSelectedProductIds((prev) => prev.filter((id) => !currentPageIds.has(id)));
+    } else {
+      const newIds = new Set([...selectedProductIds, ...filtered.map((p) => p.id)]);
+      setSelectedProductIds(Array.from(newIds));
+    }
+  };
+
+  const clearSelection = () => {
+    setSelectedProductIds([]);
+    setIsSelectMode(false);
+  };
 
   // Consulta consolidada para os 5 StatCards de topo (mantém totais globais) e categorias do banco
   const { data: statsData } = useQuery({
@@ -417,25 +461,52 @@ function StockPage() {
     }
   };
 
-  const handleDeleteItem = async (productId: string) => {
-    if (!confirm("Deseja realmente excluir este item do estoque? Esta ação é irreversível.")) return;
+  const handleDeleteItem = (product: Product) => {
+    setDeleteTarget({
+      ids: [product.id],
+      name: product.name,
+    });
+  };
+
+  const handleBulkDelete = () => {
+    if (selectedProductIds.length === 0) {
+      toast.info("Nenhum produto selecionado para exclusão.");
+      return;
+    }
+    setDeleteTarget({
+      ids: selectedProductIds,
+    });
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteTarget || deleteTarget.ids.length === 0) return;
+    setIsDeleting(true);
 
     try {
-      const stockRecord = stockRecords.find(s => s.produto_id === productId);
+      await deleteProductsSafe({ data: { productIds: deleteTarget.ids } });
       
-      // Delete from stock_products first (foreign key)
-      if (stockRecord) {
-        await removeStock.mutateAsync(stockRecord.id);
-      }
-      
-      // Delete from products
-      await remove.mutateAsync(productId);
-      
-      toast.success("Item removido do estoque");
-      qc.invalidateQueries();
-    } catch (error) {
-      console.error(error);
-      toast.error("Erro ao remover item");
+      const count = deleteTarget.ids.length;
+      toast.success(
+        count === 1
+          ? `Produto "${deleteTarget.name || "selecionado"}" excluído com sucesso!`
+          : `${count} produtos excluídos com sucesso do estoque!`
+      );
+
+      // Remove os IDs deletados da seleção
+      const deletedSet = new Set(deleteTarget.ids);
+      setSelectedProductIds((prev) => prev.filter((id) => !deletedSet.has(id)));
+      setDeleteTarget(null);
+
+      // Invalida as queries para atualizar listagem, métricas e totais
+      qc.invalidateQueries({ queryKey: ["stock-products"] });
+      qc.invalidateQueries({ queryKey: ["stock-stats"] });
+      qc.invalidateQueries({ queryKey: ["products"] });
+      qc.invalidateQueries({ queryKey: ["stock_products"] });
+    } catch (error: any) {
+      console.error("Erro ao excluir produto(s):", error);
+      toast.error(error?.message || "Erro ao excluir produtos do estoque.");
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -740,6 +811,31 @@ function StockPage() {
               </>
             )}
           </Button>
+
+          {/* Botão Seleção Múltipla */}
+          <Button
+            variant={isSelectMode || selectedProductIds.length > 0 ? "default" : "outline"}
+            onClick={() => {
+              if (isSelectMode && selectedProductIds.length === 0) {
+                setIsSelectMode(false);
+              } else {
+                setIsSelectMode(true);
+              }
+            }}
+            className={`h-11 rounded-xl gap-2 font-bold px-4 text-xs shrink-0 transition-all ${
+              isSelectMode || selectedProductIds.length > 0
+                ? "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 border-none shadow-sm"
+                : "border-border/60 text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <CheckSquare className="size-4" />
+            {isSelectMode ? "Modo Seleção Ativo" : "Selecionar Vários"}
+            {selectedProductIds.length > 0 && (
+              <Badge variant="secondary" className="ml-1 px-1.5 py-0 text-[10px] font-black h-4 bg-primary text-primary-foreground">
+                {selectedProductIds.length}
+              </Badge>
+            )}
+          </Button>
         </div>
 
         {/* Chips de filtros ativos */}
@@ -802,6 +898,62 @@ function StockPage() {
         )}
       </div>
 
+      {/* Barra de Ações em Massa (Exclusão Múltipla) */}
+      {selectedProductIds.length > 0 && (
+        <div className="sticky top-4 z-30 flex flex-wrap items-center justify-between gap-3 p-4 bg-card/95 backdrop-blur-md border-2 border-primary/40 rounded-2xl shadow-2xl animate-in slide-in-from-top-3 duration-300">
+          <div className="flex items-center gap-3">
+            <div className="flex items-center justify-center size-9 rounded-xl bg-primary text-primary-foreground font-black text-xs shadow-md">
+              {selectedProductIds.length}
+            </div>
+            <div>
+              <p className="text-sm font-black leading-tight flex items-center gap-2">
+                <span>
+                  {selectedProductIds.length === 1
+                    ? "1 produto selecionado"
+                    : `${selectedProductIds.length} produtos selecionados`}
+                </span>
+              </p>
+              <p className="text-xs text-muted-foreground font-medium">
+                Selecione mais itens na listagem ou execute a exclusão em massa abaixo
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 flex-wrap">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={toggleSelectAllPage}
+              className="h-9 rounded-xl text-xs font-semibold gap-1.5"
+            >
+              <Check className="size-3.5" />
+              {isAllCurrentPageSelected ? "Desmarcar Página" : "Marcar Toda Página"}
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={clearSelection}
+              className="h-9 rounded-xl text-xs text-muted-foreground hover:text-foreground"
+            >
+              <X className="size-3.5 mr-1" />
+              Limpar Seleção
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              size="sm"
+              onClick={handleBulkDelete}
+              className="h-9 rounded-xl text-xs font-bold gap-1.5 shadow-lg shadow-destructive/25 px-4"
+            >
+              <Trash2 className="size-4" />
+              Excluir Selecionados ({selectedProductIds.length})
+            </Button>
+          </div>
+        </div>
+      )}
+
       {isLoading ? (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {[1, 2, 3, 4].map(i => <div key={i} className="h-72 animate-pulse rounded-[2rem] bg-card" />)}
@@ -814,9 +966,35 @@ function StockPage() {
             const allSizes = Object.entries(numeracoes as Record<string, number>)
               .map(([size, qty]) => ({ size, qty: Number(qty) }));
             const availableSizes = allSizes.filter(s => s.qty > 0).map(s => s.size);
+            const isSelected = selectedProductIds.includes(p.id);
 
             return (
-              <Card key={p.id} className="group overflow-hidden rounded-[2rem] border-border/30 bg-card transition-all hover:shadow-xl shadow-elegant flex flex-col">
+              <Card 
+                key={p.id} 
+                className={`group overflow-hidden rounded-[2rem] bg-card transition-all hover:shadow-xl shadow-elegant flex flex-col relative ${
+                  isSelected
+                    ? "ring-2 ring-primary border-primary bg-primary/[0.02]"
+                    : "border-border/30"
+                }`}
+              >
+                {/* Checkbox de Seleção Múltipla */}
+                <div
+                  className={`absolute top-3 left-3 z-20 transition-all duration-200 ${
+                    isSelectMode || isSelected
+                      ? "opacity-100 scale-100"
+                      : "opacity-0 scale-95 group-hover:opacity-100 group-hover:scale-100"
+                  }`}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <label className="flex items-center justify-center p-1.5 rounded-xl bg-background/95 backdrop-blur-md shadow-lg border border-border/80 cursor-pointer hover:bg-background transition-colors">
+                    <Checkbox
+                      checked={isSelected}
+                      onCheckedChange={() => toggleSelectProduct(p.id)}
+                      className="size-4 rounded-md data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+                    />
+                  </label>
+                </div>
+
                 <div className="relative aspect-video bg-muted/20 shrink-0">
                   {p.image_url ? (
                     <img src={p.image_url} alt={p.name} className="h-full w-full object-cover" />
@@ -944,7 +1122,7 @@ function StockPage() {
                     <Button 
                       variant="ghost" 
                       className="text-[10px] text-destructive hover:text-destructive hover:bg-destructive/5 font-bold h-7 gap-1"
-                      onClick={() => handleDeleteItem(p.id)}
+                      onClick={() => handleDeleteItem(p)}
                     >
                       <Trash2 className="size-3" /> Excluir Item do Estoque
                     </Button>
@@ -1052,6 +1230,72 @@ function StockPage() {
           </div>
         </DialogContent>
       </Dialog>
+      {/* Diálogo de Confirmação de Exclusão (Unitária ou em Lote) */}
+      <AlertDialog
+        open={!!deleteTarget}
+        onOpenChange={(open) => {
+          if (!open && !isDeleting) setDeleteTarget(null);
+        }}
+      >
+        <AlertDialogContent className="rounded-2xl max-w-md">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-destructive font-display font-black text-lg">
+              <Trash2 className="size-5" />
+              {deleteTarget?.ids.length === 1
+                ? "Excluir item do estoque?"
+                : `Excluir ${deleteTarget?.ids.length} itens do estoque?`}
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-3 text-xs sm:text-sm text-foreground/80 pt-2">
+              <p>
+                {deleteTarget?.ids.length === 1 ? (
+                  <>
+                    Você está prestes a excluir o produto{" "}
+                    <strong className="text-foreground font-bold">"{deleteTarget.name}"</strong> do catálogo e do estoque.
+                  </>
+                ) : (
+                  <>
+                    Você está prestes a excluir{" "}
+                    <strong className="text-foreground font-bold">
+                      {deleteTarget?.ids.length} produtos selecionados
+                    </strong>{" "}
+                    do estoque de uma só vez.
+                  </>
+                )}
+              </p>
+              <div className="p-3 bg-muted/50 rounded-xl border border-border/50 text-[11px] leading-relaxed text-muted-foreground">
+                <span className="font-bold text-foreground block mb-0.5">Segurança dos dados:</span>
+                Esta exclusão remove o produto e sua ficha técnica, mas preserva 100% o histórico de vendas realizadas, relatórios financeiros e dados de clientes com segurança (sem violação de chave estrangeira).
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="mt-4 gap-2">
+            <AlertDialogCancel disabled={isDeleting} className="rounded-xl font-bold">
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                confirmDelete();
+              }}
+              disabled={isDeleting}
+              className="rounded-xl bg-destructive text-destructive-foreground hover:bg-destructive/90 font-bold gap-2 shadow-lg shadow-destructive/20"
+            >
+              {isDeleting ? (
+                <>
+                  <Loader2 className="size-4 animate-spin" />
+                  Excluindo...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="size-4" />
+                  Sim, Excluir {deleteTarget?.ids.length && deleteTarget.ids.length > 1 ? `(${deleteTarget.ids.length})` : ""}
+                </>
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <AddProductDirectModal open={addDirectOpen} onOpenChange={setAddDirectOpen} />
     </div>
   );
