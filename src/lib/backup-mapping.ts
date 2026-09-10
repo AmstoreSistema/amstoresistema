@@ -657,23 +657,43 @@ const MAPPERS: Record<string, Mapper> = {
   suppliers: (s) => {
     const name = str(pick(s, ["name", "nome", "fornecedor", "razaosocial", "empresa"]));
     if (!name) return null;
+    const rawType = String(str(pick(s, ["type", "tipo", "tipo_pessoa", "pessoa"])) ?? "")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase();
+    const doc = str(pick(s, ["document", "cnpj", "cpf", "cpf_cnpj", "documento", "doc"])) ?? null;
+    const onlyDigits = (doc ?? "").replace(/\D/g, "");
+    const type =
+      rawType.includes("jurid") || rawType === "pj" || rawType.includes("cnpj")
+        ? "Pessoa Jurídica"
+        : rawType.includes("fisic") || rawType === "pf" || rawType.includes("cpf")
+          ? "Pessoa Física"
+          : onlyDigits.length === 11
+            ? "Pessoa Física"
+            : onlyDigits.length === 14
+              ? "Pessoa Jurídica"
+              : null;
     return {
       name,
       contact: str(pick(s, ["contact", "contato", "responsavel", "atendente"])) ?? null,
       phone: str(pick(s, ["phone", "telefone", "celular", "whatsapp", "fone"])) ?? null,
+      phone_secondary: str(pick(s, ["phone_secondary", "telefone_secundario", "telefone2"])) ?? null,
       email: str(pick(s, ["email", "mail"])) ?? null,
-      document: str(pick(s, ["document", "cnpj", "cpf", "documento", "doc"])) ?? null,
-      category: str(pick(s, ["category", "categoria", "tipo", "ramo"])) ?? null,
-      type: str(pick(s, ["type", "tipo"])) ?? null,
+      document: doc,
+      category: str(pick(s, ["category", "categoria", "ramo"])) ?? null,
+      type,
       city: str(pick(s, ["city", "cidade"])) ?? null,
       state: str(pick(s, ["state", "estado", "uf"])) ?? null,
       address: str(pick(s, ["address", "endereco"])) ?? null,
       zip_code: str(pick(s, ["zip_code", "cep"])) ?? null,
+      payment_method: str(pick(s, ["payment_method", "forma_pagamento_preferencial", "forma_pagamento"])) ?? null,
+      delivery_time: num(pick(s, ["delivery_time", "prazo_entrega_medio", "prazo_entrega"])) || null,
       notes: str(pick(s, ["notes", "observacoes", "obs"])) ?? null,
       active: pick(s, ["active", "ativo"]) === false ? false : true,
       created_at: date(pick(s, ["created_at", "criadoem", "data", "date"])),
     };
   },
+
   materials: (m) => {
     const name = str(pick(m, ["name", "nome", "material", "descricao", "insumo"]));
     if (!name) return null;
