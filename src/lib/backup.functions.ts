@@ -309,7 +309,11 @@ export const importSystemData = createServerFn({ method: "POST" })
     }
 
 
+    // Cashback usado nas vendas, aplicado após a importação
+    const pendingCashbackUsed: { id: string | null; sale_code: string | null; amount: number }[] = [];
+
     for (const table of orderedTables) {
+
       const rawRows = dataToImport[table];
       if (!Array.isArray(rawRows)) continue;
 
@@ -620,8 +624,20 @@ export const importSystemData = createServerFn({ method: "POST" })
       results[table] = res;
     }
 
+    // Aplica o cashback usado nas vendas restauradas (update não dispara a validação de saldo)
+    for (const entry of pendingCashbackUsed) {
+      try {
+        const query = supabaseAdmin.from("sales" as any).update({ cashback_used: entry.amount });
+        if (entry.id) await query.eq("id", entry.id);
+        else if (entry.sale_code) await query.eq("sale_code", entry.sale_code);
+      } catch (err: any) {
+        console.warn("[Import] cashback_used não aplicado:", err?.message);
+      }
+    }
+
     // Conciliação de parcelas com pagamentos da mesma venda:
     // Sincroniza forma de pagamento e data para parcelas quitadas
+
     if (results["sale_installments"] || results["sale_payments"]) {
       try {
         const { data: allSalesWithInst } = await supabaseAdmin
