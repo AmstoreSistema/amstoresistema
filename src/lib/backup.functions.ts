@@ -322,6 +322,53 @@ export const importSystemData = createServerFn({ method: "POST" })
       rows = await resolveRefs(table, rows);
       rows = await enrichCashbackNomes(table, rows);
 
+      // Normaliza o status das parcelas para os valores aceitos pelo banco
+      if (table === "sale_installments") {
+        const ALLOWED_INST_STATUS = new Set([
+          "pending", "paid", "overdue", "cancelled",
+          "pendente", "pago", "aberto", "vencido", "parcial", "partial",
+        ]);
+        const STATUS_ALIAS: Record<string, string> = {
+          quitado: "pago", quitada: "pago", pagas: "pago", paga: "pago", liquidado: "pago",
+          atrasado: "vencido", atrasada: "vencido", vencida: "vencido", em_atraso: "vencido",
+          cancelado: "cancelled", cancelada: "cancelled",
+          em_aberto: "aberto", aberta: "aberto",
+          parcialmente_pago: "parcial", parcialmente_paga: "parcial", parcialmente: "parcial",
+        };
+        for (const row of rows) {
+          const raw = String(row["status"] ?? "")
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .trim()
+            .toLowerCase()
+            .replace(/\s+/g, "_");
+          const mapped = STATUS_ALIAS[raw] ?? raw;
+          row["status"] = ALLOWED_INST_STATUS.has(mapped)
+            ? mapped
+            : Number(row["paid_amount"] ?? 0) > 0 &&
+              Number(row["paid_amount"] ?? 0) >= Number(row["amount"] ?? 0)
+              ? "pago"
+              : "pendente";
+        }
+      }
+
+      // Vendas: o cashback usado é aplicado depois da importação, para não
+      // disparar a validação de saldo (que ainda não existe durante a restauração)
+      if (table === "sales") {
+        for (const row of rows) {
+          const used = Number(row["cashback_used"] ?? 0);
+          if (used > 0) {
+            pendingCashbackUsed.push({
+              id: row["id"] ? String(row["id"]) : null,
+              sale_code: row["sale_code"] ? String(row["sale_code"]) : null,
+              amount: used,
+            });
+            row["cashback_used"] = 0;
+          }
+        }
+      }
+
+
       if (rows.length === 0) {
         results[table] = res;
         continue;
