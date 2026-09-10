@@ -202,6 +202,20 @@ export function ReceiptModal({
   const storeInstagram = getSetting("store_instagram");
   const storeLogo = getSetting("store_logo");
 
+  const rawAddress = getSetting("store_address") || "Rua Medeiros Neto, 12-A - Centro";
+  const storeCity = getSetting("store_city") || "Jequié - BA";
+  const storePhone = getSetting("store_phone") || "73999269136";
+
+  // Garante que cidade e estado nunca fiquem concatenados na linha do endereço
+  // Cidade e estado aparecem apenas embaixo de "Rua Medeiros Neto, 12-A - Centro"
+  const storeAddress = (rawAddress || "")
+    .replace(/\s*-\s*Jequi[eé]\s*-\s*Ba(hia)?/gi, "")
+    .replace(/\s*-\s*Jequi[eé]\s*-\s*BA/gi, "")
+    .replace(/\s*-\s*Jequi[eé]/gi, "")
+    .replace(/\s*-\s*Ba(hia)?/gi, "")
+    .replace(/\s*-\s*$/g, "")
+    .trim() || "Rua Medeiros Neto, 12-A - Centro";
+
   const [printingThermal, setPrintingThermal] = React.useState(false);
 
   // Converte imagem em mapa de bits 1-bit raster ESC/POS centralizado para 80mm (576 pontos)
@@ -355,9 +369,9 @@ export function ReceiptModal({
       bytes.push(0x1D, 0x21, 0x00, 0x1B, 0x45, 0x00);
     }
 
-    appendText(getSetting("store_address") || "Rua Medeiros Neto, 12-A - Centro");
-    appendText(getSetting("store_city") || "Jequie - BA");
-    appendText(`Telefone: ${getSetting("store_phone") || "73999269136"}`);
+    appendText(storeAddress);
+    appendText(storeCity);
+    appendText(`Telefone: ${storePhone}`);
 
     // Alinhamento à esquerda
     bytes.push(0x1B, 0x61, 0x00);
@@ -597,9 +611,9 @@ export function ReceiptModal({
                 </h2>
               )}
               <div className="text-xs space-y-0.5 font-bold">
-                <p>Rua Medeiros Neto, 12-A - Centro</p>
-                <p>Jequié - Ba</p>
-                <p>Telefone: {getSetting("store_phone") || "73999269136"}</p>
+                <p>{storeAddress}</p>
+                <p>{storeCity}</p>
+                <p>Telefone: {storePhone}</p>
               </div>
               
               <div className="border-t-2 border-black my-2" />

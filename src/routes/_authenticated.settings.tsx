@@ -277,6 +277,15 @@ function SettingsPage() {
         } catch {
           initialLocal[s.key] = s.value;
         }
+        if (s.key === "store_address" && typeof initialLocal[s.key] === "string") {
+          initialLocal[s.key] = initialLocal[s.key]
+            .replace(/\s*-\s*Jequi[eé]\s*-\s*Ba(hia)?/gi, "")
+            .replace(/\s*-\s*Jequi[eé]\s*-\s*BA/gi, "")
+            .replace(/\s*-\s*Jequi[eé]/gi, "")
+            .replace(/\s*-\s*Ba(hia)?/gi, "")
+            .replace(/\s*-\s*$/g, "")
+            .trim();
+        }
       });
       setLocalSettings(initialLocal);
     } catch (error) {
@@ -969,7 +978,13 @@ function SettingsPage() {
                       )}
 
                       <div className="text-[10px] space-y-0.5 text-gray-800">
-                        <p>{getSettingValue("store_address", "Rua Medeiros Neto, 12-A - Centro")}</p>
+                        <p>{(getSettingValue("store_address", "Rua Medeiros Neto, 12-A - Centro") || "")
+                          .replace(/\s*-\s*Jequi[eé]\s*-\s*Ba(hia)?/gi, "")
+                          .replace(/\s*-\s*Jequi[eé]\s*-\s*BA/gi, "")
+                          .replace(/\s*-\s*Jequi[eé]/gi, "")
+                          .replace(/\s*-\s*Ba(hia)?/gi, "")
+                          .replace(/\s*-\s*$/g, "")
+                          .trim() || "Rua Medeiros Neto, 12-A - Centro"}</p>
                         <p>{getSettingValue("store_city", "Jequié - BA")}</p>
                         <p>Telefone: {getSettingValue("store_phone", "73999269136")}</p>
                       </div>
