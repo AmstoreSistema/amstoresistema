@@ -669,23 +669,52 @@ function StoreReportsPage() {
     toast.success("Relatório exportado.");
   };
 
+  const filterDetails = useMemo(() => {
+    if (current.noFilter) return "Listagem Geral Cadastral";
+    const parts: string[] = [];
+    if (current.grouping) {
+      const groupMap: Record<string, string> = {
+        daily: "Agrupamento: Diário",
+        weekly: "Agrupamento: Semanal",
+        monthly: "Agrupamento: Mensal",
+        yearly: "Agrupamento: Anual",
+      };
+      parts.push(groupMap[grouping] || `Agrupamento: ${grouping}`);
+    }
+    parts.push(`${result.rows.length} registros`);
+    return parts.join(" • ");
+  }, [current.noFilter, current.grouping, grouping, result.rows.length]);
+
   return (
-    <div className="space-y-6 pb-12">
-      <div>
-        <h1 className="font-display text-3xl font-black tracking-tight">Relatórios</h1>
-        <p className="text-sm text-muted-foreground">
-          Gere relatórios detalhados de vendas e finanças
-        </p>
+    <div className="space-y-6 p-4 sm:p-6 pb-12">
+      {/* Top Header */}
+      <div className="flex flex-wrap items-center justify-between gap-4 print:hidden">
+        <div className="flex items-center gap-3">
+          <div className="flex size-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+            <FileBarChart className="size-6" />
+          </div>
+          <div>
+            <h1 className="font-display text-2xl font-black tracking-tight">
+              Relatórios da Loja
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              Relatórios detalhados de vendas, clientes, caixa e estoque da loja.
+            </p>
+          </div>
+        </div>
       </div>
 
-      <Card className="rounded-3xl border-border/50">
-        <CardContent className="space-y-6 p-6">
-          <div className="space-y-3">
-            <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-              Selecione o tipo de relatório
-            </p>
-            <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 lg:grid-cols-6">
-              {REPORTS.map((r) => (
+      {/* Tipo de Relatório */}
+      <Card className="rounded-3xl border-border/50 print:hidden">
+        <CardContent className="space-y-4 p-5">
+          <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+            Selecione o Relatório
+          </p>
+          <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+            {REPORTS.map((r) => {
+              const Icon = r.icon;
+              const is = selected === r.id;
+              return (
                 <button
                   key={r.id}
                   onClick={() => {
@@ -693,65 +722,81 @@ function StoreReportsPage() {
                     setGenerated(null);
                   }}
                   className={cn(
-                    "flex h-24 flex-col items-center justify-center gap-2 rounded-2xl border p-3 text-center transition-all",
-                    selected === r.id
-                      ? "border-primary bg-primary/10 text-primary shadow-sm"
-                      : "border-border/50 bg-muted/20 hover:border-primary/40",
+                    "flex flex-col items-center justify-center gap-2 rounded-2xl border p-3.5 text-center transition-all",
+                    is
+                      ? "border-primary bg-primary text-primary-foreground shadow-md"
+                      : "border-border/40 bg-muted/20 hover:border-primary/40 hover:bg-muted/40",
                   )}
                 >
-                  <r.icon className="size-5" />
-                  <span className="text-[10px] font-bold uppercase leading-tight">
+                  <Icon className={cn("size-5", is ? "text-primary-foreground" : "text-muted-foreground")} />
+                  <span className="text-[11px] font-bold leading-tight line-clamp-2">
                     {r.label}
                   </span>
                 </button>
-              ))}
-            </div>
+              );
+            })}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Filtros */}
+      <Card className="rounded-3xl border-border/50 print:hidden">
+        <CardContent className="space-y-5 p-5">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+              {current.noFilter ? "Relatório Sem Filtro de Data" : "Filtro de Período"}
+            </p>
+            {!current.noFilter && (
+              <div className="flex flex-wrap gap-1.5">
+                {QUICK_PERIODS.map((p) => (
+                  <Button
+                    key={p.label}
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setRange(p.fn())}
+                    className="h-7 rounded-lg text-[11px] font-bold"
+                  >
+                    {p.label}
+                  </Button>
+                ))}
+              </div>
+            )}
           </div>
 
           {!current.noFilter && (
-            <>
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-2">
-                  <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                    Data início
-                  </p>
-                  <Input
-                    type="date"
-                    value={range.start}
-                    onChange={(e) => setRange({ ...range, start: e.target.value })}
-                    className="h-12 rounded-xl font-semibold"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                    Data fim
-                  </p>
-                  <Input
-                    type="date"
-                    value={range.end}
-                    onChange={(e) => setRange({ ...range, end: e.target.value })}
-                    className="h-12 rounded-xl font-semibold"
-                  />
-                </div>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div className="space-y-1">
+                <label className="text-[11px] font-bold uppercase text-muted-foreground">
+                  Data Inicial
+                </label>
+                <Input
+                  type="date"
+                  value={range.start}
+                  onChange={(e) => setRange((r) => ({ ...r, start: e.target.value }))}
+                  className="h-11 rounded-xl"
+                />
               </div>
-
-              <Button
-                variant="outline"
-                onClick={() => setRange({ start: "", end: "" })}
-                className="h-10 w-full rounded-xl text-xs font-bold uppercase"
-              >
-                Limpar datas
-              </Button>
-            </>
+              <div className="space-y-1">
+                <label className="text-[11px] font-bold uppercase text-muted-foreground">
+                  Data Final
+                </label>
+                <Input
+                  type="date"
+                  value={range.end}
+                  onChange={(e) => setRange((r) => ({ ...r, end: e.target.value }))}
+                  className="h-11 rounded-xl"
+                />
+              </div>
+            </div>
           )}
 
           {current.grouping && (
-            <div className="space-y-2 rounded-2xl bg-muted/30 p-4">
-              <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+            <div className="space-y-1">
+              <label className="text-[11px] font-bold uppercase text-muted-foreground">
                 Agrupamento
-              </p>
-              <Select value={grouping} onValueChange={setGrouping}>
-                <SelectTrigger className="h-12 rounded-xl bg-background font-semibold">
+              </label>
+              <Select value={grouping} onValueChange={(v: any) => setGrouping(v)}>
+                <SelectTrigger className="h-11 rounded-xl">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -769,57 +814,55 @@ function StoreReportsPage() {
               setGenerated(selected);
               toast.success(`Relatório "${current.label}" gerado.`);
             }}
-            disabled={isLoading}
-            className="h-12 w-full gap-2 rounded-xl font-black uppercase"
+            className="w-full gap-2 rounded-xl font-bold"
           >
-            <FileBarChart className="size-5" /> Gerar relatório
+            <FileBarChart className="size-4" /> Gerar Relatório
           </Button>
         </CardContent>
       </Card>
 
+      {/* Relatório Renderizado */}
       {generated && (
-        <Card className="rounded-3xl border-border/50">
-          <CardContent className="p-0">
-            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/40 p-5 print:hidden">
-              <div className="flex items-center gap-3">
-                <h2 className="font-display text-lg font-black">{current.label}</h2>
-                <Badge variant="outline" className="font-bold">
-                  {result.rows.length} registros
-                </Badge>
-              </div>
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleExport}
-                  className="gap-2 rounded-xl font-bold"
-                >
-                  <FileDown className="size-4" /> CSV
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => window.print()}
-                  className="gap-2 rounded-xl font-bold"
-                >
-                  <Printer className="size-4" /> Imprimir
-                </Button>
-              </div>
+        <div className="space-y-4 animate-in slide-in-from-bottom-4 duration-500">
+          <div className="flex flex-wrap items-center justify-between gap-3 px-2 print:hidden">
+            <div className="flex items-center gap-3">
+              <h2 className="font-display text-lg font-black text-slate-800">Visualização do Relatório</h2>
+              <Badge variant="outline" className="font-bold border-slate-300">
+                {result.rows.length} registros
+              </Badge>
             </div>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleExport}
+                className="gap-2 rounded-xl font-bold border-border/60 hover:bg-muted/50"
+              >
+                <FileDown className="size-4" /> CSV
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => window.print()}
+                className="gap-2 rounded-xl font-bold border-border/60 hover:bg-muted/50"
+              >
+                <Printer className="size-4" /> Imprimir
+              </Button>
+            </div>
+          </div>
 
-            <ReportLayout 
-              id="printable-report"
-              title={current.label}
-              startDate={range.start}
-              endDate={range.end}
-              storeInfo={storeInfo}
-              columns={result.columns}
-              rows={result.rows}
-            />
-          </CardContent>
-        </Card>
+          <ReportLayout 
+            id="printable-report"
+            title={current.label}
+            startDate={current.noFilter ? undefined : range.start}
+            endDate={current.noFilter ? undefined : range.end}
+            filterInfo={filterDetails}
+            storeInfo={storeInfo}
+            columns={result.columns}
+            rows={result.rows}
+          />
+        </div>
       )}
-
     </div>
   );
 }

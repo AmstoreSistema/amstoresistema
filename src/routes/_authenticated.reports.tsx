@@ -610,32 +610,35 @@ function ReportsPage() {
             </CardContent>
           </Card>
         ) : (
-          <Card className="rounded-[2rem] border-border/40 bg-card overflow-hidden shadow-sm animate-in slide-in-from-bottom-4 duration-500 print:shadow-none print:border-none print:rounded-none">
-            <CardContent className="p-0">
-              {isLoading ? (
-                <div className="p-12 text-center space-y-4 print:hidden">
+          <div className="animate-in slide-in-from-bottom-4 duration-500">
+            {isLoading ? (
+              <Card className="rounded-[2rem] border-border/40 bg-card overflow-hidden shadow-sm print:hidden">
+                <CardContent className="p-12 text-center space-y-4">
                   <RefreshCw className="size-8 text-primary animate-spin mx-auto" />
-                  <p className="font-bold text-muted-foreground">Carregando dados...</p>
-                </div>
-              ) : filteredData.length === 0 ? (
-                <div className="p-12 text-center space-y-4 print:hidden">
+                  <p className="font-bold text-muted-foreground">Carregando dados do relatório...</p>
+                </CardContent>
+              </Card>
+            ) : filteredData.length === 0 ? (
+              <Card className="rounded-[2rem] border-border/40 bg-card overflow-hidden shadow-sm print:hidden">
+                <CardContent className="p-12 text-center space-y-4">
                   <X className="size-8 text-destructive/30 mx-auto" />
-                  <p className="font-bold text-muted-foreground">Nenhum dado encontrado para este período</p>
+                  <p className="font-bold text-muted-foreground">Nenhum dado encontrado para os critérios selecionados</p>
                   <Button variant="outline" size="sm" onClick={() => setShowResults(false)} className="rounded-xl">Limpar</Button>
-                </div>
-              ) : (
-                <ReportLayout 
-                  id="printable-report"
-                  title={reportButtons.find(b => b.id === selectedType)?.label || "Relatório"}
-                  startDate={config.noFilter ? undefined : dateRange.start}
-                  endDate={config.noFilter ? undefined : dateRange.end}
-                  storeInfo={storeInfo}
-                  columns={reportResult.columns}
-                  rows={reportResult.rows}
-                />
-              )}
-            </CardContent>
-          </Card>
+                </CardContent>
+              </Card>
+            ) : (
+              <ReportLayout 
+                id="printable-report"
+                title={`Relatório de ${reportButtons.find(b => b.id === selectedType)?.label || "Geral"}`}
+                startDate={config.noFilter ? undefined : dateRange.start}
+                endDate={config.noFilter ? undefined : dateRange.end}
+                filterInfo={config.noFilter ? "Listagem Geral Cadastral" : `${filteredData.length} registros listados`}
+                storeInfo={storeInfo}
+                columns={reportResult.columns}
+                rows={reportResult.rows}
+              />
+            )}
+          </div>
         )}
       </div>
     </div>

@@ -119,6 +119,7 @@ function AuditPage() {
   const [search, setSearch] = React.useState("");
   const [entityFilter, setEntityFilter] = React.useState("all");
   const [actionFilter, setActionFilter] = React.useState("all");
+  const [viewMode, setViewMode] = React.useState<"cards" | "report">("cards");
   const [selected, setSelected] = React.useState<any>(null);
   const [storeInfo, setStoreInfo] = useState<{
     name?: string;
@@ -245,6 +246,24 @@ function AuditPage() {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <div className="flex rounded-xl border border-border/60 p-0.5 bg-muted/30">
+            <Button
+              variant={viewMode === "cards" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setViewMode("cards")}
+              className="h-8 rounded-lg text-xs font-bold"
+            >
+              Cards
+            </Button>
+            <Button
+              variant={viewMode === "report" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setViewMode("report")}
+              className="h-8 rounded-lg text-xs font-bold"
+            >
+              Relatório
+            </Button>
+          </div>
           <Button variant="outline" className="rounded-xl border-border/40 hover:bg-muted/50 gap-2 font-bold" onClick={handleExportCsv}>
             <FileDown className="size-4" /> CSV
           </Button>
@@ -306,59 +325,74 @@ function AuditPage() {
         </Select>
       </div>
 
-      <div className="space-y-3 print:hidden">
-        {isLoading && <p className="text-sm text-muted-foreground">Carregando registros...</p>}
-        {!isLoading && filtered.length === 0 && (
-          <Card className="border-dashed">
-            <CardContent className="p-10 text-center text-sm text-muted-foreground">
-              Nenhum registro de auditoria encontrado.
-            </CardContent>
-          </Card>
-        )}
-        {filtered.map((log: any) => {
-          const kind = actionKind(log.action);
-          const meta = ACTION_META[kind];
-          const parsed = parseDetails(log.details);
-          const changedFields = parsed.json && !Array.isArray(parsed.json) ? Object.keys(parsed.json).length : null;
-          return (
-            <Card key={log.id} className="border-border/60 shadow-sm">
-              <CardContent className="p-5">
-                <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-                  <div className="space-y-2">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <Badge variant="outline" className={cn("font-semibold", meta.className)}>
-                        {meta.label}
-                      </Badge>
-                      <Badge variant="outline" className="font-medium">
-                        {entityLabel(log.entity)}
-                      </Badge>
-                      <span className="font-black tracking-tight">{log.entity_id || "—"}</span>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-x-10 gap-y-1 text-sm text-muted-foreground">
-                      <span className="flex items-center gap-1.5">
-                        <User className="size-4" />
-                        {displayName(log.user_email)}
-                        {log.user_email ? ` (${log.user_email})` : ""}
-                      </span>
-                      <span className="flex items-center gap-1.5">
-                        <Calendar className="size-4" />
-                        {formatDateTime(log.created_at)}
-                      </span>
-                    </div>
-                    {kind === "edicao" && changedFields !== null && (
-                      <p className="text-sm font-medium">{changedFields} campo(s) alterado(s)</p>
-                    )}
-                    {parsed.text && <p className="text-sm italic text-muted-foreground">{parsed.text}</p>}
-                  </div>
-                  <Button variant="outline" className="gap-2 shrink-0" onClick={() => setSelected(log)}>
-                    <Eye className="size-4" /> Ver Detalhes
-                  </Button>
-                </div>
+      {viewMode === "cards" ? (
+        <div className="space-y-3 print:hidden">
+          {isLoading && <p className="text-sm text-muted-foreground">Carregando registros...</p>}
+          {!isLoading && filtered.length === 0 && (
+            <Card className="border-dashed">
+              <CardContent className="p-10 text-center text-sm text-muted-foreground">
+                Nenhum registro de auditoria encontrado.
               </CardContent>
             </Card>
-          );
-        })}
-      </div>
+          )}
+          {filtered.map((log: any) => {
+            const kind = actionKind(log.action);
+            const meta = ACTION_META[kind];
+            const parsed = parseDetails(log.details);
+            const changedFields = parsed.json && !Array.isArray(parsed.json) ? Object.keys(parsed.json).length : null;
+            return (
+              <Card key={log.id} className="border-border/60 shadow-sm">
+                <CardContent className="p-5">
+                  <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                    <div className="space-y-2">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Badge variant="outline" className={cn("font-semibold", meta.className)}>
+                          {meta.label}
+                        </Badge>
+                        <Badge variant="outline" className="font-medium">
+                          {entityLabel(log.entity)}
+                        </Badge>
+                        <span className="font-black tracking-tight">{log.entity_id || "—"}</span>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-x-10 gap-y-1 text-sm text-muted-foreground">
+                        <span className="flex items-center gap-1.5">
+                          <User className="size-4" />
+                          {displayName(log.user_email)}
+                          {log.user_email ? ` (${log.user_email})` : ""}
+                        </span>
+                        <span className="flex items-center gap-1.5">
+                          <Calendar className="size-4" />
+                          {formatDateTime(log.created_at)}
+                        </span>
+                      </div>
+                      {kind === "edicao" && changedFields !== null && (
+                        <p className="text-sm font-medium">{changedFields} campo(s) alterado(s)</p>
+                      )}
+                      {parsed.text && <p className="text-sm italic text-muted-foreground">{parsed.text}</p>}
+                    </div>
+                    <Button variant="outline" className="gap-2 shrink-0" onClick={() => setSelected(log)}>
+                      <Eye className="size-4" /> Ver Detalhes
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      ) : (
+        <div className="print:hidden">
+          <ReportLayout 
+            id="audit-report-screen"
+            title="Relatório de Auditoria"
+            startDate={filtered.length > 0 ? filtered[filtered.length - 1].created_at : undefined}
+            endDate={filtered.length > 0 ? filtered[0].created_at : undefined}
+            filterInfo={`Entidade: ${entityFilter === "all" ? "Todas" : entityLabel(entityFilter)} • Ação: ${actionFilter === "all" ? "Todas" : actionFilter.toUpperCase()} • ${filtered.length} eventos`}
+            storeInfo={storeInfo}
+            columns={reportData.columns}
+            rows={reportData.rows}
+          />
+        </div>
+      )}
 
       <div className="hidden print:block">
         <ReportLayout 
@@ -366,6 +400,7 @@ function AuditPage() {
           title="Relatório de Auditoria"
           startDate={filtered.length > 0 ? filtered[filtered.length - 1].created_at : undefined}
           endDate={filtered.length > 0 ? filtered[0].created_at : undefined}
+          filterInfo={`Entidade: ${entityFilter === "all" ? "Todas" : entityLabel(entityFilter)} • Ação: ${actionFilter === "all" ? "Todas" : actionFilter.toUpperCase()} • ${filtered.length} eventos`}
           storeInfo={storeInfo}
           columns={reportData.columns}
           rows={reportData.rows}
