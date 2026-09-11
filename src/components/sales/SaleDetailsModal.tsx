@@ -16,7 +16,8 @@ import {
   Printer,
   Calendar,
   CreditCard,
-  History
+  History,
+  ArrowRightLeft
 } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { getSaleDetails, registerSalePayment } from "@/lib/sales.functions";
@@ -32,6 +33,7 @@ import {
 } from "@/components/ui/select";
 import { useRows } from "@/lib/data";
 import { ReceiptModal } from "./ReceiptModal";
+import { EditSaleModal } from "./EditSaleModal";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -57,6 +59,7 @@ export function SaleDetailsModal({
   const fetchSale = useServerFn(getSaleDetails);
   const qc = useQueryClient();
   const [receiptOpen, setReceiptOpen] = React.useState(false);
+  const [editModalOpen, setEditModalOpen] = React.useState(false);
   const [expandedPaymentId, setExpandedPaymentId] = React.useState<string | null>(null);
   const [paymentType, setPaymentType] = React.useState<'quitar' | 'parcial'>('quitar');
   const [payAmount, setPayAmount] = React.useState<string>("");
@@ -155,6 +158,14 @@ export function SaleDetailsModal({
               </div>
             </div>
             <div className="flex items-center gap-2 sm:mr-8">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="rounded-xl font-bold h-7 sm:h-8 text-xs gap-1.5 shadow-sm px-3 border-gold/40 text-gold hover:bg-gold/10"
+                onClick={() => setEditModalOpen(true)}
+              >
+                <ArrowRightLeft className="size-3.5 sm:size-4 text-gold" /> Editar / Trocar
+              </Button>
               <Button 
                 variant="outline" 
                 size="sm" 
@@ -599,7 +610,15 @@ export function SaleDetailsModal({
         />
       )}
 
-      {/* Modal removido em favor da gestão unificada na própria tela */}
+      <EditSaleModal
+        saleId={saleId}
+        open={editModalOpen}
+        onOpenChange={setEditModalOpen}
+        onSuccess={() => {
+          qc.invalidateQueries({ queryKey: ['sale-details', saleId] });
+          qc.invalidateQueries({ queryKey: ['sales'] });
+        }}
+      />
     </>
   );
 }

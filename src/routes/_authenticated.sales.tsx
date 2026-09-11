@@ -19,6 +19,7 @@ import {
   X,
   ShoppingBag,
   DollarSign,
+  ArrowRightLeft,
 } from "lucide-react";
 
 
@@ -48,6 +49,7 @@ import { POSModal } from "@/components/sales/POSModal";
 import { SaleInstallmentsModal } from "@/components/sales/SaleInstallmentsModal";
 import { ReceiptModal } from "@/components/sales/ReceiptModal";
 import { SaleDetailsModal } from "@/components/sales/SaleDetailsModal";
+import { EditSaleModal } from "@/components/sales/EditSaleModal";
 import { getSaleDetails } from "@/lib/sales.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { PaginationBar } from "@/components/ui/pagination-bar";
@@ -180,6 +182,7 @@ function SalesPage() {
   const [installmentsOpen, setInstallmentsOpen] = useState(false);
   const [receiptOpen, setReceiptOpen] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(false);
+  const [editSaleOpen, setEditSaleOpen] = useState(false);
   const [selectedSaleId, setSelectedSaleId] = useState<string | null>(null);
   
   // Real-time fetching of selected sale for the receipt
@@ -579,6 +582,15 @@ function SalesPage() {
                                   >
                                     <FileText className="size-4" /> Detalhes da Venda
                                   </DropdownMenuItem>
+                                  <DropdownMenuItem 
+                                    className="rounded-xl gap-2 font-medium text-foreground hover:text-gold"
+                                    onClick={() => {
+                                      setSelectedSaleId(sale.id);
+                                      setEditSaleOpen(true);
+                                    }}
+                                  >
+                                    <ArrowRightLeft className="size-4 text-gold" /> Editar Venda / Trocar
+                                  </DropdownMenuItem>
                                   <DropdownMenuItem className="rounded-xl gap-2"><FileDown className="size-4" /> Baixar PDF</DropdownMenuItem>
                                   <DropdownMenuItem 
                                     className="rounded-xl gap-2"
@@ -696,6 +708,15 @@ function SalesPage() {
                                    >
                                      <FileText className="size-4" /> Detalhes da Venda
                                    </DropdownMenuItem>
+                                   <DropdownMenuItem 
+                                     className="rounded-xl gap-2 font-medium text-foreground hover:text-gold"
+                                     onClick={() => {
+                                       setSelectedSaleId(sale.id);
+                                       setEditSaleOpen(true);
+                                     }}
+                                   >
+                                     <ArrowRightLeft className="size-4 text-gold" /> Editar Venda / Trocar
+                                   </DropdownMenuItem>
                                    <DropdownMenuItem className="rounded-xl gap-2"><FileDown className="size-4" /> Baixar PDF</DropdownMenuItem>
                                    <DropdownMenuItem 
                                      className="rounded-xl gap-2"
@@ -792,6 +813,15 @@ function SalesPage() {
         open={detailsOpen}
         onOpenChange={setDetailsOpen}
         saleId={selectedSaleId}
+      />
+      <EditSaleModal 
+        open={editSaleOpen}
+        onOpenChange={setEditSaleOpen}
+        saleId={selectedSaleId}
+        onSuccess={() => {
+          qc.invalidateQueries({ queryKey: ["sales"] });
+          qc.invalidateQueries({ queryKey: ["sale-details", selectedSaleId] });
+        }}
       />
     </div>
 

@@ -370,3 +370,175 @@ export const getSaleDetails = createServerFn({ method: "GET" })
       installments: installmentsResult.data || []
     };
   });
+
+export const editSaleItems = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data) => z.object({
+    sale_id: z.string(),
+    items: z.array(z.object({
+      id: z.string().optional(),
+      product_id: z.string(),
+      quantity: z.number().positive(),
+      unit_price: z.number().nonnegative(),
+      numeracao: z.string().nullable().optional().or(z.literal("")),
+      discount: z.number().nonnegative().default(0),
+    })).min(1, "A venda precisa ter ao menos um produto"),
+  }).parse(data))
+  .handler(async ({ data }) => {
+    const { supabaseAdmin: admin } = await import("@/integrations/supabase/client.server");
+
+    // 1. Busca a venda atual
+    const { data: sale, error: saleErr } = await admin
+      .from("sales")
+      .select("*")
+      .eq("id", data.sale_id)
+      .single();
+
+    if (saleErr || !sale) throw new Error("Venda não encontrada para edição.");
+
+    // 2. Busca os itens atuais da venda antes da edição
+    const { data: oldItems = [], error: oldItemsErr } = await admin
+      .from("sale_items")
+      .select("*")
+      .eq("sale_id", data.sale_id);
+
+    if (oldItemsErr) throw new Error(`Erro ao buscar itens da venda: ${oldItemsErr.message}`);
+
+    // 3. DEVOLUÇÃO AO ESTOQUE: Estorna todos os itens antigos
+    for (const oldItem of oldItems) {
+      if (!oldItem.product_id) continue;
+      const qty = Number(oldItem.quantity) || 1;
+
+      // Devolve ao products.current_stock
+      const { data: prod } = await admin
+        .from("products")
+        .select("current_stock")
+        .eq("id", oldItem.product_id)
+        .single();
+
+      if (prod) {
+        await admin
+          .from("products")
+          .update({ current_stock: Number(prod.current_stock || 0) + qty })
+          .eq("id", oldItem.product_id);
+      }
+
+      // Devolve ao stock_products (incluindo numeração se houver)
+      const { data: stockRecords = [] } = await admin
+        .from("stock_products")
+        .select("id, quantidade_disponivel, numeracoes")
+        .eq("produto_id", oldItem.product_id);
+
+      if (stockRecords && stockRecords.length > 0) {
+        // Atualiza no primeiro registro ou registro correspondente
+        const stockRow = stockRecords[0];
+        const updates: Record<string, any> = {
+          quantidade_disponivel: Number(stockRow.quantidade_disponivel || 0) + qty,
+        };
+
+        if (oldItem.numeracao && stockRow.numeracoes && typeof stockRow.numeracoes === "object") {
+          const nums = { ...(stockRow.numeracoes as Record<string, any>) };
+          nums[oldItem.numeracao] = (Number(nums[oldItem.numeracao]) || 0) + qty;
+          updates.numeracoes = nums;
+        }
+
+        await admin.from("stock_products").update(updates).eq("id", stockRow.id);
+      }
+    }
+
+    // 4. BAIXA NO ESTOQUE: Deduz os novos itens
+    for (const newItem of data.items) {
+      const qty = Number(newItem.quantity) || 1;
+
+      // Subtrai de products.current_stock
+      const { data: prod } = await admin
+        .from("products")
+        .select("current_stock")
+        .eq("id", newItem.product_id)
+        .single();
+
+      if (prod) {
+        await admin
+          .from("products")
+          .update({ current_stock: Math.max(0, Number(prod.current_stock || 0) - qty) })
+          .eq("id", newItem.product_id);
+      }
+
+      // Subtrai de stock_products (incluindo numeração se houver)
+      const { data: stockRecords = [] } = await admin
+        .from("stock_products")
+        .select("id, quantidade_disponivel, numeracoes")
+        .eq("produto_id", newItem.product_id);
+
+      if (stockRecords && stockRecords.length > 0) {
+        const stockRow = stockRecords[0];
+        const updates: Record<string, any> = {
+          quantidade_disponivel: Math.max(0, Number(stockRow.quantidade_disponivel || 0) - qty),
+        };
+
+        if (newItem.numeracao && stockRow.numeracoes && typeof stockRow.numeracoes === "object") {
+          const nums = { ...(stockRow.numeracoes as Record<string, any>) };
+          nums[newItem.numeracao] = Math.max(0, (Number(nums[newItem.numeracao]) || 0) - qty);
+          updates.numeracoes = nums;
+        }
+
+        await admin.from("stock_products").update(updates).eq("id", stockRow.id);
+      }
+    }
+
+    // 5. Substitui os itens na tabela sale_items
+    const { error: delErr } = await admin
+      .from("sale_items")
+      .delete()
+      .eq("sale_id", data.sale_id);
+
+    if (delErr) throw new Error(`Erro ao atualizar itens da venda: ${delErr.message}`);
+
+    const newRowsToInsert = data.items.map((item) => ({
+      sale_id: data.sale_id,
+      product_id: item.product_id,
+      quantity: item.quantity,
+      unit_price: item.unit_price,
+      numeracao: item.numeracao || null,
+      discount: item.discount || 0,
+    }));
+
+    const { error: insErr } = await admin
+      .from("sale_items")
+      .insert(newRowsToInsert);
+
+    if (insErr) throw new Error(`Erro ao inserir novos itens: ${insErr.message}`);
+
+    // 6. Recalcula o valor total da venda
+    const itemsSubtotal = data.items.reduce(
+      (acc, item) => acc + item.quantity * item.unit_price - (item.discount || 0),
+      0
+    );
+
+    const discountGeneral = Number(sale.discount_amount ?? sale.discount ?? 0);
+    const cashbackUsed = Number(sale.cashback_used || 0);
+    const newTotal = Math.max(0, Number((itemsSubtotal - discountGeneral - cashbackUsed).toFixed(2)));
+
+    const paidAmount = Number(sale.paid_amount || 0);
+    const newStatus =
+      paidAmount >= newTotal - 0.009
+        ? "paid"
+        : paidAmount > 0
+        ? "partial"
+        : "pending";
+
+    await admin
+      .from("sales")
+      .update({
+        total_amount: newTotal,
+        status: newStatus,
+      })
+      .eq("id", data.sale_id);
+
+    return {
+      success: true,
+      sale_id: data.sale_id,
+      oldTotal: Number(sale.total_amount),
+      newTotal,
+    };
+  });
