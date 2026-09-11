@@ -86,7 +86,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         content:
           "Sistema AmStore Gestão para cadastrar matéria-prima, compor produtos, controlar ordens de produção, estoque, vendas e fiado em um só lugar.",
       },
-      { name: "author", content: "Lovable" },
+      { name: "author", content: "AmStore" },
       { property: "og:title", content: "AmStore Gestão — Produção, Estoque e Vendas" },
       {
         property: "og:description",
@@ -95,7 +95,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:site", content: "@Lovable" },
+      { name: "twitter:site", content: "@AmStore" },
       { name: "theme-color", content: "#D4AF37" },
       { name: "mobile-web-app-capable", content: "yes" },
       { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
@@ -146,6 +146,28 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+
+  useEffect(() => {
+    const removeLovableElements = () => {
+      const selectors = [
+        "#lovable-badge",
+        ".lovable-badge",
+        "[data-lovable-badge]",
+        'a[href*="lovable.dev"]',
+        'a[href*="lovable.app"]',
+        "#lovable-watermark",
+        ".lovable-watermark",
+      ];
+      selectors.forEach((sel) => {
+        document.querySelectorAll(sel).forEach((el) => el.remove());
+      });
+    };
+
+    removeLovableElements();
+    const observer = new MutationObserver(removeLovableElements);
+    observer.observe(document.documentElement, { childList: true, subtree: true });
+    return () => observer.disconnect();
+  }, []);
 
   return (
     <QueryClientProvider client={queryClient}>

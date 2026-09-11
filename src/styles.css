@@ -209,6 +209,30 @@
   }
 }
 
+/* Ocultar marca d'água e badge da Lovable */
+#lovable-badge,
+.lovable-badge,
+[data-lovable-badge],
+[id*="lovable-badge"],
+[class*="lovable-badge"],
+a[href*="lovable.dev"],
+a[href*="lovable.app"],
+#lovable-watermark,
+.lovable-watermark,
+div:has(> a[href*="lovable.dev"]),
+div:has(> a[href*="lovable.app"]) {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  position: absolute !important;
+  top: -9999px !important;
+  left: -9999px !important;
+  width: 0 !important;
+  height: 0 !important;
+  z-index: -9999 !important;
+}
+
 /* Estilização corporativa padrão para tabelas em relatórios */
 .report-corporate-layout table {
   width: 100%;
