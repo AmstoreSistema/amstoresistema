@@ -18,9 +18,26 @@ import { Card, CardContent } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { brl } from "@/lib/format";
 import { useRows } from "@/lib/data";
+
+// Normalizador tolerante para categorias de sandálias
+const normalizeCat = (value: unknown) =>
+  String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim()
+    .toLowerCase()
+    .replace(/s$/, "");
+
+const isSandaliaCat = (category: unknown) => {
+  const norm = normalizeCat(category);
+  return norm.includes("sandalia") || norm.includes("calcado") || norm.includes("rasteira") || norm.includes("chinelo");
+};
 
 import { z } from "zod";
 
@@ -91,11 +108,18 @@ function CatalogPage() {
     setVisibleItems(ITEMS_PER_PAGE);
   }, [term, activeCategory, selectedSizeFilter, navigate]);
 
-  // Indexing stock records by produto_id for O(1) lookup
-  const stockMap = useMemo(() => {
-    const map = new Map<string, StockRecord>();
+  // Agrupa e soma as numerações por produto_id (caso haja múltiplos lotes ou registros de estoque)
+  const stockNumeracoesMap = useMemo(() => {
+    const map = new Map<string, Record<string, number>>();
     stockRecords.forEach(record => {
-      map.set(record.produto_id, record);
+      if (!record.produto_id) return;
+      const current = map.get(record.produto_id) || {};
+      if (record.numeracoes && typeof record.numeracoes === "object") {
+        Object.entries(record.numeracoes).forEach(([size, qty]) => {
+          current[size] = (current[size] || 0) + (Number(qty) || 0);
+        });
+      }
+      map.set(record.produto_id, current);
     });
     return map;
   }, [stockRecords]);
@@ -105,13 +129,18 @@ function CatalogPage() {
   const allAvailableSizes = useMemo(() => {
     const sizes = new Set<string>();
     stockRecords.forEach(record => {
-      if (record.numeracoes) {
+      if (record.numeracoes && typeof record.numeracoes === "object") {
         Object.entries(record.numeracoes).forEach(([size, qty]) => {
           if (Number(qty) > 0) sizes.add(size);
         });
       }
     });
-    return ["Todas", ...Array.from(sizes).sort((a, b) => a.localeCompare(b))];
+    return ["Todas", ...Array.from(sizes).sort((a, b) => {
+      const numA = Number(a);
+      const numB = Number(b);
+      if (!isNaN(numA) && !isNaN(numB)) return numA - numB;
+      return a.localeCompare(b, undefined, { numeric: true });
+    })];
   }, [stockRecords]);
 
   const filtered = useMemo(() => {
@@ -121,15 +150,17 @@ function CatalogPage() {
       
       let matchesSize = selectedSizeFilter === "Todas";
       if (!matchesSize) {
-        const stockRecord = stockMap.get(p.id);
-        if (stockRecord?.numeracoes) {
-          matchesSize = (stockRecord.numeracoes[selectedSizeFilter] || 0) > 0;
+        const numeracoes = stockNumeracoesMap.get(p.id);
+        if (numeracoes) {
+          matchesSize = (numeracoes[selectedSizeFilter] || 0) > 0;
+        } else {
+          matchesSize = false;
         }
       }
 
       return matchesTerm && matchesCategory && matchesSize;
     });
-  }, [products, term, activeCategory, selectedSizeFilter, stockMap]);
+  }, [products, term, activeCategory, selectedSizeFilter, stockNumeracoesMap]);
 
   const paginatedItems = useMemo(() => {
     return filtered.slice(0, visibleItems);
@@ -187,12 +218,17 @@ function CatalogPage() {
       ) : (
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {paginatedItems.map(p => {
-            const stockRecord = stockMap.get(p.id);
-            const numeracoes = stockRecord?.numeracoes || {};
-            const allSizes = Object.entries(numeracoes as Record<string, number>)
-              .map(([size, qty]) => ({ size, qty: Number(qty) }))
-              .sort((a, b) => a.size.localeCompare(b.size));
+            const numeracoes = stockNumeracoesMap.get(p.id) || {};
+            const allSizes = Object.entries(numeracoes)
+              .map(([size, qty]) => ({ size, qty: Number(qty) || 0 }))
+              .sort((a, b) => {
+                const numA = Number(a.size);
+                const numB = Number(b.size);
+                if (!isNaN(numA) && !isNaN(numB)) return numA - numB;
+                return a.size.localeCompare(b.size, undefined, { numeric: true });
+              });
             const availableSizes = allSizes.filter(s => s.qty > 0);
+            const isSandalia = isSandaliaCat(p.category) || allSizes.length > 0;
 
             return (
               <Card key={p.id} className="group overflow-hidden rounded-[2rem] border-border/30 bg-card transition-all hover:shadow-xl shadow-elegant flex flex-col">
@@ -223,26 +259,44 @@ function CatalogPage() {
                     </div>
                   </div>
 
-                  <div className="space-y-4 flex-1">
-                    {p.category === "Sandálias" && availableSizes.length > 0 && (
-                      <div className="space-y-2">
-                        <p className="text-[10px] uppercase font-black text-muted-foreground tracking-widest">Numerações:</p>
-                        <div className="flex flex-wrap gap-1">
-                          {availableSizes.map(({ size, qty }) => (
-                            <Badge 
-                              key={size} 
-                              className="bg-black text-white px-2 py-0 h-6 text-xs font-black border-none cursor-pointer hover:bg-black/80 transition-all"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setSelectedProduct(p);
-                                setSelectedSizeInfo({ size, quantity: qty });
-                                setSizeDetailOpen(true);
-                              }}
-                            >
-                              {size}
-                            </Badge>
-                          ))}
+                  <div className="space-y-4 flex-1 flex flex-col">
+                    {isSandalia && (
+                      <div className="space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <p className="text-[9px] uppercase font-black text-muted-foreground tracking-widest">Numerações:</p>
+                          {availableSizes.length > 0 && (
+                            <span className="text-[10px] font-semibold text-muted-foreground">
+                              {availableSizes.length} {availableSizes.length === 1 ? "disp." : "disp."}
+                            </span>
+                          )}
                         </div>
+                        {allSizes.length > 0 ? (
+                          <div className="flex flex-wrap gap-1">
+                            {allSizes.map(({ size, qty }) => (
+                              <Badge 
+                                key={size} 
+                                className={`px-2 py-0 h-5 text-[10px] font-black border-none cursor-pointer transition-all ${
+                                  qty > 0 
+                                    ? "bg-black text-white hover:bg-black/80 hover:scale-105 active:scale-95 shadow-sm" 
+                                    : "bg-muted text-muted-foreground hover:bg-muted/80 opacity-40"
+                                }`}
+                                title={qty > 0 ? `Tamanho ${size}: ${qty} unid. disponíveis (clique para ver detalhes)` : `Tamanho ${size}: Esgotado`}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedProduct(p);
+                                  setSelectedSizeInfo({ size, quantity: qty });
+                                  setSizeDetailOpen(true);
+                                }}
+                              >
+                                {size}
+                              </Badge>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-[11px] text-muted-foreground italic">
+                            {p.current_stock > 0 ? "Grade não detalhada no estoque" : "Esgotado"}
+                          </p>
+                        )}
                       </div>
                     )}
 
@@ -286,16 +340,30 @@ function CatalogPage() {
       <Dialog open={sizeDetailOpen} onOpenChange={setSizeDetailOpen}>
         <DialogContent className="sm:max-w-[320px] rounded-[2rem] border-none shadow-2xl p-0 overflow-hidden">
           <div className="bg-gradient-gold p-6 flex flex-col items-center text-white text-center">
-            <div className="size-16 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center mb-4 border border-white/30">
-              <Package className="size-8" />
-            </div>
-            <h3 className="font-display font-black text-lg leading-tight">{selectedProduct?.name}</h3>
-            <p className="text-[10px] uppercase tracking-tighter opacity-80 font-bold mt-1">Gradeado de Estoque</p>
+            {selectedProduct?.image_url ? (
+              <img 
+                src={selectedProduct.image_url} 
+                alt={selectedProduct.name} 
+                className="size-16 rounded-2xl object-cover mb-4 border border-white/40 shadow-md"
+              />
+            ) : (
+              <div className="size-16 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center mb-4 border border-white/30">
+                <Package className="size-8" />
+              </div>
+            )}
+            <DialogHeader className="space-y-1 text-center">
+              <DialogTitle className="font-display font-black text-lg leading-tight text-white">
+                {selectedProduct?.name}
+              </DialogTitle>
+              <DialogDescription className="text-[10px] uppercase tracking-wider text-white/80 font-bold">
+                Grade de Estoque
+              </DialogDescription>
+            </DialogHeader>
           </div>
           
-          <div className="p-8 flex flex-col items-center gap-6">
+          <div className="p-6 sm:p-8 flex flex-col items-center gap-5">
             <div className="flex flex-col items-center">
-              <span className="text-[10px] font-black uppercase text-muted-foreground tracking-widest mb-1">Tamanho</span>
+              <span className="text-[10px] font-black uppercase text-muted-foreground tracking-widest mb-1.5">Tamanho</span>
               <div className="size-16 rounded-2xl bg-black flex items-center justify-center shadow-lg">
                 <span className="text-white text-2xl font-black">{selectedSizeInfo?.size}</span>
               </div>
@@ -304,15 +372,19 @@ function CatalogPage() {
             <div className="w-full h-px bg-border/40" />
 
             <div className="flex flex-col items-center">
-              <span className="text-[10px] font-black uppercase text-muted-foreground tracking-widest mb-1">Qtd Disponível</span>
-              <div className="flex items-baseline gap-1">
-                <span className="text-4xl font-display font-black text-success">{selectedSizeInfo?.quantity}</span>
-                <span className="text-[10px] font-black text-muted-foreground uppercase">Unidades</span>
+              <span className="text-[10px] font-black uppercase text-muted-foreground tracking-widest mb-1.5">Qtd Disponível</span>
+              <div className="flex items-baseline gap-1.5">
+                <span className={`text-4xl font-display font-black ${(selectedSizeInfo?.quantity || 0) > 0 ? "text-success" : "text-destructive"}`}>
+                  {selectedSizeInfo?.quantity || 0}
+                </span>
+                <span className="text-[10px] font-black text-muted-foreground uppercase">
+                  {(selectedSizeInfo?.quantity || 0) === 1 ? "Unidade" : "Unidades"}
+                </span>
               </div>
             </div>
 
             <Button 
-              className="w-full bg-muted/50 hover:bg-muted text-foreground font-black text-[10px] uppercase tracking-widest h-10 rounded-xl mt-2 border-none"
+              className="w-full bg-muted/60 hover:bg-muted text-foreground font-black text-xs uppercase tracking-wider h-11 rounded-xl mt-1 border-none"
               onClick={() => setSizeDetailOpen(false)}
             >
               FECHAR
