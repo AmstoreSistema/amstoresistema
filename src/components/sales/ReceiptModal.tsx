@@ -14,6 +14,7 @@ import {
   Gift
 } from "lucide-react";
 import { toPng } from 'html-to-image';
+import html2canvas from 'html2canvas';
 import { toast } from "sonner";
 import { useRows } from "@/lib/data";
 import { useQuery } from "@tanstack/react-query";
@@ -388,22 +389,56 @@ export function ReceiptModal({
     });
   };
 
-  // Gera o cupom exatamente como aparece na tela, em raster ESC/POS, com corte da guilhotina
+  const waitForReceiptImages = async (node: HTMLElement) => {
+    const images = Array.from(node.querySelectorAll("img"));
+    await Promise.all(images.map(async (image) => {
+      if (image.complete && image.naturalWidth > 0) return;
+      await new Promise<void>((resolve) => {
+        const finish = () => resolve();
+        image.addEventListener("load", finish, { once: true });
+        image.addEventListener("error", finish, { once: true });
+        window.setTimeout(finish, 2500);
+      });
+    }));
+    if (document.fonts?.ready) await document.fonts.ready;
+  };
+
+  // Gera o cupom como uma única imagem monocromática. Assim o RawBT não
+  // reformata textos nem elimina logomarca, caixas, bordas ou QR Code.
   const generateEscPosFromScreen = async (): Promise<Uint8Array> => {
     if (!receiptRef.current) throw new Error("Cupom não disponível");
     const node = receiptRef.current;
-    const dataUrl = await toPng(node, {
+    await waitForReceiptImages(node);
+
+    const canvas = await html2canvas(node, {
       backgroundColor: "#ffffff",
-      pixelRatio: Math.min(3, Math.max(1.5, 576 / (node.offsetWidth || 380))),
-      cacheBust: true,
+      scale: 2,
+      useCORS: true,
+      allowTaint: false,
+      logging: false,
+      imageTimeout: 5000,
+      width: node.scrollWidth,
+      height: node.scrollHeight,
+      windowWidth: Math.max(document.documentElement.clientWidth, node.scrollWidth),
+      onclone: (clonedDocument) => {
+        const clonedReceipt = clonedDocument.querySelector<HTMLElement>(".cupom-container");
+        if (!clonedReceipt) return;
+        clonedReceipt.style.width = `${node.scrollWidth}px`;
+        clonedReceipt.style.maxWidth = "none";
+        clonedReceipt.style.margin = "0";
+        clonedReceipt.style.boxShadow = "none";
+        clonedReceipt.style.transform = "none";
+      },
     });
+    const dataUrl = canvas.toDataURL("image/png");
     const imageBytes = await dataUrlToEscPosBlocks(dataUrl, 576);
+    if (imageBytes.length === 0) throw new Error("A imagem do cupom ficou vazia");
     const bytes: number[] = [];
     bytes.push(0x1b, 0x40); // init
     bytes.push(0x1b, 0x61, 0x00); // alinhamento à esquerda (imagem já ocupa 80mm)
     bytes.push(...imageBytes);
-    bytes.push(0x0a, 0x0a, 0x0a, 0x0a); // avanço para a lâmina
-    bytes.push(0x1d, 0x56, 0x00); // corte total (guilhotina) - único
+    bytes.push(0x1b, 0x64, 0x05); // avança cinco linhas até a lâmina
+    bytes.push(0x1d, 0x56, 0x42, 0x00); // corte com avanço, compatível com guilhotinas ESC/POS
     return new Uint8Array(bytes);
   };
 
@@ -636,13 +671,7 @@ export function ReceiptModal({
     setPrintingThermal(true);
     try {
       toast.info("Gerando impressão fiel ao cupom da tela (80mm + guilhotina)...");
-      let binaryBytes: Uint8Array;
-      try {
-        binaryBytes = await generateEscPosFromScreen();
-      } catch (imgErr) {
-        console.warn("Falha na captura fiel do cupom, usando modo texto:", imgErr);
-        binaryBytes = await generateEscPosBinary();
-      }
+      const binaryBytes = await generateEscPosFromScreen();
       const base64Data = uint8ArrayToBase64(binaryBytes);
 
       // Intent oficial do RawBT para envio de bytes puros ESC/POS
@@ -658,7 +687,7 @@ export function ReceiptModal({
       window.location.href = intentUrl;
     } catch (err) {
       console.error("Erro ao gerar ESC/POS 80mm:", err);
-      toast.error("Erro ao preparar comandos de impressão");
+      toast.error("Não foi possível gerar a imagem do cupom. Tente novamente após o QR Code aparecer.");
     } finally {
       setPrintingThermal(false);
     }
