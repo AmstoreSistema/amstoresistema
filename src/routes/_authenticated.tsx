@@ -2,6 +2,7 @@ import { createFileRoute, Link, Outlet, redirect, useRouterState } from "@tansta
 import {
   ArrowLeftRight,
   BookMarked,
+  HandCoins,
   LogOut,
   ShoppingCart,
   Users,
@@ -67,6 +68,7 @@ export const Route = createFileRoute("/_authenticated")({
 const quickNavItems = [
   { label: "Estoque", path: "/stock", icon: Warehouse },
   { label: "Vendas", path: "/sales", icon: ShoppingCart },
+  { label: "Fiados", path: "/credit", icon: HandCoins },
   { label: "Transações", path: "/transactions", icon: ArrowLeftRight },
   { label: "Clientes", path: "/clients", icon: Users },
   { label: "Catálogo", path: "/catalog", icon: BookMarked },
