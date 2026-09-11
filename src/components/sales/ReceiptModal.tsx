@@ -635,8 +635,14 @@ export function ReceiptModal({
   const handleDirectThermalPrint80mm = async () => {
     setPrintingThermal(true);
     try {
-      toast.info("Gerando comandos térmicos 80mm com logomarca e guilhotina...");
-      const binaryBytes = await generateEscPosBinary();
+      toast.info("Gerando impressão fiel ao cupom da tela (80mm + guilhotina)...");
+      let binaryBytes: Uint8Array;
+      try {
+        binaryBytes = await generateEscPosFromScreen();
+      } catch (imgErr) {
+        console.warn("Falha na captura fiel do cupom, usando modo texto:", imgErr);
+        binaryBytes = await generateEscPosBinary();
+      }
       const base64Data = uint8ArrayToBase64(binaryBytes);
 
       // Intent oficial do RawBT para envio de bytes puros ESC/POS
