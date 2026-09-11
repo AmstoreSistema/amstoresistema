@@ -376,6 +376,7 @@ export const editSaleItems = createServerFn({ method: "POST" })
   .inputValidator((data) => z.object({
     sale_id: z.string(),
     client_id: z.string().nullable().optional(),
+    created_at: z.string().optional(),
     discount_general: z.number().nonnegative().optional(),
     cashback_used: z.number().nonnegative().optional(),
     items: z.array(z.object({
@@ -545,6 +546,10 @@ export const editSaleItems = createServerFn({ method: "POST" })
 
     if (data.client_id !== undefined) {
       updatePayload.client_id = data.client_id;
+    }
+
+    if (data.created_at) {
+      updatePayload.created_at = data.created_at;
     }
 
     await admin

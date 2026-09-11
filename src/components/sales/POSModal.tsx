@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { brl } from "@/lib/format";
+import { brl, toISODate, formatSaleDateISO } from "@/lib/format";
 import { 
   Trash2, 
   ShoppingCart, 
@@ -89,7 +89,7 @@ export function POSModal({ open, onOpenChange, initialClient, initialItems }: PO
   const [accountId, setAccountId] = React.useState<string | null>(null);
   const [protectionMethod, setProtectionMethod] = React.useState("Padrão");
   const [notes, setNotes] = React.useState("");
-  const [saleDate, setSaleDate] = React.useState(new Date().toISOString().split('T')[0]);
+  const [saleDate, setSaleDate] = React.useState(() => toISODate(new Date()));
   const [saleCode, setSaleCode] = React.useState(() => `V${Date.now().toString().slice(-10)}`);
 
   const [receiptOpen, setReceiptOpen] = React.useState(false);
@@ -344,7 +344,7 @@ export function POSModal({ open, onOpenChange, initialClient, initialItems }: PO
         financial_account_id: accountId,
         protection_method: protectionMethod,
         sale_code: saleCode,
-        created_at: new Date(saleDate || new Date()).toISOString(),
+        created_at: formatSaleDateISO(saleDate),
         items: items.map(i => ({
           // Se o item veio de condicional (skipStockDecrement), passamos stock_id=null
           // para que a stored procedure não tente decrementar o estoque novamente
@@ -848,7 +848,7 @@ export function POSModal({ open, onOpenChange, initialClient, initialItems }: PO
             payment_method: isDebt ? "Fiado" : paymentMethod,
             is_debt: isDebt,
             installments: installments || [],
-            created_at: new Date(saleDate || new Date()).toISOString(),
+            created_at: formatSaleDateISO(saleDate),
             items: items.map(i => ({
                name: i.name,
                quantity: i.quantity,

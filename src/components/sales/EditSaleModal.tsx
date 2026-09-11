@@ -10,7 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { brl } from "@/lib/format";
+import { brl, toISODate, formatSaleDateISO } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import {
   Plus,
@@ -23,6 +23,7 @@ import {
   BadgePercent,
   Coins,
   User,
+  Calendar,
 } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { getSaleDetails, editSaleItems } from "@/lib/sales.functions";
@@ -65,6 +66,7 @@ export function EditSaleModal({
   const [items, setItems] = useState<EditableItem[]>([]);
   const [selectedClient, setSelectedClient] = useState<any>(null);
   const [clientName, setClientName] = useState<string>("");
+  const [saleDate, setSaleDate] = useState<string>("");
   const [discountGeneral, setDiscountGeneral] = useState<number>(0);
   const [cashbackUsed, setCashbackUsed] = useState<number>(0);
   const [isSaving, setIsSaving] = useState(false);
@@ -132,6 +134,7 @@ export function EditSaleModal({
       const c = (saleData.sale as any).clients || null;
       setSelectedClient(c);
       setClientName(c?.name || "");
+      setSaleDate(saleData.sale.created_at ? toISODate(saleData.sale.created_at) : "");
       setDiscountGeneral(Number(saleData.sale.discount_amount ?? saleData.sale.discount ?? 0));
       setCashbackUsed(Number(saleData.sale.cashback_used ?? 0));
     }
@@ -272,6 +275,7 @@ export function EditSaleModal({
         data: {
           sale_id: saleId,
           client_id: clientIdToSave,
+          created_at: saleDate ? formatSaleDateISO(saleDate) : undefined,
           items: payloadItems,
           discount_general: discountGeneral,
           cashback_used: cashbackUsed,
@@ -328,7 +332,7 @@ export function EditSaleModal({
             </div>
           ) : (
             <>
-              {/* SEÇÃO 1: Cliente da Venda */}
+              {/* SEÇÃO 1: Cliente e Dados da Venda */}
               <div className="bg-muted/30 border border-border/70 rounded-2xl p-4 sm:p-5 space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
@@ -336,8 +340,8 @@ export function EditSaleModal({
                       <User className="size-4" />
                     </div>
                     <div>
-                      <h3 className="text-xs sm:text-sm font-bold text-foreground">Cliente da Venda</h3>
-                      <p className="text-[11px] text-muted-foreground">Vincule outra cliente ou edite o nome atual</p>
+                      <h3 className="text-xs sm:text-sm font-bold text-foreground">Cliente e Dados da Venda</h3>
+                      <p className="text-[11px] text-muted-foreground">Vincule outra cliente, edite o nome ou ajuste a data da venda</p>
                     </div>
                   </div>
                   {selectedClient && (
@@ -347,7 +351,7 @@ export function EditSaleModal({
                   )}
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
                   <div>
                     <label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground block mb-1.5">
                       Buscar / Selecionar Cliente
@@ -364,6 +368,19 @@ export function EditSaleModal({
                       onChange={(e) => setClientName(e.target.value)}
                       placeholder="Nome da cliente na venda..."
                       className="h-11 rounded-xl bg-background border-border/40 font-semibold text-sm"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground block mb-1.5 flex items-center gap-1.5">
+                      <Calendar className="size-3.5 text-gold" />
+                      Data da Venda
+                    </label>
+                    <Input
+                      type="date"
+                      value={saleDate}
+                      onChange={(e) => setSaleDate(e.target.value)}
+                      className="h-11 rounded-xl bg-background border-border/40 font-semibold text-sm cursor-pointer"
                     />
                   </div>
                 </div>

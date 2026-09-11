@@ -4,7 +4,7 @@ import {
   DialogContent,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { brl, dateTimeBR } from "@/lib/format";
+import { brl, dateTimeBR, dateBR } from "@/lib/format";
 import { 
   Printer, 
   Share2,
@@ -525,9 +525,7 @@ export function ReceiptModal({
     // Dados da Venda
     const saleCode = displaySale?.sale_code || displaySale?.id?.toString().slice(0, 8);
     appendText(leftRight("Pedido:", `#${saleCode}`));
-    const saleDate = new Date(displaySale?.created_at || new Date()).toLocaleString('pt-BR', {
-      day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'
-    });
+    const saleDate = dateTimeBR(displaySale?.created_at || new Date());
     appendText(leftRight("Data:", saleDate));
     appendText(leftRight("Cliente:", (displayClient?.name || "CONSUMIDOR").toUpperCase()));
     if (displayClient?.cpf) {
@@ -602,7 +600,7 @@ export function ReceiptModal({
         appendText("HISTORICO DE PAGAMENTOS");
         bytes.push(0x1B, 0x61, 0x00);
         payments.forEach((pay: any) => {
-          const payDate = new Date(pay.created_at).toLocaleDateString('pt-BR');
+          const payDate = dateBR(pay.created_at);
           appendText(leftRight(`${payDate} (${pay.payment_method || 'Pgto'}):`, brl(pay.amount)));
         });
       }
@@ -771,7 +769,7 @@ export function ReceiptModal({
               <div className="flex justify-between">
                 <span className="w-20">Data:</span>
                 <span className="flex-1 text-right">
-                  {new Date(displaySale?.created_at || new Date()).toLocaleDateString('pt-BR')} {new Date(displaySale?.created_at || new Date()).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                  {dateTimeBR(displaySale?.created_at || new Date())}
                 </span>
               </div>
               <div className="flex justify-between">
@@ -864,7 +862,7 @@ export function ReceiptModal({
                       <div className="space-y-0.5 my-1">
                         {payments.map((pay: any, idx: number) => (
                           <div key={idx} className="flex justify-between text-xs">
-                            <span>{new Date(pay.created_at).toLocaleDateString('pt-BR')} ({pay.payment_method}):</span>
+                            <span>{dateBR(pay.created_at)} ({pay.payment_method}):</span>
                             <span className="font-bold">{brl(pay.amount)}</span>
                           </div>
                         ))}
@@ -917,7 +915,7 @@ export function ReceiptModal({
                 <>
                   <div className="flex justify-between text-xs font-bold">
                     <span>Data:</span>
-                    <span>{new Date(displaySale?.created_at || new Date()).toLocaleDateString('pt-BR')}</span>
+                    <span>{dateBR(displaySale?.created_at || new Date())}</span>
                   </div>
                   <div className="flex justify-between font-black text-xs">
                     <span>{displaySale?.payment_method?.toUpperCase() || "DINHEIRO"} :</span>
@@ -979,7 +977,7 @@ export function ReceiptModal({
               
               <div className="mt-5 text-[10px]">
                 <p className="font-semibold">Obrigado! Volte sempre!</p>
-                <p className="mt-1 font-bold">{new Date(displaySale?.created_at || new Date()).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
+                <p className="mt-1 font-bold">{dateTimeBR(displaySale?.created_at || new Date())}</p>
               </div>
             </div>
           </div>
