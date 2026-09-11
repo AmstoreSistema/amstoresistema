@@ -1,5 +1,12 @@
-import { createFileRoute, Outlet, redirect, useRouterState } from "@tanstack/react-router";
-import { LogOut, Search } from "lucide-react";
+import { createFileRoute, Link, Outlet, redirect, useRouterState } from "@tanstack/react-router";
+import {
+  ArrowLeftRight,
+  BookMarked,
+  LogOut,
+  ShoppingCart,
+  Users,
+  Warehouse,
+} from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
@@ -7,10 +14,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { AppSidebar } from "@/components/app-sidebar";
 import { clearActivity, isSessionExpired, touchActivity } from "@/lib/session-timeout";
 import { clearRefreshTokenCookie, getRefreshTokenCookie, saveRefreshTokenCookie } from "@/lib/auth-cookie";
+import { cn } from "@/lib/utils";
 
 import { Button } from "@/components/ui/button";
 import { SidebarProvider, SidebarTrigger, useSidebar } from "@/components/ui/sidebar";
 import { Toaster } from "@/components/ui/sonner";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 
 export const Route = createFileRoute("/_authenticated")({
@@ -55,11 +64,20 @@ export const Route = createFileRoute("/_authenticated")({
 });
 
 
+const quickNavItems = [
+  { label: "Estoque", path: "/stock", icon: Warehouse },
+  { label: "Vendas", path: "/sales", icon: ShoppingCart },
+  { label: "Transações", path: "/transactions", icon: ArrowLeftRight },
+  { label: "Clientes", path: "/clients", icon: Users },
+  { label: "Catálogo", path: "/catalog", icon: BookMarked },
+];
+
+
 function AuthenticatedLayout() {
-  const [email, setEmail] = useState("");
-  const [name, setName] = useState("");
-  const [role, setRole] = useState("Vendedor");
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const [name, setName] = useState<string>("");
+  const [role, setRole] = useState<string>("Colaborador");
+  const [email, setEmail] = useState<string>("");
 
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data }) => {
@@ -137,12 +155,40 @@ function AuthenticatedLayout() {
         <AppSidebar />
 
         <div className="flex min-w-0 flex-1 flex-col">
-          <header className="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-border bg-card/80 px-4 backdrop-blur-md">
-            <SidebarTrigger className="shrink-0 text-foreground" aria-label="Abrir menu" />
-            <div className="hidden items-center gap-2 rounded-lg border border-border bg-background px-3 py-1.5 text-sm text-muted-foreground md:flex">
-              <Search className="size-4" />
-              <span className="text-xs font-bold uppercase tracking-widest text-gold/80">Amstore BAGSHOES</span>
-            </div>
+          <header className="sticky top-0 z-20 flex h-16 items-center gap-2 border-b border-border bg-card/80 px-3 sm:px-4 backdrop-blur-md">
+            <SidebarTrigger className="shrink-0 text-foreground md:hidden" aria-label="Abrir menu" />
+
+            {/* Acesso rápido às funções do sistema */}
+            <TooltipProvider delayDuration={150}>
+              <div className="flex items-center gap-1 sm:gap-1.5 overflow-x-auto scrollbar-none py-1">
+                {quickNavItems.map((item) => {
+                  const Icon = item.icon;
+                  const isActive = pathname === item.path || pathname.startsWith(item.path + "/");
+                  return (
+                    <Tooltip key={item.path}>
+                      <TooltipTrigger asChild>
+                        <Link
+                          to={item.path}
+                          className={cn(
+                            "flex h-9 items-center gap-1.5 rounded-lg px-2.5 sm:px-3 text-xs font-medium transition-all duration-150 shrink-0",
+                            isActive
+                              ? "bg-gold/15 text-gold border border-gold/30 shadow-sm shadow-gold/10 font-semibold"
+                              : "text-muted-foreground hover:bg-muted/70 hover:text-foreground border border-transparent"
+                          )}
+                        >
+                          <Icon className={cn("size-4 shrink-0", isActive && "text-gold")} />
+                          <span className="hidden md:inline">{item.label}</span>
+                        </Link>
+                      </TooltipTrigger>
+                      <TooltipContent side="bottom" className="text-xs font-medium">
+                        {item.label}
+                      </TooltipContent>
+                    </Tooltip>
+                  );
+                })}
+              </div>
+            </TooltipProvider>
+
             <div className="flex-1" />
             <div className="hidden text-right sm:block">
               <p className="max-w-[180px] truncate text-xs font-semibold leading-tight">{name || email}</p>
