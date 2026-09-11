@@ -21,6 +21,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
+import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useRows } from "@/lib/data";
@@ -40,6 +41,10 @@ export const Route = createFileRoute("/_authenticated/aniversariantes")({
 });
 
 const DEFAULT_CARD_BG = "/cartao-aniversario-template.jpg";
+const DEFAULT_GREETING = "Feliz Aniversário!";
+const DEFAULT_BIRTHDAY_MESSAGE =
+  "Que o seu dia seja repleto de sorrisos, amor e momentos especiais. Desejamos a você um novo ciclo com muita saúde, paz, alegrias e sonhos realizados!";
+const DEFAULT_SIGNATURE = "Amstore Bagshoes";
 
 function AniversariantesPage() {
   const { data: clients = [], isLoading } = useRows<any>("clients", {
@@ -49,9 +54,12 @@ function AniversariantesPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedClient, setSelectedClient] = useState<any | null>(null);
   const [customName, setCustomName] = useState("");
+  const [greeting, setGreeting] = useState(DEFAULT_GREETING);
+  const [customMessage, setCustomMessage] = useState(DEFAULT_BIRTHDAY_MESSAGE);
+  const [signature, setSignature] = useState(DEFAULT_SIGNATURE);
   const [bgImageUrl, setBgImageUrl] = useState(DEFAULT_CARD_BG);
   const [posX, setPosX] = useState(50); // Padrão 50%
-  const [posY, setPosY] = useState(45); // Padrão 45%
+  const [posY, setPosY] = useState(48); // Padrão 48% (centro perfeito na área limpa)
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [imageLoaded, setImageLoaded] = useState(false);
@@ -89,17 +97,132 @@ function AniversariantesPage() {
 
   // Garante o carregamento da fonte Sacramento
   useEffect(() => {
-    if (typeof document !== "undefined") {
-      document.fonts
-        .load('80px "Sacramento"')
-        .then(() => {
-          setFontLoaded(true);
-        })
-        .catch(() => {
-          setFontLoaded(true);
-        });
+    if (typeof document !== "undefined" && document.fonts) {
+      Promise.all([
+        document.fonts.load('80px "Sacramento"'),
+        document.fonts.load('48px "Sacramento"'),
+      ])
+        .then(() => setFontLoaded(true))
+        .catch(() => setFontLoaded(true));
     }
   }, []);
+
+  // Função auxiliar para desenhar o texto harmonioso no cartão
+  const renderCardContent = (
+    ctx: CanvasRenderingContext2D,
+    width: number,
+    height: number
+  ) => {
+    const centerX = (posX / 100) * width;
+    const centerY = (posY / 100) * height;
+
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+
+    // Largura máxima de quebra de linha da mensagem no centro da moldura floral
+    const maxMessageWidth = Math.min(680, width * 0.62);
+
+    // Quebra a mensagem em linhas respeitando parágrafos e largura
+    ctx.font = 'italic 23px Georgia, serif';
+    const messageLines: string[] = [];
+    if (customMessage.trim()) {
+      const rawParagraphs = customMessage.split("\n");
+      for (const p of rawParagraphs) {
+        if (!p.trim()) {
+          messageLines.push("");
+          continue;
+        }
+        const words = p.split(" ");
+        let currentLine = "";
+        for (const w of words) {
+          const testLine = currentLine ? `${currentLine} ${w}` : w;
+          if (ctx.measureText(testLine).width > maxMessageWidth && currentLine) {
+            messageLines.push(currentLine);
+            currentLine = w;
+          } else {
+            currentLine = testLine;
+          }
+        }
+        if (currentLine) messageLines.push(currentLine);
+      }
+    }
+
+    const messageLineHeight = 34;
+    const messageHeight = messageLines.length * messageLineHeight;
+
+    const hasGreeting = Boolean(greeting.trim());
+    const hasName = Boolean(customName.trim());
+    const hasMessage = messageLines.length > 0;
+    const hasSignature = Boolean(signature.trim());
+
+    let totalHeight = 0;
+    if (hasGreeting) totalHeight += 44;
+    if (hasName) totalHeight += 68;
+    if (hasMessage) totalHeight += 24 + messageHeight;
+    if (hasSignature) totalHeight += 24 + 22 + 28;
+
+    let currentY = centerY - totalHeight / 2;
+
+    // 1. Saudação ("Feliz Aniversário!")
+    if (hasGreeting) {
+      ctx.font = 'italic 46px "Sacramento", cursive';
+      ctx.fillStyle = "#A66D38"; // Dourado âmbar suave
+      ctx.shadowColor = "rgba(0, 0, 0, 0.04)";
+      ctx.shadowBlur = 3;
+      ctx.fillText(greeting.trim(), centerX, currentY + 22);
+      currentY += 44;
+    }
+
+    // 2. Nome do Aniversariante ("Querida Maria" ou "Maria")
+    if (hasName) {
+      ctx.font = 'bold 74px "Sacramento", cursive';
+      ctx.fillStyle = "#6B3710"; // Marrom sofisticado profundo
+      ctx.shadowColor = "rgba(0, 0, 0, 0.08)";
+      ctx.shadowBlur = 6;
+      ctx.fillText(customName.trim(), centerX, currentY + 34);
+      currentY += 68;
+    }
+
+    // Linha divisória suave / ornamento
+    if ((hasGreeting || hasName) && hasMessage) {
+      currentY += 10;
+      ctx.beginPath();
+      ctx.strokeStyle = "rgba(166, 109, 56, 0.4)";
+      ctx.lineWidth = 1.5;
+      ctx.moveTo(centerX - 90, currentY);
+      ctx.lineTo(centerX + 90, currentY);
+      ctx.stroke();
+      currentY += 14;
+    }
+
+    // 3. Mensagem de Aniversário
+    if (hasMessage) {
+      ctx.font = 'italic 23px Georgia, serif';
+      ctx.fillStyle = "#4A3525"; // Tom suave e legível
+      ctx.shadowColor = "transparent";
+      ctx.shadowBlur = 0;
+
+      for (const line of messageLines) {
+        if (line) {
+          ctx.fillText(line, centerX, currentY + messageLineHeight / 2);
+        }
+        currentY += messageLineHeight;
+      }
+    }
+
+    // 4. Assinatura da Loja
+    if (hasSignature) {
+      currentY += 16;
+      ctx.font = 'italic 20px Georgia, serif';
+      ctx.fillStyle = "#8B5A2B";
+      ctx.fillText("Com carinho,", centerX, currentY + 11);
+      currentY += 26;
+
+      ctx.font = 'bold 24px Georgia, serif';
+      ctx.fillStyle = "#5C3317";
+      ctx.fillText(signature.trim(), centerX, currentY + 14);
+    }
+  };
 
   // Renderiza no <canvas>
   useEffect(() => {
@@ -117,47 +240,29 @@ function AniversariantesPage() {
 
       // Define a resolução interna do canvas baseada na imagem original (alta resolução)
       canvas.width = img.naturalWidth || 1200;
-      canvas.height = img.naturalHeight || 900;
+      canvas.height = img.naturalHeight || 896;
 
       // 1. Desenha a imagem base de fundo
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 
-      // 2. Desenha o nome do cliente por cima
-      if (customName.trim()) {
-        const x = (posX / 100) * canvas.width;
-        const y = (posY / 100) * canvas.height;
-
-        ctx.font = '80px "Sacramento", cursive';
-        ctx.fillStyle = "#8B4513"; // Cor marrom conforme especificado
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-
-        ctx.fillText(customName.trim(), x, y);
-      }
+      // 2. Desenha a composição completa com mensagem e assinatura
+      renderCardContent(ctx, canvas.width, canvas.height);
     };
 
     img.onerror = () => {
       // Fallback elegante se a imagem não carregar
       canvas.width = 1200;
-      canvas.height = 900;
-      ctx.fillStyle = "#fff5f5";
+      canvas.height = 896;
+      ctx.fillStyle = "#fffbf7";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
-      ctx.strokeStyle = "#f43f5e";
-      ctx.lineWidth = 8;
-      ctx.strokeRect(20, 20, canvas.width - 40, canvas.height - 40);
+      ctx.strokeStyle = "#e8c99e";
+      ctx.lineWidth = 10;
+      ctx.strokeRect(24, 24, canvas.width - 48, canvas.height - 48);
 
-      if (customName.trim()) {
-        const x = (posX / 100) * canvas.width;
-        const y = (posY / 100) * canvas.height;
-        ctx.font = '80px "Sacramento", cursive';
-        ctx.fillStyle = "#8B4513";
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-        ctx.fillText(customName.trim(), x, y);
-      }
+      renderCardContent(ctx, canvas.width, canvas.height);
     };
-  }, [bgImageUrl, customName, posX, posY, fontLoaded]);
+  }, [bgImageUrl, customName, greeting, customMessage, signature, posX, posY, fontLoaded]);
 
   // Botão Baixar Cartão
   const handleDownloadCard = () => {
@@ -203,11 +308,11 @@ function AniversariantesPage() {
         : `55${phoneDigits}`;
 
     const clientName = customName.trim() || selectedClient.name || selectedClient.nome || "amigo(a)";
-    const message = `Olá ${clientName}! 🎂🎉 Feliz Aniversário! Que este dia seja repleto de alegrias e realizações! 🎁`;
+    const message = `Olá, ${clientName}! 🎂🎉\n\n${greeting.trim()}\n${customMessage.trim()}\n\nCom carinho,\n${signature.trim()}`;
     const waUrl = `https://wa.me/${finalPhone}?text=${encodeURIComponent(message)}`;
 
     window.open(waUrl, "_blank");
-    toast.success("Abrindo WhatsApp com a mensagem de felicitações!");
+    toast.success("Abrindo WhatsApp com a mensagem e assinatura da loja!");
   };
 
   return (
@@ -370,15 +475,77 @@ function AniversariantesPage() {
             <CardContent className="space-y-6 pt-6">
               {/* Controles de Personalização */}
               <div className="grid gap-4 sm:grid-cols-2 rounded-2xl border border-border/50 bg-muted/20 p-4">
-                {/* Nome escrito no cartão */}
-                <div className="space-y-1.5 sm:col-span-2">
+                {/* Saudação / Título */}
+                <div className="space-y-1.5 sm:col-span-1">
                   <Label className="text-xs font-semibold">
-                    Nome escrito no cartão (Fonte cursiva Sacramento)
+                    Saudação do Cartão
+                  </Label>
+                  <Input
+                    value={greeting}
+                    onChange={(e) => setGreeting(e.target.value)}
+                    placeholder="Feliz Aniversário!"
+                    className="h-10 rounded-xl bg-background font-medium"
+                  />
+                </div>
+
+                {/* Nome escrito no cartão */}
+                <div className="space-y-1.5 sm:col-span-1">
+                  <Label className="text-xs font-semibold">
+                    Nome do Aniversariante (Fonte Sacramento)
                   </Label>
                   <Input
                     value={customName}
                     onChange={(e) => setCustomName(e.target.value)}
                     placeholder="Nome do aniversariante..."
+                    className="h-10 rounded-xl bg-background font-medium"
+                  />
+                </div>
+
+                {/* Mensagem de Aniversário */}
+                <div className="space-y-1.5 sm:col-span-2">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs font-semibold">
+                      Mensagem de Aniversário (Ajustada na Imagem)
+                    </Label>
+                    {customMessage !== DEFAULT_BIRTHDAY_MESSAGE && (
+                      <button
+                        type="button"
+                        onClick={() => setCustomMessage(DEFAULT_BIRTHDAY_MESSAGE)}
+                        className="text-[11px] text-pink-600 hover:underline flex items-center gap-1"
+                      >
+                        <RefreshCw className="size-3" /> Restaurar mensagem padrão
+                      </button>
+                    )}
+                  </div>
+                  <Textarea
+                    value={customMessage}
+                    onChange={(e) => setCustomMessage(e.target.value)}
+                    rows={3}
+                    placeholder="Mensagem de felicitações..."
+                    className="rounded-xl bg-background text-xs leading-relaxed resize-none font-medium"
+                  />
+                </div>
+
+                {/* Assinatura da Loja */}
+                <div className="space-y-1.5 sm:col-span-2">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs font-semibold">
+                      Assinatura da Loja (Final da Mensagem e Cartão)
+                    </Label>
+                    {signature !== DEFAULT_SIGNATURE && (
+                      <button
+                        type="button"
+                        onClick={() => setSignature(DEFAULT_SIGNATURE)}
+                        className="text-[11px] text-pink-600 hover:underline flex items-center gap-1"
+                      >
+                        <RefreshCw className="size-3" /> Restaurar Amstore Bagshoes
+                      </button>
+                    )}
+                  </div>
+                  <Input
+                    value={signature}
+                    onChange={(e) => setSignature(e.target.value)}
+                    placeholder="Amstore Bagshoes"
                     className="h-10 rounded-xl bg-background font-medium"
                   />
                 </div>
