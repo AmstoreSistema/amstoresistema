@@ -355,7 +355,7 @@ export const getSaleDetails = createServerFn({ method: "GET" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     
     const [saleResult, itemsResult, paymentsResult, installmentsResult] = await Promise.all([
-      supabaseAdmin.from("sales").select("*, clients(name)").eq("id", data.sale_id).single(),
+      supabaseAdmin.from("sales").select("*, clients(id, name, phone, cashback_balance)").eq("id", data.sale_id).single(),
       supabaseAdmin.from("sale_items").select("*, products(name)").eq("sale_id", data.sale_id),
       supabaseAdmin.from("transactions").select("*, financial_accounts(name)").eq("sale_id", data.sale_id).eq("type", "income"),
       supabaseAdmin.from("sale_installments").select("*").eq("sale_id", data.sale_id).order("installment_number", { ascending: true })
@@ -375,6 +375,7 @@ export const editSaleItems = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data) => z.object({
     sale_id: z.string(),
+    client_id: z.string().nullable().optional(),
     discount_general: z.number().nonnegative().optional(),
     cashback_used: z.number().nonnegative().optional(),
     items: z.array(z.object({
@@ -534,15 +535,21 @@ export const editSaleItems = createServerFn({ method: "POST" })
         ? "partial"
         : "pending";
 
+    const updatePayload: Record<string, any> = {
+      total_amount: newTotal,
+      discount: discountGeneral,
+      discount_amount: discountGeneral,
+      cashback_used: cashbackUsed,
+      status: newStatus,
+    };
+
+    if (data.client_id !== undefined) {
+      updatePayload.client_id = data.client_id;
+    }
+
     await admin
       .from("sales")
-      .update({
-        total_amount: newTotal,
-        discount: discountGeneral,
-        discount_amount: discountGeneral,
-        cashback_used: cashbackUsed,
-        status: newStatus,
-      })
+      .update(updatePayload)
       .eq("id", data.sale_id);
 
     return {
