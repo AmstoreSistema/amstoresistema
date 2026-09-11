@@ -15,24 +15,26 @@ import { Toaster } from "@/components/ui/sonner";
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
   beforeLoad: async () => {
-    // Usa getUser() para garantir que o token seja renovado automaticamente antes de verificar
-    // getSession() retorna o cache local que pode estar expirado; getUser() vai ao servidor e faz refresh
-    const { data: { user }, error } = await supabase.auth.getUser();
-    if (!user || error) {
-      // Tenta pegar sessão com refresh explícito como fallback
-      const { data: { session } } = await supabase.auth.refreshSession();
-      if (!session) {
-        throw redirect({ to: "/auth" });
-      }
+    // getSession() do Supabase JS v2 JÁ renova automaticamente o JWT expirado
+    // usando o refresh token armazenado no localStorage.
+    // NÃO chamar signOut() aqui: destruiria o refresh token e forçaria novo login toda vez.
+    const { data: { session } } = await supabase.auth.getSession();
+
+    if (!session) {
+      // Sem sessão ou refresh falhou → apenas redireciona, sem signOut
+      throw redirect({ to: "/auth" });
     }
+
+    // Verifica inatividade (timer de 8h)
+    // Só aqui chamamos signOut pois há uma sessão ativa que queremos encerrar por segurança
     if (isSessionExpired()) {
       clearActivity();
       await supabase.auth.signOut();
       throw redirect({ to: "/auth" });
     }
+
     touchActivity();
-    const { data: { session } } = await supabase.auth.getSession();
-    return { user: session?.user };
+    return { user: session.user };
   },
   component: AuthenticatedLayout,
 });
