@@ -7,6 +7,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { brl } from "@/lib/format";
@@ -19,6 +20,8 @@ import {
   Package,
   AlertCircle,
   CheckCircle2,
+  BadgePercent,
+  Coins,
 } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { getSaleDetails, editSaleItems } from "@/lib/sales.functions";
@@ -58,6 +61,8 @@ export function EditSaleModal({
   const mutateEditSale = useServerFn(editSaleItems);
 
   const [items, setItems] = useState<EditableItem[]>([]);
+  const [discountGeneral, setDiscountGeneral] = useState<number>(0);
+  const [cashbackUsed, setCashbackUsed] = useState<number>(0);
   const [isSaving, setIsSaving] = useState(false);
   const [showProductSearch, setShowProductSearch] = useState(false);
 
@@ -119,22 +124,24 @@ export function EditSaleModal({
       }));
       setItems(loaded);
     }
+    if (saleData?.sale) {
+      setDiscountGeneral(Number(saleData.sale.discount_amount ?? saleData.sale.discount ?? 0));
+      setCashbackUsed(Number(saleData.sale.cashback_used ?? 0));
+    }
   }, [saleData, productSizesMap]);
 
   const sale = saleData?.sale;
   const originalTotal = Number(sale?.total_amount || 0);
 
-  // Calcula novo total
+  // Calcula novo subtotal dos itens
   const newSubtotal = useMemo(() => {
     return items.reduce(
-      (acc, i) => acc + i.quantity * i.unit_price - (i.discount || 0),
+      (acc, i) => acc + (i.quantity * i.unit_price - (i.discount || 0)),
       0
     );
   }, [items]);
 
-  const discountGeneral = Number(sale?.discount_amount ?? sale?.discount ?? 0);
-  const cashbackUsed = Number(sale?.cashback_used || 0);
-  const newTotal = Math.max(0, newSubtotal - discountGeneral - cashbackUsed);
+  const newTotal = Math.max(0, Number((newSubtotal - discountGeneral - cashbackUsed).toFixed(2)));
   const diff = Number((newTotal - originalTotal).toFixed(2));
 
   // Adiciona produto vindo do ProductSearch
@@ -164,6 +171,24 @@ export function EditSaleModal({
       const newQty = target.quantity + delta;
       if (newQty <= 0) return next;
       next[index] = { ...target, quantity: newQty };
+      return next;
+    });
+  };
+
+  // Altera desconto de um item específico
+  const handleChangeItemDiscount = (index: number, discount: number) => {
+    setItems((prev) => {
+      const next = [...prev];
+      next[index] = { ...next[index], discount: Math.max(0, discount) };
+      return next;
+    });
+  };
+
+  // Altera preço unitário de um item
+  const handleChangeUnitPrice = (index: number, unit_price: number) => {
+    setItems((prev) => {
+      const next = [...prev];
+      next[index] = { ...next[index], unit_price: Math.max(0, unit_price) };
       return next;
     });
   };
@@ -212,6 +237,8 @@ export function EditSaleModal({
         data: {
           sale_id: saleId,
           items: payloadItems,
+          discount_general: discountGeneral,
+          cashback_used: cashbackUsed,
         },
       });
 
@@ -347,13 +374,32 @@ export function EditSaleModal({
                               )}
                             </div>
 
-                            <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5 flex-wrap">
-                              <span>Unitário: {brl(item.unit_price)}</span>
-                              {item.discount > 0 && (
-                                <span className="text-amber-600 font-medium">
-                                  Desc.: -{brl(item.discount)}
-                                </span>
-                              )}
+                            <div className="flex items-center gap-2.5 text-xs text-muted-foreground mt-2 flex-wrap">
+                              <div className="flex items-center gap-1 bg-muted/40 px-2 py-1 rounded-lg border border-border/60">
+                                <span className="text-[11px] font-bold text-foreground">Unitário: R$</span>
+                                <Input
+                                  type="number"
+                                  min={0}
+                                  step="0.50"
+                                  value={item.unit_price}
+                                  onChange={(e) => handleChangeUnitPrice(idx, Number(e.target.value) || 0)}
+                                  className="h-6 w-18 px-1 text-xs font-bold text-foreground bg-background text-right"
+                                  title="Editar valor unitário deste produto"
+                                />
+                              </div>
+
+                              <div className="flex items-center gap-1 bg-amber-500/10 px-2 py-1 rounded-lg border border-amber-500/30">
+                                <span className="text-[11px] font-bold text-amber-700 dark:text-amber-400">Desc. Item: R$</span>
+                                <Input
+                                  type="number"
+                                  min={0}
+                                  step="0.50"
+                                  value={item.discount || 0}
+                                  onChange={(e) => handleChangeItemDiscount(idx, Number(e.target.value) || 0)}
+                                  className="h-6 w-18 px-1 text-xs font-bold text-amber-700 dark:text-amber-400 bg-background text-right"
+                                  title="Editar desconto individual deste produto"
+                                />
+                              </div>
                             </div>
 
                             {/* Troca de Numeração direta (se for calçado) */}
@@ -446,30 +492,92 @@ export function EditSaleModal({
                 </div>
               </ScrollArea>
 
+              {/* Ajuste de Desconto Geral e Cashback da Venda */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-muted/20 p-3 rounded-xl border border-border/60 shrink-0">
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between">
+                    <label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                      <BadgePercent className="size-3.5 text-amber-600" /> Desconto Geral da Venda
+                    </label>
+                    {discountGeneral > 0 && (
+                      <span className="text-[10px] text-amber-600 font-bold">
+                        - {brl(discountGeneral)}
+                      </span>
+                    )}
+                  </div>
+                  <div className="relative">
+                    <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-muted-foreground font-bold">R$</span>
+                    <Input
+                      type="number"
+                      min={0}
+                      step="0.50"
+                      value={discountGeneral}
+                      onChange={(e) => setDiscountGeneral(Math.max(0, Number(e.target.value) || 0))}
+                      placeholder="0,00"
+                      className="h-8 pl-8 text-xs font-bold bg-background"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between">
+                    <label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                      <Coins className="size-3.5 text-gold" /> Cashback Utilizado
+                    </label>
+                    {cashbackUsed > 0 && (
+                      <span className="text-[10px] text-gold font-bold">
+                        - {brl(cashbackUsed)}
+                      </span>
+                    )}
+                  </div>
+                  <div className="relative">
+                    <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-muted-foreground font-bold">R$</span>
+                    <Input
+                      type="number"
+                      min={0}
+                      step="0.50"
+                      value={cashbackUsed}
+                      onChange={(e) => setCashbackUsed(Math.max(0, Number(e.target.value) || 0))}
+                      placeholder="0,00"
+                      className="h-8 pl-8 text-xs font-bold bg-background"
+                    />
+                  </div>
+                </div>
+              </div>
+
               {/* Resumo da Troca / Totais */}
               <div className="bg-muted/30 p-4 rounded-xl border border-border/70 space-y-2 shrink-0">
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
                   <div>
                     <span className="text-muted-foreground block text-[10px] uppercase font-bold">
-                      Total Original
+                      Subtotal Itens
                     </span>
                     <span className="font-bold text-sm text-foreground">
-                      {brl(originalTotal)}
+                      {brl(newSubtotal)}
                     </span>
                   </div>
 
                   <div>
                     <span className="text-muted-foreground block text-[10px] uppercase font-bold">
-                      Novo Total
+                      Descontos / Cashback
+                    </span>
+                    <span className="font-bold text-sm text-amber-600">
+                      - {brl(discountGeneral + cashbackUsed)}
+                    </span>
+                  </div>
+
+                  <div>
+                    <span className="text-muted-foreground block text-[10px] uppercase font-bold">
+                      Novo Total da Venda
                     </span>
                     <span className="font-black text-sm text-foreground">
                       {brl(newTotal)}
                     </span>
                   </div>
 
-                  <div className="col-span-2 sm:col-span-1">
+                  <div>
                     <span className="text-muted-foreground block text-[10px] uppercase font-bold">
-                      Diferença
+                      Diferença vs Original ({brl(originalTotal)})
                     </span>
                     {diff === 0 ? (
                       <span className="font-bold text-xs text-emerald-600 flex items-center gap-1">
@@ -481,7 +589,7 @@ export function EditSaleModal({
                       </span>
                     ) : (
                       <span className="font-black text-xs text-blue-600">
-                        - {brl(Math.abs(diff))} (Crédito/Sobra)
+                        - {brl(Math.abs(diff))} (Crédito/Troco)
                       </span>
                     )}
                   </div>

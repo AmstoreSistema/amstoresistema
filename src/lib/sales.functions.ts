@@ -375,6 +375,8 @@ export const editSaleItems = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data) => z.object({
     sale_id: z.string(),
+    discount_general: z.number().nonnegative().optional(),
+    cashback_used: z.number().nonnegative().optional(),
     items: z.array(z.object({
       id: z.string().optional(),
       product_id: z.string(),
@@ -515,8 +517,13 @@ export const editSaleItems = createServerFn({ method: "POST" })
       0
     );
 
-    const discountGeneral = Number(sale.discount_amount ?? sale.discount ?? 0);
-    const cashbackUsed = Number(sale.cashback_used || 0);
+    const discountGeneral = data.discount_general !== undefined 
+      ? Number(data.discount_general) 
+      : Number(sale.discount_amount ?? sale.discount ?? 0);
+    const cashbackUsed = data.cashback_used !== undefined 
+      ? Number(data.cashback_used) 
+      : Number(sale.cashback_used || 0);
+
     const newTotal = Math.max(0, Number((itemsSubtotal - discountGeneral - cashbackUsed).toFixed(2)));
 
     const paidAmount = Number(sale.paid_amount || 0);
@@ -531,6 +538,9 @@ export const editSaleItems = createServerFn({ method: "POST" })
       .from("sales")
       .update({
         total_amount: newTotal,
+        discount: discountGeneral,
+        discount_amount: discountGeneral,
+        cashback_used: cashbackUsed,
         status: newStatus,
       })
       .eq("id", data.sale_id);
