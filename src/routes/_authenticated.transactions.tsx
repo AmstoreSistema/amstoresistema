@@ -459,69 +459,134 @@ function TransactionsPage() {
                   {items.map(t => {
                     const isIncome = t.type === 'entrada' || t.type === 'income';
                     return (
-                      <div key={t.id} className="group p-3 sm:p-4 flex items-center gap-2.5 sm:gap-4 hover:bg-gray-50/50 transition-colors">
-                        <div className={cn(
-                          "size-8 sm:size-10 rounded-xl flex items-center justify-center shrink-0",
-                          isIncome ? "bg-green-50 text-green-500" : "bg-red-50 text-red-500"
-                        )}>
-                           {isIncome ? <TrendingUp className="size-4 sm:size-5" /> : <TrendingDown className="size-4 sm:size-5" />}
-                        </div>
-                        
-                        <div className="flex-1 min-w-0">
-                           <div className="flex items-center gap-1.5 sm:gap-2">
-                              <h4 className="font-normal text-xs sm:text-sm text-gray-800 truncate">{formatTransactionTitle(t.description, t.clients?.name)}</h4>
-                              <Badge variant="secondary" className={cn(
-                                "text-[9px] font-black uppercase h-4 sm:h-5 px-1 sm:px-1.5 border-none shrink-0",
-                                t.status === 'pago' ? "bg-green-100 text-green-700" : "bg-orange-100 text-orange-700"
+                      <div 
+                        key={t.id} 
+                        className="group p-3 sm:p-4 hover:bg-gray-50/70 transition-colors cursor-pointer active:bg-gray-100/60"
+                        onClick={() => setViewingTransaction(t)}
+                      >
+                        {/* Linha Principal: Ícone + Detalhes + Valor + Menu/Ações */}
+                        <div className="flex items-start sm:items-center justify-between gap-2.5 sm:gap-4">
+                          <div className="flex items-start sm:items-center gap-2.5 sm:gap-3 flex-1 min-w-0">
+                            <div className={cn(
+                              "size-8 sm:size-10 rounded-xl flex items-center justify-center shrink-0 mt-0.5 sm:mt-0",
+                              isIncome ? "bg-green-50 text-green-500" : "bg-red-50 text-red-500"
+                            )}>
+                              {isIncome ? <TrendingUp className="size-4 sm:size-5" /> : <TrendingDown className="size-4 sm:size-5" />}
+                            </div>
+                            
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap sm:flex-nowrap">
+                                <h4 className="font-semibold text-xs sm:text-sm text-gray-900 leading-snug break-words line-clamp-2 sm:line-clamp-none">
+                                  {formatTransactionTitle(t.description, t.clients?.name)}
+                                </h4>
+                                <Badge variant="secondary" className={cn(
+                                  "text-[9px] font-black uppercase h-4 sm:h-5 px-1 sm:px-1.5 border-none shrink-0",
+                                  t.status === 'pago' ? "bg-green-100 text-green-700" : "bg-orange-100 text-orange-700"
+                                )}>
+                                  {t.status}
+                                </Badge>
+                              </div>
+                              
+                              {t.clients?.name ? (
+                                <p className="text-xs sm:text-sm font-bold text-gray-800 mt-0.5 truncate">
+                                  {t.clients.name}
+                                </p>
+                              ) : (t.suppliers?.name || t.supplier_name) ? (
+                                <p className="text-xs sm:text-sm font-bold text-gray-800 mt-0.5 truncate">
+                                  {t.suppliers?.name || t.supplier_name}
+                                </p>
+                              ) : null}
+
+                              {/* Metadados no Desktop */}
+                              <div className="hidden sm:flex flex-wrap items-center gap-1.5 mt-1 text-[10px] text-muted-foreground font-normal uppercase tracking-tight">
+                                <span className="px-1.5 py-0.5 rounded bg-gray-100 font-semibold text-[9px] text-gray-600">
+                                  {t.category || "Vendas"}
+                                </span>
+                                <span className="size-1 rounded-full bg-gray-300" />
+                                <span>
+                                  {t.financial_accounts?.name || "Caixa Principal"}
+                                </span>
+                                <span className="size-1 rounded-full bg-gray-300" />
+                                <span>
+                                  {dateBR(t.created_at)}
+                                </span>
+                                {t.payment_method && (
+                                  <>
+                                    <span className="size-1 rounded-full bg-gray-300" />
+                                    <span>{t.payment_method}</span>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Lado Direito: Valor + Ações */}
+                          <div className="flex items-center gap-1 sm:gap-3 shrink-0">
+                            <div className="text-right">
+                              <p className={cn(
+                                "font-black text-xs sm:text-lg font-display whitespace-nowrap",
+                                isIncome ? "text-green-600" : "text-red-600"
                               )}>
-                                {t.status}
-                              </Badge>
-                           </div>
-                           
-                           {t.clients?.name ? (
-                             <div className="mt-0.5">
-                               <p className="text-xs sm:text-sm font-bold text-gray-900 truncate">{t.clients.name}</p>
-                             </div>
-                           ) : (t.suppliers?.name || t.supplier_name) ? (
-                             <div className="mt-0.5">
-                               <p className="text-xs sm:text-sm font-bold text-gray-900 truncate">{t.suppliers?.name || t.supplier_name}</p>
-                             </div>
-                           ) : null}
+                                {isIncome ? '+' : '-'} {brl(Math.abs(t.amount))}
+                              </p>
+                            </div>
 
-                           <div className="flex flex-wrap items-center gap-1 sm:gap-2 mt-1">
-                              <span className="text-[9px] sm:text-[10px] text-muted-foreground font-normal uppercase tracking-tight">
-                                {t.category || "Vendas"}
-                              </span>
-                              <span className="size-1 rounded-full bg-gray-300" />
-                              <span className="text-[9px] sm:text-[10px] text-muted-foreground font-normal uppercase tracking-tight">
-                                 {t.financial_accounts?.name || "Caixa Principal"}
-                              </span>
-                              <span className="size-1 rounded-full bg-gray-300" />
-                              <span className="text-[9px] sm:text-[10px] text-muted-foreground font-normal uppercase tracking-tight">
-                                 {dateBR(t.created_at)}
-                              </span>
-                           </div>
+                            {/* Menu mobile (3 pontinhos) */}
+                            <div className="sm:hidden" onClick={(e) => e.stopPropagation()}>
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="icon" className="h-7 w-7 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100">
+                                    <MoreVertical className="size-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="w-44 rounded-xl">
+                                  <DropdownMenuItem onClick={() => setViewingTransaction(t)} className="gap-2 text-xs font-semibold py-2">
+                                    <Eye className="size-3.5 text-gray-500" /> Ver Detalhes
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => setEditingTransaction(t)} className="gap-2 text-xs font-semibold py-2">
+                                    <Pencil className="size-3.5 text-blue-500" /> Editar
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => handleDeleteItem(t.id)} className="gap-2 text-xs font-semibold py-2 text-red-600 focus:text-red-600 focus:bg-red-50">
+                                    <Trash2 className="size-3.5 text-red-500" /> Excluir
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </div>
+
+                            {/* Botões no Desktop */}
+                            <div className="hidden sm:flex items-center gap-1 opacity-40 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
+                              <Button variant="outline" size="icon" className="h-8 w-8 rounded-lg border-gray-100" onClick={() => setViewingTransaction(t)}>
+                                <Eye className="size-3.5" />
+                              </Button>
+                              <Button variant="outline" size="icon" className="h-8 w-8 rounded-lg border-gray-100" onClick={() => setEditingTransaction(t)}>
+                                <Pencil className="size-3.5" />
+                              </Button>
+                              <Button variant="outline" size="icon" className="h-8 w-8 rounded-lg border-red-50 text-red-500 hover:bg-red-50" onClick={() => handleDeleteItem(t.id)}>
+                                <Trash2 className="size-3.5" />
+                              </Button>
+                            </div>
+                          </div>
                         </div>
 
-                        <div className="text-right sm:mr-4 shrink-0">
-                           <p className={cn(
-                             "font-black text-sm sm:text-lg font-display",
-                             isIncome ? "text-green-600" : "text-red-600"
-                           )}>
-                              {isIncome ? '+' : '-'} {brl(Math.abs(t.amount))}
-                           </p>
-                        </div>
-
-                        <div className="flex items-center gap-1 opacity-100 sm:opacity-40 group-hover:opacity-100 transition-opacity shrink-0">
-                            <Button variant="outline" size="icon" className="h-7 w-7 sm:h-8 sm:w-8 rounded-lg border-gray-100" onClick={() => setViewingTransaction(t)}>
-                                <Eye className="size-3 sm:size-3.5" />
-                            </Button>
-                            <Button variant="outline" size="icon" className="h-7 w-7 sm:h-8 sm:w-8 rounded-lg border-gray-100" onClick={() => setEditingTransaction(t)}>
-                                <Pencil className="size-3 sm:size-3.5" />
-                            </Button>
-                            <Button variant="outline" size="icon" className="h-7 w-7 sm:h-8 sm:w-8 rounded-lg border-red-50 text-red-500 hover:bg-red-50" onClick={() => handleDeleteItem(t.id)}>
-                                <Trash2 className="size-3 sm:size-3.5" />
-                            </Button>
+                        {/* Metadados no Mobile: alinhado ao texto ao lado do ícone */}
+                        <div className="sm:hidden flex items-center gap-1.5 pl-10.5 mt-2 flex-wrap text-[10px] text-muted-foreground">
+                          <span className="px-1.5 py-0.5 rounded bg-gray-100 font-semibold uppercase text-[9px] text-gray-700 tracking-wider">
+                            {t.category || "Vendas"}
+                          </span>
+                          <span className="text-gray-300">•</span>
+                          <span className="font-medium text-gray-600 truncate max-w-[130px]">
+                            {t.financial_accounts?.name || "Caixa Principal"}
+                          </span>
+                          <span className="text-gray-300">•</span>
+                          <span className="font-medium text-gray-500">
+                            {dateBR(t.created_at)}
+                          </span>
+                          {t.payment_method && (
+                            <>
+                              <span className="text-gray-300">•</span>
+                              <span className="font-medium text-gray-500">{t.payment_method}</span>
+                            </>
+                          )}
                         </div>
                       </div>
                     );
