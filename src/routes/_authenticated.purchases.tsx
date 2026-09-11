@@ -43,13 +43,47 @@ export const Route = createFileRoute("/_authenticated/purchases")({
   component: PurchasesPage,
 });
 
-type Material = { id: string; name: string; unit: string; current_stock: number; cost_price: number };
+type Material = {
+  id: string;
+  name: string;
+  type?: string;
+  unit: string;
+  current_stock: number;
+  cost_price: number;
+  width?: number | null;
+  height?: number | null;
+  thickness?: number | null;
+};
+
 type Purchase = {
   id: string;
   total_amount: number;
   status: string;
   created_at: string;
   supplier_name: string | null;
+};
+
+type PurchaseItemDraft = {
+  material_id: string;
+  quantity: number;
+  cost: number;
+  meters?: number;
+  isMeter?: boolean;
+};
+
+const CUTTABLE_TYPES = ["Couro", "Estrutura", "Forro", "Tecido"];
+
+const isCuttableOrMeter = (m?: Material | null) => {
+  if (!m) return false;
+  const typeLower = (m.type || "").toLowerCase().trim();
+  const unitLower = (m.unit || "").toLowerCase().trim();
+  const nameLower = (m.name || "").toLowerCase().trim();
+
+  const isCuttableType = CUTTABLE_TYPES.some(t => typeLower.includes(t.toLowerCase()));
+  const isMeterUnit = unitLower === "m" || unitLower === "metro" || unitLower === "metros";
+  const hasKeyword = ["couro", "forro", "estrutura", "napa", "tecido", "sintetico", "sintético"].some(k => nameLower.includes(k));
+
+  return isCuttableType || isMeterUnit || hasKeyword;
 };
 
 function PurchasesPage() {
@@ -61,19 +95,79 @@ function PurchasesPage() {
 
   const [open, setOpen] = useState(false);
   const [supplierId, setSupplierId] = useState("");
-  const [items, setItems] = useState<{ material_id: string; quantity: number; cost: number }[]>([]);
+  const [items, setItems] = useState<PurchaseItemDraft[]>([]);
   const [pick, setPick] = useState("");
   const [qty, setQty] = useState("1");
+  const [meters, setMeters] = useState("1");
   const [cost, setCost] = useState("0");
   const [saving, setSaving] = useState(false);
   const [viewingPurchase, setViewingPurchase] = useState<any>(null);
 
+  const selectedMat = materials.find((m) => m.id === pick);
+
+  const handleSelectMaterial = (id: string) => {
+    setPick(id);
+    const m = materials.find((mat) => mat.id === id);
+    if (m) {
+      if (m.cost_price && m.cost_price > 0) {
+        setCost(m.cost_price.toString());
+      }
+      if (isCuttableOrMeter(m)) {
+        setMeters("1");
+      } else {
+        setQty("1");
+      }
+    }
+  };
+
   const addItem = () => {
     const mat = materials.find((m) => m.id === pick);
-    if (!mat) return;
-    setItems((curr) => [...curr, { material_id: pick, quantity: Number(qty), cost: Number(cost || mat.cost_price) }]);
+    if (!mat) {
+      toast.error("Selecione um material");
+      return;
+    }
+
+    const isMeter = isCuttableOrMeter(mat);
+    const parsedCost = Number(cost) > 0 ? Number(cost) : (mat.cost_price || 0);
+
+    if (isMeter) {
+      const parsedMeters = Number(meters);
+      if (!parsedMeters || parsedMeters <= 0) {
+        toast.error("Informe a metragem comprada (em metros)");
+        return;
+      }
+
+      setItems((curr) => [
+        ...curr,
+        {
+          material_id: pick,
+          quantity: parsedMeters,
+          cost: parsedCost,
+          meters: parsedMeters,
+          isMeter: true,
+        },
+      ]);
+      setMeters("1");
+    } else {
+      const parsedQty = Number(qty);
+      if (!parsedQty || parsedQty <= 0) {
+        toast.error("Informe a quantidade");
+        return;
+      }
+
+      setItems((curr) => [
+        ...curr,
+        {
+          material_id: pick,
+          quantity: parsedQty,
+          cost: parsedCost,
+          isMeter: false,
+        },
+      ]);
+      setQty("1");
+    }
+
     setPick("");
-    setQty("1");
     setCost("0");
   };
 
@@ -113,7 +207,9 @@ function PurchasesPage() {
       const itemsSummary = items
         .map(i => {
           const m = materials.find(mat => mat.id === i.material_id);
-          return `${i.quantity}${m?.unit || 'un'} ${m?.name || 'Item'}`;
+          return i.isMeter
+            ? `${i.meters}m ${m?.name || 'Material'}`
+            : `${i.quantity}${m?.unit || 'un'} ${m?.name || 'Item'}`;
         })
         .join(", ");
 
@@ -133,13 +229,50 @@ function PurchasesPage() {
 
       if (error) throw error;
 
+      // Atualiza a medida do comprimento nos materiais de corte (Couro, Forro, Estrutura, Tecido)
+      // Somando o tamanho comprado ao que já existe, sem alterar os cortes existentes.
+      for (const item of items) {
+        if (item.isMeter && item.meters && item.meters > 0) {
+          const mat = materials.find(m => m.id === item.material_id);
+          if (mat) {
+            const isCm = (mat.height && mat.height > 20) || (mat.width && mat.width > 20);
+            const addedLength = isCm ? item.meters * 100 : item.meters;
+            const currentHeight = Number(mat.height) || 0;
+            const newHeight = Number((currentHeight + addedLength).toFixed(2));
+
+            const updatePayload: Record<string, any> = {
+              height: newHeight,
+              cost_price: item.cost,
+            };
+
+            // Se o material não tinha largura cadastrada, define uma padrão de 140cm (ou 1.40m)
+            if (!mat.width) {
+              updatePayload.width = isCm ? 140 : 1.4;
+            }
+
+            // Se a unidade estava como 'un' ou 'unidade', atualiza para 'm'
+            if (mat.unit === "un" || mat.unit === "unidade") {
+              updatePayload.unit = "m";
+            }
+
+            await supabase
+              .from("materials")
+              .update(updatePayload)
+              .eq("id", mat.id);
+          }
+        }
+      }
+
       await logAudit("compra", "purchases", `Compra recebida: ${supplierName} - Total ${brl(total)}`, purchaseId as unknown as string);
 
-      toast.success("Compra registrada, estoque atualizado (custo ajustado se maior) e despesa lançada");
+      toast.success("Compra registrada! O tamanho foi somado ao material e todos os cortes existentes foram preservados.");
       setOpen(false);
       setItems([]);
       setSupplierId("");
-      qc.invalidateQueries();
+      qc.invalidateQueries({ queryKey: ["purchases"] });
+      qc.invalidateQueries({ queryKey: ["materials"] });
+      qc.invalidateQueries({ queryKey: ["transactions"] });
+      qc.invalidateQueries({ queryKey: ["financial_accounts"] });
     } catch (e: any) {
       toast.error(e.message || "Erro ao registrar compra");
     } finally {
@@ -205,17 +338,17 @@ function PurchasesPage() {
       />
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-2xl max-h-[92vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Registrar Compra</DialogTitle>
-            <DialogDescription>A entrada de materiais aumentará o estoque automaticamente.</DialogDescription>
+            <DialogDescription>A entrada de materiais aumentará o estoque e o tamanho disponível automaticamente.</DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4">
             <div>
-              <Label className="mb-1.5 block text-xs">Fornecedor</Label>
+              <Label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-muted-foreground">Fornecedor</Label>
               <Select value={supplierId} onValueChange={setSupplierId}>
-                <SelectTrigger className="w-full">
+                <SelectTrigger className="w-full h-11 rounded-xl">
                   <SelectValue placeholder="Selecione um fornecedor" />
                 </SelectTrigger>
                 <SelectContent>
@@ -226,42 +359,208 @@ function PurchasesPage() {
               </Select>
             </div>
 
-            <div className="flex flex-wrap items-end gap-2 rounded-xl border border-border bg-muted/40 p-3">
-              <div className="min-w-[200px] flex-1">
-                <Label className="mb-1.5 block text-xs">Material</Label>
-                <Select value={pick} onValueChange={setPick}>
-                  <SelectTrigger><SelectValue placeholder="Selecione o material" /></SelectTrigger>
-                  <SelectContent>
+            {/* Bloco de Adicionar Item à Compra */}
+            <div className="rounded-2xl border border-border/80 bg-muted/30 p-4 space-y-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Material</Label>
+                <Select value={pick} onValueChange={handleSelectMaterial}>
+                  <SelectTrigger className="w-full h-11 rounded-xl bg-background">
+                    <SelectValue placeholder="Selecione o material a comprar..." />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-72">
                     {materials.map((m) => (
-                      <SelectItem key={m.id} value={m.id}>{m.name} ({m.unit})</SelectItem>
+                      <SelectItem key={m.id} value={m.id}>
+                        {m.name} {isCuttableOrMeter(m) ? `(por metro · ${m.type || "Corte"})` : `(${m.unit})`}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
-              <div className="w-24">
-                <Label className="mb-1.5 block text-xs">Qtd</Label>
-                <Input type="number" value={qty} onChange={(e) => setQty(e.target.value)} />
-              </div>
-              <div className="w-28">
-                <Label className="mb-1.5 block text-xs">Custo Unit.</Label>
-                <Input type="number" step="0.01" value={cost} onChange={(e) => setCost(e.target.value)} />
-              </div>
-              <Button onClick={addItem} type="button" variant="outline">Adicionar</Button>
+
+              {selectedMat && (
+                <div className="animate-in fade-in slide-in-from-top-2 duration-200 space-y-3">
+                  {isCuttableOrMeter(selectedMat) ? (
+                    /* Bloco específico para materiais por metro (Couro, Forro, Estrutura, Tecido, etc.) */
+                    <div className="rounded-xl border border-blue-200 bg-blue-50/60 p-3.5 space-y-3">
+                      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-blue-100 pb-2">
+                        <div className="flex items-center gap-2">
+                          <Badge className="bg-blue-600 text-white hover:bg-blue-600 text-[10px] uppercase font-bold px-2 py-0.5">
+                            Material por Metro / Corte
+                          </Badge>
+                          <span className="text-xs text-blue-950 font-bold">{selectedMat.name}</span>
+                        </div>
+                        {selectedMat.width ? (
+                          <span className="text-[11px] font-medium text-blue-800">
+                            Largura padrão da peça: <strong>{selectedMat.width > 20 ? `${selectedMat.width} cm` : `${selectedMat.width} m`}</strong>
+                          </span>
+                        ) : null}
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
+                        <div>
+                          <Label className="mb-1.5 block text-xs font-bold text-gray-800">
+                            Metros comprados (m) *
+                          </Label>
+                          <Input 
+                            type="number" 
+                            step="0.01" 
+                            min="0.01"
+                            placeholder="Ex: 5 ou 2.5" 
+                            value={meters} 
+                            onChange={(e) => setMeters(e.target.value)}
+                            className="h-10 bg-white rounded-lg border-blue-200 focus-visible:ring-blue-500 font-semibold"
+                            autoFocus
+                          />
+                        </div>
+
+                        <div>
+                          <Label className="mb-1.5 block text-xs font-bold text-gray-800">
+                            Custo por Metro (R$) *
+                          </Label>
+                          <Input 
+                            type="number" 
+                            step="0.01" 
+                            min="0"
+                            value={cost} 
+                            onChange={(e) => setCost(e.target.value)}
+                            className="h-10 bg-white rounded-lg border-blue-200 focus-visible:ring-blue-500 font-semibold"
+                          />
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <div className="flex-1">
+                            <Label className="mb-1.5 block text-xs font-semibold text-muted-foreground">
+                              Subtotal
+                            </Label>
+                            <div className="h-10 flex items-center px-3 rounded-lg bg-white border border-blue-200 font-bold text-sm text-green-600">
+                              {brl((Number(meters) || 0) * (Number(cost) || 0))}
+                            </div>
+                          </div>
+                          <Button 
+                            onClick={addItem} 
+                            type="button" 
+                            className="h-10 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg px-4"
+                          >
+                            Adicionar
+                          </Button>
+                        </div>
+                      </div>
+
+                      {/* Notificação visual garantindo a preservação dos cortes */}
+                      <div className="text-[11px] text-blue-900 bg-white/90 p-2.5 rounded-lg border border-blue-100 flex items-start gap-2">
+                        <CheckCircle2 className="size-4 text-blue-600 shrink-0 mt-0.5" />
+                        <div>
+                          <span>
+                            A metragem informada (<strong className="font-bold">{Number(meters) || 0} metros</strong>) será somada ao comprimento da peça e ao estoque. 
+                          </span>
+                          <span className="block text-blue-700 font-medium mt-0.5">
+                            ✓ Todos os cortes existentes (utilizados e disponíveis) serão 100% preservados intactos.
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    /* Bloco padrão para materiais convencionais (unidades, pares, etc.) */
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
+                      <div>
+                        <Label className="mb-1.5 block text-xs font-bold">
+                          Quantidade ({selectedMat.unit || 'un'}) *
+                        </Label>
+                        <Input 
+                          type="number" 
+                          step="1" 
+                          min="1" 
+                          value={qty} 
+                          onChange={(e) => setQty(e.target.value)}
+                          className="h-10 bg-background rounded-lg" 
+                        />
+                      </div>
+                      <div>
+                        <Label className="mb-1.5 block text-xs font-bold">
+                          Custo Unitário (R$) *
+                        </Label>
+                        <Input 
+                          type="number" 
+                          step="0.01" 
+                          min="0"
+                          value={cost} 
+                          onChange={(e) => setCost(e.target.value)}
+                          className="h-10 bg-background rounded-lg" 
+                        />
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="flex-1">
+                          <Label className="mb-1.5 block text-xs font-semibold text-muted-foreground">
+                            Subtotal
+                          </Label>
+                          <div className="h-10 flex items-center px-3 rounded-lg bg-background border font-bold text-sm text-green-600">
+                            {brl((Number(qty) || 0) * (Number(cost) || 0))}
+                          </div>
+                        </div>
+                        <Button 
+                          onClick={addItem} 
+                          type="button" 
+                          variant="outline" 
+                          className="h-10 font-bold rounded-lg px-4"
+                        >
+                          Adicionar
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
-            <div className="max-h-48 overflow-auto">
+            <div className="max-h-56 overflow-auto border rounded-xl">
               <DataTable
                 rows={items}
                 rowKey={(i) => i.material_id}
                 columns={[
-                  { key: "name", header: "Material", render: (i) => materials.find(m => m.id === i.material_id)?.name },
-                  { key: "qty", header: "Qtd", render: (i) => i.quantity },
-                  { key: "total", header: "Total", render: (i) => brl(i.quantity * i.cost) },
-                  { key: "actions", header: "", render: (i) => (
-                    <Button size="icon" variant="ghost" className="text-destructive" onClick={() => setItems(curr => curr.filter(x => x.material_id !== i.material_id))}>
-                      <Trash2 className="size-4" />
-                    </Button>
-                  )}
+                  { 
+                    key: "name", 
+                    header: "Material", 
+                    render: (i) => {
+                      const mat = materials.find(m => m.id === i.material_id);
+                      return (
+                        <div>
+                          <p className="font-semibold text-xs text-foreground">{mat?.name || "Item"}</p>
+                          <p className="text-[10px] text-muted-foreground uppercase">{mat?.type || mat?.unit}</p>
+                        </div>
+                      );
+                    }
+                  },
+                  { 
+                    key: "qty", 
+                    header: "Medida / Qtd", 
+                    render: (i) => {
+                      if (i.isMeter) {
+                        return <Badge variant="secondary" className="bg-blue-50 text-blue-700 font-bold">{i.meters} m</Badge>;
+                      }
+                      const mat = materials.find(m => m.id === i.material_id);
+                      return <span className="font-medium text-xs">{i.quantity} {mat?.unit || 'un'}</span>;
+                    } 
+                  },
+                  { 
+                    key: "cost", 
+                    header: "Custo Unit.", 
+                    render: (i) => <span className="text-xs text-muted-foreground">{brl(i.cost)}{i.isMeter ? '/m' : ''}</span> 
+                  },
+                  { 
+                    key: "total", 
+                    header: "Total", 
+                    render: (i) => <span className="font-bold text-xs text-foreground">{brl(i.quantity * i.cost)}</span> 
+                  },
+                  { 
+                    key: "actions", 
+                    header: "", 
+                    className: "text-right",
+                    render: (i) => (
+                      <Button size="icon" variant="ghost" className="text-destructive h-8 w-8" onClick={() => setItems(curr => curr.filter(x => x.material_id !== i.material_id))}>
+                        <Trash2 className="size-4" />
+                      </Button>
+                    )
+                  }
                 ]}
               />
             </div>
