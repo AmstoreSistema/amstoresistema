@@ -632,7 +632,6 @@ function ReportsPage() {
                 title={`Relatório de ${reportButtons.find(b => b.id === selectedType)?.label || "Geral"}`}
                 startDate={config.noFilter ? undefined : dateRange.start}
                 endDate={config.noFilter ? undefined : dateRange.end}
-                filterInfo={config.noFilter ? "Listagem Geral Cadastral" : `${filteredData.length} registros listados`}
                 storeInfo={storeInfo}
                 columns={reportResult.columns}
                 rows={reportResult.rows}

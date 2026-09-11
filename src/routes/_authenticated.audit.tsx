@@ -386,7 +386,6 @@ function AuditPage() {
             title="Relatório de Auditoria"
             startDate={filtered.length > 0 ? filtered[filtered.length - 1].created_at : undefined}
             endDate={filtered.length > 0 ? filtered[0].created_at : undefined}
-            filterInfo={`Entidade: ${entityFilter === "all" ? "Todas" : entityLabel(entityFilter)} • Ação: ${actionFilter === "all" ? "Todas" : actionFilter.toUpperCase()} • ${filtered.length} eventos`}
             storeInfo={storeInfo}
             columns={reportData.columns}
             rows={reportData.rows}
@@ -400,7 +399,6 @@ function AuditPage() {
           title="Relatório de Auditoria"
           startDate={filtered.length > 0 ? filtered[filtered.length - 1].created_at : undefined}
           endDate={filtered.length > 0 ? filtered[0].created_at : undefined}
-          filterInfo={`Entidade: ${entityFilter === "all" ? "Todas" : entityLabel(entityFilter)} • Ação: ${actionFilter === "all" ? "Todas" : actionFilter.toUpperCase()} • ${filtered.length} eventos`}
           storeInfo={storeInfo}
           columns={reportData.columns}
           rows={reportData.rows}

@@ -253,16 +253,16 @@
 }
 
 @media print {
-  /* Hide all UI elements except the report */
-  .report-container {
-    padding: 0 !important;
-    margin: 0 !important;
-    width: 100% !important;
-    position: absolute !important;
-    top: 0 !important;
-    left: 0 !important;
-    background: white !important;
-    z-index: 9999 !important;
+  @page {
+    size: A4 portrait;
+    margin: 10mm 8mm 12mm 8mm;
+  }
+
+  /* Reset layout for print */
+  body {
+    background-color: white !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
 
   body * {
@@ -273,28 +273,67 @@
     visibility: visible;
   }
 
-  /* Reset layout for print */
-  body {
-    background-color: white !important;
-  }
-
+  /* Encaixe rigoroso em folha A4 */
   .report-container {
+    padding: 0 !important;
+    margin: 0 auto !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    position: static !important;
     display: block !important;
+    background: white !important;
+    box-shadow: none !important;
+    border: none !important;
+    box-sizing: border-box !important;
   }
 
-  /* Force zebras in print */
+  /* Tabela contida na largura da folha A4 sem transbordar */
+  .report-container table {
+    width: 100% !important;
+    max-width: 100% !important;
+    table-layout: auto !important;
+    border-collapse: collapse !important;
+    font-size: 8.5pt !important;
+  }
+
+  .report-container thead {
+    display: table-header-group !important;
+  }
+
+  .report-container tfoot {
+    display: table-footer-group !important;
+  }
+
+  .report-container tr {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  .report-container th {
+    padding: 5px 6px !important;
+    font-size: 7.5pt !important;
+    background-color: #f1f5f9 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    white-space: normal !important;
+  }
+
+  .report-container td {
+    padding: 4.5px 6px !important;
+    font-size: 8pt !important;
+    word-break: break-word !important;
+  }
+
+  /* Preservar zebras e fundos nítidos na impressão */
   .report-container table tr:nth-child(even) {
     background-color: #f8fafc !important;
-    -webkit-print-color-adjust: exact;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
 
   .report-container table thead tr {
     background-color: #f1f5f9 !important;
-    -webkit-print-color-adjust: exact;
-  }
-
-  /* Avoid page breaks inside rows */
-  tr {
-    page-break-inside: avoid;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
 }

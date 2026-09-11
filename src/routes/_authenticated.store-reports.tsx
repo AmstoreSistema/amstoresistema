@@ -669,22 +669,6 @@ function StoreReportsPage() {
     toast.success("Relatório exportado.");
   };
 
-  const filterDetails = useMemo(() => {
-    if (current.noFilter) return "Listagem Geral Cadastral";
-    const parts: string[] = [];
-    if (current.grouping) {
-      const groupMap: Record<string, string> = {
-        daily: "Agrupamento: Diário",
-        weekly: "Agrupamento: Semanal",
-        monthly: "Agrupamento: Mensal",
-        yearly: "Agrupamento: Anual",
-      };
-      parts.push(groupMap[grouping] || `Agrupamento: ${grouping}`);
-    }
-    parts.push(`${result.rows.length} registros`);
-    return parts.join(" • ");
-  }, [current.noFilter, current.grouping, grouping, result.rows.length]);
-
   return (
     <div className="space-y-6 p-4 sm:p-6 pb-12">
       {/* Top Header */}
@@ -856,7 +840,6 @@ function StoreReportsPage() {
             title={current.label}
             startDate={current.noFilter ? undefined : range.start}
             endDate={current.noFilter ? undefined : range.end}
-            filterInfo={filterDetails}
             storeInfo={storeInfo}
             columns={result.columns}
             rows={result.rows}
