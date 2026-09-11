@@ -39,7 +39,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { brl, dateBR, dateTimeBR, num } from "@/lib/format";
+import { brl, dateBR, dateTimeBR, num, toISODate } from "@/lib/format";
 import { useRows } from "@/lib/data";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -92,7 +92,7 @@ const REPORT_CONFIG: Record<ReportType, ReportConfig> = {
     filters: [{ column: "status", value: "pending" }]
   },
   stock: { 
-    table: "stock_products", 
+    table: "products", 
     url: "/stock", 
     dateColumn: "created_at",
     noFilter: true
@@ -100,7 +100,8 @@ const REPORT_CONFIG: Record<ReportType, ReportConfig> = {
   financial: { 
     table: "financial_accounts", 
     url: "/accounts", 
-    dateColumn: "created_at" 
+    dateColumn: "created_at",
+    noFilter: true
   },
   production: { 
     table: "production_orders", 
@@ -196,15 +197,22 @@ function ReportsPage() {
     order: { column: config.dateColumn, ascending: false }
   });
 
+  const { data: allClients = [] } = useRows<any>("clients");
+  const { data: allSales = [] } = useRows<any>("sales");
+  const clientMap = useMemo(() => new Map(allClients.map((c: any) => [c.id, c])), [allClients]);
+  const saleMap = useMemo(() => new Map(allSales.map((s: any) => [s.id, s])), [allSales]);
+
   const filteredData = useMemo(() => {
     if (config.noFilter) return reportData;
     if (!dateRange.start || !dateRange.end) return reportData;
-    const start = new Date(dateRange.start + 'T00:00:00');
-    const end = new Date(dateRange.end + 'T23:59:59');
 
     return reportData.filter((row: any) => {
-      const rowDate = new Date(row[config.dateColumn] || row.created_at);
-      return rowDate >= start && rowDate <= end;
+      const raw = row[config.dateColumn] || row.created_at || row.due_date;
+      if (!raw) return true;
+      const iso = toISODate(raw);
+      if (dateRange.start && iso < dateRange.start) return false;
+      if (dateRange.end && iso > dateRange.end) return false;
+      return true;
     });
   }, [reportData, dateRange, config]);
 
@@ -214,17 +222,41 @@ function ReportsPage() {
     switch (selectedType) {
       case "sales":
         columns.push(
-          { key: "id", label: "ID" },
+          { key: "id", label: "Código" },
           { key: "date", label: "Data" },
+          { key: "client", label: "Cliente" },
           { key: "method", label: "Pagamento" },
           { key: "total", label: "Total", align: "right" }
         );
         break;
+      case "installments":
+        columns.push(
+          { key: "code", label: "Venda" },
+          { key: "client", label: "Cliente" },
+          { key: "installment", label: "Parcela" },
+          { key: "due", label: "Vencimento" },
+          { key: "amount", label: "Valor", align: "right" },
+          { key: "remaining", label: "Em aberto", align: "right" },
+          { key: "status", label: "Situação" }
+        );
+        break;
+      case "whatsapp":
+        columns.push(
+          { key: "client", label: "Cliente" },
+          { key: "phone", label: "WhatsApp" },
+          { key: "installment", label: "Parcela" },
+          { key: "due", label: "Vencimento" },
+          { key: "remaining", label: "Valor Pendente", align: "right" },
+          { key: "status", label: "Situação" }
+        );
+        break;
       case "stock":
         columns.push(
+          { key: "sku", label: "SKU" },
           { key: "name", label: "Produto" },
-          { key: "qty", label: "Qtd", align: "right" },
-          { key: "category", label: "Categoria" }
+          { key: "category", label: "Categoria" },
+          { key: "qty", label: "Qtd Estoque", align: "right" },
+          { key: "price", label: "Preço Venda", align: "right" }
         );
         break;
       case "production":
@@ -238,6 +270,7 @@ function ReportsPage() {
       case "clients":
         columns.push(
           { key: "name", label: "Cliente" },
+          { key: "phone", label: "Telefone" },
           { key: "email", label: "E-mail" },
           { key: "date", label: "Cadastro" }
         );
@@ -253,6 +286,7 @@ function ReportsPage() {
         columns.push(
           { key: "sku", label: "SKU" },
           { key: "name", label: "Produto" },
+          { key: "category", label: "Categoria" },
           { key: "price", label: "Preço", align: "right" }
         );
         break;
@@ -275,7 +309,7 @@ function ReportsPage() {
         columns.push(
           { key: "name", label: "Conta" },
           { key: "type", label: "Tipo" },
-          { key: "balance", label: "Saldo", align: "right" }
+          { key: "balance", label: "Saldo Atual", align: "right" }
         );
         break;
       case "general":
@@ -298,25 +332,58 @@ function ReportsPage() {
     const rows = filteredData.map((row: any) => {
       const data: any = {};
       switch (selectedType) {
-        case "sales":
-          data.id = row.id?.slice(0, 8);
-          data.date = dateBR(row.created_at);
+        case "sales": {
+          data.id = row.sale_code || row.id?.slice(0, 8);
+          data.date = dateTimeBR(row.created_at);
+          data.client = row.clients?.name || clientMap.get(row.client_id)?.name || "Consumidor Final";
           data.method = row.payment_method || "—";
           data.total = brl(row.total_amount);
           break;
+        }
+        case "installments": {
+          const s = saleMap.get(row.sale_id);
+          const c = s ? clientMap.get(s.client_id) : null;
+          const rem = Number(row.remaining_amount ?? (row.amount - (row.paid_amount ?? 0)));
+          const isPaid = row.status === "paid" || rem <= 0.009;
+          const isOverdue = !isPaid && toISODate(row.due_date) < toISODate(new Date());
+          data.code = s?.sale_code || row.sale_id?.slice(0, 8) || "—";
+          data.client = c?.name || "Consumidor";
+          data.installment = `${row.installment_number || 1}/${s?.installments_count || "—"}`;
+          data.due = dateBR(row.due_date);
+          data.amount = brl(row.amount);
+          data.remaining = brl(rem);
+          data.status = isPaid ? "PAGO" : (isOverdue ? "ATRASADO" : "EM DIA");
+          break;
+        }
+        case "whatsapp": {
+          const s = saleMap.get(row.sale_id);
+          const c = s ? clientMap.get(s.client_id) : null;
+          const rem = Number(row.remaining_amount ?? (row.amount - (row.paid_amount ?? 0)));
+          const isOverdue = toISODate(row.due_date) < toISODate(new Date());
+          data.client = c?.name || "Consumidor";
+          data.phone = c?.phone || "—";
+          data.installment = `${row.installment_number || 1}/${s?.installments_count || "—"}`;
+          data.due = dateBR(row.due_date);
+          data.remaining = brl(rem);
+          data.status = isOverdue ? "ATRASADO" : "A VENCER";
+          break;
+        }
         case "stock":
-          data.name = row.produto_nome || "—";
-          data.qty = row.quantidade_disponivel || 0;
-          data.category = row.categoria || "—";
+          data.sku = row.sku || "—";
+          data.name = row.name || row.produto_nome || "—";
+          data.category = row.category || row.categoria || "Geral";
+          data.qty = num(row.current_stock ?? row.quantidade_disponivel ?? 0, 0);
+          data.price = brl(row.sale_price ?? row.preco_venda);
           break;
         case "production":
           data.code = row.codigo_ordem || "—";
           data.product = row.produto_nome || "—";
-          data.qty = row.quantity || 0;
+          data.qty = num(row.quantity ?? row.quantidade ?? 0, 0);
           data.status = row.status?.toUpperCase() || "PENDENTE";
           break;
         case "clients":
           data.name = row.name || "—";
+          data.phone = row.phone || "—";
           data.email = row.email || "—";
           data.date = dateBR(row.created_at);
           break;
@@ -328,6 +395,7 @@ function ReportsPage() {
         case "products":
           data.sku = row.sku || "—";
           data.name = row.name || "—";
+          data.category = row.category || "—";
           data.price = brl(row.sale_price ?? row.price_retail);
           break;
         case "suppliers":
@@ -343,26 +411,28 @@ function ReportsPage() {
           break;
         case "financial":
           data.name = row.name || "—";
-          data.type = row.type || "—";
-          data.balance = brl(row.balance);
+          data.type = row.type || "Conta Corrente";
+          data.balance = brl(row.current_balance ?? row.balance ?? row.initial_balance ?? 0);
           break;
-        case "general":
-          data.date = dateBR(row.created_at);
+        case "general": {
+          const isIncome = row.type === 'income' || row.type === 'entrada';
+          data.date = dateBR(row.created_at || row.due_date);
           data.desc = row.description || "—";
-          data.type = row.type === 'income' ? 'ENTRADA' : 'SAÍDA';
-          data.amount = brl(row.amount);
+          data.type = isIncome ? 'ENTRADA' : 'SAÍDA';
+          data.amount = brl(Math.abs(Number(row.amount || 0)));
           break;
+        }
         default:
           data.id = row.id?.slice(0, 8);
           data.date = dateBR(row.created_at || row.due_date);
           data.description = row.description || row.name || "—";
-          data.amount = brl(row.amount || row.total_amount);
+          data.amount = brl(Math.abs(Number(row.amount || row.total_amount || 0)));
       }
       return data;
     });
 
     return { columns, rows };
-  }, [filteredData, selectedType]);
+  }, [filteredData, selectedType, clientMap, saleMap]);
 
   const handleGenerateReport = () => {
     setShowResults(true);

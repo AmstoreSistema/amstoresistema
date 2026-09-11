@@ -29,7 +29,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { brl, dateBR, dateTimeBR, num } from "@/lib/format";
+import { brl, dateBR, dateTimeBR, num, toISODate } from "@/lib/format";
 import { useRows } from "@/lib/data";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -105,15 +105,20 @@ type Column = { key: string; label: string; align?: "right" };
 type Result = { columns: Column[]; rows: Record<string, string | number>[] };
 
 function periodKey(iso: string, grouping: string) {
-  const d = new Date(iso);
-  if (grouping === "daily") return d.toLocaleDateString("pt-BR");
+  if (grouping === "daily") return dateBR(iso);
+  const formatted = dateBR(iso);
+  if (formatted === "—") return "—";
+  const parts = formatted.split("/").map(Number);
+  if (parts.length < 3) return formatted;
+  const [day, month, year] = parts;
+  if (grouping === "yearly") return String(year);
   if (grouping === "weekly") {
+    const d = new Date(year, month - 1, day);
     const first = new Date(d);
     first.setDate(d.getDate() - d.getDay());
-    return `Semana de ${first.toLocaleDateString("pt-BR")}`;
+    return `Semana de ${dateBR(first)}`;
   }
-  if (grouping === "yearly") return String(d.getFullYear());
-  return d.toLocaleDateString("pt-BR", { month: "2-digit", year: "numeric" });
+  return `${String(month).padStart(2, "0")}/${year}`;
 }
 
 function toCsv(result: Result) {
@@ -175,10 +180,10 @@ function StoreReportsPage() {
   const inRange = (iso?: string | null) => {
     if (!iso) return false;
     if (!range.start && !range.end) return true;
-    const d = new Date(iso).getTime();
-    const s = range.start ? new Date(`${range.start}T00:00:00`).getTime() : -Infinity;
-    const e = range.end ? new Date(`${range.end}T23:59:59`).getTime() : Infinity;
-    return d >= s && d <= e;
+    const isoDateStr = toISODate(iso);
+    if (range.start && isoDateStr < range.start) return false;
+    if (range.end && isoDateStr > range.end) return false;
+    return true;
   };
 
   const productName = (id?: string | null) =>
@@ -194,7 +199,7 @@ function StoreReportsPage() {
 
   const result = useMemo<Result>(() => {
     const validSales = sales.filter(
-      (s: any) => inRange(s.created_at) && s.status !== "cancelled",
+      (s: any) => inRange(s.created_at) && !["cancelled", "cancelada", "estornado"].includes(String(s.status || "").toLowerCase()),
     );
     const itemsOfValidSales = saleItems.filter((i: any) =>
       validSales.some((s: any) => s.id === i.sale_id),
@@ -292,12 +297,16 @@ function StoreReportsPage() {
       case "cashflow": {
         const map = new Map<string, { income: number; expense: number }>();
         transactions
-          .filter((t: any) => inRange(t.created_at))
+          .filter((t: any) => inRange(t.created_at || t.due_date))
           .forEach((t: any) => {
-            const k = periodKey(t.created_at, grouping);
+            const dateRef = t.created_at || t.due_date;
+            const k = periodKey(dateRef, grouping);
             const acc = map.get(k) ?? { income: 0, expense: 0 };
-            if (t.type === "income") acc.income += Number(t.amount ?? 0);
-            else acc.expense += Number(t.amount ?? 0);
+            const isIncome = t.type === "income" || t.type === "entrada";
+            const isExpense = t.type === "expense" || t.type === "saida";
+            const val = Math.abs(Number(t.amount ?? 0));
+            if (isIncome) acc.income += val;
+            else if (isExpense) acc.expense += val;
             map.set(k, acc);
           });
         return {
@@ -509,7 +518,7 @@ function StoreReportsPage() {
       }
       case "cancelled": {
         const cancelled = sales.filter(
-          (s: any) => s.status === "cancelled" && inRange(s.created_at),
+          (s: any) => ["cancelled", "cancelada", "estornado"].includes(String(s.status || "").toLowerCase()) && inRange(s.created_at),
         );
         return {
           columns: [
@@ -540,9 +549,9 @@ function StoreReportsPage() {
             { key: "status", label: "Status" },
           ],
           rows: stock.map((s: any) => {
-            const p = products.find((prod: any) => prod.id === s.product_id);
-            const qty = Number(s.quantidade_disponivel ?? 0);
-            const min = Number(p?.estoque_minimo ?? 0);
+            const p = products.find((prod: any) => prod.id === (s.produto_id || s.product_id));
+            const qty = Number(s.quantidade_disponivel ?? p?.current_stock ?? 0);
+            const min = Number(p?.min_stock ?? p?.estoque_minimo ?? 0);
             return {
               sku: p?.sku ?? "—",
               product: p?.name ?? "—",
