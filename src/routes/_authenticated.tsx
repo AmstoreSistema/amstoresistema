@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { AppSidebar } from "@/components/app-sidebar";
 import { clearActivity, isSessionExpired, touchActivity } from "@/lib/session-timeout";
+import { clearRefreshTokenCookie, getRefreshTokenCookie, saveRefreshTokenCookie } from "@/lib/auth-cookie";
 
 import { Button } from "@/components/ui/button";
 import { SidebarProvider, SidebarTrigger, useSidebar } from "@/components/ui/sidebar";
@@ -15,20 +16,34 @@ import { Toaster } from "@/components/ui/sonner";
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
   beforeLoad: async () => {
-    // getSession() do Supabase JS v2 JÁ renova automaticamente o JWT expirado
-    // usando o refresh token armazenado no localStorage.
-    // NÃO chamar signOut() aqui: destruiria o refresh token e forçaria novo login toda vez.
-    const { data: { session } } = await supabase.auth.getSession();
+    // Tenta restaurar sessão pelo localStorage (getSession auto-renova o JWT expirado)
+    let { data: { session } } = await supabase.auth.getSession();
 
     if (!session) {
-      // Sem sessão ou refresh falhou → apenas redireciona, sem signOut
+      // localStorage pode ter sido limpo pelo navegador de desktop (modo privado, "limpar ao fechar").
+      // Fallback: usar o refresh token salvo em cookie persistente para restaurar a sessão.
+      const rt = getRefreshTokenCookie();
+      if (rt) {
+        const { data } = await supabase.auth.refreshSession({ refresh_token: rt });
+        session = data.session;
+        if (session) {
+          // Atualiza o cookie com o novo refresh token emitido
+          saveRefreshTokenCookie(session.refresh_token);
+        }
+      }
+    }
+
+    if (!session) {
+      // Nenhuma forma de restaurar a sessão → redireciona sem signOut
+      // (não chamar signOut() aqui: não há sessão ativa para invalidar)
+      clearRefreshTokenCookie();
       throw redirect({ to: "/auth" });
     }
 
-    // Verifica inatividade (timer de 8h)
-    // Só aqui chamamos signOut pois há uma sessão ativa que queremos encerrar por segurança
+    // Verifica inatividade de 8h (timer baseado em atividade do usuário)
     if (isSessionExpired()) {
       clearActivity();
+      clearRefreshTokenCookie();
       await supabase.auth.signOut();
       throw redirect({ to: "/auth" });
     }
@@ -92,16 +107,26 @@ function AuthenticatedLayout() {
     const interval = window.setInterval(async () => {
       if (isSessionExpired()) {
         clearActivity();
+        clearRefreshTokenCookie();
         await supabase.auth.signOut();
         window.location.href = "/auth";
       }
     }, 60_000);
 
+    // Atualiza o cookie sempre que o Supabase renova o token automaticamente
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'TOKEN_REFRESHED' && session) {
+        saveRefreshTokenCookie(session.refresh_token);
+      }
+    });
+
     return () => {
       events.forEach((e) => window.removeEventListener(e, onActivity));
       window.clearInterval(interval);
+      subscription.unsubscribe();
     };
   }, []);
+
 
   const initials = (name || email || "AM").slice(0, 2).toUpperCase();
 
@@ -131,6 +156,8 @@ function AuthenticatedLayout() {
               size="icon"
               title="Sair"
               onClick={async () => {
+                clearRefreshTokenCookie();
+                clearActivity();
                 await supabase.auth.signOut();
                 window.location.href = "/auth";
               }}
