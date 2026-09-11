@@ -291,7 +291,7 @@ export function TransactionDetailsModal({
                   </div>
                   <div>
                     <label className="text-[10px] font-bold text-muted-foreground uppercase block">Data da Transação</label>
-                    <span className="text-xs font-bold">{dateBR(transaction.created_at)}</span>
+                    <span className="text-xs font-bold">{dateBR(transaction.created_at || transaction.due_date)}</span>
                   </div>
                 </div>
               </div>

@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { formatSaleDateISO } from "@/lib/format";
 
 export const createTransaction = createServerFn({ method: "POST" })
   .inputValidator((data) => z.object({
@@ -12,6 +13,7 @@ export const createTransaction = createServerFn({ method: "POST" })
     category: z.string().optional().nullable(),
     status: z.enum(["pago", "pendente", "cancelado"]).default("pago"),
     due_date: z.string().optional().nullable(),
+    created_at: z.string().optional().nullable(),
     payment_method: z.string().optional().nullable(),
     observations: z.string().optional().nullable(),
     client_id: z.string().optional().nullable(),
@@ -24,6 +26,10 @@ export const createTransaction = createServerFn({ method: "POST" })
       ? `${data.description.trim()} (${data.observations.trim()})`
       : data.description.trim();
 
+    const createdAt = data.created_at
+      ? data.created_at
+      : (data.due_date ? formatSaleDateISO(data.due_date) : new Date().toISOString());
+
     const { error } = await admin
       .from("transactions")
       .insert({
@@ -34,6 +40,7 @@ export const createTransaction = createServerFn({ method: "POST" })
         category: data.category ?? null,
         status: data.status,
         due_date: data.due_date ? data.due_date : null,
+        created_at: createdAt,
         payment_method: data.payment_method ?? null,
         client_id: data.client_id ?? null,
         supplier_id: data.supplier_id ?? null
@@ -53,6 +60,7 @@ export const updateTransaction = createServerFn({ method: "POST" })
     category: z.string().optional().nullable(),
     status: z.enum(["pago", "pendente", "cancelado"]),
     due_date: z.string().optional().nullable(),
+    created_at: z.string().optional().nullable(),
     payment_method: z.string().optional().nullable(),
     observations: z.string().optional().nullable(),
     client_id: z.string().optional().nullable(),
@@ -69,20 +77,29 @@ export const updateTransaction = createServerFn({ method: "POST" })
       ? `${data.description.trim()} (${data.observations.trim()})`
       : data.description.trim();
 
+    const updatePayload: Record<string, any> = {
+      type: data.type,
+      amount: data.type === "saida" ? -Math.abs(data.amount) : Math.abs(data.amount),
+      description: finalDescription,
+      account_id: data.account_id,
+      category: data.category ?? null,
+      status: data.status,
+      due_date: data.due_date ? data.due_date : null,
+      payment_method: data.payment_method ?? null,
+      client_id: data.client_id ?? null,
+      supplier_id: data.supplier_id ?? null
+    };
+
+    // Sincroniza a data da transação (created_at) para que a listagem e relatórios reflitam a nova data
+    if (data.created_at) {
+      updatePayload.created_at = data.created_at;
+    } else if (data.due_date) {
+      updatePayload.created_at = formatSaleDateISO(data.due_date);
+    }
+
     const { error } = await admin
       .from("transactions")
-      .update({
-        type: data.type,
-        amount: data.type === "saida" ? -Math.abs(data.amount) : Math.abs(data.amount),
-        description: finalDescription,
-        account_id: data.account_id,
-        category: data.category ?? null,
-        status: data.status,
-        due_date: data.due_date ? data.due_date : null,
-        payment_method: data.payment_method ?? null,
-        client_id: data.client_id ?? null,
-        supplier_id: data.supplier_id ?? null
-      } as any)
+      .update(updatePayload as any)
       .eq("id", data.id);
 
     if (error) throw new Error(error.message);

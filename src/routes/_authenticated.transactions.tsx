@@ -221,7 +221,7 @@ function TransactionsPage() {
   const grouped = useMemo(() => {
     const groups: Record<string, any[]> = {};
     transactions.forEach(t => {
-      const d = dateBR(t.created_at ? String(t.created_at) : "");
+      const d = dateBR(t.created_at ? String(t.created_at) : (t.due_date ? String(t.due_date) : ""));
       if (!groups[d]) groups[d] = [];
       groups[d].push(t);
     });
@@ -508,7 +508,7 @@ function TransactionsPage() {
                                 </span>
                                 <span className="size-1 rounded-full bg-gray-300" />
                                 <span>
-                                  {dateBR(t.created_at)}
+                                  {dateBR(t.created_at || t.due_date)}
                                 </span>
                                 {t.payment_method && (
                                   <>
@@ -579,7 +579,7 @@ function TransactionsPage() {
                           </span>
                           <span className="text-gray-300">•</span>
                           <span className="font-medium text-gray-500">
-                            {dateBR(t.created_at)}
+                            {dateBR(t.created_at || t.due_date)}
                           </span>
                           {t.payment_method && (
                             <>

@@ -33,7 +33,7 @@ import { toast } from "sonner";
 import { useRows } from "@/lib/data";
 import { createTransaction, updateTransaction, saveCustomTransactionCategory, syncExistingTransactionCategories } from "@/lib/finance.functions.ts";
 import { Plus, X, Search, User, Loader2 } from "lucide-react";
-import { brl } from "@/lib/format";
+import { brl, toISODate, formatSaleDateISO } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 const DEFAULT_EXPENSE_CATEGORIES = [
@@ -70,6 +70,7 @@ const transactionSchema = z.object({
   category: z.string().optional().nullable(),
   status: z.enum(["pago", "pendente"]),
   due_date: z.string().optional().nullable(),
+  created_at: z.string().optional().nullable(),
   payment_method: z.string().optional().nullable(),
   observations: z.string().optional().nullable(),
   client_id: z.string().optional().nullable(),
@@ -205,7 +206,9 @@ export function TransactionModal({
         account_id: transaction.account_id || "",
         category: transaction.category || ((transaction.type === 'income' || transaction.type === 'entrada') ? "Vendas" : "Compra de Materiais"),
         status: transaction.status === 'pago' ? 'pago' : 'pendente',
-        due_date: transaction.due_date ? transaction.due_date.split('T')[0] : (transaction.created_at ? transaction.created_at.split('T')[0] : ""),
+        due_date: transaction.created_at 
+          ? toISODate(transaction.created_at) 
+          : (transaction.due_date ? toISODate(transaction.due_date) : ""),
         payment_method: transaction.payment_method || "Dinheiro",
         observations: transaction.observations || "",
         client_id: transaction.client_id || null,
@@ -219,7 +222,7 @@ export function TransactionModal({
         account_id: accounts.length > 0 ? accounts[0].id : "",
         category: "Vendas",
         status: "pago",
-        due_date: new Date().toISOString().split('T')[0],
+        due_date: toISODate(new Date()),
         payment_method: "Dinheiro",
         observations: "",
         client_id: null,
@@ -264,7 +267,8 @@ export function TransactionModal({
     const formattedValues = {
       ...values,
       client_id: values.client_id === 'none' ? null : values.client_id,
-      supplier_id: values.supplier_id === 'none' ? null : values.supplier_id
+      supplier_id: values.supplier_id === 'none' ? null : values.supplier_id,
+      created_at: values.due_date ? formatSaleDateISO(values.due_date) : undefined,
     };
     try {
       if (isEditing) {
@@ -275,7 +279,12 @@ export function TransactionModal({
         toast.success("Lançamento realizado com sucesso");
       }
       onClose();
-      qc.invalidateQueries();
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: ["transactions"] }),
+        qc.invalidateQueries({ queryKey: ["transactions-stats"] }),
+        qc.invalidateQueries({ queryKey: ["financial_accounts"] }),
+        qc.invalidateQueries({ queryKey: ["reports"] }),
+      ]);
     } catch (e: any) {
       toast.error(e.message);
     }
@@ -486,19 +495,12 @@ export function TransactionModal({
                   <FormItem>
                     <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Data da Transação *</FormLabel>
                     <FormControl>
-                      <Input type="date" className="h-10 rounded-xl border-gray-100 bg-gray-50/50" {...field} value={field.value || ""} />
+                      <Input type="date" className="h-10 rounded-xl border-gray-100 bg-gray-50/50 cursor-pointer" {...field} value={field.value || ""} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-              <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Data de Vencimento</label>
-                <Input type="date" className="h-10 rounded-xl border-gray-100 bg-gray-50/50" />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
               <FormField
                 control={form.control}
                 name="status"
@@ -508,7 +510,6 @@ export function TransactionModal({
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger className="h-10 rounded-xl border-gray-100 bg-gray-50/50" tabIndex={0}>
-
                           <SelectValue placeholder="Selecione" />
                         </SelectTrigger>
                       </FormControl>
@@ -521,32 +522,32 @@ export function TransactionModal({
                   </FormItem>
                 )}
               />
-              <FormField
-                control={form.control}
-                name="payment_method"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Forma de proteção</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value || "Dinheiro"}>
-                      <FormControl>
-                        <SelectTrigger className="h-10 rounded-xl border-gray-100 bg-gray-50/50" tabIndex={0}>
-
-                          <SelectValue placeholder="Selecione" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent className="rounded-xl z-[9999]" position="popper" sideOffset={5}>
-                        <SelectItem value="Dinheiro">Dinheiro</SelectItem>
-                        <SelectItem value="Cartão de Crédito">Cartão de Crédito</SelectItem>
-                        <SelectItem value="Cartão de Débito">Cartão de Débito</SelectItem>
-                        <SelectItem value="Pix">Pix</SelectItem>
-                        <SelectItem value="Transferência">Transferência</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
             </div>
+
+            <FormField
+              control={form.control}
+              name="payment_method"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Forma de Pagamento</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value || "Dinheiro"}>
+                    <FormControl>
+                      <SelectTrigger className="h-10 rounded-xl border-gray-100 bg-gray-50/50" tabIndex={0}>
+                        <SelectValue placeholder="Selecione" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent className="rounded-xl z-[9999]" position="popper" sideOffset={5}>
+                      <SelectItem value="Dinheiro">Dinheiro</SelectItem>
+                      <SelectItem value="Cartão de Crédito">Cartão de Crédito</SelectItem>
+                      <SelectItem value="Cartão de Débito">Cartão de Débito</SelectItem>
+                      <SelectItem value="Pix">Pix</SelectItem>
+                      <SelectItem value="Transferência">Transferência</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
             <FormField
               control={form.control}
