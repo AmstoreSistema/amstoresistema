@@ -15,9 +15,15 @@ import { Toaster } from "@/components/ui/sonner";
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
   beforeLoad: async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
-      throw redirect({ to: "/auth" });
+    // Usa getUser() para garantir que o token seja renovado automaticamente antes de verificar
+    // getSession() retorna o cache local que pode estar expirado; getUser() vai ao servidor e faz refresh
+    const { data: { user }, error } = await supabase.auth.getUser();
+    if (!user || error) {
+      // Tenta pegar sessão com refresh explícito como fallback
+      const { data: { session } } = await supabase.auth.refreshSession();
+      if (!session) {
+        throw redirect({ to: "/auth" });
+      }
     }
     if (isSessionExpired()) {
       clearActivity();
@@ -25,7 +31,8 @@ export const Route = createFileRoute("/_authenticated")({
       throw redirect({ to: "/auth" });
     }
     touchActivity();
-    return { user: session.user };
+    const { data: { session } } = await supabase.auth.getSession();
+    return { user: session?.user };
   },
   component: AuthenticatedLayout,
 });
@@ -67,7 +74,7 @@ function AuthenticatedLayout() {
     });
   }, [pathname]);
 
-  // Mantém a sessão ativa por 12h de inatividade
+  // Mantém a sessão ativa por 8h de inatividade
   useEffect(() => {
     touchActivity();
     const events: Array<keyof WindowEventMap> = ["click", "keydown", "pointerdown", "focus"];

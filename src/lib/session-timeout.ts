@@ -1,10 +1,10 @@
 /**
- * Sessão com validade de 12 horas de inatividade:
+ * Sessão com validade de 8 horas de inatividade:
  * o usuário permanece logado enquanto usar o sistema e só precisa entrar
- * novamente se ficar mais de 12h sem acessar.
+ * novamente se ficar mais de 8h sem acessar.
  */
 const KEY = "amstore:last_activity";
-export const SESSION_MAX_IDLE_MS = 12 * 60 * 60 * 1000;
+export const SESSION_MAX_IDLE_MS = 8 * 60 * 60 * 1000;
 
 export function touchActivity() {
   if (typeof window === "undefined") return;

@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
+import { touchActivity } from "@/lib/session-timeout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -63,6 +64,7 @@ function AuthPage() {
         if (error) {
           toast.error(`Erro ao acessar: ${error.message}`);
         } else if (data.session) {
+          touchActivity(); // Registra atividade para iniciar o timer de 8h
           window.location.href = "/dashboard";
         }
         return;
