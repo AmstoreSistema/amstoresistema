@@ -303,6 +303,110 @@ export function ReceiptModal({
     return btoa(binary);
   };
 
+  // Converte um data URL (captura fiel da tela) em blocos raster ESC/POS de 576 pontos (80mm)
+  const dataUrlToEscPosBlocks = (dataUrl: string, printWidth = 576): Promise<number[]> => {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => {
+        try {
+          const width = printWidth - (printWidth % 8);
+          const height = Math.max(1, Math.round((img.height * width) / img.width));
+
+          const canvas = document.createElement("canvas");
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext("2d");
+          if (!ctx) { reject(new Error("Canvas indisponível")); return; }
+
+          ctx.fillStyle = "#ffffff";
+          ctx.fillRect(0, 0, width, height);
+          ctx.imageSmoothingEnabled = true;
+          ctx.drawImage(img, 0, 0, width, height);
+
+          const data = ctx.getImageData(0, 0, width, height).data;
+          const bytesPerRow = width / 8;
+
+          // Escala de cinza + dithering Floyd-Steinberg para preservar fielmente tons e cores da tela
+          const gray = new Float32Array(width * height);
+          for (let i = 0; i < width * height; i++) {
+            const r = data[i * 4] ?? 255;
+            const g = data[i * 4 + 1] ?? 255;
+            const b = data[i * 4 + 2] ?? 255;
+            const a = data[i * 4 + 3] ?? 255;
+            const lum = 0.299 * r + 0.587 * g + 0.114 * b;
+            gray[i] = a < 128 ? 255 : lum;
+          }
+          const mono = new Uint8Array(width * height);
+          for (let y = 0; y < height; y++) {
+            for (let x = 0; x < width; x++) {
+              const i = y * width + x;
+              const old = gray[i] ?? 255;
+              const newVal = old < 150 ? 0 : 255;
+              mono[i] = newVal === 0 ? 1 : 0;
+              const err = old - newVal;
+              const spread = (dx: number, dy: number, f: number) => {
+                const nx = x + dx;
+                const ny = y + dy;
+                if (nx < 0 || nx >= width || ny >= height) return;
+                const ni = ny * width + nx;
+                gray[ni] = (gray[ni] ?? 255) + err * f;
+              };
+              spread(1, 0, 7 / 16);
+              spread(-1, 1, 3 / 16);
+              spread(0, 1, 5 / 16);
+              spread(1, 1, 1 / 16);
+            }
+          }
+
+          const bytes: number[] = [];
+          // Divide em blocos para não exceder o buffer da impressora térmica
+          const BLOCK = 128;
+          for (let yStart = 0; yStart < height; yStart += BLOCK) {
+            const blockHeight = Math.min(BLOCK, height - yStart);
+            bytes.push(
+              0x1d, 0x76, 0x30, 0x00,
+              bytesPerRow & 0xff, (bytesPerRow >> 8) & 0xff,
+              blockHeight & 0xff, (blockHeight >> 8) & 0xff,
+            );
+            for (let y = yStart; y < yStart + blockHeight; y++) {
+              for (let xByte = 0; xByte < bytesPerRow; xByte++) {
+                let byteVal = 0;
+                for (let bit = 0; bit < 8; bit++) {
+                  if (mono[y * width + xByte * 8 + bit] === 1) byteVal |= 1 << (7 - bit);
+                }
+                bytes.push(byteVal);
+              }
+            }
+          }
+          resolve(bytes);
+        } catch (e) {
+          reject(e as Error);
+        }
+      };
+      img.onerror = () => reject(new Error("Falha ao carregar a imagem do cupom"));
+      img.src = dataUrl;
+    });
+  };
+
+  // Gera o cupom exatamente como aparece na tela, em raster ESC/POS, com corte da guilhotina
+  const generateEscPosFromScreen = async (): Promise<Uint8Array> => {
+    if (!receiptRef.current) throw new Error("Cupom não disponível");
+    const node = receiptRef.current;
+    const dataUrl = await toPng(node, {
+      backgroundColor: "#ffffff",
+      pixelRatio: Math.min(3, Math.max(1.5, 576 / (node.offsetWidth || 380))),
+      cacheBust: true,
+    });
+    const imageBytes = await dataUrlToEscPosBlocks(dataUrl, 576);
+    const bytes: number[] = [];
+    bytes.push(0x1b, 0x40); // init
+    bytes.push(0x1b, 0x61, 0x00); // alinhamento à esquerda (imagem já ocupa 80mm)
+    bytes.push(...imageBytes);
+    bytes.push(0x0a, 0x0a, 0x0a, 0x0a); // avanço para a lâmina
+    bytes.push(0x1d, 0x56, 0x00); // corte total (guilhotina) - único
+    return new Uint8Array(bytes);
+  };
+
   const generateEscPosBinary = async (): Promise<Uint8Array> => {
     const W = 48; // 80mm = 48 colunas padrão Font A
     const cleanStr = (str: string) => {
@@ -531,8 +635,14 @@ export function ReceiptModal({
   const handleDirectThermalPrint80mm = async () => {
     setPrintingThermal(true);
     try {
-      toast.info("Gerando comandos térmicos 80mm com logomarca e guilhotina...");
-      const binaryBytes = await generateEscPosBinary();
+      toast.info("Gerando impressão fiel ao cupom da tela (80mm + guilhotina)...");
+      let binaryBytes: Uint8Array;
+      try {
+        binaryBytes = await generateEscPosFromScreen();
+      } catch (imgErr) {
+        console.warn("Falha na captura fiel do cupom, usando modo texto:", imgErr);
+        binaryBytes = await generateEscPosBinary();
+      }
       const base64Data = uint8ArrayToBase64(binaryBytes);
 
       // Intent oficial do RawBT para envio de bytes puros ESC/POS
