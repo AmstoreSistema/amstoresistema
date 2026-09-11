@@ -12,25 +12,29 @@ export const createTransaction = createServerFn({ method: "POST" })
     category: z.string().optional().nullable(),
     status: z.enum(["pago", "pendente", "cancelado"]).default("pago"),
     due_date: z.string().optional().nullable(),
-    reference_id: z.string().optional().nullable(),
-    reference_type: z.string().optional().nullable(),
+    payment_method: z.string().optional().nullable(),
+    observations: z.string().optional().nullable(),
     client_id: z.string().optional().nullable(),
     supplier_id: z.string().optional().nullable(),
   }).parse(data))
   .handler(async ({ data }) => {
     const { supabaseAdmin: admin } = await import("@/integrations/supabase/client.server");
+
+    const finalDescription = data.observations?.trim()
+      ? `${data.description.trim()} (${data.observations.trim()})`
+      : data.description.trim();
+
     const { error } = await admin
       .from("transactions")
       .insert({
         type: data.type,
         amount: data.type === "saida" ? -Math.abs(data.amount) : Math.abs(data.amount),
-        description: data.description,
+        description: finalDescription,
         account_id: data.account_id,
         category: data.category ?? null,
         status: data.status,
-        due_date: data.due_date ?? null,
-        reference_id: data.reference_id ?? null,
-        reference_type: data.reference_type ?? null,
+        due_date: data.due_date ? data.due_date : null,
+        payment_method: data.payment_method ?? null,
         client_id: data.client_id ?? null,
         supplier_id: data.supplier_id ?? null
       } as any);
@@ -50,6 +54,7 @@ export const updateTransaction = createServerFn({ method: "POST" })
     status: z.enum(["pago", "pendente", "cancelado"]),
     due_date: z.string().optional().nullable(),
     payment_method: z.string().optional().nullable(),
+    observations: z.string().optional().nullable(),
     client_id: z.string().optional().nullable(),
     supplier_id: z.string().optional().nullable(),
   }).parse(data))
@@ -60,28 +65,29 @@ export const updateTransaction = createServerFn({ method: "POST" })
     const { data: oldTx } = await admin.from("transactions").select("*").eq("id", data.id).single();
     if (!oldTx) throw new Error("Transação não encontrada");
 
+    const finalDescription = data.observations?.trim() && !data.description.includes(data.observations.trim())
+      ? `${data.description.trim()} (${data.observations.trim()})`
+      : data.description.trim();
+
     const { error } = await admin
       .from("transactions")
       .update({
         type: data.type,
         amount: data.type === "saida" ? -Math.abs(data.amount) : Math.abs(data.amount),
-        description: data.description,
+        description: finalDescription,
         account_id: data.account_id,
-        category: data.category,
+        category: data.category ?? null,
         status: data.status,
-        due_date: data.due_date,
-        payment_method: data.payment_method,
-        client_id: data.client_id,
-        supplier_id: data.supplier_id
+        due_date: data.due_date ? data.due_date : null,
+        payment_method: data.payment_method ?? null,
+        client_id: data.client_id ?? null,
+        supplier_id: data.supplier_id ?? null
       } as any)
       .eq("id", data.id);
 
     if (error) throw new Error(error.message);
 
     // A atualização de saldo agora é feita via trigger (transaction_balance_trigger) no banco de dados.
-    // O código abaixo foi removido para evitar atualizações duplas (Double Balancing).
-    return { success: true };
-
     return { success: true };
   });
 
