@@ -116,6 +116,31 @@ const normalizeCat = (value: unknown) =>
     .toLowerCase()
     .replace(/s$/, "");
 
+// Identifica se o produto é calçado/sandália ou se já possui controle de numerações
+const isProductWithSizes = (
+  product?: { category?: string | null; name?: string | null } | null,
+  stockRecord?: StockRecord | null
+) => {
+  if (!product) return false;
+  const normCat = normalizeCat(product.category || "");
+  const normName = normalizeCat(product.name || "");
+  const isFootwear =
+    normCat.includes("sandali") ||
+    normCat.includes("calcad") ||
+    normCat.includes("sapato") ||
+    normCat.includes("rasteir") ||
+    normCat.includes("tamanco") ||
+    normName.includes("sandali") ||
+    normName.includes("rasteir") ||
+    normName.includes("tamanco");
+  const hasNumeracoes = Boolean(
+    stockRecord?.numeracoes &&
+      typeof stockRecord.numeracoes === "object" &&
+      Object.keys(stockRecord.numeracoes).length > 0
+  );
+  return isFootwear || hasNumeracoes;
+};
+
 function StockPage() {
   const qc = useQueryClient();
   const PAGE_SIZE = 25;
@@ -291,6 +316,24 @@ function StockPage() {
   const [adjustQuantities, setAdjustQuantities] = useState<Record<string, number>>({});
   const [addDirectOpen, setAddDirectOpen] = useState(false);
 
+  const selectedStockRecord = useMemo(() => {
+    if (!selectedProduct) return null;
+    return stockRecords.find((s) => s.produto_id === selectedProduct.id) || null;
+  }, [selectedProduct, stockRecords]);
+
+  const isSelectedProductWithSizes = isProductWithSizes(selectedProduct, selectedStockRecord);
+
+  const defaultSizes = ["33", "34", "35", "36", "37", "38", "39", "40"];
+  const displaySizes = useMemo(() => {
+    const customSizes = Object.keys(adjustQuantities || {});
+    return Array.from(new Set([...defaultSizes, ...customSizes])).sort((a, b) => {
+      const numA = Number(a);
+      const numB = Number(b);
+      if (!isNaN(numA) && !isNaN(numB)) return numA - numB;
+      return a.localeCompare(b);
+    });
+  }, [adjustQuantities]);
+
   // Estados para seleção múltipla e exclusão em lote / segura
   const [selectedProductIds, setSelectedProductIds] = useState<string[]>([]);
   const [isSelectMode, setIsSelectMode] = useState(false);
@@ -421,14 +464,20 @@ function StockPage() {
     if (!selectedProduct) return;
 
     const stockRecord = stockRecords.find(s => s.produto_id === selectedProduct.id);
-    const isSandalia = selectedProduct.category === "Sandálias";
+    const isFootwear = isProductWithSizes(selectedProduct, stockRecord);
 
     try {
       let totalQty = 0;
-      if (isSandalia) {
-        totalQty = Object.values(adjustQuantities).reduce((a, b) => a + (Number(b) || 0), 0);
+      let cleanQuantities: Record<string, number> | null = null;
+      if (isFootwear) {
+        cleanQuantities = {};
+        Object.entries(adjustQuantities).forEach(([k, v]) => {
+          const num = Number(v) || 0;
+          if (num > 0) cleanQuantities![k] = num;
+        });
+        totalQty = Object.values(cleanQuantities).reduce((a, b) => a + (Number(b) || 0), 0);
       } else {
-        totalQty = Number(newQty);
+        totalQty = Math.max(0, Number(newQty) || 0);
       }
 
       // Update product table
@@ -440,14 +489,22 @@ function StockPage() {
         }
       });
 
-      // Update stock_products table if record exists
+      // Update stock_products table if record exists, or create if missing
       if (stockRecord) {
         await saveStock.mutateAsync({
           id: stockRecord.id,
           values: {
             quantidade_disponivel: totalQty,
-            numeracoes: isSandalia ? adjustQuantities : null
+            numeracoes: isFootwear ? cleanQuantities : null
           }
+        });
+      } else if (isFootwear) {
+        await supabase.from("stock_products").insert({
+          produto_id: selectedProduct.id,
+          produto_nome: selectedProduct.name,
+          quantidade_disponivel: totalQty,
+          numeracoes: cleanQuantities,
+          categoria: selectedProduct.category,
         });
       }
 
@@ -455,9 +512,12 @@ function StockPage() {
       setNewQty("");
       setAdjustQuantities({});
       toast.success("Estoque ajustado com sucesso");
-    } catch (error) {
+      qc.invalidateQueries({ queryKey: ["products"] });
+      qc.invalidateQueries({ queryKey: ["stock_products"] });
+      qc.invalidateQueries({ queryKey: ["stock-stats"] });
+    } catch (error: any) {
       console.error(error);
-      toast.error("Erro ao ajustar estoque");
+      toast.error(error?.message || "Erro ao ajustar estoque");
     }
   };
 
@@ -1112,7 +1172,14 @@ function StockPage() {
                        onClick={() => {
                           setSelectedProduct(p);
                           setNewQty(p.current_stock.toString());
-                          setAdjustQuantities(stockRecord?.numeracoes || {});
+                          const rawNumeracoes = stockRecord?.numeracoes;
+                          let parsedNumeracoes: Record<string, number> = {};
+                          if (typeof rawNumeracoes === "object" && rawNumeracoes !== null) {
+                            parsedNumeracoes = { ...(rawNumeracoes as Record<string, number>) };
+                          } else if (typeof rawNumeracoes === "string") {
+                            try { parsedNumeracoes = JSON.parse(rawNumeracoes); } catch { parsedNumeracoes = {}; }
+                          }
+                          setAdjustQuantities(parsedNumeracoes);
                           setAdjustOpen(true);
                        }}
                     >
@@ -1155,31 +1222,44 @@ function StockPage() {
             </DialogDescription>
           </DialogHeader>
           <div className="py-4">
-             {selectedProduct?.category === "Sandálias" ? (
+             {isSelectedProductWithSizes ? (
                <div className="space-y-4">
-                 <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Numerações</Label>
-                 <div className="grid grid-cols-4 gap-3">
-                   {["33", "34", "35", "36", "37", "38", "39", "40"].map(size => (
-                     <div key={size} className="space-y-1.5">
-                       <Label className="text-[10px] font-bold block text-center">{size}</Label>
+                 <div className="flex items-center justify-between">
+                   <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Numerações / Tamanhos</Label>
+                   <Badge variant="outline" className="text-xs font-bold bg-primary/5 text-primary border-primary/20">
+                     Total: {Object.values(adjustQuantities).reduce((a, b) => a + (Number(b) || 0), 0)} pares
+                   </Badge>
+                 </div>
+                 <div className="grid grid-cols-4 gap-2.5 sm:gap-3">
+                   {displaySizes.map(size => (
+                     <div key={size} className="space-y-1 bg-muted/30 p-2 rounded-xl border border-border/40 text-center">
+                       <Label className="text-xs font-black block text-center text-foreground">{size}</Label>
                        <Input 
                          type="number" 
-                         value={adjustQuantities[size] || 0}
-                         onChange={e => setAdjustQuantities({...adjustQuantities, [size]: Number(e.target.value)})}
-                         className="h-10 text-center font-bold"
+                         min={0}
+                         value={adjustQuantities[size] ?? 0}
+                         onChange={e => {
+                           const val = Math.max(0, parseInt(e.target.value, 10) || 0);
+                           setAdjustQuantities(prev => ({ ...prev, [size]: val }));
+                         }}
+                         className="h-9 text-center font-bold bg-background"
                        />
                      </div>
                    ))}
                  </div>
-                 <div className="pt-2 border-t text-right">
-                   <span className="text-xs font-bold">Total: {Object.values(adjustQuantities).reduce((a, b) => a + (Number(b) || 0), 0)}</span>
+                 <div className="pt-2 border-t flex justify-between items-center text-xs">
+                   <span className="text-muted-foreground font-medium">Soma de todas numerações:</span>
+                   <span className="font-bold text-sm text-primary">
+                     {Object.values(adjustQuantities).reduce((a, b) => a + (Number(b) || 0), 0)} unidades
+                   </span>
                  </div>
                </div>
              ) : (
                <>
-                 <Label className="mb-2 block">Novo saldo disponível</Label>
+                 <Label className="mb-2 block font-medium">Novo saldo disponível</Label>
                  <Input 
                     type="number" 
+                    min={0}
                     value={newQty} 
                     onChange={e => setNewQty(e.target.value)}
                     placeholder={`Saldo atual: ${selectedProduct?.current_stock}`}

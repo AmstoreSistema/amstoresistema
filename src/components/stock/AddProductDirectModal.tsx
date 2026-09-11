@@ -70,7 +70,8 @@ export function AddProductDirectModal({ open, onOpenChange }: { open: boolean; o
 
     setLoading(true);
     try {
-      const totalQty = formData.category === "Sandálias" 
+      const isSandalia = formData.category.toLowerCase().includes("sandali") || formData.category.toLowerCase().includes("calcad");
+      const totalQty = isSandalia 
         ? Object.values(quantities).reduce((a, b) => a + (Number(b) || 0), 0)
         : 1;
 
@@ -100,7 +101,7 @@ export function AddProductDirectModal({ open, onOpenChange }: { open: boolean; o
           produto_id: product.id,
           produto_nome: product.name,
           quantidade_disponivel: totalQty,
-          numeracoes: (formData.category === "Sandálias" ? quantities : null) as any,
+          numeracoes: (isSandalia ? quantities : null) as any,
           preco_custo: formData.preco_custo,
           preco_venda: formData.preco_venda,
           data_entrada: formData.data_entrada || null,
@@ -257,7 +258,7 @@ export function AddProductDirectModal({ open, onOpenChange }: { open: boolean; o
                 />
              </div>
 
-             {formData.category === "Sandálias" && (
+             {(formData.category === "Sandálias" || formData.category.toLowerCase().includes("sandali") || formData.category.toLowerCase().includes("calcad")) && (
                 <div className="space-y-3 p-4 rounded-2xl bg-muted/20 border border-dashed border-muted-foreground/20 animate-in fade-in slide-in-from-top-2">
                    <Label className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest">Numerações Disponíveis</Label>
                    <div className="grid grid-cols-8 gap-2">
