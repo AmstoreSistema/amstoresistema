@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { 
   AlertTriangle, 
   ArrowUpRight, 
@@ -43,12 +43,13 @@ function Dashboard() {
     order: { column: "created_at", ascending: false },
     limit: 100
   });
-  const { data: clients = [] } = useRows("clients", { select: "id, name" });
-  const { data: installments = [] } = useRows("sale_installments", { 
-    select: "id, sale_id, amount, due_date, status",
-    filters: [{ column: "status", value: "overdue" }],
-    order: { column: "due_date", ascending: true },
-    limit: 30
+  const { data: clients = [] } = useRows("clients", { select: "id, name, phone" });
+  const { data: fiadoSales = [] } = useRows<any>("sales", { 
+    select: "id, client_id, total_amount, paid_amount, status, is_debt, created_at, sale_code",
+    filters: [{ column: "is_debt", value: true }],
+  });
+  const { data: allInstallments = [] } = useRows<any>("sale_installments" as any, { 
+    select: "id, sale_id, amount, paid_amount, due_date, status",
   });
 
   useEffect(() => {
@@ -85,6 +86,103 @@ function Dashboard() {
     () => salesToday.reduce((sum, s: any) => sum + Number(s.total_amount), 0),
     [salesToday]
   );
+
+  const todayIso = useMemo(() => new Date().toISOString().split("T")[0], []);
+  const clientById = useMemo(() => new Map(clients.map((c: any) => [c.id, c])), [clients]);
+
+  // Cálculo real e fiel dos fiados vencidos por cliente (mesma regra da tela de Fiados)
+  const overdueFiados = useMemo(() => {
+    const installmentsBySale = new Map<string, any[]>();
+    allInstallments.forEach((inst: any) => {
+      const list = installmentsBySale.get(inst.sale_id) || [];
+      list.push(inst);
+      installmentsBySale.set(inst.sale_id, list);
+    });
+
+    const stats = new Map<string, {
+      clientId: string;
+      clientName: string;
+      totalDue: number;
+      overdueDue: number;
+      overdueDate: string | null;
+      salesCount: number;
+    }>();
+
+    fiadoSales.forEach((s: any) => {
+      if (!s.client_id) return;
+      const status = String(s.status || "").toLowerCase();
+      if (["paid", "pago", "quitado", "cancelado", "cancelled"].includes(status)) return;
+
+      const remaining = Number(s.total_amount || 0) - Number(s.paid_amount || 0);
+      if (remaining <= 0.009) return;
+
+      const client = clientById.get(s.client_id);
+      if (!client) return;
+
+      const saleInstallments = installmentsBySale.get(s.id) || [];
+      const pendingSaleInsts = saleInstallments.filter(
+        (i: any) => !["paid", "pago", "quitado"].includes(String(i.status || "").toLowerCase()) &&
+             (Number(i.amount || 0) - Number(i.paid_amount || 0)) > 0.009
+      );
+
+      let isSaleOverdue = false;
+      let saleOverdueAmount = 0;
+      let earliestOverdueDate: string | null = null;
+
+      if (pendingSaleInsts.length > 0) {
+        pendingSaleInsts.forEach((i: any) => {
+          const instRem = Math.max(0, Number(i.amount || 0) - Number(i.paid_amount || 0));
+          const iDueIso = i.due_date ? String(i.due_date).split("T")[0] : null;
+          if (iDueIso && iDueIso < todayIso) {
+            isSaleOverdue = true;
+            saleOverdueAmount += instRem;
+            if (!earliestOverdueDate || new Date(i.due_date).getTime() < new Date(earliestOverdueDate).getTime()) {
+              earliestOverdueDate = i.due_date;
+            }
+          }
+        });
+      } else {
+        const fallbackDate = s.created_at || null;
+        if (fallbackDate) {
+          const sDateIso = String(fallbackDate).split("T")[0];
+          if (sDateIso < todayIso) {
+            isSaleOverdue = true;
+            saleOverdueAmount = remaining;
+            earliestOverdueDate = fallbackDate;
+          }
+        }
+      }
+
+      if (isSaleOverdue) {
+        const current = stats.get(s.client_id) || {
+          clientId: s.client_id,
+          clientName: client.name,
+          totalDue: 0,
+          overdueDue: 0,
+          overdueDate: null,
+          salesCount: 0,
+        };
+        current.salesCount += 1;
+        current.totalDue += remaining;
+        current.overdueDue += saleOverdueAmount;
+        if (!current.overdueDate || (earliestOverdueDate && new Date(earliestOverdueDate).getTime() < new Date(current.overdueDate).getTime())) {
+          current.overdueDate = earliestOverdueDate;
+        }
+        stats.set(s.client_id, current);
+      }
+    });
+
+    stats.forEach((c) => {
+      c.overdueDue = Math.min(c.totalDue, c.overdueDue);
+    });
+
+    return Array.from(stats.values()).sort((a, b) => {
+      if (a.overdueDate && b.overdueDate) {
+        return new Date(a.overdueDate).getTime() - new Date(b.overdueDate).getTime();
+      }
+      return b.overdueDue - a.overdueDue;
+    });
+  }, [fiadoSales, allInstallments, clientById, todayIso]);
 
   return (
     <div className="space-y-4 sm:space-y-6 md:space-y-8 animate-in fade-in duration-500">
@@ -210,44 +308,59 @@ function Dashboard() {
 
       <div className="grid gap-4 md:grid-cols-1">
         <div className="rounded-2xl sm:rounded-3xl border border-destructive/20 bg-destructive/5 p-4 sm:p-6 md:p-8 shadow-sm backdrop-blur-sm">
-          <div className="mb-4 sm:mb-8 flex items-center justify-between">
+          <div className="mb-4 sm:mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="space-y-0.5 sm:space-y-1">
               <h3 className="font-display text-base sm:text-lg font-bold text-destructive flex items-center gap-2">
-                <AlertTriangle className="size-4 sm:size-5 shrink-0" /> Parcelas de Fiado em Atraso
+                <AlertTriangle className="size-4 sm:size-5 shrink-0" /> Fiados em Atraso
               </h3>
-              <p className="text-[11px] sm:text-xs text-muted-foreground">Clientes com pendências financeiras que precisam de atenção.</p>
+              <p className="text-[11px] sm:text-xs text-muted-foreground">Clientes com fiados vencidos que precisam de atenção e cobrança.</p>
             </div>
-            <Badge variant="destructive" className="rounded-full px-2.5 py-0.5 text-xs shrink-0">{installments.length}</Badge>
+            <div className="flex items-center gap-3">
+              <Badge variant="destructive" className="rounded-full px-2.5 py-0.5 text-xs font-bold shrink-0">
+                {overdueFiados.length} {overdueFiados.length === 1 ? "cliente vencido" : "clientes vencidos"}
+              </Badge>
+              <Link 
+                to="/credit" 
+                className="text-xs font-medium text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors"
+              >
+                Ver todos os fiados <ChevronRight className="size-3.5" />
+              </Link>
+            </div>
           </div>
 
           <div className="grid gap-3 sm:gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {installments.slice(0, 6).map((inst: any) => {
-              const sale = sales.find((s: any) => s.id === inst.sale_id);
-              const client = clients.find((c: any) => c.id === sale?.client_id);
-              return (
-                <div key={inst.id} className="flex items-center justify-between rounded-xl sm:rounded-2xl border border-destructive/10 bg-card p-3 sm:p-4 transition-all hover:border-destructive/30">
-                  <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
-                    <div className="flex size-8 sm:size-10 items-center justify-center rounded-xl bg-destructive/10 text-destructive shrink-0">
-                      <User className="size-4 sm:size-5" />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-xs sm:text-sm font-bold truncate max-w-[140px]">{client?.name || "Consumidor"}</p>
-                      <p className="text-[9px] sm:text-[10px] text-muted-foreground uppercase tracking-wider flex items-center gap-1">
-                        <Clock className="size-3" /> Venceu {new Date(inst.due_date).toLocaleDateString('pt-BR')}
-                      </p>
-                    </div>
+            {overdueFiados.slice(0, 6).map((fiado) => (
+              <Link
+                key={fiado.clientId}
+                to="/credit"
+                className="flex items-center justify-between rounded-xl sm:rounded-2xl border border-destructive/15 bg-card/90 p-3 sm:p-4 transition-all hover:border-destructive/40 hover:shadow-md cursor-pointer group"
+              >
+                <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+                  <div className="flex size-8 sm:size-10 items-center justify-center rounded-xl bg-destructive/10 text-destructive shrink-0 group-hover:scale-105 transition-transform">
+                    <User className="size-4 sm:size-5" />
                   </div>
-                  <div className="text-right shrink-0 pl-2">
-                    <p className="text-xs sm:text-sm font-black text-destructive">{brl(inst.amount)}</p>
-                    <ChevronRight className="size-3.5 sm:size-4 text-muted-foreground/30 ml-auto" />
+                  <div className="min-w-0">
+                    <p className="text-xs sm:text-sm font-bold truncate max-w-[150px] text-foreground group-hover:text-destructive transition-colors">
+                      {fiado.clientName}
+                    </p>
+                    <p className="text-[9px] sm:text-[10px] text-muted-foreground uppercase tracking-wider flex items-center gap-1 mt-0.5">
+                      <Clock className="size-3 text-destructive/70" /> 
+                      {fiado.overdueDate 
+                        ? `Venceu ${new Date(fiado.overdueDate).toLocaleDateString('pt-BR')}` 
+                        : "Vencido"}
+                    </p>
                   </div>
                 </div>
-              );
-            })}
-            {installments.length === 0 && (
+                <div className="text-right shrink-0 pl-2">
+                  <p className="text-xs sm:text-sm font-black text-destructive">{brl(fiado.overdueDue)}</p>
+                  <p className="text-[10px] text-muted-foreground font-medium">Total: {brl(fiado.totalDue)}</p>
+                </div>
+              </Link>
+            ))}
+            {overdueFiados.length === 0 && (
               <div className="col-span-full flex flex-col items-center justify-center py-6 sm:py-8 text-center text-muted-foreground">
-                <CheckCircle2 className="mb-2 size-8 text-success opacity-20" />
-                <p className="text-xs sm:text-sm italic">Nenhuma parcela em atraso hoje.</p>
+                <CheckCircle2 className="mb-2 size-8 text-success opacity-40" />
+                <p className="text-xs sm:text-sm italic font-medium">Nenhum fiado em atraso no momento. Todos os recebimentos estão em dia!</p>
               </div>
             )}
           </div>
