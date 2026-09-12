@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 
 import { toast } from "sonner";
+import { uploadImageFile } from "@/lib/upload-image";
 
 import { PageHeader } from "@/components/page-header";
 import { StatCard } from "@/components/stat-card";
