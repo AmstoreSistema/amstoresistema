@@ -25,7 +25,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { useRows } from "@/lib/data";
-import { brl, dateBR } from "@/lib/format";
+import { brl, dateBR, toISODate } from "@/lib/format";
 import { SaleDetailsModal } from "@/components/sales/SaleDetailsModal";
 import { ClientDetailsModal } from "@/components/clients/ClientDetailsModal";
 import { cn } from "@/lib/utils";
@@ -51,7 +51,14 @@ type Sale = {
   sale_code?: string;
 };
 type Client = { id: string; name: string; phone: string | null };
-type Installment = { id: string; sale_id: string; amount: number; due_date: string; status: string };
+type Installment = { 
+  id: string; 
+  sale_id: string; 
+  amount: number; 
+  paid_amount?: number; 
+  due_date: string; 
+  status: string 
+};
 
 function CreditPage() {
   const { data: sales = [], isLoading: salesLoading } = useRows<Sale>("sales", {
@@ -67,6 +74,7 @@ function CreditPage() {
   const [selectedSaleId, setSelectedSaleId] = useState<string | null>(null);
   const [saleDetailsOpen, setSaleDetailsOpen] = useState(false);
 
+  const todayIso = useMemo(() => toISODate(new Date()), []);
   const clientById = useMemo(() => new Map(clients.map((c) => [c.id, c])), [clients]);
   
   const clientStats = useMemo(() => {
@@ -74,9 +82,19 @@ function CreditPage() {
       name: string;
       pendingCount: number;
       totalDue: number;
+      overdueDue: number;
       isOverdue: boolean;
       clientId: string;
+      nextDueDate: string | null;
     }>();
+
+    // Mapear parcelas por sale_id para pesquisa rápida
+    const installmentsBySale = new Map<string, Installment[]>();
+    installments.forEach(inst => {
+      const list = installmentsBySale.get(inst.sale_id) || [];
+      list.push(inst);
+      installmentsBySale.set(inst.sale_id, list);
+    });
 
     sales.forEach(s => {
       if (!s.client_id) return;
@@ -95,25 +113,56 @@ function CreditPage() {
         name: client.name,
         pendingCount: 0,
         totalDue: 0,
+        overdueDue: 0,
         isOverdue: false,
-        clientId: s.client_id
+        clientId: s.client_id,
+        nextDueDate: null,
       };
 
       current.pendingCount += 1;
       current.totalDue += remaining;
 
-      // Check if any installment for this sale is overdue
-      const saleInstallments = installments.filter(
-        i => i.sale_id === s.id && !["paid", "pago"].includes(String(i.status || "").toLowerCase())
+      // Filtrar parcelas pendentes da venda
+      const saleInstallments = installmentsBySale.get(s.id) || [];
+      const pendingSaleInsts = saleInstallments.filter(
+        i => !["paid", "pago", "quitado"].includes(String(i.status || "").toLowerCase()) &&
+             (Number(i.amount || 0) - Number(i.paid_amount || 0)) > 0.009
       );
-      const hasOverdue = saleInstallments.some(i => new Date(i.due_date) < new Date());
-      if (hasOverdue) current.isOverdue = true;
+
+      if (pendingSaleInsts.length > 0) {
+        pendingSaleInsts.forEach(i => {
+          const instRem = Math.max(0, Number(i.amount || 0) - Number(i.paid_amount || 0));
+          const iDueIso = toISODate(i.due_date);
+          if (iDueIso && iDueIso < todayIso) {
+            current.isOverdue = true;
+            current.overdueDue += instRem;
+          }
+          if (i.due_date) {
+            if (!current.nextDueDate || new Date(i.due_date).getTime() < new Date(current.nextDueDate).getTime()) {
+              current.nextDueDate = i.due_date;
+            }
+          }
+        });
+      } else {
+        // Se a venda a prazo não tiver parcelas desmembradas, usa a data de criação
+        const fallbackDate = s.created_at || null;
+        if (fallbackDate) {
+          if (!current.nextDueDate || new Date(fallbackDate).getTime() < new Date(current.nextDueDate).getTime()) {
+            current.nextDueDate = fallbackDate;
+          }
+        }
+      }
 
       stats.set(s.client_id, current);
     });
 
+    // Limita o valor vencido ao saldo devedor do cliente
+    stats.forEach(c => {
+      c.overdueDue = Math.min(c.totalDue, c.overdueDue);
+    });
+
     return Array.from(stats.values());
-  }, [sales, clients, installments, clientById]);
+  }, [sales, clients, installments, clientById, todayIso]);
 
   const filteredClients = useMemo(() => {
     return clientStats.filter(c => {
@@ -124,8 +173,9 @@ function CreditPage() {
     });
   }, [clientStats, term, filter]);
 
-  const totalDueAll = clientStats.reduce((acc, c) => acc + c.totalDue, 0);
-  const overdueCount = clientStats.filter(c => c.isOverdue).length;
+  const totalDueAll = useMemo(() => clientStats.reduce((acc, c) => acc + c.totalDue, 0), [clientStats]);
+  const totalOverdueAll = useMemo(() => clientStats.reduce((acc, c) => acc + c.overdueDue, 0), [clientStats]);
+  const overdueCount = useMemo(() => clientStats.filter(c => c.isOverdue).length, [clientStats]);
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -135,10 +185,11 @@ function CreditPage() {
         icon={HandCoins}
       />
 
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard title="Total em Aberto" value={brl(totalDueAll)} icon={Wallet} tone="warning" />
+        <StatCard title="Total Vencido" value={brl(totalOverdueAll)} icon={Clock} tone="destructive" />
         <StatCard title="Clientes com Débito" value={clientStats.length} icon={User} tone="dark" />
-        <StatCard title="Clientes Atrasados" value={overdueCount} icon={AlertCircle} tone="destructive" />
+        <StatCard title="Clientes Atrasados" value={overdueCount} icon={AlertCircle} tone={overdueCount > 0 ? "destructive" : "dark"} />
       </div>
 
       <div className="flex flex-col sm:flex-row gap-4">
@@ -184,9 +235,13 @@ function CreditPage() {
                     <div className="size-12 rounded-2xl bg-muted/50 flex items-center justify-center shrink-0">
                        <User className="size-6 text-muted-foreground" />
                     </div>
-                    {c.isOverdue && (
+                    {c.isOverdue ? (
                       <Badge className="bg-destructive/10 text-destructive border-none font-black flex gap-1 items-center">
                         <Clock className="size-3" /> VENCIDO
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="text-muted-foreground border-border/50 text-[10px] font-semibold flex gap-1 items-center">
+                        <CheckCircle2 className="size-3 text-emerald-500" /> Em dia
                       </Badge>
                     )}
                  </div>
@@ -199,9 +254,30 @@ function CreditPage() {
                        </p>
                     </div>
 
-                    <div className="bg-muted/30 p-4 rounded-2xl">
-                       <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest mb-1">Total Devido</p>
-                       <p className="text-2xl font-black text-gold font-display">{brl(c.totalDue)}</p>
+                    <div className="bg-muted/30 p-4 rounded-2xl space-y-2.5">
+                       <div>
+                          <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest mb-1">Total Devido</p>
+                          <div className="flex items-baseline justify-between gap-2">
+                             <p className="text-2xl font-black text-gold font-display">{brl(c.totalDue)}</p>
+                             {c.overdueDue > 0 && (
+                                <span className="text-[11px] font-bold text-destructive">
+                                   ({brl(c.overdueDue)} vencido)
+                                </span>
+                             )}
+                          </div>
+                       </div>
+
+                       <div className="flex items-center justify-between pt-2 border-t border-border/40 text-xs">
+                          <span className="text-muted-foreground font-semibold flex items-center gap-1.5">
+                             <Calendar className="size-3.5 text-gold/80" /> Vence em
+                          </span>
+                          <span className={cn(
+                             "font-bold",
+                             c.isOverdue ? "text-destructive font-black" : "text-foreground font-semibold"
+                          )}>
+                             {c.nextDueDate ? dateBR(c.nextDueDate) : "A combinar"}
+                          </span>
+                       </div>
                     </div>
 
                     <Button 
