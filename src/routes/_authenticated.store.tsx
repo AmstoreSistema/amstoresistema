@@ -346,58 +346,67 @@ function StorePanel() {
 
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-base">Últimas vendas</CardTitle>
-            <Button asChild size="sm" variant="ghost">
+          <CardHeader className="flex flex-row items-center justify-between pb-3">
+            <CardTitle className="text-sm sm:text-base">Últimas vendas</CardTitle>
+            <Button asChild size="sm" variant="ghost" className="h-7 px-2 text-xs">
               <Link to="/sales">Ver todas</Link>
             </Button>
           </CardHeader>
           <CardContent className="space-y-2">
             {recentSales.length === 0 && (
-              <p className="text-sm text-muted-foreground">Nenhuma venda registrada no período.</p>
+              <p className="text-sm text-muted-foreground py-6 text-center">Nenhuma venda registrada no período.</p>
             )}
-            {recentSales.map((s: any) => (
-              <div
-                key={s.id}
-                className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border px-3 py-2"
-              >
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-medium">
-                    {s.sale_code ?? `Venda ${String(s.id).slice(0, 8)}`}
-                    {" · "}
-                    <span className="text-muted-foreground">
-                      {clientName.get(s.client_id) ?? "Consumidor"}
-                    </span>
-                  </p>
-                  <p className="text-xs text-muted-foreground">{dateTimeBR(s.created_at)}</p>
+            {recentSales.map((s: any) => {
+              const client = clientName.get(s.client_id) ?? "Consumidor";
+              return (
+                <div
+                  key={s.id}
+                  className="flex items-center justify-between gap-2.5 rounded-xl border border-border/70 p-2.5 sm:p-3 hover:bg-muted/20 transition-colors"
+                >
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-xs sm:text-sm font-semibold text-foreground">
+                      {client}
+                    </p>
+                    <p className="text-[10px] sm:text-xs text-muted-foreground truncate mt-0.5">
+                      <span className="hidden sm:inline font-mono">
+                        {s.sale_code ?? `Venda ${String(s.id).slice(0, 8)}`} · 
+                      </span>
+                      {dateTimeBR(s.created_at)}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    {s.is_debt ? (
+                      <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-destructive/40 text-destructive">Fiado</Badge>
+                    ) : (
+                      <Badge variant="secondary" className="text-[10px] px-1.5 py-0 capitalize hidden sm:inline-flex">
+                        {(s.payment_method ?? "—").toString().replace(/_/g, " ")}
+                      </Badge>
+                    )}
+                    <span className="text-xs sm:text-sm font-bold tabular-nums text-foreground">{brl(s.total_amount)}</span>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  {s.is_debt ? (
-                    <Badge variant="outline">Fiado</Badge>
-                  ) : (
-                    <Badge variant="secondary" className="capitalize">
-                      {(s.payment_method ?? "—").toString().replace(/_/g, " ")}
-                    </Badge>
-                  )}
-                  <span className="text-sm font-semibold">{brl(s.total_amount)}</span>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-3">
-            <div className="flex items-center gap-2">
-              <Trophy className="size-4 text-gold" />
-              <CardTitle className="text-base">Top 10 Clientes</CardTitle>
+          <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3">
+            <div className="flex items-center justify-between w-full sm:w-auto">
+              <div className="flex items-center gap-2">
+                <Trophy className="size-4 text-gold" />
+                <CardTitle className="text-sm sm:text-base">Top 10 Clientes</CardTitle>
+              </div>
+              <Button asChild size="sm" variant="ghost" className="h-7 px-2 text-xs sm:hidden">
+                <Link to="/clients">Ver todos</Link>
+              </Button>
             </div>
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center justify-between sm:justify-end gap-1.5">
               <div className="flex items-center rounded-lg border border-border/60 bg-muted/40 p-0.5 text-xs">
                 <button
                   type="button"
                   onClick={() => setTopClientsScope("all")}
-                  className={`rounded-md px-2 py-0.5 text-xs transition-colors ${
+                  className={`rounded-md px-2.5 py-0.5 text-xs transition-colors ${
                     topClientsScope === "all"
                       ? "bg-background text-foreground font-semibold shadow-xs"
                       : "text-muted-foreground hover:text-foreground"
@@ -408,7 +417,7 @@ function StorePanel() {
                 <button
                   type="button"
                   onClick={() => setTopClientsScope("period")}
-                  className={`rounded-md px-2 py-0.5 text-xs transition-colors ${
+                  className={`rounded-md px-2.5 py-0.5 text-xs transition-colors ${
                     topClientsScope === "period"
                       ? "bg-background text-foreground font-semibold shadow-xs"
                       : "text-muted-foreground hover:text-foreground"
@@ -417,7 +426,7 @@ function StorePanel() {
                   {period}d
                 </button>
               </div>
-              <Button asChild size="sm" variant="ghost" className="h-7 px-2 text-xs">
+              <Button asChild size="sm" variant="ghost" className="h-7 px-2 text-xs hidden sm:inline-flex">
                 <Link to="/clients">Ver todos</Link>
               </Button>
             </div>
@@ -437,9 +446,9 @@ function StorePanel() {
               topClients.map((c, idx) => (
                 <div
                   key={c.id}
-                  className="flex items-center justify-between gap-3 rounded-xl border border-border/60 bg-card px-3 py-2 hover:bg-muted/10 transition-colors"
+                  className="flex items-center justify-between gap-2.5 rounded-xl border border-border/60 bg-card px-2.5 py-2 hover:bg-muted/10 transition-colors"
                 >
-                  <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="flex items-center gap-2 min-w-0">
                     <span
                       className={`flex size-6 shrink-0 items-center justify-center rounded-full text-xs font-black ${
                         idx === 0
@@ -454,14 +463,14 @@ function StorePanel() {
                       {idx + 1}º
                     </span>
                     <div className="min-w-0">
-                      <p className="truncate text-sm font-medium">{c.name}</p>
-                      <p className="text-[11px] text-muted-foreground">
+                      <p className="truncate text-xs sm:text-sm font-medium">{c.name}</p>
+                      <p className="text-[10px] sm:text-[11px] text-muted-foreground">
                         {c.count} {c.count === 1 ? "compra" : "compras"}
                       </p>
                     </div>
                   </div>
                   <div className="text-right shrink-0">
-                    <span className="text-sm font-bold text-foreground">
+                    <span className="text-xs sm:text-sm font-bold text-foreground">
                       {brl(c.total)}
                     </span>
                   </div>
@@ -472,17 +481,17 @@ function StorePanel() {
         </Card>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
         {[
           { to: "/sales", label: "Nova venda (PDV)", icon: ShoppingCart },
           { to: "/transactions", label: "Transações", icon: ArrowLeftRight },
           { to: "/clients", label: "Clientes", icon: Users },
           { to: "/catalog", label: "Catálogo", icon: BookMarked },
         ].map((a) => (
-          <Button key={a.to} asChild variant="outline" className="justify-start gap-2">
+          <Button key={a.to} asChild variant="outline" className="justify-start gap-2 h-10 text-xs sm:text-sm">
             <Link to={a.to}>
-              <a.icon className="size-4" />
-              {a.label}
+              <a.icon className="size-4 shrink-0" />
+              <span className="truncate">{a.label}</span>
             </Link>
           </Button>
         ))}
