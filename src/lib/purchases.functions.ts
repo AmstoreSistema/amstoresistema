@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
 export const getPurchaseDetails = createServerFn({ method: "GET" })
-  .inputValidator((data) => z.object({ purchase_id: z.string() }).parse(data))
+  .validator((data) => z.object({ purchase_id: z.string() }).parse(data))
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     

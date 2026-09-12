@@ -5,7 +5,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { formatSaleDateISO } from "@/lib/format";
 
 export const createTransaction = createServerFn({ method: "POST" })
-  .inputValidator((data) => z.object({
+  .validator((data) => z.object({
     type: z.enum(["entrada", "saida", "transferencia"]),
     amount: z.number().positive(),
     description: z.string(),
@@ -51,7 +51,7 @@ export const createTransaction = createServerFn({ method: "POST" })
   });
 
 export const updateTransaction = createServerFn({ method: "POST" })
-  .inputValidator((data) => z.object({
+  .validator((data) => z.object({
     id: z.string(),
     type: z.enum(["entrada", "saida", "transferencia"]),
     amount: z.number(),
@@ -109,7 +109,7 @@ export const updateTransaction = createServerFn({ method: "POST" })
   });
 
 export const updateTransactionStatus = createServerFn({ method: "POST" })
-  .inputValidator((data) => z.object({
+  .validator((data) => z.object({
     id: z.string(),
     status: z.enum(["pago", "pendente", "cancelado"]),
   }).parse(data))
@@ -133,7 +133,7 @@ export const updateTransactionStatus = createServerFn({ method: "POST" })
   });
 
 export const deleteTransaction = createServerFn({ method: "POST" })
-  .inputValidator((data) => z.string().parse(data))
+  .validator((data) => z.string().parse(data))
   .handler(async ({ data: id }) => {
     const { supabaseAdmin: admin } = await import("@/integrations/supabase/client.server");
     
@@ -154,7 +154,7 @@ export const deleteTransaction = createServerFn({ method: "POST" })
   });
 
 export const updateAccountBalance = createServerFn({ method: "POST" })
-  .inputValidator((data) => z.object({
+  .validator((data) => z.object({
     id: z.string(),
     current_balance: z.number(),
   }).parse(data))
@@ -171,7 +171,7 @@ export const updateAccountBalance = createServerFn({ method: "POST" })
 
 export const deleteFinancialAccount = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data) => z.object({ id: z.string() }).parse(data))
+  .validator((data) => z.object({ id: z.string() }).parse(data))
   .handler(async ({ data, context }) => {
     const { supabaseAdmin: admin } = await import("@/integrations/supabase/client.server");
     
@@ -196,7 +196,7 @@ export const deleteFinancialAccount = createServerFn({ method: "POST" })
   });
 
 export const saveCustomTransactionCategory = createServerFn({ method: "POST" })
-  .inputValidator((data) => z.object({
+  .validator((data) => z.object({
     type: z.enum(["saida", "entrada"]),
     category: z.string().min(1, "Nome da categoria é obrigatório")
   }).parse(data))

@@ -14,7 +14,7 @@ export const getQrPromoConfig = createServerFn({ method: "GET" })
   });
 
 export const updateQrPromoConfig = createServerFn({ method: "POST" })
-  .inputValidator((data) => z.object({
+  .validator((data) => z.object({
     active: z.boolean(),
     name: z.string(),
     sales_limit: z.number(),
@@ -54,7 +54,7 @@ export const resetQrPromoCounter = createServerFn({ method: "POST" })
   });
 
 export const deleteQrPromoHistoryItem = createServerFn({ method: "POST" })
-  .inputValidator((data) => z.object({ id: z.string() }).parse(data))
+  .validator((data) => z.object({ id: z.string() }).parse(data))
   .handler(async ({ data }) => {
     const { error } = await supabaseAdmin
       .from("qr_promo_history")
@@ -66,7 +66,7 @@ export const deleteQrPromoHistoryItem = createServerFn({ method: "POST" })
   });
 
 export const getClientAvailableBonus = createServerFn({ method: "GET" })
-  .inputValidator((data) => z.object({ client_id: z.string() }).parse(data))
+  .validator((data) => z.object({ client_id: z.string() }).parse(data))
   .handler(async ({ data }) => {
     const { data: bonus, error } = await supabaseAdmin
       .from("qr_promo_history")

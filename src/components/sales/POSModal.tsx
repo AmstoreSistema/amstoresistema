@@ -310,8 +310,8 @@ export function POSModal({ open, onOpenChange, initialClient, initialItems }: PO
       return;
     }
 
-    if (isDebt && !client) {
-      toast.error("Selecione um cliente para realizar uma venda fiada");
+    if (isDebt && (!client || !client.id)) {
+      toast.error("Para vendas no fiado (crediário), é obrigatório selecionar um cliente cadastrado.");
       return;
     }
 

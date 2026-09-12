@@ -5,7 +5,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 export const createSale = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data) => z.object({
+  .validator((data) => z.object({
     client_id: z.string().nullable(),
     payment_method: z.string(),
     total_amount: z.number(),
@@ -177,7 +177,7 @@ export const createSale = createServerFn({ method: "POST" })
 
 export const cancelSale = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data) => z.object({ sale_id: z.string() }).parse(data))
+  .validator((data) => z.object({ sale_id: z.string() }).parse(data))
   .handler(async ({ data, context }) => {
     const { error } = await context.supabase.rpc('cancel_complete_sale', {
       p_sale_id: data.sale_id
@@ -188,7 +188,7 @@ export const cancelSale = createServerFn({ method: "POST" })
   });
 
 export const registerSalePayment = createServerFn({ method: "POST" })
-  .inputValidator((data) => z.object({
+  .validator((data) => z.object({
     installment_id: z.string().optional(),
     sale_id: z.string(),
     amount: z.number(),
@@ -267,7 +267,7 @@ export const registerSalePayment = createServerFn({ method: "POST" })
   });
 
 export const updateInstallments = createServerFn({ method: "POST" })
-  .inputValidator((data) => z.object({
+  .validator((data) => z.object({
     sale_id: z.string(),
     installments: z.array(z.object({
       number: z.number(),
@@ -294,7 +294,7 @@ export const updateInstallments = createServerFn({ method: "POST" })
 
 
 export const processBulkPayment = createServerFn({ method: "POST" })
-  .inputValidator((data) => z.object({
+  .validator((data) => z.object({
     sale_id: z.string(),
     amount: z.number(),
     payment_method: z.string(),
@@ -350,7 +350,7 @@ export const processBulkPayment = createServerFn({ method: "POST" })
   });
 
 export const getSaleDetails = createServerFn({ method: "GET" })
-  .inputValidator((data) => z.object({ sale_id: z.string() }).parse(data))
+  .validator((data) => z.object({ sale_id: z.string() }).parse(data))
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     
@@ -373,7 +373,7 @@ export const getSaleDetails = createServerFn({ method: "GET" })
 
 export const editSaleItems = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data) => z.object({
+  .validator((data) => z.object({
     sale_id: z.string(),
     client_id: z.string().nullable().optional(),
     created_at: z.string().optional(),

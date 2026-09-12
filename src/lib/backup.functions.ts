@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
 export const exportSystemData = createServerFn({ method: "POST" })
-  .inputValidator((data) => z.object({ 
+  .validator((data) => z.object({ 
     tables: z.array(z.string()),
     onProgress: z.function().args(z.string(), z.number()).optional()
   }).parse(data))
@@ -50,7 +50,7 @@ function chunk<T>(arr: T[], size: number): T[][] {
 }
 
 export const importSystemData = createServerFn({ method: "POST" })
-  .inputValidator((data) => z.object({
+  .validator((data) => z.object({
     payload: z.any(),
     tables: z.array(z.string()).optional(),
     isBase44: z.boolean().optional(),
@@ -1302,7 +1302,7 @@ export const getRestorationAuditReport = createServerFn({ method: "GET" })
 
 
 export const inspectBackupFile = createServerFn({ method: "POST" })
-  .inputValidator((data) => z.object({ payload: z.any() }).parse(data))
+  .validator((data) => z.object({ payload: z.any() }).parse(data))
   .handler(async ({ data: { payload } }) => {
     const { mapForeignBackup, unrecognizedCollections, extractAllCollections, TABLE_ALIASES, IGNORED_TABLE } = await import("@/lib/backup-mapping");
 

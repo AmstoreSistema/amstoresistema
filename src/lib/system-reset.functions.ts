@@ -35,7 +35,7 @@ const DELETE_ORDER = [
 
 export const resetSystemData = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data) => z.object({ confirm: z.string() }).parse(data))
+  .validator((data) => z.object({ confirm: z.string() }).parse(data))
   .handler(async ({ data, context }) => {
     if (data.confirm !== "ZERAR") {
       throw new Error("Confirmação inválida. Digite ZERAR para continuar.");

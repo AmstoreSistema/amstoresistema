@@ -3,7 +3,7 @@ import { z } from "zod";
 import { BLUEPRINT_MARKDOWN } from "@/lib/system-blueprint";
 
 export const askSystemDocs = createServerFn({ method: "POST" })
-  .inputValidator((data) =>
+  .validator((data) =>
     z
       .object({
         question: z.string().min(2).max(4000),

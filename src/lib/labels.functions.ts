@@ -8,7 +8,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
  */
 export const generateLabelGrid = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data) => z.object({
+  .validator((data) => z.object({
     products: z.array(z.object({
       id: z.string().uuid(),
       name: z.string(),
@@ -77,7 +77,7 @@ export const getPrintSettings = createServerFn({ method: "GET" })
 
 export const savePrintSettings = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data) => z.object({
+  .validator((data) => z.object({
     page_size: z.string().default('A4'),
     margin_top: z.number().default(0),
     margin_left: z.number().default(0),

@@ -53,7 +53,10 @@ function Dashboard() {
   );
 
   const activeOrders = useMemo(
-    () => orders.filter((o: any) => o.status === "pendente" || o.status === "em_producao").length,
+    () => orders.filter((o: any) => {
+      const st = String(o.status || "").toLowerCase();
+      return st === "pending" || st === "ongoing" || st === "pendente" || st === "em_producao";
+    }).length,
     [orders]
   );
 
@@ -135,7 +138,9 @@ function Dashboard() {
                   </div>
                   <div>
                     <p className="text-sm font-semibold">{products.find((p: any) => p.id === order.product_id)?.name || "Produto"}</p>
-                    <p className="text-[10px] text-muted-foreground uppercase tracking-widest">{order.status.replace('_', ' ')}</p>
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-widest">
+                      {((order.status === 'pending' ? 'pendente' : order.status === 'ongoing' ? 'em produção' : order.status) || 'pendente').replace('_', ' ')}
+                    </p>
                   </div>
                 </div>
                 <div className="text-right">

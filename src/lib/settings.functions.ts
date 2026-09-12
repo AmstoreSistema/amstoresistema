@@ -15,7 +15,7 @@ export const getAppSettings = createServerFn({ method: "GET" })
 
 export const updateAppSetting = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data) => z.object({ key: z.string(), value: z.any() }).parse(data))
+  .validator((data) => z.object({ key: z.string(), value: z.any() }).parse(data))
   .handler(async ({ data, context }) => {
     await assertAdmin(context.userId, context.claims);
 
@@ -33,7 +33,7 @@ export const updateAppSetting = createServerFn({ method: "POST" })
 
 export const updateAppSettingsBatch = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data) => z.array(z.object({ key: z.string(), value: z.any() })).parse(data))
+  .validator((data) => z.array(z.object({ key: z.string(), value: z.any() })).parse(data))
   .handler(async ({ data, context }) => {
     await assertAdmin(context.userId, context.claims);
 
@@ -93,7 +93,7 @@ export const getUsers = createServerFn({ method: "GET" })
 
 export const updateUserStatus = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data) => z.object({ id: z.string(), active: z.boolean() }).parse(data))
+  .validator((data) => z.object({ id: z.string(), active: z.boolean() }).parse(data))
   .handler(async ({ data, context }) => {
     await assertAdmin(context.userId, context.claims);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -107,7 +107,7 @@ export const updateUserStatus = createServerFn({ method: "POST" })
 
 export const updateUserRole = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data) => z.object({ userId: z.string(), role: z.enum(["admin", "moderator", "user"]) }).parse(data))
+  .validator((data) => z.object({ userId: z.string(), role: z.enum(["admin", "moderator", "user"]) }).parse(data))
   .handler(async ({ data, context }) => {
     await assertAdmin(context.userId, context.claims);
 
@@ -126,7 +126,7 @@ export const updateUserRole = createServerFn({ method: "POST" })
 /** Atualiza o nome real da pessoa que usa aquele login. */
 export const updateUserName = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data) => z.object({ userId: z.string(), display_name: z.string().min(1) }).parse(data))
+  .validator((data) => z.object({ userId: z.string(), display_name: z.string().min(1) }).parse(data))
   .handler(async ({ data, context }) => {
     await assertAdmin(context.userId, context.claims);
 
@@ -151,7 +151,7 @@ export const updateUserName = createServerFn({ method: "POST" })
 
 export const createNewUser = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data) => z.object({ 
+  .validator((data) => z.object({ 
     email: z.string().email(), 
     password: z.string().min(6),
     display_name: z.string(),
