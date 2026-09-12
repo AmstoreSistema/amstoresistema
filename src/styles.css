@@ -279,32 +279,83 @@ div:has(> a[href*="lovable.app"]) {
 @media print {
   @page {
     size: A4 portrait;
-    margin: 10mm 8mm 12mm 8mm;
+    margin: 8mm 8mm 8mm 8mm;
   }
 
-  /* Reset layout for print */
+  /* Desativa animações e transições na impressão para renderização imediata e sólida */
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  /* Reset estrutural para impressão sem rolagem e sem páginas extras */
+  html,
   body {
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
     background-color: white !important;
+    color: #0f172a !important;
+    overflow: visible !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
 
+  /* Remove completamente cabeçalhos, barras laterais, popovers e botões */
+  header,
+  nav,
+  aside,
+  [data-sidebar],
+  .sidebar,
+  .print\:hidden {
+    display: none !important;
+    height: 0 !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* Oculta os nós normais por visibilidade */
   body * {
     visibility: hidden;
   }
 
-  .report-container, .report-container * {
+  /* Deixa visível apenas o container de relatório e cupom */
+  .report-container,
+  .report-container *,
+  #printable-report,
+  #printable-report *,
+  .print-only,
+  .print-only * {
     visibility: visible;
   }
 
-  /* Encaixe rigoroso em folha A4 */
-  .report-container {
+  /* Anula qualquer altura ou margem phantom nos containers pais */
+  #root,
+  main,
+  .min-h-screen {
+    min-height: 0 !important;
+    height: auto !important;
     padding: 0 !important;
-    margin: 0 auto !important;
+    margin: 0 !important;
+    overflow: visible !important;
+    display: block !important;
+  }
+
+  /* Encaixe rigoroso em folha A4 a partir do topo */
+  .report-container,
+  #printable-report {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
     width: 100% !important;
     max-width: 100% !important;
-    position: static !important;
-    display: block !important;
+    margin: 0 !important;
+    padding: 0 !important;
     background: white !important;
     box-shadow: none !important;
     border: none !important;
@@ -312,28 +363,44 @@ div:has(> a[href*="lovable.app"]) {
   }
 
   /* Tabela contida na largura da folha A4 sem transbordar */
-  .report-container table {
+  .report-container table,
+  #printable-report table {
     width: 100% !important;
     max-width: 100% !important;
     table-layout: auto !important;
     border-collapse: collapse !important;
     font-size: 8.5pt !important;
+    page-break-inside: auto !important;
+    break-inside: auto !important;
   }
 
-  .report-container thead {
+  .report-container thead,
+  #printable-report thead {
     display: table-header-group !important;
   }
 
-  .report-container tfoot {
+  .report-container tfoot,
+  #printable-report tfoot {
     display: table-footer-group !important;
-  }
-
-  .report-container tr {
     page-break-inside: avoid !important;
     break-inside: avoid !important;
   }
 
-  .report-container th {
+  .report-container tr,
+  #printable-report tr {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  .report-header,
+  .report-summary,
+  .report-container footer {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  .report-container th,
+  #printable-report th {
     padding: 5px 6px !important;
     font-size: 7.5pt !important;
     background-color: #f1f5f9 !important;
@@ -342,20 +409,23 @@ div:has(> a[href*="lovable.app"]) {
     white-space: normal !important;
   }
 
-  .report-container td {
+  .report-container td,
+  #printable-report td {
     padding: 4.5px 6px !important;
     font-size: 8pt !important;
     word-break: break-word !important;
   }
 
   /* Preservar zebras e fundos nítidos na impressão */
-  .report-container table tr:nth-child(even) {
+  .report-container table tr:nth-child(even),
+  #printable-report table tr:nth-child(even) {
     background-color: #f8fafc !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
 
-  .report-container table thead tr {
+  .report-container table thead tr,
+  #printable-report table thead tr {
     background-color: #f1f5f9 !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;

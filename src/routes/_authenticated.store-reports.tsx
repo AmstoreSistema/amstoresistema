@@ -607,7 +607,6 @@ function StoreReportsPage() {
             { key: "overdue_days", label: "Atraso" },
             { key: "amount", label: "Valor Parcela", align: "right" },
             { key: "remaining", label: "Em Aberto", align: "right" },
-            { key: "status", label: "Situação" },
             { key: "action", label: "Ação Rápida", className: "print:hidden" },
           ],
           rows,
@@ -911,7 +910,6 @@ function StoreReportsPage() {
 
         return {
           columns: [
-            { key: "sku", label: "SKU" },
             { key: "product", label: "Produto" },
             { key: "category", label: "Categoria" },
             { key: "qty", label: "Disponível", align: "right" },
@@ -920,7 +918,6 @@ function StoreReportsPage() {
             { key: "total_cost", label: "Total Custo", align: "right" },
             { key: "total_sale", label: "Total Venda", align: "right" },
             { key: "min", label: "Mínimo", align: "right" },
-            { key: "status", label: "Situação" },
           ],
           rows,
           summaryCards,
@@ -964,7 +961,6 @@ function StoreReportsPage() {
             { key: "due", label: "Previsão" },
             { key: "end", label: "Conclusão" },
             { key: "materials", label: "Baixa Insumos" },
-            { key: "status", label: "Situação" },
           ],
           rows,
           summaryCards,
@@ -1002,14 +998,12 @@ function StoreReportsPage() {
 
         return {
           columns: [
-            { key: "sku", label: "Código" },
             { key: "name", label: "Material / Insumo" },
             { key: "unit", label: "Unidade" },
             { key: "price", label: "Custo Unit.", align: "right" },
             { key: "qty", label: "Estoque Atual", align: "right" },
             { key: "total", label: "Valor Total", align: "right" },
             { key: "min", label: "Mínimo", align: "right" },
-            { key: "status", label: "Situação" },
           ],
           rows,
           summaryCards,
@@ -1030,7 +1024,6 @@ function StoreReportsPage() {
             { key: "email", label: "E-mail" },
             { key: "category", label: "Ramo de Atuação" },
             { key: "location", label: "Cidade / UF" },
-            { key: "status", label: "Situação" },
           ],
           rows: suppliers.map((s: any) => ({
             name: s.name ?? "—",
@@ -1083,7 +1076,6 @@ function StoreReportsPage() {
 
         return {
           columns: [
-            { key: "sku", label: "SKU" },
             { key: "name", label: "Produto" },
             { key: "category", label: "Categoria" },
             { key: "cost", label: "Custo Unit.", align: "right" },
@@ -1092,7 +1084,6 @@ function StoreReportsPage() {
             { key: "margin_brl", label: "Margem (R$)", align: "right" },
             { key: "margin_pct", label: "Margem (%)", align: "right" },
             { key: "stock", label: "Estoque", align: "right" },
-            { key: "status", label: "Situação" },
           ],
           rows,
           summaryCards,

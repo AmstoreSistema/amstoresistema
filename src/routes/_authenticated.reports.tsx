@@ -245,8 +245,7 @@ function ReportsPage() {
           { key: "method", label: "Pagamento" },
           { key: "items_count", label: "Itens", align: "right" },
           { key: "discount", label: "Desconto", align: "right" },
-          { key: "total", label: "Total Líquido", align: "right" },
-          { key: "status", label: "Situação" }
+          { key: "total", label: "Total Líquido", align: "right" }
         );
 
         let grossRevenue = 0;
@@ -280,8 +279,7 @@ function ReportsPage() {
           { key: "due", label: "Vencimento" },
           { key: "overdue_days", label: "Dias / Atraso" },
           { key: "amount", label: "Valor Parcela", align: "right" },
-          { key: "remaining", label: "Em Aberto", align: "right" },
-          { key: "status", label: "Situação" }
+          { key: "remaining", label: "Em Aberto", align: "right" }
         );
 
         let totalParcelado = 0;
@@ -322,7 +320,6 @@ function ReportsPage() {
           { key: "due", label: "Vencimento" },
           { key: "overdue_days", label: "Atraso" },
           { key: "remaining", label: "Valor Pendente", align: "right" },
-          { key: "status", label: "Situação" },
           { key: "action", label: "Ação Rápida", className: "print:hidden" }
         );
 
@@ -346,7 +343,6 @@ function ReportsPage() {
 
       case "stock": {
         columns.push(
-          { key: "sku", label: "SKU" },
           { key: "name", label: "Produto" },
           { key: "category", label: "Categoria" },
           { key: "qty", label: "Estoque", align: "right" },
@@ -354,8 +350,7 @@ function ReportsPage() {
           { key: "price", label: "Venda Unit.", align: "right" },
           { key: "total_cost", label: "Patrimônio Custo", align: "right" },
           { key: "total_sale", label: "Potencial Venda", align: "right" },
-          { key: "min", label: "Mínimo", align: "right" },
-          { key: "status", label: "Situação" }
+          { key: "min", label: "Mínimo", align: "right" }
         );
 
         let totalPecas = 0;
@@ -391,8 +386,7 @@ function ReportsPage() {
           { key: "type", label: "Tipo" },
           { key: "agency_account", label: "Agência / Conta" },
           { key: "initial_balance", label: "Saldo Inicial", align: "right" },
-          { key: "balance", label: "Saldo Atual", align: "right" },
-          { key: "status", label: "Situação" }
+          { key: "balance", label: "Saldo Atual", align: "right" }
         );
 
         let saldoTotal = 0;
@@ -428,8 +422,7 @@ function ReportsPage() {
           { key: "due", label: "Previsão" },
           { key: "completed", label: "Conclusão" },
           { key: "materials_down", label: "Baixa Insumos" },
-          { key: "quality", label: "Inspeção" },
-          { key: "status", label: "Situação" }
+          { key: "quality", label: "Inspeção" }
         );
 
         let totalPecas = 0;
@@ -481,15 +474,13 @@ function ReportsPage() {
 
       case "materials": {
         columns.push(
-          { key: "sku", label: "Código" },
           { key: "name", label: "Material / Insumo" },
           { key: "type", label: "Tipo / Ramo" },
           { key: "unit", label: "Unidade" },
           { key: "cost", label: "Custo Unit.", align: "right" },
           { key: "qty", label: "Estoque Atual", align: "right" },
           { key: "total_cost", label: "Valor Total", align: "right" },
-          { key: "min", label: "Mínimo", align: "right" },
-          { key: "status", label: "Situação" }
+          { key: "min", label: "Mínimo", align: "right" }
         );
 
         let totalInsumosValor = 0;
@@ -513,7 +504,6 @@ function ReportsPage() {
 
       case "products": {
         columns.push(
-          { key: "sku", label: "SKU" },
           { key: "name", label: "Produto" },
           { key: "category", label: "Categoria" },
           { key: "cost", label: "Custo Unit.", align: "right" },
@@ -521,8 +511,7 @@ function ReportsPage() {
           { key: "wholesale", label: "Preço Atacado", align: "right" },
           { key: "margin_brl", label: "Margem Bruta (R$)", align: "right" },
           { key: "margin_pct", label: "Margem (%)", align: "right" },
-          { key: "stock", label: "Estoque", align: "right" },
-          { key: "status", label: "Situação" }
+          { key: "stock", label: "Estoque", align: "right" }
         );
 
         let sumPrice = 0;
@@ -550,8 +539,7 @@ function ReportsPage() {
           { key: "contact", label: "Contato" },
           { key: "phone", label: "Telefone / WhatsApp" },
           { key: "email", label: "E-mail" },
-          { key: "location", label: "Cidade / UF" },
-          { key: "status", label: "Situação" }
+          { key: "location", label: "Cidade / UF" }
         );
 
         summaryCards.push(
@@ -568,8 +556,7 @@ function ReportsPage() {
           { key: "qty", label: "Qtd Itens", align: "right" },
           { key: "unit_cost", label: "Custo Médio", align: "right" },
           { key: "total", label: "Total Pedido", align: "right" },
-          { key: "received_at", label: "Recebido em" },
-          { key: "status", label: "Situação" }
+          { key: "received_at", label: "Recebido em" }
         );
 
         let totalCompras = 0;

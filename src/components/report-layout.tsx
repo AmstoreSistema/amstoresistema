@@ -180,8 +180,8 @@ export function ReportLayout({
     if (!showTotals || summaryCards.length === 0) return null;
     return (
       <section className={cn(
-        "report-summary rounded-2xl border border-slate-200/90 bg-slate-50/70 p-5 print:bg-white print:border-slate-300 print:p-4",
-        position === "top" ? "mb-6 print:mb-4" : "mt-6 print:mt-4"
+        "report-summary rounded-2xl border border-slate-200/90 bg-slate-50/70 p-5 print:bg-white print:border-slate-300 print:p-3 print:break-inside-avoid",
+        position === "top" ? "mb-6 print:mb-3" : "mt-6 print:mt-3"
       )}>
         <div className="flex items-center gap-2 border-b border-slate-200 pb-3 mb-4">
           <Calculator className="size-4 text-slate-600 print:text-slate-800" />
@@ -422,7 +422,7 @@ export function ReportLayout({
       {/* RODAPÉ CORPORATIVO (DATA/HORA DE EMISSÃO E METADADOS)        */}
       {/* ============================================================ */}
       {!hideFooter && (
-        <footer className="mt-8 pt-4 border-t border-slate-200/80 flex flex-col sm:flex-row items-center justify-between text-[11px] font-medium text-slate-500 gap-2 print:border-slate-300 print:text-slate-600 print:mt-6">
+        <footer className="mt-8 pt-4 border-t border-slate-200/80 flex flex-col sm:flex-row items-center justify-between text-[11px] font-medium text-slate-500 gap-2 print:border-slate-300 print:text-slate-600 print:mt-4 print:break-inside-avoid">
           <span>
             Relatório emitido em: <strong className="font-semibold text-slate-700">{new Date().toLocaleString("pt-BR")}</strong>
           </span>
