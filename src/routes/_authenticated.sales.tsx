@@ -127,7 +127,7 @@ function SalesPage() {
     setPage(1);
   }, [term, startDate, endDate]);
 
-  const { data: clients = [] } = useRows("clients");
+  const { data: clients = [] } = useRows("clients", { select: "id, name" });
   const clientById = useMemo(() => new Map(clients.map((c: any) => [c.id, c])), [clients]);
 
   // Cálculo de limites .range(from, to) baseado na página atual
@@ -621,7 +621,17 @@ function SalesPage() {
                                               const { cancelSale } = await import("@/lib/sales.functions");
                                               await cancelSale({ data: { sale_id: sale.id } });
                                               toast.success("Venda estornada e dados financeiros sincronizados com sucesso");
-                                              qc.invalidateQueries();
+                                              void Promise.all([
+                                                 qc.invalidateQueries({ queryKey: ["sales"] }),
+                                                 qc.invalidateQueries({ queryKey: ["sales-stats"] }),
+                                                 qc.invalidateQueries({ queryKey: ["products"] }),
+                                                 qc.invalidateQueries({ queryKey: ["stock-products"] }),
+                                                 qc.invalidateQueries({ queryKey: ["stock_products"] }),
+                                                 qc.invalidateQueries({ queryKey: ["stock-stats"] }),
+                                                 qc.invalidateQueries({ queryKey: ["financial_accounts"] }),
+                                                 qc.invalidateQueries({ queryKey: ["transactions"] }),
+                                                 qc.invalidateQueries({ queryKey: ["clients"] }),
+                                              ]);
                                            } catch (err: any) {
                                               toast.error(err.message);
                                            }
@@ -747,7 +757,17 @@ function SalesPage() {
                                                const { cancelSale } = await import("@/lib/sales.functions");
                                                await cancelSale({ data: { sale_id: sale.id } });
                                                toast.success("Venda estornada e dados financeiros sincronizados com sucesso");
-                                               qc.invalidateQueries();
+                                               void Promise.all([
+                                                  qc.invalidateQueries({ queryKey: ["sales"] }),
+                                                  qc.invalidateQueries({ queryKey: ["sales-stats"] }),
+                                                  qc.invalidateQueries({ queryKey: ["products"] }),
+                                                  qc.invalidateQueries({ queryKey: ["stock-products"] }),
+                                                  qc.invalidateQueries({ queryKey: ["stock_products"] }),
+                                                  qc.invalidateQueries({ queryKey: ["stock-stats"] }),
+                                                  qc.invalidateQueries({ queryKey: ["financial_accounts"] }),
+                                                  qc.invalidateQueries({ queryKey: ["transactions"] }),
+                                                  qc.invalidateQueries({ queryKey: ["clients"] }),
+                                               ]);
                                             } catch (err: any) {
                                                toast.error(err.message);
                                             }

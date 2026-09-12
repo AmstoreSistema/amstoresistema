@@ -208,9 +208,12 @@ function MaterialsPage() {
       const { error } = await supabase.from("materials").delete().in("id", selectedIds);
       if (error) throw error;
       toast.success(`${selectedIds.length} material(is) excluído(s)`);
-      setSelectedIds([]);
       setBulkDeleteOpen(false);
-      await queryClient.invalidateQueries();
+      void Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["materials"] }),
+        queryClient.invalidateQueries({ queryKey: ["material_variations"] }),
+        queryClient.invalidateQueries({ queryKey: ["material_cuts"] }),
+      ]);
     } catch (e: any) {
       toast.error(e?.message ?? "Erro ao excluir materiais");
     } finally {

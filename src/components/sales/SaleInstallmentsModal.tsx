@@ -93,7 +93,15 @@ export function SaleInstallmentsModal({
       
       toast.success("Pagamento registrado com sucesso!");
       setPayModal({ open: false, inst: null, amount: "" });
-      qc.invalidateQueries();
+      void Promise.all([
+        qc.invalidateQueries({ queryKey: ["sale_installments"] }),
+        qc.invalidateQueries({ queryKey: ["sales"] }),
+        qc.invalidateQueries({ queryKey: ["sales-stats"] }),
+        qc.invalidateQueries({ queryKey: ["financial_accounts"] }),
+        qc.invalidateQueries({ queryKey: ["transactions"] }),
+        qc.invalidateQueries({ queryKey: ["transactions-stats"] }),
+        qc.invalidateQueries({ queryKey: ["sale-details", inst.sale_id] }),
+      ]);
     } catch (err: any) {
       toast.error(err.message);
     }
@@ -121,7 +129,11 @@ export function SaleInstallmentsModal({
       });
       toast.success("Parcelas atualizadas com sucesso!");
       setIsEditing(false);
-      qc.invalidateQueries();
+      void Promise.all([
+        qc.invalidateQueries({ queryKey: ["sale_installments"] }),
+        qc.invalidateQueries({ queryKey: ["sales"] }),
+        qc.invalidateQueries({ queryKey: ["sale-details", saleId] }),
+      ]);
     } catch (err: any) {
       toast.error(err.message);
     }

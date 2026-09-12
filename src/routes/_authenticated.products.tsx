@@ -426,9 +426,16 @@ function ProductsPage() {
       }
 
       await logAudit(editing ? "atualizar" : "criar", "products", `Ficha técnica de ${values.name}`, productId);
-      qc.invalidateQueries();
-      toast.success(editing ? "Produto atualizado" : "Produto cadastrado");
       setFormOpen(false);
+      toast.success(editing ? "Produto atualizado" : "Produto cadastrado");
+      void Promise.all([
+        qc.invalidateQueries({ queryKey: ["products"] }),
+        qc.invalidateQueries({ queryKey: ["stock-products"] }),
+        qc.invalidateQueries({ queryKey: ["stock_products"] }),
+        qc.invalidateQueries({ queryKey: ["stock-stats"] }),
+        qc.invalidateQueries({ queryKey: ["product_materials"] }),
+        qc.invalidateQueries({ queryKey: ["material_cuts"] }),
+      ]);
     } catch (e: any) {
       toast.error(e?.message ?? "Erro ao salvar produto");
     } finally {

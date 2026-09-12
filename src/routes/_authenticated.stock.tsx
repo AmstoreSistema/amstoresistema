@@ -215,30 +215,10 @@ function StockPage() {
         q = q.or(`name.ilike.%${cleanTerm}%,sku.ilike.%${cleanTerm}%`);
       }
 
-      // Filtro avançado por categoria (tolerante a maiúsculas, acentos e plural/singular)
+      // Filtro avançado por categoria com busca indexada no banco
       if (selectedCategory !== "Todas") {
-        const targetNorm = normalizeCat(selectedCategory);
-
-        const { data: catProducts } = await supabase
-          .from("products")
-          .select("id, category");
-
-        const matchingIds = (catProducts || [])
-          .filter((p: any) => {
-            const pNorm = normalizeCat(p.category || "");
-            return (
-              pNorm === targetNorm ||
-              (pNorm.length > 0 && targetNorm.length > 0 && (pNorm.includes(targetNorm) || targetNorm.includes(pNorm)))
-            );
-          })
-          .map((p: any) => p.id);
-
-        if (matchingIds.length > 0) {
-          q = q.in("id", matchingIds);
-        } else {
-          // Nenhum produto nessa categoria
-          q = q.in("id", ["00000000-0000-0000-0000-000000000000"]);
-        }
+        const root = selectedCategory.trim().replace(/s$/i, "");
+        q = q.ilike("category", `%${root}%`);
       }
 
       // Filtro avançado por fornecedor
@@ -480,41 +460,51 @@ function StockPage() {
         totalQty = Math.max(0, Number(newQty) || 0);
       }
 
-      // Update product table
-      await save.mutateAsync({
-        id: selectedProduct.id,
-        values: { 
-          current_stock: totalQty, 
-          updated_at: new Date().toISOString() 
-        }
-      });
+      // Atualização direta do produto no banco (rápida e sem múltiplos toasts)
+      const { error: pErr } = await supabase
+        .from("products")
+        .update({
+          current_stock: totalQty,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", selectedProduct.id);
+      if (pErr) throw pErr;
 
-      // Update stock_products table if record exists, or create if missing
+      // Atualiza ou insere na tabela stock_products
       if (stockRecord) {
-        await saveStock.mutateAsync({
-          id: stockRecord.id,
-          values: {
+        const { error: sErr } = await supabase
+          .from("stock_products")
+          .update({
             quantidade_disponivel: totalQty,
-            numeracoes: isFootwear ? cleanQuantities : null
-          }
-        });
+            numeracoes: isFootwear ? cleanQuantities : null,
+          })
+          .eq("id", stockRecord.id);
+        if (sErr) throw sErr;
       } else if (isFootwear) {
-        await supabase.from("stock_products").insert({
+        const { error: sErr } = await supabase.from("stock_products").insert({
           produto_id: selectedProduct.id,
           produto_nome: selectedProduct.name,
           quantidade_disponivel: totalQty,
           numeracoes: cleanQuantities,
           categoria: selectedProduct.category,
         });
+        if (sErr) throw sErr;
       }
+
+      await logAudit("atualizar", "products", `Estoque ajustado para ${totalQty}`, selectedProduct.id);
 
       setAdjustOpen(false);
       setNewQty("");
       setAdjustQuantities({});
       toast.success("Estoque ajustado com sucesso");
-      qc.invalidateQueries({ queryKey: ["products"] });
-      qc.invalidateQueries({ queryKey: ["stock_products"] });
-      qc.invalidateQueries({ queryKey: ["stock-stats"] });
+
+      // Invalida em paralelo todas as chaves pertinentes para atualização imediata na tela
+      void Promise.all([
+        qc.invalidateQueries({ queryKey: ["stock-products"] }),
+        qc.invalidateQueries({ queryKey: ["stock_products"] }),
+        qc.invalidateQueries({ queryKey: ["products"] }),
+        qc.invalidateQueries({ queryKey: ["stock-stats"] }),
+      ]);
     } catch (error: any) {
       console.error(error);
       toast.error(error?.message || "Erro ao ajustar estoque");

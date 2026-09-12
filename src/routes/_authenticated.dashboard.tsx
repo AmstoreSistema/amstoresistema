@@ -31,14 +31,24 @@ export const Route = createFileRoute("/_authenticated/dashboard")({
 });
 
 function Dashboard() {
-  const { data: materials = [] } = useRows("materials");
-  const { data: products = [] } = useRows("products");
-  const { data: orders = [] } = useRows("production_orders");
-  const { data: sales = [] } = useRows("sales");
-  const { data: clients = [] } = useRows("clients");
+  const { data: materials = [] } = useRows("materials", { select: "id, name, type, current_stock, min_stock, unit" });
+  const { data: products = [] } = useRows("products", { select: "id, name, current_stock, min_stock" });
+  const { data: orders = [] } = useRows("production_orders", { 
+    select: "id, status, product_id, quantity, created_at",
+    order: { column: "created_at", ascending: false },
+    limit: 20
+  });
+  const { data: sales = [] } = useRows("sales", { 
+    select: "id, created_at, total_amount, client_id",
+    order: { column: "created_at", ascending: false },
+    limit: 100
+  });
+  const { data: clients = [] } = useRows("clients", { select: "id, name" });
   const { data: installments = [] } = useRows("sale_installments", { 
+    select: "id, sale_id, amount, due_date, status",
     filters: [{ column: "status", value: "overdue" }],
-    order: { column: "due_date", ascending: true }
+    order: { column: "due_date", ascending: true },
+    limit: 30
   });
 
   useEffect(() => {

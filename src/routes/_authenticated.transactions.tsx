@@ -200,7 +200,12 @@ function TransactionsPage() {
     try {
       await deleteTransaction({ data: id });
       toast.success("Lançamento excluído");
-      qc.invalidateQueries();
+      void Promise.all([
+        qc.invalidateQueries({ queryKey: ["transactions"] }),
+        qc.invalidateQueries({ queryKey: ["transactions-stats"] }),
+        qc.invalidateQueries({ queryKey: ["financial_accounts"] }),
+        qc.invalidateQueries({ queryKey: ["reports"] }),
+      ]);
     } catch (e: any) {
       toast.error(e.message);
     }
@@ -212,7 +217,11 @@ function TransactionsPage() {
       await updateAccountBalance({ data: { id: editingAccount.id, current_balance: Number(newBalance) } });
       toast.success("Saldo inicial atualizado");
       setEditingAccount(null);
-      qc.invalidateQueries();
+      void Promise.all([
+        qc.invalidateQueries({ queryKey: ["financial_accounts"] }),
+        qc.invalidateQueries({ queryKey: ["transactions"] }),
+        qc.invalidateQueries({ queryKey: ["transactions-stats"] }),
+      ]);
     } catch (e: any) {
       toast.error(e.message);
     }

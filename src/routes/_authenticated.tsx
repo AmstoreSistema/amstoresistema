@@ -81,6 +81,7 @@ function AuthenticatedLayout() {
   const [role, setRole] = useState<string>("Colaborador");
   const [email, setEmail] = useState<string>("");
 
+  // Carrega perfil e cargo uma única vez na inicialização da sessão (evita 2 queries extras a cada navegação)
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data }) => {
       const user = data.session?.user;
@@ -103,13 +104,21 @@ function AuthenticatedLayout() {
         const roleMap: Record<string, string> = { admin: "Administrador", moderator: "Moderador", user: "Vendedor" };
         setRole(roleMap[finalRole] || "Vendedor");
         
-        if (pathname === "/settings" && finalRole !== "admin") {
+        if (window.location.pathname === "/settings" && finalRole !== "admin") {
           toast.error("Você não tem permissão para acessar as configurações.");
           window.location.href = "/dashboard";
         }
       }
     });
-  }, [pathname]);
+  }, []);
+
+  // Proteção leve para rota /settings
+  useEffect(() => {
+    if (pathname === "/settings" && role !== "Administrador" && role !== "Colaborador") {
+      toast.error("Você não tem permissão para acessar as configurações.");
+      window.location.href = "/dashboard";
+    }
+  }, [pathname, role]);
 
   // Mantém a sessão ativa por 8h de inatividade
   useEffect(() => {

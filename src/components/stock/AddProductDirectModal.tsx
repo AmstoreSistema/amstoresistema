@@ -113,8 +113,13 @@ export function AddProductDirectModal({ open, onOpenChange }: { open: boolean; o
       if (sError) throw sError;
 
       toast.success("Produto adicionado diretamente ao estoque!");
-      qc.invalidateQueries();
       onOpenChange(false);
+      void Promise.all([
+        qc.invalidateQueries({ queryKey: ["stock-products"] }),
+        qc.invalidateQueries({ queryKey: ["stock_products"] }),
+        qc.invalidateQueries({ queryKey: ["products"] }),
+        qc.invalidateQueries({ queryKey: ["stock-stats"] }),
+      ]);
       
       setFormData({
         name: "",

@@ -434,8 +434,21 @@ export function POSModal({ open, onOpenChange, initialClient, initialItems }: PO
         resetPOS();
       }
 
-      await qc.invalidateQueries().catch(err => console.warn("Erro ao invalidar queries:", err));
-      
+      // Invalidação cirúrgica e paralela em segundo plano (não trava o recibo nem dispara 30+ requisições globais)
+      void Promise.all([
+        qc.invalidateQueries({ queryKey: ["sales"] }),
+        qc.invalidateQueries({ queryKey: ["sales-stats"] }),
+        qc.invalidateQueries({ queryKey: ["products"] }),
+        qc.invalidateQueries({ queryKey: ["stock-products"] }),
+        qc.invalidateQueries({ queryKey: ["stock_products"] }),
+        qc.invalidateQueries({ queryKey: ["stock-stats"] }),
+        qc.invalidateQueries({ queryKey: ["financial_accounts"] }),
+        qc.invalidateQueries({ queryKey: ["transactions"] }),
+        qc.invalidateQueries({ queryKey: ["transactions-stats"] }),
+        qc.invalidateQueries({ queryKey: ["clients"] }),
+        qc.invalidateQueries({ queryKey: ["sale_installments"] }),
+        qc.invalidateQueries({ queryKey: ["cashback"] }),
+      ]).catch((err) => console.warn("Erro ao invalidar queries da venda:", err));
     } catch (error: any) {
       console.error("ERRO CRÍTICO NA FINALIZAÇÃO DA VENDA:", error);
       const errorMessage = error.message || "Erro desconhecido ao processar venda.";

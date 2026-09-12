@@ -163,7 +163,11 @@ function AccountsPage() {
       toast.success("Transferência realizada com sucesso");
       setTransferOpen(false);
       transferForm.reset();
-      qc.invalidateQueries();
+      void Promise.all([
+        qc.invalidateQueries({ queryKey: ["financial_accounts"] }),
+        qc.invalidateQueries({ queryKey: ["transactions"] }),
+        qc.invalidateQueries({ queryKey: ["transactions-stats"] }),
+      ]);
     }
   };
 
@@ -180,7 +184,11 @@ function AccountsPage() {
     try {
       await deleteAccountFn({ data: { id: account.id } });
       toast.success("Conta excluída com sucesso");
-      qc.invalidateQueries();
+      void Promise.all([
+        qc.invalidateQueries({ queryKey: ["financial_accounts"] }),
+        qc.invalidateQueries({ queryKey: ["transactions"] }),
+        qc.invalidateQueries({ queryKey: ["transactions-stats"] }),
+      ]);
     } catch (err: any) {
       toast.error(err.message || "Erro ao excluir conta");
     }
@@ -309,7 +317,10 @@ function AccountsPage() {
                               if (error) {
                                 toast.error(error.message);
                               } else {
-                                qc.invalidateQueries();
+                                void Promise.all([
+                                  qc.invalidateQueries({ queryKey: ["financial_accounts"] }),
+                                  qc.invalidateQueries({ queryKey: ["transactions"] }),
+                                ]);
                                 toast.success(`Conta "${account.name}" definida como ativa.`);
                               }
                             }}

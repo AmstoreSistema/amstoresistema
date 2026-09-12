@@ -102,7 +102,9 @@ function LiveMetrics() {
 
   useEffect(() => {
     const t = setInterval(() => {
-      void qc.invalidateQueries();
+      for (const table of WATCHED) {
+        void qc.invalidateQueries({ queryKey: [table] });
+      }
       setLastUpdate(new Date());
     }, 30000);
     return () => clearInterval(t);

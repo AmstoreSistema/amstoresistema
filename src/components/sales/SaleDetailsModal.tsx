@@ -184,8 +184,19 @@ export function SaleDetailsModal({
                       const { cancelSale } = await import("@/lib/sales.functions");
                       await cancelSale({ data: { sale_id: saleId! } });
                       toast.success("Venda estornada com sucesso");
-                      qc.invalidateQueries();
                       handleClose();
+                      void Promise.all([
+                        qc.invalidateQueries({ queryKey: ["sales"] }),
+                        qc.invalidateQueries({ queryKey: ["sales-stats"] }),
+                        qc.invalidateQueries({ queryKey: ["sale-details", saleId] }),
+                        qc.invalidateQueries({ queryKey: ["products"] }),
+                        qc.invalidateQueries({ queryKey: ["stock-products"] }),
+                        qc.invalidateQueries({ queryKey: ["stock_products"] }),
+                        qc.invalidateQueries({ queryKey: ["stock-stats"] }),
+                        qc.invalidateQueries({ queryKey: ["financial_accounts"] }),
+                        qc.invalidateQueries({ queryKey: ["transactions"] }),
+                        qc.invalidateQueries({ queryKey: ["clients"] }),
+                      ]);
                     } catch (err: any) {
                       toast.error(err.message);
                     }

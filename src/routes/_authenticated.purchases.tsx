@@ -179,7 +179,12 @@ function PurchasesPage() {
       if (error) throw error;
       
       toast.success("Compra excluída e estoque estornado");
-      qc.invalidateQueries();
+      void Promise.all([
+        qc.invalidateQueries({ queryKey: ["purchases"] }),
+        qc.invalidateQueries({ queryKey: ["materials"] }),
+        qc.invalidateQueries({ queryKey: ["transactions"] }),
+        qc.invalidateQueries({ queryKey: ["financial_accounts"] }),
+      ]);
     } catch (e: any) {
       toast.error(e.message || "Erro ao excluir compra");
     }

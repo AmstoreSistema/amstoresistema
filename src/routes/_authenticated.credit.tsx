@@ -62,10 +62,15 @@ type Installment = {
 
 function CreditPage() {
   const { data: sales = [], isLoading: salesLoading } = useRows<Sale>("sales", {
+    select: "id, client_id, total_amount, paid_amount, status, is_debt, created_at, sale_code",
     filters: [{ column: "is_debt", value: true }],
   });
-  const { data: clients = [] } = useRows<Client>("clients");
-  const { data: installments = [] } = useRows<Installment>("sale_installments" as any);
+  const { data: clients = [] } = useRows<Client>("clients", {
+    select: "id, name, phone",
+  });
+  const { data: installments = [] } = useRows<Installment>("sale_installments" as any, {
+    select: "id, sale_id, amount, paid_amount, due_date, status",
+  });
 
   const [term, setTerm] = useState("");
   const [filter, setFilter] = useState<'todos' | 'vencidos' | 'em_dia'>('todos');

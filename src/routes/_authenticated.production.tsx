@@ -169,7 +169,10 @@ function ProductionPage() {
     
     await logAudit("producao", "production_orders", `Nova ordem ${codigo_ordem} criada para ${product?.name}`, newOrder.product_id);
     setNewOrderOpen(false);
-    qc.invalidateQueries();
+    void Promise.all([
+      qc.invalidateQueries({ queryKey: ["production_orders"] }),
+      qc.invalidateQueries({ queryKey: ["products"] }),
+    ]);
     toast.success("Ordem de produção criada!");
   };
 
@@ -181,11 +184,12 @@ function ProductionPage() {
       setProcessingOrderId(order.id);
       try {
         await startProduction({ data: { orderId: order.id } });
-        await qc.invalidateQueries({ queryKey: ["production_orders"] });
-        await qc.refetchQueries({ queryKey: ["production_orders"] });
-        await qc.invalidateQueries({ queryKey: ["materials"] });
-        await qc.invalidateQueries({ queryKey: ["material_variations"] });
-        await qc.invalidateQueries({ queryKey: ["material_cuts"] });
+        await Promise.all([
+          qc.invalidateQueries({ queryKey: ["production_orders"] }),
+          qc.invalidateQueries({ queryKey: ["materials"] }),
+          qc.invalidateQueries({ queryKey: ["material_variations"] }),
+          qc.invalidateQueries({ queryKey: ["material_cuts"] }),
+        ]);
         toast.success("Produção iniciada e materiais baixados.");
       } catch (err: any) {
         toast.error(err.message || "Erro ao iniciar");
@@ -201,9 +205,12 @@ function ProductionPage() {
       setProcessingOrderId(order.id);
       try {
         await processProductionCompletion({ data: { orderId: order.id } });
-        await qc.invalidateQueries({ queryKey: ["production_orders"] });
-        await qc.invalidateQueries({ queryKey: ["products"] });
-        await qc.invalidateQueries({ queryKey: ["stock_products"] });
+        await Promise.all([
+          qc.invalidateQueries({ queryKey: ["production_orders"] }),
+          qc.invalidateQueries({ queryKey: ["products"] }),
+          qc.invalidateQueries({ queryKey: ["stock-products"] }),
+          qc.invalidateQueries({ queryKey: ["stock_products"] }),
+        ]);
         await logAudit("producao", "production_orders", `Ordem ${order.id} concluída. Estoque atualizado.`);
         
         const { data: composition } = await supabase
@@ -238,7 +245,7 @@ function ProductionPage() {
     }
 
     await logAudit("producao", "production_orders", `Status da ordem ${order.id} alterado para ${newStatus}`);
-    qc.invalidateQueries();
+    void qc.invalidateQueries({ queryKey: ["production_orders"] });
     toast.success(`Ordem atualizada para ${newStatus}`);
   };
 
@@ -258,12 +265,15 @@ function ProductionPage() {
       const productName = productById.get(orderToDelete.product_id as string)?.name || "Produto";
       await logAudit("producao", "production_orders", `Ordem de produção de ${productName} excluída/estornada`);
       
-      await qc.invalidateQueries({ queryKey: ["production_orders"] });
-      await qc.invalidateQueries({ queryKey: ["products"] });
-      await qc.invalidateQueries({ queryKey: ["stock_products"] });
-      await qc.invalidateQueries({ queryKey: ["materials"] });
-      await qc.invalidateQueries({ queryKey: ["material_variations"] });
-      await qc.invalidateQueries({ queryKey: ["material_cuts"] });
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: ["production_orders"] }),
+        qc.invalidateQueries({ queryKey: ["products"] }),
+        qc.invalidateQueries({ queryKey: ["stock-products"] }),
+        qc.invalidateQueries({ queryKey: ["stock_products"] }),
+        qc.invalidateQueries({ queryKey: ["materials"] }),
+        qc.invalidateQueries({ queryKey: ["material_variations"] }),
+        qc.invalidateQueries({ queryKey: ["material_cuts"] }),
+      ]);
       toast.success("Ordem excluída com sucesso!");
 
       setDeleteConfirmOpen(false);
