@@ -237,24 +237,81 @@ function TransactionsPage() {
     return groups;
   }, [transactions]);
 
-  // Consulta consolidada para os 4 StatCards de topo no período selecionado
+  // Consulta consolidada para os 4 StatCards de topo no período e guia selecionados
   const { data: statsData } = useQuery({
-    queryKey: ["transactions-stats", startDate, endDate],
+    queryKey: ["transactions-stats", startDate, endDate, typeFilter, statusFilter],
     queryFn: async () => {
       let q = supabase
         .from("transactions")
-        .select("type, amount, status, created_at");
+        .select("type, amount, status, created_at, due_date");
 
       if (startDate) q = q.gte("created_at", `${startDate}T00:00:00`);
       if (endDate) q = q.lte("created_at", `${endDate}T23:59:59.999`);
 
-      const { data } = await q;
+      // Filtro de tipo na consulta
+      if (typeFilter === "receita") {
+        q = q.in("type", ["entrada", "income"]);
+      } else if (typeFilter === "despesa") {
+        q = q.in("type", ["saida", "expense"]);
+      }
+
+      // Filtro de status na consulta
+      if (statusFilter === "pago") {
+        q = q.in("status", ["pago", "paid"]);
+      } else if (statusFilter === "cancelado") {
+        q = q.in("status", ["cancelado", "cancelled", "canceled"]);
+      } else if (statusFilter === "pendente") {
+        q = q.in("status", ["pendente", "pending", "aberto"]);
+      } else if (statusFilter === "atrasado") {
+        const todayStr = new Date().toISOString().split("T")[0];
+        q = q.in("status", ["pendente", "pending", "aberto"]).lt("due_date", todayStr);
+      }
+
+      const { data, error } = await q;
+      if (error) throw error;
       const all = (data as any[]) || [];
-      const paid = all.filter(t => ["pago", "paid"].includes(String(t.status || "").toLowerCase()));
-      const inflow = paid.filter(r => (r.type === "entrada" || r.type === "income")).reduce((s, r) => s + Number(r.amount || 0), 0);
-      const outflow = paid.filter(r => (r.type === "saida" || r.type === "expense")).reduce((s, r) => s + Math.abs(Number(r.amount || 0)), 0);
-      const pending = all.filter(t => ["pendente", "pending", "aberto"].includes(String(t.status || "").toLowerCase())).length;
-      return { inflow, outflow, pending, balance: inflow - outflow };
+
+      // Para valores monetários: se statusFilter for 'todos', considera transações efetivadas (pagas)
+      // Se statusFilter for explícito ('pendente', etc.), soma os valores correspondentes
+      const targetRows = statusFilter === "todos"
+        ? all.filter(t => ["pago", "paid"].includes(String(t.status || "").toLowerCase()))
+        : all;
+
+      const rawInflow = targetRows
+        .filter(r => (r.type === "entrada" || r.type === "income"))
+        .reduce((s, r) => s + Number(r.amount || 0), 0);
+
+      const rawOutflow = targetRows
+        .filter(r => (r.type === "saida" || r.type === "expense"))
+        .reduce((s, r) => s + Math.abs(Number(r.amount || 0)), 0);
+
+      const pendingCount = all.filter(t => {
+        const isPending = ["pendente", "pending", "aberto"].includes(String(t.status || "").toLowerCase());
+        if (!isPending) return false;
+        if (typeFilter === "receita") return t.type === "entrada" || t.type === "income";
+        if (typeFilter === "despesa") return t.type === "saida" || t.type === "expense";
+        return true;
+      }).length;
+
+      let inflow = 0;
+      let outflow = 0;
+      let balance = 0;
+
+      if (typeFilter === "despesa") {
+        inflow = 0;
+        outflow = rawOutflow;
+        balance = rawOutflow; // Saldo espelha o valor das despesas quando a guia despesa estiver ativa
+      } else if (typeFilter === "receita") {
+        inflow = rawInflow;
+        outflow = 0;
+        balance = rawInflow; // Saldo espelha o valor das receitas quando a guia receita estiver ativa
+      } else {
+        inflow = rawInflow;
+        outflow = rawOutflow;
+        balance = rawInflow - rawOutflow;
+      }
+
+      return { inflow, outflow, pending: pendingCount, balance };
     },
   });
 
@@ -273,7 +330,7 @@ function TransactionsPage() {
     <div className="space-y-6 animate-in fade-in duration-500">
       <PageHeader 
         title="Transações" 
-        description="Gerencie receitas e adições"
+        description="Gerencie receitas e despesas com filtros por guia e período"
         icon={ArrowLeftRight}
         actions={
           <div className="flex gap-2">
@@ -322,10 +379,34 @@ function TransactionsPage() {
       />
 
       <div className="grid grid-cols-2 gap-2.5 sm:gap-4 lg:grid-cols-4">
-        <StatCard title="Receitas totais" value={brl(stats.inflow)} icon={TrendingUp} tone="success" />
-        <StatCard title="Total Despesas" value={brl(stats.outflow)} icon={TrendingDown} tone="destructive" />
-        <StatCard title="Saldo" value={brl(stats.balance)} icon={DollarSign} tone="gold" />
-        <StatCard title="Pendentes" value={stats.pending.toString()} icon={Clock} tone="warning" />
+        <StatCard 
+          title="Receitas totais" 
+          value={brl(stats.inflow)} 
+          sub={typeFilter === "despesa" ? "Guia Despesa ativa" : (startDate || endDate) ? "No período filtrado" : "Total acumulado"}
+          icon={TrendingUp} 
+          tone={typeFilter === "despesa" ? "dark" : "success"} 
+        />
+        <StatCard 
+          title="Total Despesas" 
+          value={brl(stats.outflow)} 
+          sub={typeFilter === "receita" ? "Guia Receita ativa" : (startDate || endDate) ? "No período filtrado" : "Total acumulado"}
+          icon={TrendingDown} 
+          tone={typeFilter === "receita" ? "dark" : "destructive"} 
+        />
+        <StatCard 
+          title={typeFilter === "despesa" ? "Saldo (Despesas)" : typeFilter === "receita" ? "Saldo (Receitas)" : "Saldo"} 
+          value={brl(stats.balance)} 
+          sub={typeFilter === "despesa" ? "Total de despesas da guia" : typeFilter === "receita" ? "Total de receitas da guia" : "Balanço do período"}
+          icon={DollarSign} 
+          tone="gold" 
+        />
+        <StatCard 
+          title="Pendentes" 
+          value={stats.pending.toString()} 
+          sub={typeFilter === "despesa" ? "Despesas a pagar" : typeFilter === "receita" ? "Receitas a receber" : "Lançamentos em aberto"}
+          icon={Clock} 
+          tone="warning" 
+        />
       </div>
 
       <div className="flex gap-2">
@@ -341,6 +422,68 @@ function TransactionsPage() {
       </div>
 
       <div className="grid gap-3 sm:gap-4 sm:grid-cols-2 rounded-2xl border border-border/40 bg-card p-3 sm:p-4">
+        <div className="sm:col-span-2 flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-hide">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mr-1 shrink-0">
+            Período:
+          </span>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="h-7 px-2.5 text-[11px] font-medium rounded-lg shrink-0"
+            onClick={() => {
+              const now = new Date();
+              const firstDay = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split("T")[0];
+              const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split("T")[0];
+              setStartDate(firstDay);
+              setEndDate(lastDay);
+            }}
+          >
+            Este Mês
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="h-7 px-2.5 text-[11px] font-medium rounded-lg shrink-0"
+            onClick={() => {
+              const now = new Date();
+              const firstDay = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString().split("T")[0];
+              const lastDay = new Date(now.getFullYear(), now.getMonth(), 0).toISOString().split("T")[0];
+              setStartDate(firstDay);
+              setEndDate(lastDay);
+            }}
+          >
+            Mês Anterior
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="h-7 px-2.5 text-[11px] font-medium rounded-lg shrink-0"
+            onClick={() => {
+              const past30 = new Date();
+              past30.setDate(past30.getDate() - 30);
+              setStartDate(past30.toISOString().split("T")[0]);
+              setEndDate(new Date().toISOString().split("T")[0]);
+            }}
+          >
+            Últimos 30 dias
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="h-7 px-2.5 text-[11px] font-medium text-muted-foreground hover:text-foreground rounded-lg shrink-0"
+            onClick={() => {
+              setStartDate("");
+              setEndDate("");
+            }}
+          >
+            Todo o Histórico
+          </Button>
+        </div>
+
         <div className="space-y-1.5">
           <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Data início</label>
           <Input
@@ -388,17 +531,19 @@ function TransactionsPage() {
 
       <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
         {([
-          { key: "todos", label: "Todos" },
-          { key: "receita", label: "Receita" },
-          { key: "despesa", label: "Despesa" },
+          { key: "todos", label: "Todos os Tipos" },
+          { key: "receita", label: "Receitas" },
+          { key: "despesa", label: "Despesas" },
         ] as const).map(o => (
           <Button
             key={`type-${o.key}`}
-            variant={typeFilter === o.key ? "secondary" : "ghost"}
+            variant={typeFilter === o.key ? "default" : "outline"}
             size="sm"
             className={cn(
-              "rounded-lg text-[11px] font-bold uppercase h-8",
-              typeFilter === o.key && "bg-green-500 text-white hover:bg-green-600"
+              "rounded-xl text-[11px] font-bold uppercase h-9 px-3.5 transition-all shadow-xs",
+              typeFilter === o.key && o.key === "receita" && "bg-emerald-600 text-white hover:bg-emerald-700 border-emerald-600",
+              typeFilter === o.key && o.key === "despesa" && "bg-destructive text-destructive-foreground hover:bg-destructive/90 border-destructive",
+              typeFilter === o.key && o.key === "todos" && "bg-foreground text-background hover:bg-foreground/90"
             )}
             onClick={() => setTypeFilter(o.key)}
           >
@@ -418,8 +563,8 @@ function TransactionsPage() {
             variant={statusFilter === o.key ? "secondary" : "ghost"}
             size="sm"
             className={cn(
-              "rounded-lg text-[11px] font-bold uppercase h-8",
-              statusFilter === o.key && "bg-blue-500 text-white hover:bg-blue-600"
+              "rounded-xl text-[11px] font-bold uppercase h-9 px-3",
+              statusFilter === o.key && "bg-blue-600 text-white hover:bg-blue-700"
             )}
             onClick={() => setStatusFilter(o.key)}
           >
