@@ -161,7 +161,37 @@ function CreditPage() {
       c.overdueDue = Math.min(c.totalDue, c.overdueDue);
     });
 
-    return Array.from(stats.values());
+    return Array.from(stats.values()).sort((a, b) => {
+      // 1. Clientes vencidos sempre no início
+      if (a.isOverdue && !b.isOverdue) return -1;
+      if (!a.isOverdue && b.isOverdue) return 1;
+
+      // 2. Entre os vencidos, os com vencimento mais antigo (mais atrasados) aparecem primeiro
+      if (a.isOverdue && b.isOverdue) {
+        if (a.nextDueDate && b.nextDueDate) {
+          const diff = new Date(a.nextDueDate).getTime() - new Date(b.nextDueDate).getTime();
+          if (diff !== 0) return diff;
+        } else if (a.nextDueDate) {
+          return -1;
+        } else if (b.nextDueDate) {
+          return 1;
+        }
+        return (b.overdueDue || b.totalDue) - (a.overdueDue || a.totalDue);
+      }
+
+      // 3. Entre os clientes em dia, quem vence mais cedo vem primeiro
+      if (a.nextDueDate && b.nextDueDate) {
+        const diff = new Date(a.nextDueDate).getTime() - new Date(b.nextDueDate).getTime();
+        if (diff !== 0) return diff;
+      } else if (a.nextDueDate) {
+        return -1;
+      } else if (b.nextDueDate) {
+        return 1;
+      }
+
+      // 4. Desempate por nome alfabético
+      return a.name.localeCompare(b.name, 'pt-BR');
+    });
   }, [sales, clients, installments, clientById, todayIso]);
 
   const filteredClients = useMemo(() => {
