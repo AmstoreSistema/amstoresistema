@@ -750,6 +750,20 @@ function SettingsPage() {
                     className="h-12 border-border/60 focus-visible:ring-gold"
                   />
                 </div>
+                <div className="space-y-2">
+                  <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Meta Diária Geral da Loja (R$)</Label>
+                  <Input 
+                    type="number"
+                    step="50"
+                    value={getSettingValue("daily_goal", "2000")} 
+                    onChange={(e) => handleLocalUpdate("daily_goal", e.target.value)}
+                    placeholder="2000"
+                    className="h-12 border-border/60 focus-visible:ring-gold font-semibold"
+                  />
+                  <p className="text-[10px] text-muted-foreground">
+                    Meta global de faturamento diário da loja, exibida e sincronizada no Painel de Controle para todos os administradores.
+                  </p>
+                </div>
               </div>
             </CardContent>
             <CardFooter className="bg-muted/30 border-t border-border/40 p-6 flex justify-end">

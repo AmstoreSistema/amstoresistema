@@ -39,6 +39,9 @@ import { useRows } from "@/lib/data";
 import { brl } from "@/lib/format";
 import { StatCard } from "@/components/stat-card";
 import { BirthdayAlertCard } from "@/components/BirthdayAlertCard";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { syncCurrentAdminProfile, getAppSettings, updateAppSetting } from "@/lib/settings.functions";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({
@@ -72,16 +75,53 @@ function Dashboard() {
     select: "id, sale_id, amount, paid_amount, due_date, status",
   });
 
-  // Meta diária configurável pelo lojista
-  const [dailyGoal, setDailyGoal] = useState<number>(() => {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("amstore_daily_goal");
-      if (saved && !isNaN(Number(saved)) && Number(saved) > 0) return Number(saved);
+  const queryClient = useQueryClient();
+  const fetchAppSettings = useServerFn(getAppSettings);
+  const saveAppSetting = useServerFn(updateAppSetting);
+
+  // Meta diária única da loja (carregada do banco de dados e compartilhada por todo o sistema)
+  const { data: rawSettings = [] } = useQuery({
+    queryKey: ["app_settings"],
+    queryFn: async () => {
+      try {
+        const res = await fetchAppSettings();
+        return res || [];
+      } catch {
+        const { data } = await supabase.from("app_settings").select("*");
+        return data || [];
+      }
+    },
+    staleTime: 5_000,
+    refetchOnWindowFocus: true,
+  });
+
+  const dailyGoal = useMemo(() => {
+    const goalItem = rawSettings.find((s: any) => s.key === "daily_goal");
+    if (goalItem && goalItem.value !== undefined && goalItem.value !== null) {
+      const parsed = typeof goalItem.value === "string" ? parseFloat(goalItem.value) : Number(goalItem.value);
+      if (!isNaN(parsed) && parsed > 0) return parsed;
     }
     return 2000;
-  });
+  }, [rawSettings]);
+
   const [isGoalModalOpen, setIsGoalModalOpen] = useState(false);
   const [tempGoalInput, setTempGoalInput] = useState(String(dailyGoal));
+
+  // Mantém o input temporário atualizado quando a meta global da loja mudar no banco
+  useEffect(() => {
+    setTempGoalInput(String(dailyGoal));
+  }, [dailyGoal]);
+
+  // Remove qualquer resquício de localStorage de versões anteriores
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("amstore_daily_goal");
+    }
+  }, []);
+
+  // Nome do administrador logado (configurado em Configurações / Usuários)
+  const [adminName, setAdminName] = useState<string>("");
+  const syncProfile = useServerFn(syncCurrentAdminProfile);
 
   // Aba de alerta de estoque: Produtos de Loja ou Materiais de Produção
   const [stockAlertTab, setStockAlertTab] = useState<"products" | "materials">("products");
@@ -90,6 +130,34 @@ function Dashboard() {
     supabase.rpc('check_sale_installments_alerts').then(() => {
       // Alerts checked
     });
+
+    // Obtém o perfil e nome configurado do administrador atual para a saudação
+    syncProfile()
+      .then((res) => {
+        if (res?.displayName) {
+          setAdminName(res.displayName);
+        }
+      })
+      .catch(() => {
+        supabase.auth.getSession().then(({ data }) => {
+          const user = data.session?.user;
+          if (user) {
+            const metaName = (user.user_metadata as any)?.display_name;
+            if (metaName) {
+              setAdminName(metaName);
+            } else {
+              supabase
+                .from("user_profiles")
+                .select("display_name")
+                .eq("id", user.id)
+                .maybeSingle()
+                .then(({ data: p }) => {
+                  if (p?.display_name) setAdminName(p.display_name);
+                });
+            }
+          }
+        });
+      });
   }, []);
 
   const criticalMaterials = useMemo(
@@ -272,18 +340,20 @@ function Dashboard() {
     window.open(`https://wa.me/55${rawPhone}?text=${encodeURIComponent(msg)}`, "_blank");
   };
 
-  const handleSaveGoal = () => {
+  const handleSaveGoal = async () => {
     const parsed = Number(tempGoalInput.replace(",", "."));
     if (isNaN(parsed) || parsed <= 0) {
-      toast.error("Informe um valor válido para a meta diária.");
+      toast.error("Informe um valor válido para a meta diária da loja.");
       return;
     }
-    setDailyGoal(parsed);
-    if (typeof window !== "undefined") {
-      localStorage.setItem("amstore_daily_goal", String(parsed));
+    try {
+      await saveAppSetting({ data: { key: "daily_goal", value: String(parsed) } });
+      await queryClient.invalidateQueries({ queryKey: ["app_settings"] });
+      toast.success(`Meta diária geral da loja atualizada para ${brl(parsed)}!`);
+    } catch {
+      toast.error("Erro ao atualizar a meta da loja no banco de dados.");
     }
     setIsGoalModalOpen(false);
-    toast.success(`Meta diária atualizada para ${brl(parsed)}!`);
   };
 
   return (
@@ -303,7 +373,7 @@ function Dashboard() {
             </span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-display font-bold tracking-tight bg-gradient-gold bg-clip-text text-transparent mt-1">
-            {greeting}, Amstore
+            {greeting}, {adminName || "Amstore"}
           </h1>
           <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
             Aqui está o resumo instantâneo da sua loja e produção hoje.
@@ -339,7 +409,7 @@ function Dashboard() {
                   <Target className="size-4" />
                 </div>
                 <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                  Meta Diária de Vendas
+                  Meta Diária Geral da Loja
                 </span>
               </div>
               <div className="flex items-center gap-2">
@@ -353,7 +423,7 @@ function Dashboard() {
                     setIsGoalModalOpen(true);
                   }}
                   className="p-1 text-muted-foreground hover:text-gold transition-colors rounded-md hover:bg-muted/40"
-                  title="Alterar meta diária"
+                  title="Alterar meta diária geral da loja"
                 >
                   <Pencil className="size-3.5" />
                 </button>
@@ -809,21 +879,21 @@ function Dashboard() {
         </div>
       </div>
 
-      {/* MODAL PARA EDITAR META DIÁRIA */}
+      {/* MODAL PARA EDITAR META DIÁRIA GERAL DA LOJA */}
       <Dialog open={isGoalModalOpen} onOpenChange={setIsGoalModalOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Target className="size-5 text-gold" /> Configurar Meta Diária
+              <Target className="size-5 text-gold" /> Meta Diária Geral da Loja
             </DialogTitle>
             <DialogDescription>
-              Defina a meta de faturamento para os dias da loja. Essa meta é salva e atualiza a barra de progresso em tempo real.
+              Defina a meta diária global de faturamento da loja. Essa meta é única para todo o sistema e compartilhada por todos os administradores.
             </DialogDescription>
           </DialogHeader>
 
           <div className="py-3 space-y-2">
             <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-              Valor da Meta Diária (R$)
+              Valor da Meta Diária da Loja (R$)
             </label>
             <Input
               type="number"
@@ -833,6 +903,9 @@ function Dashboard() {
               placeholder="Ex: 2500"
               className="font-bold text-lg"
             />
+            <p className="text-[11px] text-muted-foreground">
+              A meta da loja é única e é atualizada em tempo real para todos os administradores.
+            </p>
           </div>
 
           <DialogFooter className="gap-2 sm:gap-0">
@@ -840,7 +913,7 @@ function Dashboard() {
               Cancelar
             </Button>
             <Button onClick={handleSaveGoal} className="bg-gradient-gold text-primary-foreground font-semibold">
-              Salvar Meta
+              Salvar Meta Geral
             </Button>
           </DialogFooter>
         </DialogContent>

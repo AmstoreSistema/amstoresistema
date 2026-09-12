@@ -23,6 +23,9 @@ import { Toaster } from "@/components/ui/sonner";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 
+import { useServerFn } from "@tanstack/react-start";
+import { syncCurrentAdminProfile } from "@/lib/settings.functions";
+
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
   beforeLoad: async () => {
@@ -80,33 +83,40 @@ function AuthenticatedLayout() {
   const [name, setName] = useState<string>("");
   const [role, setRole] = useState<string>("Colaborador");
   const [email, setEmail] = useState<string>("");
+  const syncProfile = useServerFn(syncCurrentAdminProfile);
 
-  // Carrega perfil e cargo uma única vez na inicialização da sessão (evita 2 queries extras a cada navegação)
+  // Carrega perfil e cargo na inicialização da sessão e garante sincronização do papel de admin no banco
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data }) => {
       const user = data.session?.user;
       if (user) {
         setEmail(user.email ?? "");
-        const metaName = (user.user_metadata as any)?.display_name as string | undefined;
-        const { data: profile } = await supabase
-          .from("user_profiles")
-          .select("display_name")
-          .eq("id", user.id)
-          .maybeSingle();
-        setName((profile?.display_name || metaName || "").trim());
-        const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", user.id);
-        const userRole = (roles && roles.length > 0) ? (roles[0] as any).role : "user";
-        
-        // Fix for admins if they are not detected as admin in the database yet
-        const isAdmin = userRole === 'admin' || user.email === 'amstorebagshoes@gmail.com' || user.email === 'matosmonica000@gmail.com';
-        const finalRole = isAdmin ? 'admin' : userRole;
 
-        const roleMap: Record<string, string> = { admin: "Administrador", moderator: "Moderador", user: "Vendedor" };
-        setRole(roleMap[finalRole] || "Vendedor");
-        
-        if (window.location.pathname === "/settings" && finalRole !== "admin") {
-          toast.error("Você não tem permissão para acessar as configurações.");
-          window.location.href = "/dashboard";
+        try {
+          const syncRes = await syncProfile();
+          if (syncRes?.displayName) {
+            setName(syncRes.displayName);
+          } else {
+            const metaName = (user.user_metadata as any)?.display_name as string | undefined;
+            setName((metaName || "").trim());
+          }
+          if (syncRes?.isAdmin) {
+            setRole("Administrador");
+          }
+        } catch {
+          const metaName = (user.user_metadata as any)?.display_name as string | undefined;
+          const { data: profile } = await supabase
+            .from("user_profiles")
+            .select("display_name")
+            .eq("id", user.id)
+            .maybeSingle();
+          setName((profile?.display_name || metaName || "").trim());
+          const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", user.id);
+          const userRole = (roles && roles.length > 0) ? (roles[0] as any).role : "user";
+          const isAdmin = userRole === 'admin' || user.email === 'amstorebagshoes@gmail.com' || user.email === 'matosmonica000@gmail.com';
+          const finalRole = isAdmin ? 'admin' : userRole;
+          const roleMap: Record<string, string> = { admin: "Administrador", moderator: "Moderador", user: "Vendedor" };
+          setRole(roleMap[finalRole] || "Vendedor");
         }
       }
     });

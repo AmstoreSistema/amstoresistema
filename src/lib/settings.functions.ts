@@ -189,3 +189,64 @@ export const createNewUser = createServerFn({ method: "POST" })
 
     return { success: true };
   });
+
+/**
+ * Garante que administradores fixos (amstorebagshoes e matosmonica000)
+ * tenham papel de admin gravado no banco de dados (tabela user_roles)
+ * e retorna os dados de exibição do usuário atual sem bloqueio de RLS.
+ */
+export const syncCurrentAdminProfile = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const userId = context.userId;
+    const userEmail = (context.claims?.email || context.claims?.user_metadata?.email || "").toLowerCase();
+
+    const isFixedAdmin = FIXED_ADMINS.includes(userEmail);
+
+    if (isFixedAdmin) {
+      // 1. Garante o papel de admin para o usuário conectado
+      await supabaseAdmin
+        .from("user_roles")
+        .upsert({ user_id: userId, role: "admin" }, { onConflict: "user_id,role" });
+
+      // 2. Garante o papel de admin para todos os administradores fixos
+      try {
+        const authList = await supabaseAdmin.auth.admin.listUsers();
+        for (const u of authList.data.users) {
+          const email = (u.email || "").toLowerCase();
+          if (FIXED_ADMINS.includes(email)) {
+            await supabaseAdmin
+              .from("user_roles")
+              .upsert({ user_id: u.id, role: "admin" }, { onConflict: "user_id,role" });
+          }
+        }
+      } catch (err) {
+        console.error("Erro ao sincronizar administradores fixos no banco:", err);
+      }
+    }
+
+    // 3. Busca o perfil gravado no user_profiles
+    const { data: profile } = await supabaseAdmin
+      .from("user_profiles")
+      .select("display_name, email, active")
+      .eq("id", userId)
+      .maybeSingle();
+
+    const { data: authUser } = await supabaseAdmin.auth.admin.getUserById(userId);
+    const metaName = authUser?.user?.user_metadata?.display_name;
+    const displayName = (profile?.display_name || metaName || "").trim();
+
+    // 4. Se houver nome nos metadados ou no perfil, assegura que ambos estejam preenchidos
+    if (displayName && (!profile || !profile.display_name)) {
+      await supabaseAdmin
+        .from("user_profiles")
+        .upsert({ id: userId, email: userEmail, display_name: displayName, active: true }, { onConflict: "id" });
+    }
+
+    return {
+      displayName,
+      email: userEmail,
+      isAdmin: isFixedAdmin,
+    };
+  });
