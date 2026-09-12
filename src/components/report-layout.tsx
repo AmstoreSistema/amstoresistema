@@ -22,15 +22,17 @@ export interface ReportLayoutProps {
   /** Conteúdo customizado / tabelas / planilhas / gráficos do relatório */
   children?: React.ReactNode;
   /** Colunas para renderização automática de tabela (opcional) */
-  columns?: { key: string; label: string; align?: "right" | "left" | "center" }[];
+  columns?: { key: string; label: string; align?: "right" | "left" | "center"; className?: string }[];
   /** Linhas de dados para renderização automática de tabela (opcional) */
   rows?: Record<string, any>[];
   /** Totais explícitos por coluna (opcional - se omitido, calcula automaticamente) */
   totals?: Record<string, string | number>;
   /** Subtotais explícitos por coluna (opcional) */
   subtotals?: Record<string, string | number>;
-  /** Cards de resumo personalizados para o rodapé (opcional) */
-  summaryCards?: { label: string; value: string | number; helper?: string }[];
+  /** Cards de resumo personalizados (opcional) */
+  summaryCards?: { label: string; value: string | number; helper?: string; icon?: any }[];
+  /** Posição dos cards de resumo: 'top' | 'bottom' | 'both' (padrão: 'top') */
+  summaryPosition?: "top" | "bottom" | "both";
   /** Se false, oculta a somatória de totais e subtotais */
   showTotals?: boolean;
   /** Identificador HTML para controle de impressão */
@@ -52,6 +54,7 @@ export function ReportLayout({
   totals: customTotals,
   subtotals: customSubtotals,
   summaryCards: customSummaryCards,
+  summaryPosition = "top",
   showTotals = true,
   id = "printable-report",
   className,
@@ -83,14 +86,14 @@ export function ReportLayout({
       "phone", "email", "client", "customer", "product", "material",
       "supplier", "name", "seller", "user", "type", "category",
       "status", "action", "installment", "method", "notes", "description",
-      "unit", "hour", "entity", "entity_id", "ticket"
+      "unit", "hour", "entity", "entity_id", "ticket", "actions", "action_btn"
     ]);
 
     const sums: Record<string, { total: number; isCurrency: boolean; count: number; label: string }> = {};
 
     columns.forEach((col) => {
       const k = col.key.toLowerCase();
-      if (ignoredKeys.has(k) || k.includes("date") || k.includes("hora") || k.includes("data")) {
+      if (ignoredKeys.has(k) || k.includes("date") || k.includes("hora") || k.includes("data") || k.includes("action")) {
         return;
       }
 
@@ -153,9 +156,9 @@ export function ReportLayout({
     return res;
   }, [customTotals, calculatedSums]);
 
-  // Cards de resumo de totais e subtotais no rodapé do relatório
+  // Cards de resumo de totais e subtotais no relatório
   const summaryCards = React.useMemo(() => {
-    if (customSummaryCards) return customSummaryCards;
+    if (customSummaryCards && customSummaryCards.length > 0) return customSummaryCards;
     if (!calculatedSums) return [];
 
     const cards: { label: string; value: string | number; helper?: string }[] = [];
@@ -173,6 +176,43 @@ export function ReportLayout({
     return cards;
   }, [customSummaryCards, calculatedSums]);
 
+  const renderSummarySection = (position: "top" | "bottom") => {
+    if (!showTotals || summaryCards.length === 0) return null;
+    return (
+      <section className={cn(
+        "report-summary rounded-2xl border border-slate-200/90 bg-slate-50/70 p-5 print:bg-white print:border-slate-300 print:p-4",
+        position === "top" ? "mb-6 print:mb-4" : "mt-6 print:mt-4"
+      )}>
+        <div className="flex items-center gap-2 border-b border-slate-200 pb-3 mb-4">
+          <Calculator className="size-4 text-slate-600 print:text-slate-800" />
+          <h2 className="text-xs font-black uppercase tracking-wider text-slate-800 font-display">
+            Resumo dos Indicadores Principais
+          </h2>
+        </div>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 print:grid-cols-3 print:gap-2">
+          {summaryCards.map((card, idx) => (
+            <div
+              key={idx}
+              className="rounded-xl border border-slate-200 bg-white p-3.5 shadow-xs print:border-slate-300 print:shadow-none"
+            >
+              <p className="text-[10px] font-black uppercase tracking-wider text-slate-500">
+                {card.label}
+              </p>
+              <p className="mt-1 text-lg font-black text-slate-900 font-display tracking-tight print:text-base">
+                {card.value}
+              </p>
+              {card.helper && (
+                <p className="text-[10px] font-medium text-slate-400 print:hidden">
+                  {card.helper}
+                </p>
+              )}
+            </div>
+          ))}
+        </div>
+      </section>
+    );
+  };
+
   return (
     <div
       id={id}
@@ -185,7 +225,7 @@ export function ReportLayout({
         "[&_table]:w-full [&_table]:border-collapse [&_table]:text-sm",
         "[&_thead]:bg-slate-100/75 [&_thead]:border-b [&_thead]:border-slate-200",
         "[&_th]:px-4 [&_th]:py-3.5 [&_th]:text-xs [&_th]:font-bold [&_th]:uppercase [&_th]:tracking-wider [&_th]:text-slate-600 [&_th]:border-b [&_th]:border-slate-200",
-        "[&_tbody_tr]:border-b [&_tbody_tr]:border-slate-100 [&_tbody_tr]:transition-colors",
+        "[&_tbody_tr]:border-b [&_tbody_tr]:border-slate-100 [&_tbody_tr]:transition-colors print:[&_tbody_tr]:break-inside-avoid",
         "[&_tbody_tr:nth-child(even)]:bg-slate-50/50 [&_tbody_tr:hover]:bg-slate-100/60",
         "[&_td]:px-4 [&_td]:py-3 [&_td]:text-sm [&_td]:text-slate-700 [&_td]:font-medium [&_td]:border-b [&_td]:border-slate-100",
         "[&_tfoot]:bg-slate-100/90 [&_tfoot_td]:font-bold [&_tfoot_td]:text-slate-900",
@@ -253,6 +293,9 @@ export function ReportLayout({
       {/* CONTEÚDO PRINCIPAL (CHILDREN OU TABELA AUTOMÁTICA)          */}
       {/* ============================================================ */}
       <main className="report-content w-full">
+        {/* Cards de Resumo no Topo se configurado */}
+        {(summaryPosition === "top" || summaryPosition === "both") && renderSummarySection("top")}
+
         {children ? (
           // Conteúdo passado diretamente como children
           children
@@ -271,7 +314,8 @@ export function ReportLayout({
                           ? "text-right"
                           : col.align === "center"
                           ? "text-center"
-                          : "text-left"
+                          : "text-left",
+                        col.className
                       )}
                     >
                       {col.label}
@@ -296,7 +340,7 @@ export function ReportLayout({
                   rows.map((row, i) => (
                     <TableRow
                       key={i}
-                      className="border-b border-slate-100 even:bg-slate-50/50 hover:bg-slate-100/50 print:even:bg-slate-50"
+                      className="border-b border-slate-100 even:bg-slate-50/50 hover:bg-slate-100/50 print:even:bg-slate-50 print:break-inside-avoid"
                     >
                       {columns.map((col) => (
                         <TableCell
@@ -307,7 +351,8 @@ export function ReportLayout({
                               ? "text-right"
                               : col.align === "center"
                               ? "text-center"
-                              : "text-left"
+                              : "text-left",
+                            col.className
                           )}
                         >
                           {row[col.key] ?? "—"}
@@ -333,7 +378,8 @@ export function ReportLayout({
                               ? "text-right"
                               : col.align === "center"
                               ? "text-center"
-                              : "text-left"
+                              : "text-left",
+                            col.className
                           )}
                         >
                           {idx === 0 ? "Subtotal" : customSubtotals[col.key] ?? ""}
@@ -354,7 +400,8 @@ export function ReportLayout({
                             : col.align === "center"
                             ? "text-center"
                             : "text-left",
-                          idx === 0 ? "text-slate-900" : ""
+                          idx === 0 ? "text-slate-900" : "",
+                          col.className
                         )}
                       >
                         {idx === 0 ? "TOTAL GERAL" : finalTotals[col.key] ?? ""}
@@ -367,39 +414,8 @@ export function ReportLayout({
           </div>
         ) : null}
 
-        {/* ============================================================ */}
-        {/* RESUMO DE TOTAIS E SUBTOTAIS DO RELATÓRIO                   */}
-        {/* ============================================================ */}
-        {rows && rows.length > 0 && showTotals && summaryCards.length > 0 && (
-          <section className="report-summary mt-6 rounded-2xl border border-slate-200/90 bg-slate-50/70 p-5 print:bg-white print:border-slate-300 print:p-4 print:mt-4">
-            <div className="flex items-center gap-2 border-b border-slate-200 pb-3 mb-4">
-              <Calculator className="size-4 text-slate-600 print:text-slate-800" />
-              <h2 className="text-xs font-black uppercase tracking-wider text-slate-800 font-display">
-                Resumo dos Totais do Relatório
-              </h2>
-            </div>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 print:grid-cols-3 print:gap-2">
-              {summaryCards.map((card, idx) => (
-                <div
-                  key={idx}
-                  className="rounded-xl border border-slate-200 bg-white p-3.5 shadow-xs print:border-slate-300 print:shadow-none"
-                >
-                  <p className="text-[10px] font-black uppercase tracking-wider text-slate-500">
-                    {card.label}
-                  </p>
-                  <p className="mt-1 text-lg font-black text-slate-900 font-display tracking-tight print:text-base">
-                    {card.value}
-                  </p>
-                  {card.helper && (
-                    <p className="text-[10px] font-medium text-slate-400 print:hidden">
-                      {card.helper}
-                    </p>
-                  )}
-                </div>
-              ))}
-            </div>
-          </section>
-        )}
+        {/* Cards de Resumo na Parte Inferior se configurado */}
+        {summaryPosition === "bottom" && renderSummarySection("bottom")}
       </main>
 
       {/* ============================================================ */}
