@@ -38,18 +38,27 @@ export function ProductSearch({
   const [open, setOpen] = React.useState(false);
   const [selectedStock, setSelectedStock] = React.useState<StockProduct | null>(null);
   
-  // Use a customized query to join with products table to get the image_url
-  const { data: stockItems = [] } = useQuery({
+  // Busca produtos disponíveis com imagem vinculada (com cache de 1 minuto para alta performance)
+  const { data: stockItems = [], isLoading: isLoadingStock } = useQuery({
     queryKey: ["stock_products_with_images"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("stock_products")
         .select(`
-          *,
+          id,
+          produto_id,
+          produto_nome,
+          quantidade_disponivel,
+          preco_venda,
+          numeracoes,
+          categoria,
           products:produto_id (
             image_url
           )
-        `);
+        `)
+        .gt("quantidade_disponivel", 0)
+        .order("produto_nome", { ascending: true })
+        .limit(300);
       
       if (error) throw error;
       
@@ -57,20 +66,26 @@ export function ProductSearch({
         ...item,
         imagem_url: (item as any).products?.image_url
       })) as StockProduct[];
-    }
+    },
+    staleTime: 60_000,
+    gcTime: 5 * 60_000,
   });
 
-  // Fallback: produtos com estoque no cadastro mas sem registro em stock_products
-  const { data: fallbackProducts = [] } = useQuery({
+  // Fallback: produtos cadastrados com estoque mas ainda sem registro individual em stock_products
+  const { data: fallbackProducts = [], isLoading: isLoadingFallback } = useQuery({
     queryKey: ["products_pos_fallback"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("products")
         .select("id, name, category, sale_price, current_stock, image_url")
-        .gt("current_stock", 0);
+        .gt("current_stock", 0)
+        .order("name", { ascending: true })
+        .limit(200);
       if (error) throw error;
       return data || [];
-    }
+    },
+    staleTime: 60_000,
+    gcTime: 5 * 60_000,
   });
 
   const availableItems = React.useMemo(() => {
@@ -123,7 +138,9 @@ export function ProductSearch({
             <Command>
               <CommandInput placeholder="Nome, SKU ou categoria..." />
               <CommandList className="max-h-[350px]">
-                <CommandEmpty>Nenhum produto disponível em estoque.</CommandEmpty>
+                <CommandEmpty>
+                  {isLoadingStock || isLoadingFallback ? "Carregando produtos da loja..." : "Nenhum produto disponível em estoque."}
+                </CommandEmpty>
                 <CommandGroup heading="Produtos em Estoque">
                   {availableItems.map((item) => (
                     <CommandItem

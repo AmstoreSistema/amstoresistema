@@ -209,35 +209,19 @@ export const syncCurrentAdminProfile = createServerFn({ method: "POST" })
       await supabaseAdmin
         .from("user_roles")
         .upsert({ user_id: userId, role: "admin" }, { onConflict: "user_id,role" });
-
-      // 2. Garante o papel de admin para todos os administradores fixos
-      try {
-        const authList = await supabaseAdmin.auth.admin.listUsers();
-        for (const u of authList.data.users) {
-          const email = (u.email || "").toLowerCase();
-          if (FIXED_ADMINS.includes(email)) {
-            await supabaseAdmin
-              .from("user_roles")
-              .upsert({ user_id: u.id, role: "admin" }, { onConflict: "user_id,role" });
-          }
-        }
-      } catch (err) {
-        console.error("Erro ao sincronizar administradores fixos no banco:", err);
-      }
     }
 
-    // 3. Busca o perfil gravado no user_profiles
+    // 2. Busca o perfil gravado no user_profiles (rápido, indexado por chave primária)
     const { data: profile } = await supabaseAdmin
       .from("user_profiles")
       .select("display_name, email, active")
       .eq("id", userId)
       .maybeSingle();
 
-    const { data: authUser } = await supabaseAdmin.auth.admin.getUserById(userId);
-    const metaName = authUser?.user?.user_metadata?.display_name;
+    const metaName = context.claims?.user_metadata?.display_name || context.claims?.display_name;
     const displayName = (profile?.display_name || metaName || "").trim();
 
-    // 4. Se houver nome nos metadados ou no perfil, assegura que ambos estejam preenchidos
+    // 3. Se houver nome nos metadados ou no perfil, assegura que ambos estejam preenchidos
     if (displayName && (!profile || !profile.display_name)) {
       await supabaseAdmin
         .from("user_profiles")

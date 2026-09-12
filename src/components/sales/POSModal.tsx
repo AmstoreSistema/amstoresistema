@@ -73,6 +73,18 @@ interface POSModalProps {
 }
 
 export function POSModal({ open, onOpenChange, initialClient, initialItems }: POSModalProps) {
+  if (!open) return null;
+  return (
+    <POSModalInner
+      open={open}
+      onOpenChange={onOpenChange}
+      initialClient={initialClient}
+      initialItems={initialItems}
+    />
+  );
+}
+
+function POSModalInner({ open, onOpenChange, initialClient, initialItems }: POSModalProps) {
   const qc = useQueryClient();
   const { data: accounts = [] } = useRows<any>("financial_accounts");
   
@@ -661,7 +673,7 @@ export function POSModal({ open, onOpenChange, initialClient, initialItems }: PO
           
           {/* Área 2: Fechamento / Pagamento */}
           <div className={cn(
-            "w-full lg:w-[420px] xl:w-[450px] border-t lg:border-t-0 lg:border-l border-border/40 bg-muted/10 p-4 sm:p-6 xl:p-8 flex-col gap-5 sm:gap-6 overflow-y-auto shrink-0",
+            "w-full lg:w-[420px] xl:w-[450px] border-t lg:border-t-0 lg:border-l border-border/40 bg-muted/10 p-4 sm:p-6 xl:p-8 flex-col gap-5 sm:gap-6 overflow-y-auto flex-1 min-h-0 lg:shrink-0 pb-36 sm:pb-8",
             mobileTab === "checkout" ? "flex" : "hidden lg:flex"
           )}>
             {/* Botão de retorno rápido ao carrinho exclusivo para mobile */}

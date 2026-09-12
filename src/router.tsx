@@ -6,8 +6,8 @@ export const getRouter = () => {
   const queryClient = new QueryClient({
     defaultOptions: {
       queries: {
-        // Dados frescos por 5 segundos: sincronização instantânea entre múltiplos administradores
-        staleTime: 5_000,
+        // Dados frescos por 15 segundos: sincronização ágil sem sobrecarregar conexões móveis
+        staleTime: 15_000,
         // Mantém em cache para navegação instantânea
         gcTime: 10 * 60_000,
         refetchOnWindowFocus: true,
