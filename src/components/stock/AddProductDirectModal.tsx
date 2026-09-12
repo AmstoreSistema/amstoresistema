@@ -176,16 +176,18 @@ export function AddProductDirectModal({ open, onOpenChange }: { open: boolean; o
                     id="product-direct-image-upload" 
                     className="hidden" 
                     accept="image/*"
-                    onChange={e => {
+                    onChange={async e => {
                       const file = e.target.files?.[0];
                       if (file) {
-                        const reader = new FileReader();
-                        reader.onloadend = () => {
-                          setFormData({ ...formData, image_url: reader.result as string });
-                        };
-                        reader.readAsDataURL(file);
+                        try {
+                          const url = await uploadImageFile(file, "products");
+                          setFormData({ ...formData, image_url: url });
+                        } catch {
+                          toast.error("Não foi possível enviar a imagem. Tente novamente.");
+                        }
                       }
                     }}
+
                   />
                   {formData.image_url ? (
                     <div className="group relative w-full overflow-hidden rounded-xl aspect-video max-h-40">
