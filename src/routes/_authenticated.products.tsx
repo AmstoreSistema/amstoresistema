@@ -19,6 +19,7 @@ import {
   X,
 } from "lucide-react";
 import { toast } from "sonner";
+import { uploadImageFile } from "@/lib/upload-image";
 
 import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
@@ -666,13 +667,17 @@ function ProductsPage() {
                 type="file"
                 accept="image/*"
                 className="hidden"
-                onChange={(e) => {
+                onChange={async (e) => {
                   const file = e.target.files?.[0];
                   if (!file) return;
-                  const reader = new FileReader();
-                  reader.onload = () => setForm((f) => ({ ...f, image_url: reader.result as string }));
-                  reader.readAsDataURL(file);
+                  try {
+                    const url = await uploadImageFile(file, "products");
+                    setForm((f) => ({ ...f, image_url: url }));
+                  } catch {
+                    toast.error("Não foi possível enviar a imagem. Tente novamente.");
+                  }
                 }}
+
               />
               {form.image_url ? (
                 <div className="relative overflow-hidden rounded-xl border border-dashed border-border bg-muted/20 p-2">
