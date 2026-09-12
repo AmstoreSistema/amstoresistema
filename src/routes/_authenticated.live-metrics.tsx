@@ -285,19 +285,27 @@ function LiveMetrics() {
               const client = s.client_id ? clientById.get(s.client_id) : null;
               const clientName = client?.name || (s.client_name ? s.client_name : "Consumidor");
               return (
-                <div key={s.id} className="flex items-center justify-between rounded-xl border border-border/60 p-3">
-                  <div className="min-w-0 flex-1 pr-2">
-                    <div className="flex items-center gap-2">
-                      <p className="text-sm font-semibold truncate text-foreground">{clientName}</p>
-                      <span className="text-[11px] font-mono text-muted-foreground shrink-0">
+                <div key={s.id} className="flex items-center justify-between gap-3 rounded-xl border border-border/60 p-2.5 sm:p-3 transition-colors hover:bg-muted/30">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-1.5">
+                      <p className="text-xs sm:text-sm font-semibold truncate text-foreground">
+                        {clientName}
+                      </p>
+                      <span className="hidden sm:inline-block text-[10px] font-mono text-muted-foreground shrink-0">
                         #{s.sale_code ?? s.id.slice(0, 6)}
                       </span>
                     </div>
-                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground mt-0.5">
-                      {dateTimeBR(s.created_at)} · {s.payment_method ?? "—"}
+                    <p className="text-[10px] sm:text-[11px] text-muted-foreground truncate mt-0.5">
+                      {s.created_at ? new Date(s.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }) : "—"}
+                      <span className="hidden sm:inline"> · {dateTimeBR(s.created_at).split(" ")[0]}</span>
+                      {" "}· {s.payment_method ?? "—"}
                     </p>
                   </div>
-                  <span className="text-sm font-bold tabular-nums text-foreground shrink-0">{brl(s.total_amount)}</span>
+                  <div className="text-right shrink-0">
+                    <span className="text-xs sm:text-sm font-bold tabular-nums text-foreground block">
+                      {brl(s.total_amount)}
+                    </span>
+                  </div>
                 </div>
               );
             })}
