@@ -178,6 +178,7 @@ function LiveMetrics() {
 
   const maxHour = Math.max(1, ...m.byHour.map((b) => b.total));
   const payTotal = Object.values(m.payMix).reduce((a, b) => a + b, 0) || 1;
+  const clientById = useMemo(() => new Map(clients.map((c: any) => [c.id, c])), [clients]);
 
   return (
     <div className="space-y-6">
@@ -280,17 +281,26 @@ function LiveMetrics() {
             <CardTitle className="text-base">Últimas vendas</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
-            {sales.slice(0, 6).map((s: any) => (
-              <div key={s.id} className="flex items-center justify-between rounded-xl border border-border/60 p-3">
-                <div>
-                  <p className="text-sm font-semibold">#{s.sale_code ?? s.id.slice(0, 6)}</p>
-                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
-                    {dateTimeBR(s.created_at)} · {s.payment_method ?? "—"}
-                  </p>
+            {sales.slice(0, 6).map((s: any) => {
+              const client = s.client_id ? clientById.get(s.client_id) : null;
+              const clientName = client?.name || (s.client_name ? s.client_name : "Consumidor");
+              return (
+                <div key={s.id} className="flex items-center justify-between rounded-xl border border-border/60 p-3">
+                  <div className="min-w-0 flex-1 pr-2">
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm font-semibold truncate text-foreground">{clientName}</p>
+                      <span className="text-[11px] font-mono text-muted-foreground shrink-0">
+                        #{s.sale_code ?? s.id.slice(0, 6)}
+                      </span>
+                    </div>
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground mt-0.5">
+                      {dateTimeBR(s.created_at)} · {s.payment_method ?? "—"}
+                    </p>
+                  </div>
+                  <span className="text-sm font-bold tabular-nums text-foreground shrink-0">{brl(s.total_amount)}</span>
                 </div>
-                <span className="text-sm font-bold tabular-nums">{brl(s.total_amount)}</span>
-              </div>
-            ))}
+              );
+            })}
             {sales.length === 0 && (
               <p className="py-6 text-center text-sm italic text-muted-foreground">Nenhuma venda registrada.</p>
             )}
