@@ -23,7 +23,9 @@ import {
   Shield,
   User,
   Tag,
-  Building2
+  Building2,
+  ArrowLeft,
+  ArrowRight
 } from "lucide-react";
 import {
   Select,
@@ -107,13 +109,19 @@ export function POSModal({ open, onOpenChange, initialClient, initialItems }: PO
     pendingSalesCount: 0
   });
 
+  const [mobileTab, setMobileTab] = React.useState<"cart" | "checkout">("cart");
+  const totalItemsCount = React.useMemo(() => items.reduce((acc, i) => acc + i.quantity, 0), [items]);
+
   const fetchClientDetails = useServerFn(getClientDetails);
 
   // Injeta cliente e itens vindos de um Condicional quando o modal abre
   React.useEffect(() => {
-    if (open && initialItems && initialItems.length > 0) {
-      setItems(initialItems.map(i => ({ ...i, discount: (i as any).discount ?? 0 })));
-      if (initialClient) setClient(initialClient);
+    if (open) {
+      setMobileTab("cart");
+      if (initialItems && initialItems.length > 0) {
+        setItems(initialItems.map(i => ({ ...i, discount: (i as any).discount ?? 0 })));
+        if (initialClient) setClient(initialClient);
+      }
     }
   }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -380,6 +388,7 @@ export function POSModal({ open, onOpenChange, initialClient, initialItems }: PO
         setIsDebt(false);
         setNotes("");
         setSaleType("Varejo");
+        setMobileTab("cart");
         setDebtAlert({
           isOpen: false,
           clientName: "",
@@ -460,35 +469,35 @@ export function POSModal({ open, onOpenChange, initialClient, initialItems }: PO
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-7xl max-h-[98vh] p-0 flex flex-col gap-0 overflow-hidden rounded-[1.5rem] border-none shadow-2xl">
-        <DialogHeader className="px-6 py-4 border-b border-border/40 bg-card/50 backdrop-blur-xl flex flex-row items-center justify-between">
-          <div className="flex items-center gap-3">
-             <div className="size-8 rounded-xl bg-gradient-gold flex items-center justify-center shadow-gold">
-                <ShoppingCart className="size-5 text-primary-foreground" />
+      <DialogContent className="w-full max-w-7xl h-[100dvh] sm:h-[95vh] sm:max-h-[98vh] p-0 flex flex-col gap-0 overflow-hidden sm:rounded-[1.5rem] border-none shadow-2xl">
+        <DialogHeader className="px-4 sm:px-6 py-3 sm:py-4 border-b border-border/40 bg-card/50 backdrop-blur-xl flex flex-row items-center justify-between shrink-0">
+          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+             <div className="size-8 rounded-xl bg-gradient-gold flex items-center justify-center shadow-gold shrink-0">
+                <ShoppingCart className="size-4 sm:size-5 text-primary-foreground" />
              </div>
-             <div>
-                <DialogTitle className="font-display font-black text-lg">PDV Amstore</DialogTitle>
-                <div className="flex items-center gap-2">
-                  <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Ponto de Venda Inteligente</p>
-                  <Badge variant="outline" className="h-4 text-[9px] font-mono border-gold/30 text-gold bg-gold/5">
+             <div className="min-w-0">
+                <DialogTitle className="font-display font-black text-base sm:text-lg truncate">PDV Amstore</DialogTitle>
+                <div className="flex items-center gap-1.5 sm:gap-2">
+                  <p className="text-[9px] sm:text-[10px] uppercase tracking-widest text-muted-foreground font-bold truncate">Ponto de Venda</p>
+                  <Badge variant="outline" className="h-4 text-[9px] font-mono border-gold/30 text-gold bg-gold/5 shrink-0">
                     {saleCode}
                   </Badge>
                 </div>
              </div>
           </div>
           
-          <div className="flex items-center gap-8">
-             <div className="flex items-center gap-2 text-right">
+          <div className="flex items-center gap-2 sm:gap-6">
+             <div className="hidden sm:flex items-center gap-2 text-right">
                 <div>
                    <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest">Vendedor</p>
                    <div className="flex items-center gap-1.5 justify-end">
                       <User className="size-3 text-gold" />
-                      <p className="text-sm font-black">Sistema Automático</p>
+                      <p className="text-xs font-black">Sistema Automático</p>
                    </div>
                 </div>
              </div>
-             <Separator orientation="vertical" className="h-8" />
-             <div className="text-right flex flex-col items-end">
+             <Separator orientation="vertical" className="hidden sm:block h-8" />
+             <div className="hidden md:flex text-right flex-col items-end">
                 <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest">Data da Venda</p>
                 <Input 
                   type="date" 
@@ -497,114 +506,177 @@ export function POSModal({ open, onOpenChange, initialClient, initialItems }: PO
                   className="h-7 w-32 text-xs font-black p-1 bg-transparent border-none focus-visible:ring-0 text-right cursor-pointer hover:bg-muted/30 rounded-md"
                 />
              </div>
-             <Separator orientation="vertical" className="h-8" />
-             <div className="text-right">
-                <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest">Itens no Carrinho</p>
-                <p className="text-sm font-black">{items.reduce((acc, i) => acc + i.quantity, 0)}</p>
+             <Separator orientation="vertical" className="hidden md:block h-8" />
+             <div className="text-right flex items-center gap-1.5">
+                <Badge variant="outline" className="rounded-full px-2.5 py-0.5 font-bold border-gold/30 text-gold bg-gold/5 text-xs">
+                   {totalItemsCount} {totalItemsCount === 1 ? "item" : "itens"}
+                </Badge>
              </div>
           </div>
         </DialogHeader>
+
+        {/* Abas exclusivas para Mobile / Telas pequenas: Alterna entre Selecionar Produtos e Finalizar Pagamento */}
+        <div className="lg:hidden flex items-center border-b border-border/40 bg-muted/40 p-1.5 gap-1.5 shrink-0">
+          <button
+            type="button"
+            onClick={() => setMobileTab("cart")}
+            className={cn(
+              "flex-1 flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl text-xs font-bold transition-all",
+              mobileTab === "cart"
+                ? "bg-card text-gold shadow-sm border border-border/50 font-black"
+                : "text-muted-foreground hover:bg-card/40"
+            )}
+          >
+            <ShoppingCart className="size-3.5" />
+            <span>1. Produtos e Carrinho</span>
+            {totalItemsCount > 0 && (
+              <Badge variant="secondary" className="h-4 px-1.5 text-[9px] bg-gold/15 text-gold border-none font-black">
+                {totalItemsCount}
+              </Badge>
+            )}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setMobileTab("checkout")}
+            className={cn(
+              "flex-1 flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl text-xs font-bold transition-all",
+              mobileTab === "checkout"
+                ? "bg-card text-gold shadow-sm border border-border/50 font-black"
+                : "text-muted-foreground hover:bg-card/40"
+            )}
+          >
+            <CreditCard className="size-3.5" />
+            <span>2. Cliente e Pagamento</span>
+            {finalTotal > 0 && (
+              <span className="text-[10px] font-black text-foreground ml-0.5">
+                {brl(finalTotal)}
+              </span>
+            )}
+          </button>
+        </div>
         
-        <div className="flex flex-1 overflow-hidden bg-background">
-          {/* Main Area: Items selection and Cart */}
-          <div className="flex-1 flex flex-col overflow-hidden p-5 gap-5">
+        <div className="flex flex-col lg:flex-row flex-1 overflow-hidden bg-background min-h-0">
+          {/* Área 1: Seleção de Produtos e Carrinho */}
+          <div className={cn(
+            "flex-1 flex-col overflow-hidden p-3 sm:p-5 gap-3 sm:gap-5 min-w-0",
+            mobileTab === "cart" ? "flex" : "hidden lg:flex"
+          )}>
             <ProductSearch onAdd={addItem} />
             
-            <div className="flex-1 flex flex-col min-h-0 bg-card/40 rounded-[1.5rem] border border-border/40 overflow-hidden">
-               <div className="px-6 py-4 border-b border-border/40 flex items-center justify-between">
-                  <h3 className="font-display font-black text-sm uppercase tracking-wider flex items-center gap-2">
+            <div className="flex-1 flex flex-col min-h-0 bg-card/40 rounded-[1.2rem] sm:rounded-[1.5rem] border border-border/40 overflow-hidden">
+               <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-border/40 flex items-center justify-between shrink-0">
+                  <h3 className="font-display font-black text-xs sm:text-sm uppercase tracking-wider flex items-center gap-2">
                      <ReceiptText className="size-4 text-gold" /> Itens do Pedido
                   </h3>
-                  <Badge variant="outline" className="rounded-full px-3 font-bold border-gold/30 text-gold bg-gold/5">
-                     Total: {items.reduce((s, i) => s + i.quantity, 0)} un.
+                  <Badge variant="outline" className="rounded-full px-2.5 sm:px-3 font-bold border-gold/30 text-gold bg-gold/5 text-xs">
+                     Total: {totalItemsCount} un.
                   </Badge>
                </div>
                
-               <ScrollArea className="flex-1 p-4">
-                  <div className="space-y-3">
+               <ScrollArea className="flex-1 p-3 sm:p-4">
+                  <div className="space-y-2.5 sm:space-y-3">
                       {items.length === 0 ? (
                         <div className="flex flex-col items-center justify-center py-20 text-muted-foreground/40 gap-3">
                            <ShoppingCart className="size-12" />
                            <p className="font-bold text-sm uppercase tracking-widest">Carrinho Vazio</p>
                         </div>
                      ) : items.map((item) => (
-                       <div key={item.id} className="group flex items-center gap-3 p-2.5 rounded-xl border border-border/40 bg-card hover:bg-muted/5 transition-all shadow-sm">
-                          {item.imagem_url ? (
-                            <div className="size-10 rounded-xl overflow-hidden shrink-0 border border-border/20">
-                              <img src={item.imagem_url} alt={item.name} className="w-full h-full object-cover" />
-                            </div>
-                          ) : (
-                            <div className="size-10 rounded-xl bg-muted/50 flex items-center justify-center shrink-0 font-display font-black text-[10px] text-muted-foreground">
-                              {item.name.charAt(0)}
-                            </div>
-                          )}
+                        <div key={item.id} className="group flex flex-col sm:flex-row sm:items-center gap-2.5 sm:gap-3 p-3 rounded-xl border border-border/40 bg-card hover:bg-muted/5 transition-all shadow-sm">
+                           <div className="flex items-center gap-2.5 flex-1 min-w-0">
+                             {item.imagem_url ? (
+                               <div className="size-11 rounded-xl overflow-hidden shrink-0 border border-border/20">
+                                 <img src={item.imagem_url} alt={item.name} className="w-full h-full object-cover" />
+                               </div>
+                             ) : (
+                               <div className="size-11 rounded-xl bg-muted/50 flex items-center justify-center shrink-0 font-display font-black text-xs text-muted-foreground">
+                                 {item.name.charAt(0)}
+                               </div>
+                             )}
 
-                          
-                          <div className="flex-1 min-w-0">
-                             <div className="flex items-center gap-1.5">
-                                <h4 className="font-bold truncate text-xs">{item.name}</h4>
-                                {item.numeracao && (
-                                   <Badge variant="secondary" className="h-4 px-1 rounded-md font-black text-[8px] bg-gold/10 text-gold border-none">
-                                      {item.numeracao}
-                                   </Badge>
-                                )}
+                             <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-1.5">
+                                   <h4 className="font-bold truncate text-xs sm:text-sm">{item.name}</h4>
+                                   {item.numeracao && (
+                                      <Badge variant="secondary" className="h-4 px-1.5 rounded-md font-black text-[9px] bg-gold/10 text-gold border-none shrink-0">
+                                         Nº {item.numeracao}
+                                      </Badge>
+                                   )}
+                                </div>
+                                <div className="flex items-center gap-2 mt-0.5">
+                                   <p className="text-[10px] text-muted-foreground font-medium">Unit: {brl(item.price)}</p>
+                                   {item.discount > 0 && (
+                                     <p className="text-[10px] text-destructive font-bold italic">(-{brl(item.discount)})</p>
+                                   )}
+                                </div>
                              </div>
-                             <div className="flex items-center gap-2 mt-0.5">
-                                <p className="text-[9px] text-muted-foreground font-medium">Preço Unit: {brl(item.price)}</p>
-                                {item.discount > 0 && (
-                                  <p className="text-[9px] text-destructive font-bold italic">(-{brl(item.discount)})</p>
-                                )}
-                             </div>
-                          </div>
-                          
-                          <div className="flex items-center gap-3">
-                             <div className="flex items-center gap-2">
-                                <Label className="text-[8px] uppercase font-bold text-muted-foreground tracking-tighter">Desc. Item</Label>
-                                <Input 
-                                  type="number" 
-                                  value={item.discount || ""} 
-                                  onChange={(e) => {
-                                    const val = Number(e.target.value);
-                                    setItems(prev => prev.map(i => i.id === item.id ? { ...i, discount: val } : i));
-                                  }}
-                                  className="h-7 w-16 text-[10px] font-bold px-1.5 rounded-lg border-border/40 bg-muted/20"
-                                  placeholder="R$ 0"
-                                />
-                             </div>
+                           </div>
+                           
+                           <div className="flex items-center justify-between sm:justify-end gap-2 sm:gap-3 border-t sm:border-t-0 pt-2 sm:pt-0 border-border/30">
+                              <div className="flex items-center gap-1.5">
+                                 <Label className="text-[9px] uppercase font-bold text-muted-foreground tracking-tight sm:hidden">Desc:</Label>
+                                 <Input 
+                                   type="number" 
+                                   value={item.discount || ""} 
+                                   onChange={(e) => {
+                                     const val = Number(e.target.value);
+                                     setItems(prev => prev.map(i => i.id === item.id ? { ...i, discount: val } : i));
+                                   }}
+                                   className="h-8 w-16 text-[10px] font-bold px-1.5 rounded-lg border-border/40 bg-muted/20 text-center"
+                                   placeholder="R$ 0"
+                                 />
+                              </div>
 
-                             <div className="flex items-center gap-1.5 bg-muted/30 p-0.5 rounded-lg border border-border/40">
-                                <Button 
-                                   variant="ghost" size="icon" className="size-6 rounded-md"
-                                   onClick={() => setItems(prev => prev.map(i => i.id === item.id ? { ...i, quantity: Math.max(1, i.quantity - 1) } : i))}
-                                >-</Button>
-                                <span className="w-5 text-center font-black text-[11px]">{item.quantity}</span>
-                                <Button 
-                                   variant="ghost" size="icon" className="size-6 rounded-md"
-                                   onClick={() => setItems(prev => prev.map(i => i.id === item.id ? { ...i, quantity: i.quantity + 1 } : i))}
-                                >+</Button>
-                             </div>
-                             
-                             <div className="text-right w-20">
-                                <p className="font-black text-xs text-gold">{brl((item.price * item.quantity) - (item.discount || 0))}</p>
-                             </div>
-                             
-                             <Button 
-                                variant="ghost" size="icon" 
-                                className="size-8 rounded-lg text-destructive hover:bg-destructive/10"
-                                onClick={() => removeItem(item.id)}
-                             >
-                                <Trash2 className="size-3.5" />
-                             </Button>
-                          </div>
-                       </div>
-                     ))}
-                  </div>
-               </ScrollArea>
-            </div>
+                              <div className="flex items-center gap-1 bg-muted/30 p-0.5 rounded-lg border border-border/40">
+                                 <Button 
+                                    variant="ghost" size="icon" className="size-7 rounded-md"
+                                    onClick={() => setItems(prev => prev.map(i => i.id === item.id ? { ...i, quantity: Math.max(1, i.quantity - 1) } : i))}
+                                 >-</Button>
+                                 <span className="w-6 text-center font-black text-xs">{item.quantity}</span>
+                                 <Button 
+                                    variant="ghost" size="icon" className="size-7 rounded-md"
+                                    onClick={() => setItems(prev => prev.map(i => i.id === item.id ? { ...i, quantity: i.quantity + 1 } : i))}
+                                 >+</Button>
+                              </div>
+                              
+                              <div className="text-right min-w-[70px]">
+                                 <p className="font-black text-xs sm:text-sm text-gold">{brl((item.price * item.quantity) - (item.discount || 0))}</p>
+                              </div>
+                              
+                              <Button 
+                                 variant="ghost" size="icon" 
+                                 className="size-8 rounded-lg text-destructive hover:bg-destructive/10 shrink-0"
+                                 onClick={() => removeItem(item.id)}
+                                 title="Remover item"
+                              >
+                                 <Trash2 className="size-4" />
+                              </Button>
+                           </div>
+                        </div>
+                      ))}
+                   </div>
+                </ScrollArea>
+             </div>
           </div>
           
-          {/* Sidebar: Checkout */}
-          <div className="w-[420px] border-l border-border/40 bg-muted/10 p-8 flex flex-col gap-6 overflow-y-auto">
+          {/* Área 2: Fechamento / Pagamento */}
+          <div className={cn(
+            "w-full lg:w-[420px] xl:w-[450px] border-t lg:border-t-0 lg:border-l border-border/40 bg-muted/10 p-4 sm:p-6 xl:p-8 flex-col gap-5 sm:gap-6 overflow-y-auto shrink-0",
+            mobileTab === "checkout" ? "flex" : "hidden lg:flex"
+          )}>
+            {/* Botão de retorno rápido ao carrinho exclusivo para mobile */}
+            <div className="lg:hidden flex items-center justify-between pb-3 border-b border-border/40 shrink-0">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setMobileTab("cart")}
+                className="text-xs font-bold gap-1.5 text-gold -ml-2 h-8 hover:bg-gold/10"
+              >
+                <ArrowLeft className="size-3.5" />
+                <span>Voltar aos Produtos ({totalItemsCount} un.)</span>
+              </Button>
+              <span className="text-xs font-black text-foreground">{brl(finalTotal)}</span>
+            </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                  <Label className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest pl-1">Tipo de Venda</Label>
@@ -840,6 +912,30 @@ export function POSModal({ open, onOpenChange, initialClient, initialItems }: PO
             </div>
           </div>
         </div>
+
+        {/* Barra Fixa Inferior no Mobile quando estiver na aba de Produtos */}
+        {mobileTab === "cart" && (
+          <div className="lg:hidden p-3 border-t border-border/60 bg-card/95 backdrop-blur-md flex items-center justify-between gap-3 shrink-0 shadow-lg z-10">
+            <div className="min-w-0">
+              <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider leading-tight">Total</p>
+              <p className="text-lg font-display font-black text-gold leading-tight truncate">{brl(finalTotal)}</p>
+              <p className="text-[10px] text-muted-foreground">{totalItemsCount} {totalItemsCount === 1 ? "item adicionado" : "itens adicionados"}</p>
+            </div>
+            <Button
+              onClick={() => {
+                if (items.length === 0) {
+                  toast.info("Adicione pelo menos 1 produto antes de ir para o pagamento.");
+                  return;
+                }
+                setMobileTab("checkout");
+              }}
+              className="bg-gradient-gold shadow-gold font-bold text-xs h-12 px-5 gap-2 text-primary-foreground shrink-0"
+            >
+              <span>Ir para Pagamento</span>
+              <ArrowRight className="size-4" />
+            </Button>
+          </div>
+        )}
       </DialogContent>
 
       <ReceiptModal 

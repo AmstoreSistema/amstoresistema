@@ -118,7 +118,7 @@ export function ProductSearch({
             <span className="text-muted-foreground">Buscar produto ou bipar código...</span>
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-[450px] p-0" align="start">
+        <PopoverContent className="w-[calc(100vw-2rem)] sm:w-[450px] max-w-[450px] p-0" align="start">
           {!selectedStock ? (
             <Command>
               <CommandInput placeholder="Nome, SKU ou categoria..." />
