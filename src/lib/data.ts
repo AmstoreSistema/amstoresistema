@@ -8,19 +8,47 @@ export function useRows<T = any>(
     select?: string | undefined;
     order?: { column: string; ascending?: boolean | undefined } | undefined;
     limit?: number | undefined;
-    filters?: { column: string; value: unknown }[] | undefined;
+    filters?: { column: string; value: unknown; operator?: "eq" | "neq" | "gte" | "lte" | "gt" | "lt" | "in" }[] | undefined;
+    dateRange?: { column: string; gte?: string | undefined; lte?: string | undefined } | undefined;
+    enabled?: boolean | undefined;
+    staleTime?: number | undefined;
   },
 ) {
   return useQuery({
-    queryKey: [table, opts?.select ?? "*", opts?.order?.column ?? "", opts?.limit ?? 0, opts?.filters ?? []],
+    queryKey: [
+      table,
+      opts?.select ?? "*",
+      opts?.order?.column ?? "",
+      opts?.limit ?? 0,
+      opts?.filters ?? [],
+      opts?.dateRange?.column ?? "",
+      opts?.dateRange?.gte ?? "",
+      opts?.dateRange?.lte ?? "",
+    ],
+    enabled: opts?.enabled ?? true,
+    staleTime: opts?.staleTime ?? 5_000,
     queryFn: async () => {
       let q = supabase.from(table as any).select(opts?.select ?? "*");
       for (const f of opts?.filters ?? []) {
-        if (Array.isArray(f.value)) {
+        if (f.operator === "neq") {
+          q = q.neq(f.column, f.value as never);
+        } else if (f.operator === "gte") {
+          q = q.gte(f.column, f.value as never);
+        } else if (f.operator === "lte") {
+          q = q.lte(f.column, f.value as never);
+        } else if (f.operator === "gt") {
+          q = q.gt(f.column, f.value as never);
+        } else if (f.operator === "lt") {
+          q = q.lt(f.column, f.value as never);
+        } else if (Array.isArray(f.value) || f.operator === "in") {
           q = q.in(f.column, f.value as never[]);
         } else {
           q = q.eq(f.column, f.value as never);
         }
+      }
+      if (opts?.dateRange?.column) {
+        if (opts.dateRange.gte) q = q.gte(opts.dateRange.column, opts.dateRange.gte);
+        if (opts.dateRange.lte) q = q.lte(opts.dateRange.column, opts.dateRange.lte);
       }
       if (opts?.order) q = q.order(opts.order.column, { ascending: opts.order.ascending ?? false });
       if (opts?.limit) q = q.limit(opts.limit);

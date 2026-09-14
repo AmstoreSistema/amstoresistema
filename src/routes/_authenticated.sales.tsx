@@ -44,6 +44,7 @@ import { brl, dateBR } from "@/lib/format";
 import { useRows } from "@/lib/data";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 import { useServerFn } from "@tanstack/react-start";
 import { POSModal } from "@/components/sales/POSModal";
 import { SaleInstallmentsModal } from "@/components/sales/SaleInstallmentsModal";
@@ -75,14 +76,22 @@ function SalesPage() {
   const PAGE_SIZE = 25;
   const [page, setPage] = useState(1);
   const [term, setTerm] = useState("");
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
-  const [periodPreset, setPeriodPreset] = useState<string>("all");
+
+  // Inicializa por padrão com o Mês Atual para abertura ultrarrápida do sistema
+  const [periodPreset, setPeriodPreset] = useState<string>("thisMonth");
+  const [startDate, setStartDate] = useState(() => {
+    const now = new Date();
+    return new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split("T")[0] ?? "";
+  });
+  const [endDate, setEndDate] = useState(() => {
+    return new Date().toISOString().split("T")[0] ?? "";
+  });
   const [filterOpen, setFilterOpen] = useState(false);
 
   const applyPreset = (preset: string) => {
     setPeriodPreset(preset);
     const now = new Date();
+    const currentYear = now.getFullYear();
     const todayStr = now.toISOString().split("T")[0] ?? "";
 
     if (preset === "today") {
@@ -110,6 +119,16 @@ function SalesPage() {
       const end = new Date(now.getFullYear(), now.getMonth(), 0).toISOString().split("T")[0] ?? "";
       setStartDate(start);
       setEndDate(end);
+    } else if (preset === "90days") {
+      const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 89);
+      setStartDate(d.toISOString().split("T")[0] ?? "");
+      setEndDate(todayStr);
+    } else if (preset === "yearCurrent") {
+      setStartDate(`${currentYear}-01-01`);
+      setEndDate(todayStr);
+    } else if (preset === "yearPrevious") {
+      setStartDate(`${currentYear - 1}-01-01`);
+      setEndDate(`${currentYear - 1}-12-31`);
     } else if (preset === "all") {
       setStartDate("");
       setEndDate("");
@@ -178,11 +197,16 @@ function SalesPage() {
         }
       }
 
-      if (startDate) {
-        q = q.gte("created_at", `${startDate}T00:00:00`);
-      }
-      if (endDate) {
-        q = q.lte("created_at", `${endDate}T23:59:59`);
+      // Se o usuário digitou uma busca específica (ex: cliente ou código), busca no histórico completo,
+      // a menos que ele tenha clicado em um período customizado específico
+      const isGlobalTextSearch = term.trim().length > 0 && periodPreset === "thisMonth";
+      if (!isGlobalTextSearch) {
+        if (startDate) {
+          q = q.gte("created_at", `${startDate}T00:00:00`);
+        }
+        if (endDate) {
+          q = q.lte("created_at", `${endDate}T23:59:59`);
+        }
       }
 
       q = q.range(from, to);
@@ -224,9 +248,9 @@ function SalesPage() {
     return groups;
   }, [sales]);
 
-  // Consulta leve e dedicada para os cartões de estatística do topo (mantém totais globais)
+  // Consulta leve e dedicada para os cartões de estatística do topo (otimizada por período)
   const { data: statsData } = useQuery({
-    queryKey: ["sales-stats"],
+    queryKey: ["sales-stats", startDate, endDate],
     queryFn: async () => {
       const today = new Date().toISOString().split("T")[0];
 
@@ -234,7 +258,8 @@ function SalesPage() {
       const { data: todayData } = await supabase
         .from("sales")
         .select("created_at, total_amount, status")
-        .gte("created_at", `${today}T00:00:00`);
+        .gte("created_at", `${today}T00:00:00`)
+        .not("status", "in", '("cancelled","cancelada","estornado")');
 
       // 2. Fiados em Aberto
       const { count: pendingFiadoCount } = await supabase
@@ -242,36 +267,33 @@ function SalesPage() {
         .select("id", { count: "exact", head: true })
         .eq("is_debt", true);
 
-      // 3. Contagem Total de Vendas
-      const { count: totalSalesCount } = await supabase
+      // 3. Contagem de Vendas no período ativo
+      let countQuery = supabase.from("sales").select("id", { count: "exact", head: true });
+      if (startDate) countQuery = countQuery.gte("created_at", `${startDate}T00:00:00`);
+      if (endDate) countQuery = countQuery.lte("created_at", `${endDate}T23:59:59`);
+      const { count: periodSalesCount } = await countQuery;
+
+      // 4. Faturamento do Período Selecionado
+      let revQuery = supabase
         .from("sales")
-        .select("id", { count: "exact", head: true });
+        .select("total_amount")
+        .not("status", "in", '("cancelled","cancelada","estornado")');
+      if (startDate) revQuery = revQuery.gte("created_at", `${startDate}T00:00:00`);
+      if (endDate) revQuery = revQuery.lte("created_at", `${endDate}T23:59:59`);
+      const { data: revData } = await revQuery.limit(5000);
 
-      // 4. Faturamento Total (vendas válidas não canceladas)
-      const { data: allSalesData } = await supabase
-        .from("sales")
-        .select("total_amount, status");
-
-      const todaySales = (todayData || []).filter((s: any) => {
-        const isCancelled = ["cancelled", "cancelada", "estornado"].includes(String(s.status || "").toLowerCase());
-        const d = typeof s.created_at === "string" ? s.created_at.slice(0, 10) : "";
-        return d === today && !isCancelled;
-      });
-
-      const validAllSales = (allSalesData || []).filter((s: any) => {
-        return !["cancelled", "cancelada", "estornado"].includes(String(s.status || "").toLowerCase());
-      });
-
-      const totalRevenue = validAllSales.reduce((sum: number, s: any) => sum + Number(s.total_amount || 0), 0);
+      const todaySales = todayData || [];
+      const totalRevenue = (revData || []).reduce((sum: number, s: any) => sum + Number(s.total_amount || 0), 0);
 
       return {
         countToday: todaySales.length,
         totalToday: todaySales.reduce((sum: number, s: any) => sum + Number(s.total_amount || 0), 0),
-        totalSalesCount: totalSalesCount || (allSalesData || []).length,
+        totalSalesCount: periodSalesCount ?? 0,
         totalRevenue,
         pendingFiado: pendingFiadoCount || 0,
       };
     },
+    staleTime: 10_000,
   });
 
   const stats = statsData || { countToday: 0, totalToday: 0, totalSalesCount: 0, totalRevenue: 0, pendingFiado: 0 };
@@ -322,18 +344,65 @@ function SalesPage() {
       <div className="grid grid-cols-2 gap-2 sm:gap-2.5 sm:grid-cols-3 lg:grid-cols-5">
         <StatCard title="Vendas Hoje" value={stats.countToday} icon={ShoppingCart} tone="dark" compact />
         <StatCard title="Faturamento Hoje" value={brl(stats.totalToday)} icon={TrendingUp} tone="gold" compact />
-        <StatCard title="Total de Vendas" value={stats.totalSalesCount} icon={ShoppingBag} tone="info" compact />
-        <StatCard title="Faturamento Total" value={brl(stats.totalRevenue)} icon={DollarSign} tone="success" compact />
+        <StatCard 
+          title={periodPreset === "all" ? "Total de Vendas" : "Vendas no Período"} 
+          value={stats.totalSalesCount} 
+          icon={ShoppingBag} 
+          tone="info" 
+          compact 
+        />
+        <StatCard 
+          title={
+            periodPreset === "all"
+              ? "Faturamento Total"
+              : periodPreset === "thisMonth"
+              ? "Faturamento Mês"
+              : "Faturamento Período"
+          } 
+          value={brl(stats.totalRevenue)} 
+          icon={DollarSign} 
+          tone="success" 
+          compact 
+        />
         <div className="col-span-2 sm:col-span-1 lg:col-span-1">
           <StatCard title="Fiados em Aberto" value={stats.pendingFiado} icon={AlertTriangle} tone="warning" compact />
         </div>
+      </div>
+
+      {/* Atalhos rápidos de período para alta performance e acesso fácil a anos anteriores */}
+      <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none text-xs">
+        <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider shrink-0 mr-1 flex items-center gap-1">
+          <Calendar className="size-3.5 text-gold" /> Período:
+        </span>
+        {[
+          { id: "thisMonth", label: "Este Mês" },
+          { id: "30days", label: "Últimos 30 dias" },
+          { id: "90days", label: "90 dias" },
+          { id: "yearCurrent", label: `${new Date().getFullYear()}` },
+          { id: "yearPrevious", label: `${new Date().getFullYear() - 1}` },
+          { id: "all", label: "Todo o Histórico" },
+        ].map((p) => (
+          <button
+            key={p.id}
+            type="button"
+            onClick={() => applyPreset(p.id)}
+            className={cn(
+              "px-3 py-1.5 rounded-xl font-bold transition-all shrink-0 cursor-pointer border text-xs",
+              periodPreset === p.id
+                ? "bg-gradient-gold text-primary-foreground border-transparent shadow-sm shadow-gold/20"
+                : "bg-card text-muted-foreground hover:text-foreground border-border/50 hover:bg-muted/50"
+            )}
+          >
+            {p.label}
+          </button>
+        ))}
       </div>
 
       <div className="flex flex-col sm:flex-row gap-4">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input 
-            placeholder="Buscar por cliente ou código da venda..." 
+            placeholder="Buscar por cliente ou código da venda (busca global)..." 
             className="pl-10 h-11 rounded-2xl bg-card border-border/40"
             value={term}
             onChange={e => setTerm(e.target.value)}
@@ -393,11 +462,13 @@ function SalesPage() {
                   <div className="grid grid-cols-2 gap-1.5">
                     {[
                       { id: "today", label: "Hoje" },
-                      { id: "yesterday", label: "Ontem" },
-                      { id: "7days", label: "Últimos 7 dias" },
-                      { id: "30days", label: "Últimos 30 dias" },
+                      { id: "7days", label: "7 dias" },
+                      { id: "30days", label: "30 dias" },
                       { id: "thisMonth", label: "Este mês" },
                       { id: "lastMonth", label: "Mês passado" },
+                      { id: "90days", label: "90 dias" },
+                      { id: "yearCurrent", label: `Ano ${new Date().getFullYear()}` },
+                      { id: "yearPrevious", label: `Ano ${new Date().getFullYear() - 1}` },
                     ].map((p) => (
                       <Button
                         key={p.id}

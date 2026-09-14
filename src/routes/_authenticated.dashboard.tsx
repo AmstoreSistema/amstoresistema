@@ -73,6 +73,8 @@ function Dashboard() {
   });
   const { data: allInstallments = [] } = useRows<any>("sale_installments" as any, { 
     select: "id, sale_id, amount, paid_amount, due_date, status",
+    filters: [{ column: "status", value: ["paga", "paid", "quitada", "cancelada"], operator: "neq" }],
+    limit: 1000,
   });
 
   const queryClient = useQueryClient();

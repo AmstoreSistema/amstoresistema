@@ -52,19 +52,56 @@ type Period = 7 | 30 | 90;
 function StorePanel() {
   const [period, setPeriod] = useState<Period>(30);
 
-  const { data: sales = [] } = useRows<any>("sales", {
-    order: { column: "created_at", ascending: false },
-    limit: 500,
-  });
-  const { data: saleItems = [] } = useRows<any>("sale_items", { limit: 2000 });
-  const { data: products = [] } = useRows<any>("products");
-  const { data: clients = [] } = useRows<any>("clients");
-  const { data: accounts = [] } = useRows<any>("financial_accounts");
-  const { data: installments = [] } = useRows<any>("sale_installments", { limit: 1000 });
-
   const now = new Date();
   const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
   const periodStart = startOfToday - (period - 1) * 86400000;
+  const periodStartIso = useMemo(() => new Date(periodStart).toISOString(), [periodStart]);
+
+  // Consulta de vendas delimitada exclusivamente ao período selecionado (7, 30 ou 90 dias)
+  const { data: sales = [] } = useRows<any>("sales", {
+    select: "id, created_at, total_amount, paid_amount, status, is_debt, payment_method, client_id",
+    dateRange: { column: "created_at", gte: periodStartIso },
+    order: { column: "created_at", ascending: false },
+    limit: 2500,
+  });
+
+  const periodSaleIds = useMemo(() => sales.map((s: any) => s.id), [sales]);
+
+  // Itens de venda vinculados estritamente às vendas do período ativo
+  const { data: saleItems = [] } = useQuery({
+    queryKey: ["store-sale-items", period, periodSaleIds.slice(0, 100).join(",")],
+    enabled: periodSaleIds.length > 0,
+    queryFn: async () => {
+      const chunks: string[][] = [];
+      for (let i = 0; i < periodSaleIds.length; i += 100) {
+        chunks.push(periodSaleIds.slice(i, i + 100));
+      }
+      const results: any[] = [];
+      for (const chunk of chunks) {
+        const { data, error } = await supabase
+          .from("sale_items")
+          .select("sale_id, product_id, quantity, unit_price")
+          .in("sale_id", chunk);
+        if (error) throw error;
+        if (data) results.push(...data);
+      }
+      return results;
+    },
+    staleTime: 30_000,
+  });
+
+  const { data: products = [] } = useRows<any>("products", { select: "id, name" });
+  const { data: clients = [] } = useRows<any>("clients", { select: "id, name, cashback_balance" });
+  const { data: accounts = [] } = useRows<any>("financial_accounts");
+  
+  // Parcelas ativas e não quitadas para cálculo de fiados vencidos
+  const { data: installments = [] } = useRows<any>("sale_installments", {
+    select: "id, sale_id, due_date, status",
+    filters: [
+      { column: "status", value: ["paga", "paid", "quitada", "cancelada"], operator: "neq" }
+    ],
+    limit: 500,
+  });
 
   const activeSales = useMemo(
     () => sales.filter((s: any) => (s.status ?? "concluida") !== "cancelada"),

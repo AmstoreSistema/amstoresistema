@@ -70,6 +70,8 @@ function CreditPage() {
   });
   const { data: installments = [] } = useRows<Installment>("sale_installments" as any, {
     select: "id, sale_id, amount, paid_amount, due_date, status",
+    filters: [{ column: "status", value: ["paga", "paid", "quitada", "cancelada"], operator: "neq" }],
+    limit: 2000,
   });
 
   const [term, setTerm] = useState("");

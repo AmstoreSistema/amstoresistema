@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import {
   TrendingUp,
@@ -17,7 +17,13 @@ import {
   FileDown,
   Printer,
   MessageCircle,
+  ArrowLeftRight,
 } from "lucide-react";
+import {
+  extractTransactionDetails,
+  buildTransactionReportData,
+  exportTransactionsToCSV,
+} from "@/lib/transaction-report.helpers";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -32,6 +38,8 @@ import {
 } from "@/components/ui/select";
 import { brl, dateBR, dateTimeBR, num, toISODate } from "@/lib/format";
 import { useRows } from "@/lib/data";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { ReportLayout } from "@/components/report-layout";
@@ -63,6 +71,7 @@ type ReportId =
   | "top-products"
   | "clients"
   | "cashflow"
+  | "transactions"
   | "sales-general"
   | "pending"
   | "sandal-sizes"
@@ -84,6 +93,7 @@ const REPORTS: { id: ReportId; label: string; icon: any; grouping?: boolean; noF
   { id: "top-products", label: "Produtos Mais Vendidos", icon: Package },
   { id: "clients", label: "Desempenho Clientes", icon: Users },
   { id: "cashflow", label: "Fluxo de Caixa", icon: DollarSign, grouping: true },
+  { id: "transactions", label: "Relatório de Transações", icon: ArrowLeftRight },
   { id: "sales-general", label: "Vendas Geral", icon: FileText },
   { id: "pending", label: "Fiados/Pendentes", icon: FileText },
   { id: "sandal-sizes", label: "Numerações Sandálias", icon: Footprints },
@@ -175,6 +185,7 @@ function periodKey(iso: string, grouping: string) {
 function StoreReportsPage() {
   const [selected, setSelected] = useState<ReportId>("period");
   const [grouping, setGrouping] = useState("monthly");
+  const [txTypeFilter, setTxTypeFilter] = useState<"todos" | "receita" | "despesa">("todos");
   const [range, setRange] = useState({
     start: new Date(new Date().getFullYear(), new Date().getMonth(), 1)
       .toISOString()
@@ -206,20 +217,62 @@ function StoreReportsPage() {
     }).catch(() => {});
   }, [fetchSettings]);
 
-  const { data: sales = [], isLoading: l1 } = useRows<any>("sales", { limit: 5000, order: { column: "created_at", ascending: false } });
-  const { data: saleItems = [], isLoading: l2 } = useRows<any>("sale_items", { limit: 10000 });
+  const current = REPORTS.find((r) => r.id === selected)!;
+  const isNoFilter = current?.noFilter ?? false;
+
+  const { data: sales = [], isLoading: l1 } = useRows<any>("sales", {
+    dateRange: !isNoFilter && (range.start || range.end) ? {
+      column: "created_at",
+      gte: range.start ? `${range.start}T00:00:00` : undefined,
+      lte: range.end ? `${range.end}T23:59:59` : undefined,
+    } : undefined,
+    limit: 5000,
+    order: { column: "created_at", ascending: false },
+  });
+
+  const periodSaleIds = useMemo(() => sales.map((s: any) => s.id), [sales]);
+
+  // Carrega itens sob demanda exclusivamente vinculados às vendas filtradas no período
+  const { data: saleItems = [], isLoading: l2 } = useQuery({
+    queryKey: ["store-reports-items", range.start, range.end, periodSaleIds.slice(0, 50).join(",")],
+    enabled: periodSaleIds.length > 0,
+    queryFn: async () => {
+      const chunks: string[][] = [];
+      for (let i = 0; i < periodSaleIds.length; i += 100) {
+        chunks.push(periodSaleIds.slice(i, i + 100));
+      }
+      const results: any[] = [];
+      for (const chunk of chunks) {
+        const { data, error } = await supabase
+          .from("sale_items")
+          .select("*")
+          .in("sale_id", chunk);
+        if (error) throw error;
+        if (data) results.push(...data);
+      }
+      return results;
+    },
+    staleTime: 60_000,
+  });
+
   const { data: products = [] } = useRows<any>("products", { limit: 3000 });
   const { data: clients = [] } = useRows<any>("clients", { limit: 3000 });
   const { data: installments = [] } = useRows<any>("sale_installments", { limit: 5000 });
-  const { data: transactions = [] } = useRows<any>("transactions", { limit: 5000 });
+  const { data: transactions = [] } = useRows<any>("transactions", {
+    dateRange: !isNoFilter && (range.start || range.end) ? {
+      column: "created_at",
+      gte: range.start ? `${range.start}T00:00:00` : undefined,
+      lte: range.end ? `${range.end}T23:59:59.999` : undefined,
+    } : undefined,
+    limit: 5000,
+  });
   const { data: stock = [] } = useRows<any>("stock_products", { limit: 3000 });
   const { data: profiles = [] } = useRows<any>("user_profiles", { limit: 500 });
   const { data: materials = [] } = useRows<any>("materials", { limit: 2000 });
   const { data: suppliers = [] } = useRows<any>("suppliers", { limit: 2000 });
   const { data: productionOrders = [] } = useRows<any>("production_orders", { limit: 2000 });
 
-  const isLoading = l1 || l2;
-  const current = REPORTS.find((r) => r.id === selected)!;
+  const isLoading = l1 || (periodSaleIds.length > 0 && l2);
 
   const inRange = (iso?: string | null) => {
     if (!iso) return false;
@@ -457,6 +510,24 @@ function StoreReportsPage() {
           ],
           rows,
           summaryCards,
+        };
+      }
+
+      case "transactions": {
+        const gen = buildTransactionReportData(
+          transactions.filter((t: any) => inRange(t.created_at || t.due_date)),
+          txTypeFilter,
+          {
+            clients,
+            sales,
+            suppliers,
+          }
+        );
+
+        return {
+          columns: gen.columns,
+          rows: gen.rows,
+          summaryCards: gen.summaryCards,
         };
       }
 
@@ -1123,12 +1194,37 @@ function StoreReportsPage() {
       return;
     }
 
+    if (selected === "transactions") {
+      const csv = exportTransactionsToCSV(
+        transactions.filter((t: any) => inRange(t.created_at || t.due_date)),
+        txTypeFilter,
+        { clients, sales, suppliers }
+      );
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = `relatorio-transacoes-${txTypeFilter}-${range.start}-${range.end}.csv`;
+      a.click();
+      URL.revokeObjectURL(a.href);
+      toast.success("Relatório de transações exportado em CSV.");
+      return;
+    }
+
     const exportCols = result.columns.filter((c) => c.key !== "action" && c.className !== "print:hidden");
     const head = exportCols.map((c) => `"${c.label}"`).join(";");
 
     const getCleanString = (val: any) => {
       if (val === null || val === undefined) return "";
       if (typeof val === "string" || typeof val === "number") return String(val);
+      if (React.isValidElement(val)) {
+        const props: any = val.props;
+        if (typeof props?.children === "string" || typeof props?.children === "number") {
+          return String(props.children);
+        }
+        if (Array.isArray(props?.children)) {
+          return props.children.map((c: any) => (typeof c === "string" || typeof c === "number" ? c : "")).join("");
+        }
+      }
       return "";
     };
 
@@ -1271,6 +1367,36 @@ function StoreReportsPage() {
             </div>
           )}
 
+          {selected === "transactions" && (
+            <div className="space-y-1.5 pt-2 border-t border-border/40">
+              <label className="text-[10px] font-black uppercase text-muted-foreground block">
+                Tipo de Transação
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {([
+                  { key: "todos", label: "Todos os Tipos" },
+                  { key: "receita", label: "Receitas (Vendas)" },
+                  { key: "despesa", label: "Despesas (Saídas)" },
+                ] as const).map((t) => (
+                  <Button
+                    key={t.key}
+                    type="button"
+                    variant={txTypeFilter === t.key ? "default" : "outline"}
+                    size="sm"
+                    className={cn(
+                      "rounded-xl text-xs font-bold h-9 px-3",
+                      txTypeFilter === t.key && t.key === "receita" && "bg-emerald-600 hover:bg-emerald-700 text-white border-transparent",
+                      txTypeFilter === t.key && t.key === "despesa" && "bg-rose-600 hover:bg-rose-700 text-white border-transparent"
+                    )}
+                    onClick={() => setTxTypeFilter(t.key)}
+                  >
+                    {t.label}
+                  </Button>
+                ))}
+              </div>
+            </div>
+          )}
+
           <Button
             onClick={() => {
               setGenerated(selected);
@@ -1290,7 +1416,13 @@ function StoreReportsPage() {
           <div className="flex flex-wrap items-center justify-between gap-3 px-2 print:hidden">
             <div className="flex items-center gap-3">
               <h2 className="font-display text-lg font-black text-slate-800">
-                Visualização do Relatório: {current.label}
+                Visualização do Relatório: {selected === "transactions"
+                  ? (txTypeFilter === "receita"
+                      ? "Receitas (Vendas)"
+                      : txTypeFilter === "despesa"
+                      ? "Despesas (Saídas)"
+                      : "Transações Financeiras")
+                  : current.label}
               </h2>
               <Badge variant="outline" className="font-bold border-slate-300">
                 {result.rows.length} registros
@@ -1318,7 +1450,13 @@ function StoreReportsPage() {
 
           <ReportLayout 
             id="printable-report"
-            title={current.label}
+            title={selected === "transactions"
+              ? (txTypeFilter === "receita"
+                  ? "Relatório de Receitas (Vendas)"
+                  : txTypeFilter === "despesa"
+                  ? "Relatório de Despesas (Saídas)"
+                  : "Relatório de Transações Financeiras")
+              : current.label}
             startDate={current.noFilter ? undefined : range.start}
             endDate={current.noFilter ? undefined : range.end}
             storeInfo={storeInfo}

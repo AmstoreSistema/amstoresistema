@@ -18,10 +18,18 @@ import {
   Clock,
   Trash2,
   Eye,
-  Pencil
+  Pencil,
+  Printer,
 } from "lucide-react";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useServerFn } from "@tanstack/react-start";
+import { getAppSettings } from "@/lib/settings.functions";
+import { ReportLayout } from "@/components/report-layout";
+import {
+  exportTransactionsToCSV,
+  buildTransactionReportData,
+} from "@/lib/transaction-report.helpers";
 import { PaginationBar } from "@/components/ui/pagination-bar";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/page-header";
@@ -100,8 +108,17 @@ function TransactionsPage() {
   const [term, setTerm] = useState("");
   const [typeFilter, setTypeFilter] = useState<"todos" | "receita" | "despesa">("todos");
   const [statusFilter, setStatusFilter] = useState<"todos" | "pago" | "pendente" | "atrasado" | "cancelado">("todos");
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
+
+  // Inicializa por padrão com o mês atual para garantir máxima velocidade
+  const [periodPreset, setPeriodPreset] = useState<string>("thisMonth");
+  const [startDate, setStartDate] = useState(() => {
+    const now = new Date();
+    return new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split("T")[0] || "";
+  });
+  const [endDate, setEndDate] = useState(() => {
+    const now = new Date();
+    return new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split("T")[0] || "";
+  });
 
   // Reinicia a paginação para a página 1 ao aplicar ou alterar qualquer filtro/busca
   useEffect(() => {
@@ -144,12 +161,15 @@ function TransactionsPage() {
         q = q.in("status", ["pendente", "pending", "aberto"]).lt("due_date", todayStr);
       }
 
-      // Filtro por período
-      if (startDate) {
-        q = q.gte("created_at", `${startDate}T00:00:00`);
-      }
-      if (endDate) {
-        q = q.lte("created_at", `${endDate}T23:59:59.999`);
+      // Filtro por período (se o usuário buscar texto no período padrão do mês, busca em todo o histórico)
+      const isGlobalTextSearch = term.trim().length > 0 && periodPreset === "thisMonth";
+      if (!isGlobalTextSearch) {
+        if (startDate) {
+          q = q.gte("created_at", `${startDate}T00:00:00`);
+        }
+        if (endDate) {
+          q = q.lte("created_at", `${endDate}T23:59:59.999`);
+        }
       }
 
       // Filtro de busca textual (descrição, categoria, cliente ou fornecedor)
@@ -189,11 +209,36 @@ function TransactionsPage() {
   const totalCount = transResult?.totalCount || 0;
 
   const [isNewModalOpen, setIsNewModalOpen] = useState(false);
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<any>(null);
   const [viewingTransaction, setViewingTransaction] = useState<any>(null);
   const [editingAccount, setEditingAccount] = useState<any>(null);
   const [newBalance, setNewBalance] = useState("");
   const isOpenModal = isNewModalOpen || !!editingTransaction;
+
+  const [storeInfo, setStoreInfo] = useState<{
+    name?: string;
+    cnpj?: string;
+    contact?: string;
+    logo?: string;
+    address?: string;
+  }>({});
+
+  const fetchSettings = useServerFn(getAppSettings);
+
+  useEffect(() => {
+    fetchSettings().then((data: any) => {
+      const info: any = {};
+      data?.forEach((s: any) => {
+        if (s.key === "store_name") info.name = s.value;
+        if (s.key === "store_cnpj") info.cnpj = s.value;
+        if (s.key === "store_contact") info.contact = s.value;
+        if (s.key === "store_logo") info.logo = s.value;
+        if (s.key === "store_address") info.address = s.value;
+      });
+      setStoreInfo(info);
+    }).catch(() => {});
+  }, [fetchSettings]);
 
   const handleDeleteItem = async (id: string) => {
     if (!confirm("Deseja realmente excluir este lançamento? Esta ação pode afetar o saldo das contas.")) return;
@@ -338,38 +383,35 @@ function TransactionsPage() {
               variant="outline" 
               className="gap-2 rounded-xl"
               onClick={() => {
-                const start = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
-                const end = new Date().toISOString().split('T')[0];
-                
-                const csvContent = transactions.map(t => ({
-                  Data: dateBR(t.created_at),
-                  Descricao: t.description || "",
-                  Tipo: t.type || "",
-                  Valor: Math.abs(t.amount || 0),
-                  Status: t.status || "",
-                  Categoria: t.category || "",
-                  Conta: t.financial_accounts?.name || ""
-                }));
-                
-                if (csvContent.length === 0) return;
-
-                const firstItem = csvContent[0] as Record<string, any>;
-                const header = Object.keys(firstItem).join(",");
-                const rows = csvContent.map(row => Object.values(row).join(",")).join("\n");
-                const csv = `${header}\n${rows}`;
-                
-                const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+                if (transactions.length === 0) {
+                  toast.error("Nenhuma transação para exportar");
+                  return;
+                }
+                const csv = exportTransactionsToCSV(transactions, typeFilter, {
+                  clients,
+                  suppliers,
+                  accounts,
+                });
+                const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
                 const link = document.createElement("a");
                 const url = URL.createObjectURL(blob);
                 link.setAttribute("href", url);
-                link.setAttribute("download", `extrato_financeiro_${start}_${end}.csv`);
-                link.style.visibility = 'hidden';
+                link.setAttribute("download", `relatorio_transacoes_${typeFilter}_${startDate || "inicio"}_${endDate || "fim"}.csv`);
+                link.style.visibility = "hidden";
                 document.body.appendChild(link);
                 link.click();
                 document.body.removeChild(link);
+                toast.success("Relatório de transações exportado em CSV.");
               }}
             >
               <Download className="size-4" /> Exportar CSV
+            </Button>
+            <Button
+              variant="outline"
+              className="gap-2 rounded-xl"
+              onClick={() => setIsReportModalOpen(true)}
+            >
+              <Printer className="size-4" /> Relatório Executivo
             </Button>
             <Button onClick={() => setIsNewModalOpen(true)} className="gap-2 bg-green-500 border-none shadow-lg shadow-green-100 font-bold rounded-xl h-11">
               <Plus className="size-4" /> Nova Transação
@@ -428,10 +470,14 @@ function TransactionsPage() {
           </span>
           <Button
             type="button"
-            variant="outline"
+            variant={periodPreset === "thisMonth" ? "default" : "outline"}
             size="sm"
-            className="h-7 px-2.5 text-[11px] font-medium rounded-lg shrink-0"
+            className={cn(
+              "h-7 px-2.5 text-[11px] font-bold rounded-lg shrink-0",
+              periodPreset === "thisMonth" ? "bg-gradient-gold text-primary-foreground border-transparent shadow-xs" : ""
+            )}
             onClick={() => {
+              setPeriodPreset("thisMonth");
               const now = new Date();
               const firstDay = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split("T")[0] || "";
               const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split("T")[0] || "";
@@ -443,10 +489,14 @@ function TransactionsPage() {
           </Button>
           <Button
             type="button"
-            variant="outline"
+            variant={periodPreset === "lastMonth" ? "default" : "outline"}
             size="sm"
-            className="h-7 px-2.5 text-[11px] font-medium rounded-lg shrink-0"
+            className={cn(
+              "h-7 px-2.5 text-[11px] font-bold rounded-lg shrink-0",
+              periodPreset === "lastMonth" ? "bg-gradient-gold text-primary-foreground border-transparent shadow-xs" : ""
+            )}
             onClick={() => {
+              setPeriodPreset("lastMonth");
               const now = new Date();
               const firstDay = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString().split("T")[0] || "";
               const lastDay = new Date(now.getFullYear(), now.getMonth(), 0).toISOString().split("T")[0] || "";
@@ -458,10 +508,14 @@ function TransactionsPage() {
           </Button>
           <Button
             type="button"
-            variant="outline"
+            variant={periodPreset === "30days" ? "default" : "outline"}
             size="sm"
-            className="h-7 px-2.5 text-[11px] font-medium rounded-lg shrink-0"
+            className={cn(
+              "h-7 px-2.5 text-[11px] font-bold rounded-lg shrink-0",
+              periodPreset === "30days" ? "bg-gradient-gold text-primary-foreground border-transparent shadow-xs" : ""
+            )}
             onClick={() => {
+              setPeriodPreset("30days");
               const past30 = new Date();
               past30.setDate(past30.getDate() - 30);
               setStartDate(past30.toISOString().split("T")[0] || "");
@@ -472,10 +526,48 @@ function TransactionsPage() {
           </Button>
           <Button
             type="button"
-            variant="ghost"
+            variant={periodPreset === "yearCurrent" ? "default" : "outline"}
             size="sm"
-            className="h-7 px-2.5 text-[11px] font-medium text-muted-foreground hover:text-foreground rounded-lg shrink-0"
+            className={cn(
+              "h-7 px-2.5 text-[11px] font-bold rounded-lg shrink-0",
+              periodPreset === "yearCurrent" ? "bg-gradient-gold text-primary-foreground border-transparent shadow-xs" : ""
+            )}
             onClick={() => {
+              setPeriodPreset("yearCurrent");
+              const currentYear = new Date().getFullYear();
+              setStartDate(`${currentYear}-01-01`);
+              setEndDate(`${currentYear}-12-31`);
+            }}
+          >
+            Ano {new Date().getFullYear()}
+          </Button>
+          <Button
+            type="button"
+            variant={periodPreset === "yearPrevious" ? "default" : "outline"}
+            size="sm"
+            className={cn(
+              "h-7 px-2.5 text-[11px] font-bold rounded-lg shrink-0",
+              periodPreset === "yearPrevious" ? "bg-gradient-gold text-primary-foreground border-transparent shadow-xs" : ""
+            )}
+            onClick={() => {
+              setPeriodPreset("yearPrevious");
+              const prevYear = new Date().getFullYear() - 1;
+              setStartDate(`${prevYear}-01-01`);
+              setEndDate(`${prevYear}-12-31`);
+            }}
+          >
+            Ano {new Date().getFullYear() - 1}
+          </Button>
+          <Button
+            type="button"
+            variant={periodPreset === "all" ? "default" : "ghost"}
+            size="sm"
+            className={cn(
+              "h-7 px-2.5 text-[11px] font-bold rounded-lg shrink-0",
+              periodPreset === "all" ? "bg-gradient-gold text-primary-foreground border-transparent shadow-xs" : "text-muted-foreground hover:text-foreground"
+            )}
+            onClick={() => {
+              setPeriodPreset("all");
               setStartDate("");
               setEndDate("");
             }}
@@ -810,6 +902,79 @@ function TransactionsPage() {
           transaction={editingTransaction}
         />
       )}
+
+      {/* Modal de Relatório Executivo com ReportLayout e Impressão A4 */}
+      <Dialog open={isReportModalOpen} onOpenChange={setIsReportModalOpen}>
+        <DialogContent className="max-w-5xl max-h-[92vh] p-4 sm:p-6 overflow-y-auto bg-white dark:bg-card">
+          <DialogHeader className="flex flex-row items-center justify-between pb-3 border-b print:hidden">
+            <div>
+              <DialogTitle className="text-lg font-black font-display">
+                Relatório de Transações Financeiras
+              </DialogTitle>
+              <DialogDescription className="text-xs text-muted-foreground">
+                Visualização executiva com totais, colunas detalhadas e formato para impressão A4.
+              </DialogDescription>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1.5 rounded-xl text-xs font-bold"
+                onClick={() => {
+                  const csv = exportTransactionsToCSV(transactions, typeFilter, {
+                    clients,
+                    suppliers,
+                    accounts,
+                  });
+                  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+                  const link = document.createElement("a");
+                  const url = URL.createObjectURL(blob);
+                  link.setAttribute("href", url);
+                  link.setAttribute("download", `relatorio_transacoes_${typeFilter}_${startDate || "inicio"}_${endDate || "fim"}.csv`);
+                  link.style.visibility = "hidden";
+                  document.body.appendChild(link);
+                  link.click();
+                  document.body.removeChild(link);
+                  toast.success("Relatório exportado em CSV.");
+                }}
+              >
+                <Download className="size-3.5" /> CSV
+              </Button>
+              <Button
+                variant="default"
+                size="sm"
+                className="gap-1.5 rounded-xl text-xs font-bold bg-primary text-primary-foreground"
+                onClick={() => window.print()}
+              >
+                <Printer className="size-3.5" /> Imprimir A4
+              </Button>
+            </div>
+          </DialogHeader>
+
+          <div className="pt-2">
+            {(() => {
+              const rep = buildTransactionReportData(transactions, typeFilter, {
+                clients,
+                suppliers,
+                accounts,
+              });
+              return (
+                <ReportLayout
+                  id="printable-transactions-report"
+                  title={rep.reportTitle}
+                  startDate={startDate || undefined}
+                  endDate={endDate || undefined}
+                  storeInfo={storeInfo}
+                  columns={rep.columns}
+                  rows={rep.rows}
+                  summaryCards={rep.summaryCards}
+                  summaryPosition="top"
+                />
+              );
+            })()}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

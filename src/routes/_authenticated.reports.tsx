@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { 
   ShoppingCart, 
@@ -38,6 +38,11 @@ import { toast } from "sonner";
 import { ReportLayout } from "@/components/report-layout";
 import { useServerFn } from "@tanstack/react-start";
 import { getAppSettings } from "@/lib/settings.functions";
+import {
+  extractTransactionDetails,
+  buildTransactionReportData,
+  exportTransactionsToCSV,
+} from "@/lib/transaction-report.helpers";
 
 export const Route = createFileRoute("/_authenticated/reports")({
   head: () => ({
@@ -168,6 +173,9 @@ function ReportsPage() {
     }).catch(() => {});
   }, [fetchSettings]);
 
+  const [generalTypeFilter, setGeneralTypeFilter] = useState<"todos" | "receita" | "despesa">("todos");
+  const [generalStatusFilter, setGeneralStatusFilter] = useState<"todos" | "pago" | "pendente">("todos");
+
   const reportButtons = [
     { id: "sales", label: "Vendas", icon: ShoppingCart },
     { id: "installments", label: "Fiados/Parcelas", icon: Calendar },
@@ -180,24 +188,30 @@ function ReportsPage() {
     { id: "products", label: "Produtos", icon: Package },
     { id: "suppliers", label: "Fornecedores", icon: KanbanSquare },
     { id: "purchases", label: "Compras de Materiais", icon: Truck },
-    { id: "general", label: "Geral / DRE", icon: LayoutDashboard },
+    { id: "general", label: "Transações / DRE", icon: LayoutDashboard },
   ];
 
   const config = REPORT_CONFIG[selectedType];
+  const isNoFilter = config.noFilter ?? false;
   
-  // Consultas principais com limites expandidos para relatórios corporativos completos
+  // Consultas principais com filtro de data no banco para velocidade máxima
   const { data: reportData = [], isLoading: isMainLoading } = useRows(config.table, {
     filters: config.filters,
+    dateRange: !isNoFilter && (dateRange.start || dateRange.end) ? {
+      column: config.dateColumn,
+      gte: dateRange.start ? `${dateRange.start}T00:00:00` : undefined,
+      lte: dateRange.end ? `${dateRange.end}T23:59:59.999` : undefined,
+    } : undefined,
     order: { column: config.dateColumn, ascending: false },
     limit: 5000
   });
 
-  const { data: allClients = [] } = useRows<any>("clients", { limit: 3000 });
-  const { data: allSales = [] } = useRows<any>("sales", { limit: 5000 });
-  const { data: allSaleItems = [] } = useRows<any>("sale_items", { limit: 10000 });
-  const { data: allProducts = [] } = useRows<any>("products", { limit: 3000 });
-  const { data: allSuppliers = [] } = useRows<any>("suppliers", { limit: 2000 });
-  const { data: allAccounts = [] } = useRows<any>("financial_accounts", { limit: 200 });
+  const { data: allClients = [] } = useRows<any>("clients", { select: "id, name, phone, cashback_balance, total_spent", limit: 3000 });
+  const { data: allSales = [] } = useRows<any>("sales", { select: "id, sale_code, client_id, installments_count", limit: 3000 });
+  const { data: allSaleItems = [] } = useRows<any>("sale_items", { select: "sale_id, quantity", limit: 5000 });
+  const { data: allProducts = [] } = useRows<any>("products", { select: "id, name, category, cost_price, sale_price, wholesale_price, current_stock", limit: 3000 });
+  const { data: allSuppliers = [] } = useRows<any>("suppliers", { select: "id, name", limit: 2000 });
+  const { data: allAccounts = [] } = useRows<any>("financial_accounts", { select: "id, name", limit: 200 });
 
   const clientMap = useMemo(() => new Map(allClients.map((c: any) => [c.id, c])), [allClients]);
   const saleMap = useMemo(() => new Map(allSales.map((s: any) => [s.id, s])), [allSales]);
@@ -217,18 +231,34 @@ function ReportsPage() {
   }, [allSaleItems]);
 
   const filteredData = useMemo(() => {
-    if (config.noFilter) return reportData;
-    if (!dateRange.start || !dateRange.end) return reportData;
+    let list = reportData;
+    if (!config.noFilter && (dateRange.start || dateRange.end)) {
+      list = list.filter((row: any) => {
+        const raw = row[config.dateColumn] || row.created_at || row.due_date;
+        if (!raw) return true;
+        const iso = toISODate(raw);
+        if (dateRange.start && iso < dateRange.start) return false;
+        if (dateRange.end && iso > dateRange.end) return false;
+        return true;
+      });
+    }
 
-    return reportData.filter((row: any) => {
-      const raw = row[config.dateColumn] || row.created_at || row.due_date;
-      if (!raw) return true;
-      const iso = toISODate(raw);
-      if (dateRange.start && iso < dateRange.start) return false;
-      if (dateRange.end && iso > dateRange.end) return false;
-      return true;
-    });
-  }, [reportData, dateRange, config]);
+    if (selectedType === "general") {
+      if (generalTypeFilter === "receita") {
+        list = list.filter((t: any) => t.type === "entrada" || t.type === "income");
+      } else if (generalTypeFilter === "despesa") {
+        list = list.filter((t: any) => t.type === "saida" || t.type === "expense");
+      }
+
+      if (generalStatusFilter === "pago") {
+        list = list.filter((t: any) => ["pago", "paid"].includes(String(t.status || "").toLowerCase()));
+      } else if (generalStatusFilter === "pendente") {
+        list = list.filter((t: any) => ["pendente", "pending", "aberto"].includes(String(t.status || "").toLowerCase()));
+      }
+    }
+
+    return list;
+  }, [reportData, dateRange, config, selectedType, generalTypeFilter, generalStatusFilter]);
 
   const reportResult = useMemo(() => {
     const columns: { key: string; label: string; align?: "right" | "left" | "center"; className?: string }[] = [];
@@ -577,34 +607,14 @@ function ReportsPage() {
       }
 
       case "general": {
-        columns.push(
-          { key: "date", label: "Data" },
-          { key: "desc", label: "Descrição" },
-          { key: "category", label: "Categoria" },
-          { key: "type", label: "Tipo" },
-          { key: "account", label: "Conta Origem/Destino" },
-          { key: "method", label: "Forma Pagamento" },
-          { key: "amount", label: "Valor", align: "right" }
-        );
-
-        let totalReceitas = 0;
-        let totalDespesas = 0;
-
-        filteredData.forEach((t: any) => {
-          const isIncome = t.type === "income" || t.type === "entrada";
-          const isExpense = t.type === "expense" || t.type === "saida";
-          const val = Math.abs(Number(t.amount || 0));
-          if (isIncome) totalReceitas += val;
-          else if (isExpense) totalDespesas += val;
+        const gen = buildTransactionReportData(filteredData, generalTypeFilter, {
+          clientMap,
+          saleMap,
+          supplierMap,
+          accountMap,
         });
-
-        const resultadoLiquido = totalReceitas - totalDespesas;
-
-        summaryCards.push(
-          { label: "Receitas (+)", value: brl(totalReceitas), helper: "Entradas financeiras" },
-          { label: "Despesas (-)", value: brl(totalDespesas), helper: "Saídas e custos" },
-          { label: "Resultado Líquido", value: brl(resultadoLiquido), helper: resultadoLiquido >= 0 ? "Superávit do período" : "Déficit do período" }
-        );
+        columns.push(...gen.columns);
+        summaryCards.push(...gen.summaryCards);
         break;
       }
     }
@@ -823,15 +833,64 @@ function ReportsPage() {
         }
 
         case "general": {
-          const isIncome = row.type === "income" || row.type === "entrada";
-          const acc = accountMap.get(row.account_id);
-          data.date = dateBR(row.created_at || row.due_date);
-          data.desc = row.description || "—";
-          data.category = row.category || "Operacional";
-          data.type = isIncome ? "ENTRADA (+)" : "SAÍDA (-)";
-          data.account = acc?.name || "Caixa Geral";
-          data.method = (row.payment_method || "—").toUpperCase();
-          data.amount = brl(Math.abs(Number(row.amount || 0)));
+          const details = extractTransactionDetails(row, { clientMap, saleMap, supplierMap, accountMap });
+          const isPaid = details.status === "Pago";
+          const isPending = details.status === "Pendente";
+
+          const statusBadge = (
+            <span
+              className={cn(
+                "inline-flex items-center px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-tight",
+                isPaid ? "bg-emerald-100 text-emerald-800" : isPending ? "bg-amber-100 text-amber-800" : "bg-rose-100 text-rose-800"
+              )}
+            >
+              {details.status}
+            </span>
+          );
+
+          const typeBadge = (
+            <span
+              className={cn(
+                "inline-flex items-center px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-tight",
+                details.isIncome ? "bg-emerald-50 text-emerald-700" : "bg-rose-50 text-rose-700"
+              )}
+            >
+              {details.isIncome ? "Receita" : "Despesa"}
+            </span>
+          );
+
+          const amountFormatted = (
+            <span className={cn("font-black", details.isIncome ? "text-emerald-600" : "text-rose-600")}>
+              {details.isIncome ? "+ " : "- "}
+              {details.amountFormatted}
+            </span>
+          );
+
+          if (generalTypeFilter === "receita") {
+            data.date = details.date;
+            data.sale_code = details.saleCode;
+            data.client_name = details.clientName;
+            data.category = details.category;
+            data.method = details.method;
+            data.status = statusBadge;
+            data.amount = amountFormatted;
+          } else if (generalTypeFilter === "despesa") {
+            data.date = details.date;
+            data.description = details.description;
+            data.category = details.category;
+            data.method = details.method;
+            data.status = statusBadge;
+            data.amount = amountFormatted;
+          } else {
+            data.date = details.date;
+            data.type = typeBadge;
+            data.desc_code = details.isIncome ? (details.saleCode || details.description) : details.description;
+            data.client_supplier = details.isIncome ? details.clientName : (details.supplierName || "—");
+            data.category = details.category;
+            data.method = details.method;
+            data.status = statusBadge;
+            data.amount = amountFormatted;
+          }
           break;
         }
 
@@ -845,7 +904,7 @@ function ReportsPage() {
     });
 
     return { columns, rows, summaryCards };
-  }, [filteredData, selectedType, clientMap, saleMap, productMap, supplierMap, accountMap, saleItemsCountMap]);
+  }, [filteredData, selectedType, generalTypeFilter, clientMap, saleMap, productMap, supplierMap, accountMap, saleItemsCountMap]);
 
   const handleGenerateReport = () => {
     setShowResults(true);
@@ -853,6 +912,23 @@ function ReportsPage() {
   };
 
   const handleExportCsv = () => {
+    if (selectedType === "general") {
+      const csv = exportTransactionsToCSV(filteredData, generalTypeFilter, {
+        clientMap,
+        saleMap,
+        supplierMap,
+        accountMap,
+      });
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = `relatorio-transacoes-${generalTypeFilter}-${new Date().toISOString().slice(0, 10)}.csv`;
+      a.click();
+      URL.revokeObjectURL(a.href);
+      toast.success("Relatório de transações exportado em CSV com sucesso.");
+      return;
+    }
+
     const { columns, rows } = reportResult;
     // Filtrar colunas de ação que não pertencem ao CSV (ex.: botões interativos)
     const exportCols = columns.filter(c => c.key !== "action" && c.className !== "print:hidden");
@@ -861,6 +937,15 @@ function ReportsPage() {
     const getCleanString = (val: any) => {
       if (val === null || val === undefined) return "";
       if (typeof val === "string" || typeof val === "number") return String(val);
+      if (React.isValidElement(val)) {
+        const props: any = val.props;
+        if (typeof props?.children === "string" || typeof props?.children === "number") {
+          return String(props.children);
+        }
+        if (Array.isArray(props?.children)) {
+          return props.children.map((c: any) => typeof c === "string" || typeof c === "number" ? c : "").join("");
+        }
+      }
       return "";
     };
 
@@ -971,13 +1056,77 @@ function ReportsPage() {
                 </Button>
               </div>
             </div>
+
+            {selectedType === "general" && (
+              <div className="grid gap-4 sm:grid-cols-2 pt-4 border-t border-border/40">
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black uppercase text-muted-foreground block">
+                    Tipo de Lançamento (Transação)
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    {([
+                      { key: "todos", label: "Todos os Tipos" },
+                      { key: "receita", label: "Receitas (Vendas)" },
+                      { key: "despesa", label: "Despesas (Saídas)" },
+                    ] as const).map((t) => (
+                      <Button
+                        key={t.key}
+                        type="button"
+                        variant={generalTypeFilter === t.key ? "default" : "outline"}
+                        size="sm"
+                        className={cn(
+                          "rounded-xl text-xs font-bold h-9 px-3",
+                          generalTypeFilter === t.key && t.key === "receita" && "bg-emerald-600 hover:bg-emerald-700 text-white border-transparent",
+                          generalTypeFilter === t.key && t.key === "despesa" && "bg-rose-600 hover:bg-rose-700 text-white border-transparent"
+                        )}
+                        onClick={() => setGeneralTypeFilter(t.key)}
+                      >
+                        {t.label}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black uppercase text-muted-foreground block">
+                    Situação da Transação
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    {([
+                      { key: "todos", label: "Todas" },
+                      { key: "pago", label: "Pagas" },
+                      { key: "pendente", label: "Pendentes" },
+                    ] as const).map((s) => (
+                      <Button
+                        key={s.key}
+                        type="button"
+                        variant={generalStatusFilter === s.key ? "default" : "outline"}
+                        size="sm"
+                        className="rounded-xl text-xs font-bold h-9 px-3"
+                        onClick={() => setGeneralStatusFilter(s.key)}
+                      >
+                        {s.label}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
 
       <div className="grid gap-6">
         <div className="flex flex-wrap items-center justify-between gap-3 px-2 print:hidden">
-          <h2 className="font-display font-black text-lg">Visualização do Relatório: {reportButtons.find(b => b.id === selectedType)?.label}</h2>
+          <h2 className="font-display font-black text-lg">
+            Visualização: {selectedType === "general"
+              ? (generalTypeFilter === "receita"
+                  ? "Relatório de Receitas (Vendas)"
+                  : generalTypeFilter === "despesa"
+                  ? "Relatório de Despesas"
+                  : "Relatório de Transações Financeiras")
+              : `Relatório de ${reportButtons.find(b => b.id === selectedType)?.label}`}
+          </h2>
           <div className="flex items-center gap-2">
             {showResults && filteredData.length > 0 && (
               <>
@@ -1039,7 +1188,13 @@ function ReportsPage() {
             ) : (
               <ReportLayout 
                 id="printable-report"
-                title={`Relatório de ${reportButtons.find(b => b.id === selectedType)?.label || "Geral"}`}
+                title={selectedType === "general"
+                  ? (generalTypeFilter === "receita"
+                      ? "Relatório de Receitas (Vendas)"
+                      : generalTypeFilter === "despesa"
+                      ? "Relatório de Despesas (Saídas)"
+                      : "Relatório de Transações Financeiras")
+                  : `Relatório de ${reportButtons.find(b => b.id === selectedType)?.label || "Geral"}`}
                 startDate={config.noFilter ? undefined : dateRange.start}
                 endDate={config.noFilter ? undefined : dateRange.end}
                 storeInfo={storeInfo}
