@@ -43,6 +43,7 @@ import { Route as AuthenticatedStoreReportsRouteImport } from './routes/_authent
 import { Route as AuthenticatedTransactionsRouteImport } from './routes/_authenticated.transactions'
 import { Route as AuthenticatedWhatsappBillingRouteImport } from './routes/_authenticated.whatsapp-billing'
 import { Route as ApiPublicSorteioInfoRouteImport } from './routes/api/public/sorteio-info'
+import { Route as ApiPublicCatalogImageSplatRouteImport } from './routes/api/public/catalog-image.$'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -220,6 +221,12 @@ const ApiPublicSorteioInfoRoute = ApiPublicSorteioInfoRouteImport.update({
   path: '/api/public/sorteio-info',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicCatalogImageSplatRoute =
+  ApiPublicCatalogImageSplatRouteImport.update({
+    id: '/api/public/catalog-image/$',
+    path: '/api/public/catalog-image/$',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -255,6 +262,7 @@ export interface FileRoutesByFullPath {
   '/transactions': typeof AuthenticatedTransactionsRoute
   '/whatsapp-billing': typeof AuthenticatedWhatsappBillingRoute
   '/api/public/sorteio-info': typeof ApiPublicSorteioInfoRoute
+  '/api/public/catalog-image/$': typeof ApiPublicCatalogImageSplatRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -290,6 +298,7 @@ export interface FileRoutesByTo {
   '/transactions': typeof AuthenticatedTransactionsRoute
   '/whatsapp-billing': typeof AuthenticatedWhatsappBillingRoute
   '/api/public/sorteio-info': typeof ApiPublicSorteioInfoRoute
+  '/api/public/catalog-image/$': typeof ApiPublicCatalogImageSplatRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -327,6 +336,7 @@ export interface FileRoutesById {
   '/_authenticated/transactions': typeof AuthenticatedTransactionsRoute
   '/_authenticated/whatsapp-billing': typeof AuthenticatedWhatsappBillingRoute
   '/api/public/sorteio-info': typeof ApiPublicSorteioInfoRoute
+  '/api/public/catalog-image/$': typeof ApiPublicCatalogImageSplatRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -364,6 +374,7 @@ export interface FileRouteTypes {
     | '/transactions'
     | '/whatsapp-billing'
     | '/api/public/sorteio-info'
+    | '/api/public/catalog-image/$'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -399,6 +410,7 @@ export interface FileRouteTypes {
     | '/transactions'
     | '/whatsapp-billing'
     | '/api/public/sorteio-info'
+    | '/api/public/catalog-image/$'
   id:
     | '__root__'
     | '/'
@@ -435,6 +447,7 @@ export interface FileRouteTypes {
     | '/_authenticated/transactions'
     | '/_authenticated/whatsapp-billing'
     | '/api/public/sorteio-info'
+    | '/api/public/catalog-image/$'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -446,6 +459,7 @@ export interface RootRouteChildren {
   SorteioRoute: typeof SorteioRoute
   SplashStartupDotpngRoute: typeof SplashStartupDotpngRoute
   ApiPublicSorteioInfoRoute: typeof ApiPublicSorteioInfoRoute
+  ApiPublicCatalogImageSplatRoute: typeof ApiPublicCatalogImageSplatRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -688,6 +702,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicSorteioInfoRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/catalog-image/$': {
+      id: '/api/public/catalog-image/$'
+      path: '/api/public/catalog-image/$'
+      fullPath: '/api/public/catalog-image/$'
+      preLoaderRoute: typeof ApiPublicCatalogImageSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -762,6 +783,7 @@ const rootRouteChildren: RootRouteChildren = {
   SorteioRoute: SorteioRoute,
   SplashStartupDotpngRoute: SplashStartupDotpngRoute,
   ApiPublicSorteioInfoRoute: ApiPublicSorteioInfoRoute,
+  ApiPublicCatalogImageSplatRoute: ApiPublicCatalogImageSplatRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
