@@ -176,12 +176,12 @@ function AuthenticatedLayout() {
         <AppSidebar name={name} role={role} email={email} />
 
         <div className="flex min-w-0 flex-1 flex-col">
-          <header className="sticky top-0 z-20 flex h-16 items-center gap-2 border-b border-border bg-card/80 px-2.5 sm:px-4 backdrop-blur-md">
-            <SidebarTrigger className="shrink-0 text-foreground md:hidden" aria-label="Abrir menu" />
+          <header className="sticky top-0 z-20 flex h-16 items-center gap-1 sm:gap-2 border-b border-border bg-card/80 px-1.5 sm:px-4 backdrop-blur-md">
+            <SidebarTrigger className="shrink-0 text-foreground md:hidden size-8" aria-label="Abrir menu" />
 
-            {/* Acesso rápido às funções do sistema */}
+            {/* Acesso rápido às funções do sistema — compactado para caber todos os 6 visíveis no celular */}
             <TooltipProvider delayDuration={150}>
-              <div className="flex items-center gap-1 sm:gap-1.5 overflow-x-auto scrollbar-none py-1">
+              <div className="flex flex-1 md:flex-initial items-center justify-between sm:justify-start gap-0.5 sm:gap-1.5 py-1 min-w-0">
                 {quickNavItems.map((item) => {
                   const Icon = item.icon;
                   const isActive = pathname === item.path || pathname.startsWith(item.path + "/");
@@ -191,16 +191,18 @@ function AuthenticatedLayout() {
                         <Link
                           to={item.path}
                           className={cn(
-                            "flex flex-col md:flex-row items-center justify-center rounded-lg transition-all duration-150 shrink-0",
-                            "h-12 px-2.5 py-0.5 gap-0.5 md:h-9 md:px-3 md:py-0 md:gap-1.5",
+                            "flex flex-1 md:flex-initial flex-col md:flex-row items-center justify-center rounded-lg transition-all duration-150 min-w-0",
+                            "h-12 px-0.5 py-1 gap-0.5 max-w-[54px] sm:max-w-[64px] md:max-w-none md:h-9 md:px-3 md:py-0 md:gap-1.5",
                             "text-xs font-medium",
                             isActive
                               ? "bg-gold/15 text-gold border border-gold/30 shadow-sm shadow-gold/10 font-semibold"
                               : "text-muted-foreground hover:bg-muted/70 hover:text-foreground border border-transparent"
                           )}
                         >
-                          <Icon className={cn("size-4 shrink-0", isActive && "text-gold")} />
-                          <span className="text-[10px] font-medium leading-none md:hidden">{item.label}</span>
+                          <Icon className={cn("size-3.5 sm:size-4 shrink-0", isActive && "text-gold")} />
+                          <span className="text-[9px] sm:text-[10px] font-medium leading-none truncate max-w-full text-center md:hidden tracking-tight">
+                            {item.label}
+                          </span>
                           <span className="hidden md:inline">{item.label}</span>
                         </Link>
                       </TooltipTrigger>
@@ -213,7 +215,7 @@ function AuthenticatedLayout() {
               </div>
             </TooltipProvider>
 
-            <div className="flex-1" />
+            <div className="hidden md:block flex-1" />
             <div className="hidden text-right sm:block">
               <p className="max-w-[180px] truncate text-xs font-semibold leading-tight">{name || email}</p>
               <p className="max-w-[180px] truncate text-[11px] text-muted-foreground">{name ? `${role} · ${email}` : role}</p>
