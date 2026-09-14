@@ -472,34 +472,6 @@ function Dashboard() {
         </div>
       </div>
 
-      {/* CENTRAL DE AÇÕES RÁPIDAS (Atalhos de 1 Clique) */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-        <Button asChild variant="outline" className="justify-start gap-2 h-11 text-xs sm:text-sm border-border/70 hover:border-gold/50 hover:bg-gold/5 transition-all">
-          <Link to="/sales">
-            <ShoppingCart className="size-4 text-gold shrink-0" />
-            <span className="truncate font-medium">Nova Venda (PDV)</span>
-          </Link>
-        </Button>
-        <Button asChild variant="outline" className="justify-start gap-2 h-11 text-xs sm:text-sm border-border/70 hover:border-primary/50 hover:bg-muted/40 transition-all">
-          <Link to="/stock">
-            <Search className="size-4 text-blue-400 shrink-0" />
-            <span className="truncate font-medium">Consultar Estoque</span>
-          </Link>
-        </Button>
-        <Button asChild variant="outline" className="justify-start gap-2 h-11 text-xs sm:text-sm border-border/70 hover:border-destructive/40 hover:bg-destructive/5 transition-all">
-          <Link to="/credit">
-            <HandCoins className="size-4 text-amber-500 shrink-0" />
-            <span className="truncate font-medium">Receber Fiado</span>
-          </Link>
-        </Button>
-        <Button asChild variant="outline" className="justify-start gap-2 h-11 text-xs sm:text-sm border-border/70 hover:border-emerald-500/50 hover:bg-emerald-500/5 transition-all">
-          <Link to="/whatsapp-billing">
-            <MessageSquare className="size-4 text-emerald-500 shrink-0" />
-            <span className="truncate font-medium">Cobrança WhatsApp</span>
-          </Link>
-        </Button>
-      </div>
-
       {/* OS 4 CARDS PRINCIPAIS (MANTIDOS E APRIMORADOS COM TO E VISUAL ELEGANCE) */}
       <div className="grid grid-cols-2 gap-2.5 sm:gap-4 lg:grid-cols-4">
         <StatCard 

@@ -173,10 +173,10 @@ function AuthenticatedLayout() {
   return (
     <SidebarProvider>
       <div className="flex min-h-screen w-full bg-background text-foreground">
-        <AppSidebar />
+        <AppSidebar name={name} role={role} email={email} />
 
         <div className="flex min-w-0 flex-1 flex-col">
-          <header className="sticky top-0 z-20 flex h-16 items-center gap-2 border-b border-border bg-card/80 px-3 sm:px-4 backdrop-blur-md">
+          <header className="sticky top-0 z-20 flex h-16 items-center gap-2 border-b border-border bg-card/80 px-2.5 sm:px-4 backdrop-blur-md">
             <SidebarTrigger className="shrink-0 text-foreground md:hidden" aria-label="Abrir menu" />
 
             {/* Acesso rápido às funções do sistema */}
@@ -191,13 +191,16 @@ function AuthenticatedLayout() {
                         <Link
                           to={item.path}
                           className={cn(
-                            "flex h-9 items-center gap-1.5 rounded-lg px-2.5 sm:px-3 text-xs font-medium transition-all duration-150 shrink-0",
+                            "flex flex-col md:flex-row items-center justify-center rounded-lg transition-all duration-150 shrink-0",
+                            "h-12 px-2.5 py-0.5 gap-0.5 md:h-9 md:px-3 md:py-0 md:gap-1.5",
+                            "text-xs font-medium",
                             isActive
                               ? "bg-gold/15 text-gold border border-gold/30 shadow-sm shadow-gold/10 font-semibold"
                               : "text-muted-foreground hover:bg-muted/70 hover:text-foreground border border-transparent"
                           )}
                         >
                           <Icon className={cn("size-4 shrink-0", isActive && "text-gold")} />
+                          <span className="text-[10px] font-medium leading-none md:hidden">{item.label}</span>
                           <span className="hidden md:inline">{item.label}</span>
                         </Link>
                       </TooltipTrigger>
@@ -215,13 +218,14 @@ function AuthenticatedLayout() {
               <p className="max-w-[180px] truncate text-xs font-semibold leading-tight">{name || email}</p>
               <p className="max-w-[180px] truncate text-[11px] text-muted-foreground">{name ? `${role} · ${email}` : role}</p>
             </div>
-            <div className="flex size-9 items-center justify-center rounded-full bg-gradient-gold text-xs font-bold text-primary-foreground shadow-gold">
+            <div className="hidden sm:flex size-9 items-center justify-center rounded-full bg-gradient-gold text-xs font-bold text-primary-foreground shadow-gold">
               {initials}
             </div>
             <Button
               variant="ghost"
               size="icon"
               title="Sair"
+              className="hidden sm:inline-flex"
               onClick={async () => {
                 clearRefreshTokenCookie();
                 clearActivity();

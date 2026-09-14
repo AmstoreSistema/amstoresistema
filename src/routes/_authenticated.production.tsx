@@ -8,7 +8,10 @@ import {
   Search,
   Package,
   Calendar,
-  Trash2
+  Trash2,
+  Zap,
+  AlertCircle,
+  Boxes,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
@@ -86,6 +89,16 @@ function ProductionPage() {
     order: { column: "created_at", ascending: false } 
   });
   const { data: products = [] } = useRows<Product>("products");
+  const { data: compositions = [] } = useRows<any>("product_materials");
+
+  // Apenas produtos que possuem ficha técnica cadastrada (matérias-primas)
+  const productionProductIds = useMemo(() => {
+    return new Set(compositions.map((c: any) => c.product_id).filter(Boolean));
+  }, [compositions]);
+
+  const productionProducts = useMemo(() => {
+    return products.filter((p) => productionProductIds.has(p.id));
+  }, [products, productionProductIds]);
 
   const [term, setTerm] = useState("");
   const [activeStatus, setActiveStatus] = useState("Todos");
@@ -103,6 +116,11 @@ function ProductionPage() {
     data_prevista: new Date().toISOString().split('T')[0] as string | null,
     notes: "" 
   });
+
+  const selectedProductBom = useMemo(() => {
+    if (!newOrder.product_id) return [];
+    return compositions.filter((c: any) => c.product_id === newOrder.product_id);
+  }, [newOrder.product_id, compositions]);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [confirmText, setConfirmText] = useState("");
   const [orderToDelete, setOrderToDelete] = useState<ProductionOrder | null>(null);
@@ -144,6 +162,10 @@ function ProductionPage() {
   const createOrder = async () => {
     if (!newOrder.product_id) {
       toast.error("Selecione um produto");
+      return;
+    }
+    if (!productionProductIds.has(newOrder.product_id)) {
+      toast.error("O produto selecionado não possui matérias-primas na ficha técnica.");
       return;
     }
 
@@ -205,13 +227,19 @@ function ProductionPage() {
       setProcessingOrderId(order.id);
       try {
         await processProductionCompletion({ data: { orderId: order.id } });
+        if (order.codigo_ordem) {
+          await supabase
+            .from("stock_products")
+            .update({ lote: order.codigo_ordem })
+            .eq("ordem_producao_id", order.id);
+        }
         await Promise.all([
           qc.invalidateQueries({ queryKey: ["production_orders"] }),
           qc.invalidateQueries({ queryKey: ["products"] }),
           qc.invalidateQueries({ queryKey: ["stock-products"] }),
           qc.invalidateQueries({ queryKey: ["stock_products"] }),
         ]);
-        await logAudit("producao", "production_orders", `Ordem ${order.id} concluída. Estoque atualizado.`);
+        await logAudit("producao", "production_orders", `Ordem ${order.codigo_ordem || order.id} concluída. Estoque atualizado.`);
         
         const { data: composition } = await supabase
           .from("product_materials")
@@ -234,7 +262,6 @@ function ProductionPage() {
       return;
     }
 
-
     const updates: Partial<ProductionOrder> = { status: newStatus as any };
     if (newStatus === "ongoing") updates.started_at = new Date().toISOString();
 
@@ -247,6 +274,50 @@ function ProductionPage() {
     await logAudit("producao", "production_orders", `Status da ordem ${order.id} alterado para ${newStatus}`);
     void qc.invalidateQueries({ queryKey: ["production_orders"] });
     toast.success(`Ordem atualizada para ${newStatus}`);
+  };
+
+  // Inicia e conclui diretamente: baixa matérias-primas e lança produto final no estoque em 1 clique
+  const startAndCompleteOrder = async (order: any) => {
+    if (processingOrderId) return;
+    const loadingToast = toast.loading("Iniciando, baixando materiais e lançando no estoque...");
+    setProcessingOrderId(order.id);
+    try {
+      await startProduction({ data: { orderId: order.id } });
+      await processProductionCompletion({ data: { orderId: order.id } });
+      if (order.codigo_ordem) {
+        await supabase
+          .from("stock_products")
+          .update({ lote: order.codigo_ordem })
+          .eq("ordem_producao_id", order.id);
+      }
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: ["production_orders"] }),
+        qc.invalidateQueries({ queryKey: ["products"] }),
+        qc.invalidateQueries({ queryKey: ["stock-products"] }),
+        qc.invalidateQueries({ queryKey: ["stock_products"] }),
+        qc.invalidateQueries({ queryKey: ["materials"] }),
+        qc.invalidateQueries({ queryKey: ["material_variations"] }),
+        qc.invalidateQueries({ queryKey: ["material_cuts"] }),
+      ]);
+      await logAudit("producao", "production_orders", `Ordem ${order.codigo_ordem || order.id} produzida e lançada no estoque.`);
+
+      const { data: composition } = await supabase
+        .from("product_materials")
+        .select("id, product_id, material_id, material_name, material_type, variation_name, unit, quantity, unit_cost, total_cost, notes")
+        .eq("product_id", order.product_id);
+
+      setSelectedOrderDoc({ ...order, status: "completed", completed_at: new Date().toISOString() });
+      setOrderComposition(composition || []);
+      setCompletedOrder(order);
+      setLabelsConfirmOpen(true);
+      toast.success(`Produção de ${order.quantity} unidade(s) concluída e lançada no estoque com sucesso!`);
+    } catch (error: any) {
+      console.error(error);
+      toast.error(error.message || "Erro ao produzir e lançar no estoque");
+    } finally {
+      toast.dismiss(loadingToast);
+      setProcessingOrderId(null);
+    }
   };
 
   const handleDeleteOrder = async () => {
@@ -481,17 +552,29 @@ function ProductionPage() {
                       <div className="flex items-center gap-2">
                         {getStatusBadge(order.status)}
                       </div>
-                      <div className="flex items-center gap-1">
+                      <div className="flex items-center gap-1.5">
                         {order.status === "pending" && (
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
-                            className="h-8 gap-1.5 text-[10px] font-bold uppercase tracking-wider border-gold/30 hover:bg-gold/10"
-                            onClick={() => updateStatus(order, "ongoing")}
-                            disabled={processingOrderId === order.id}
-                          >
-                            <Play className="size-3" /> Iniciar
-                          </Button>
+                          <>
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              className="h-8 gap-1 text-[10px] font-bold uppercase tracking-wider border-gold/30 hover:bg-gold/10"
+                              onClick={() => updateStatus(order, "ongoing")}
+                              disabled={processingOrderId === order.id}
+                              title="Iniciar produção e baixar matérias-primas"
+                            >
+                              <Play className="size-3 text-gold" /> Iniciar
+                            </Button>
+                            <Button 
+                              size="sm" 
+                              className="h-8 gap-1 text-[10px] font-bold uppercase tracking-wider bg-gradient-gold border-none shadow-gold"
+                              onClick={() => startAndCompleteOrder(order)}
+                              disabled={processingOrderId === order.id}
+                              title="Baixar matérias-primas e lançar diretamente no estoque final"
+                            >
+                              <Zap className="size-3" /> Produzir & Lançar
+                            </Button>
+                          </>
                         )}
                         {order.status === "ongoing" && (
                           <Button 
@@ -500,8 +583,9 @@ function ProductionPage() {
                             className="h-8 gap-1.5 text-[10px] font-bold uppercase tracking-wider border-success/30 hover:bg-success/10 text-success"
                             onClick={() => updateStatus(order, "completed")}
                             disabled={processingOrderId === order.id}
+                            title="Concluir produção e lançar produto acabado no estoque"
                           >
-                            <CheckCircle2 className="size-3" /> Concluir
+                            <CheckCircle2 className="size-3" /> Lançar no Estoque
                           </Button>
                         )}
                         {order.status === "completed" && (
@@ -539,23 +623,65 @@ function ProductionPage() {
       )}
 
       <Dialog open={newOrderOpen} onOpenChange={setNewOrderOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>Nova Ordem de Produção</DialogTitle>
-            <DialogDescription>Inicie a produção de um produto do catálogo.</DialogDescription>
+            <DialogDescription>
+              Selecione um produto com ficha técnica para confecção e baixa de matérias-primas.
+            </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
-              <Label>Produto</Label>
-              <Select value={newOrder.product_id} onValueChange={v => setNewOrder({ ...newOrder, product_id: v })}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione o produto" />
-                </SelectTrigger>
-                <SelectContent>
-                  {products.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              <Label>Produto de Produção *</Label>
+              {productionProducts.length === 0 ? (
+                <div className="rounded-xl border border-destructive/30 bg-destructive/10 p-3 text-xs text-destructive flex items-start gap-2">
+                  <AlertCircle className="size-4 shrink-0 mt-0.5" />
+                  <div>
+                    Nenhum produto cadastrado com ficha técnica. Cadastre primeiro o produto e sua composição de matérias-primas na página <strong>Produtos</strong>.
+                  </div>
+                </div>
+              ) : (
+                <Select value={newOrder.product_id} onValueChange={v => setNewOrder({ ...newOrder, product_id: v })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione o produto fabricado" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {productionProducts.map(p => (
+                      <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
             </div>
+
+            {selectedProductBom.length > 0 && (
+              <div className="rounded-xl border border-border/70 bg-muted/30 p-3 space-y-2 text-xs">
+                <div className="flex items-center justify-between font-bold text-muted-foreground text-[11px] uppercase tracking-wider">
+                  <span>Matérias-primas Necessárias</span>
+                  <span>Consumo Total ({newOrder.quantity} un)</span>
+                </div>
+                <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1">
+                  {selectedProductBom.map((m: any) => {
+                    const totalNeeded = Number(m.quantity || 0) * Number(newOrder.quantity || 1);
+                    return (
+                      <div key={m.id} className="flex justify-between items-center text-xs py-1 border-b border-border/30 last:border-0">
+                        <div className="truncate pr-2">
+                          <span className="font-medium text-foreground">{m.material_name || "Material"}</span>
+                          {m.variation_name && <span className="text-muted-foreground text-[10px]"> · {m.variation_name}</span>}
+                        </div>
+                        <div className="font-mono text-right shrink-0">
+                          <span className="font-bold text-foreground">{num(totalNeeded, 2)}</span>
+                          <span className="text-muted-foreground text-[10px] ml-1">{m.unit || "un"}</span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+                <p className="text-[10px] text-muted-foreground pt-1 border-t border-border/40">
+                  Ao iniciar a ordem, as matérias-primas acima serão deduzidas do estoque. Ao concluir, o produto acabado entrará no estoque.
+                </p>
+              </div>
+            )}
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
                 <Label>Quantidade</Label>

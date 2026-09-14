@@ -28,12 +28,16 @@ import {
   Truck,
   Users,
   Warehouse,
+  LogOut,
 } from "lucide-react";
 import * as React from "react";
 import { useRows } from "@/lib/data";
 import logoAsset from "@/assets/amstore-symbol.png.asset.json";
 import symbolAsset from "@/assets/amstore-symbol.png.asset.json";
 import { Button } from "@/components/ui/button";
+import { supabase } from "@/integrations/supabase/client";
+import { clearActivity } from "@/lib/session-timeout";
+import { clearRefreshTokenCookie } from "@/lib/auth-cookie";
 
 function BrandBlock({ storeLogo }: { storeLogo: string | null }) {
   const [now, setNow] = React.useState<Date | null>(null);
@@ -205,7 +209,15 @@ const menuGroups: { label: string; items: Item[] }[] = [
   },
 ];
 
-export function AppSidebar() {
+export function AppSidebar({
+  name,
+  role,
+  email,
+}: {
+  name?: string;
+  role?: string;
+  email?: string;
+} = {}) {
   const { state, toggleSidebar, isMobile, setOpenMobile } = useSidebar();
   const collapsed = state === "collapsed" && !isMobile;
   const pathname = useRouterState({ select: (r) => r.location.pathname });
@@ -348,11 +360,48 @@ export function AppSidebar() {
         ))}
       </SidebarContent>
 
-      <SidebarFooter className="border-t border-sidebar-border">
-        {!collapsed && (
-          <p className="px-2 py-1 text-[10px] text-sidebar-foreground/40">
-            Amstore Gestão · v2.0
-          </p>
+      <SidebarFooter className="border-t border-sidebar-border p-2">
+        {isMobile ? (
+          <div className="flex flex-col gap-2 p-1">
+            <div className="flex items-center justify-between gap-2.5 rounded-xl bg-sidebar-accent/50 p-2 border border-sidebar-border/60">
+              <div className="flex items-center gap-2 min-w-0">
+                <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-gradient-gold text-[11px] font-bold text-primary-foreground shadow-gold">
+                  {(name || email || "AM").slice(0, 2).toUpperCase()}
+                </div>
+                <div className="min-w-0">
+                  <p className="truncate text-xs font-bold text-sidebar-foreground">
+                    {name || email || "Usuário"}
+                  </p>
+                  <p className="truncate text-[10px] text-sidebar-foreground/60">
+                    {role || "Colaborador"}
+                  </p>
+                </div>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="gap-1.5 text-xs text-destructive hover:bg-destructive/10 hover:text-destructive h-8 px-2.5 shrink-0"
+                onClick={async () => {
+                  clearRefreshTokenCookie();
+                  clearActivity();
+                  await supabase.auth.signOut();
+                  window.location.href = "/auth";
+                }}
+              >
+                <LogOut className="size-4" />
+                <span>Sair</span>
+              </Button>
+            </div>
+            <p className="px-1 text-center text-[10px] text-sidebar-foreground/40">
+              Amstore Gestão · v2.0
+            </p>
+          </div>
+        ) : (
+          !collapsed && (
+            <p className="px-2 py-1 text-[10px] text-sidebar-foreground/40">
+              Amstore Gestão · v2.0
+            </p>
+          )
         )}
       </SidebarFooter>
     </Sidebar>

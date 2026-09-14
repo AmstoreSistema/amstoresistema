@@ -168,13 +168,32 @@ function ProductsPage() {
   const from = (page - 1) * PAGE_SIZE;
   const to = from + PAGE_SIZE - 1;
 
-  // Busca paginada no Supabase
+  // Busca paginada no Supabase — apenas produtos para produção (com ficha técnica / matérias-primas)
   const { data: productsResult, isLoading } = useQuery({
     queryKey: ["products", page, term, activeCategory],
     queryFn: async () => {
+      // Busca os IDs de produtos que possuem ficha técnica / matérias-primas
+      const { data: boms, error: bomErr } = await supabase
+        .from("product_materials")
+        .select("product_id");
+      if (bomErr) throw bomErr;
+
+      const productionIds = Array.from(
+        new Set((boms || []).map((b: any) => b.product_id).filter(Boolean))
+      );
+
+      // Se não há nenhum produto com matéria-prima configurada, retorna lista vazia
+      if (productionIds.length === 0) {
+        return {
+          products: [],
+          totalCount: 0,
+        };
+      }
+
       let q = supabase
         .from("products")
         .select("*", { count: "exact" })
+        .in("id", productionIds)
         .order("name", { ascending: true });
 
       if (term.trim()) {
@@ -338,6 +357,12 @@ function ProductsPage() {
       return;
     }
     const valid = lines.filter((l) => l.material_id);
+    if (valid.length === 0) {
+      toast.error(
+        "Para cadastrar ou manter um produto aqui, inclua ao menos uma matéria-prima na ficha técnica. Produtos prontos para revenda direta sem produção devem ser cadastrados pelo botão '+ Produto Direto' na aba Estoque."
+      );
+      return;
+    }
     for (const l of valid) {
       if (Number(l.quantity || 0) <= 0) {
         toast.error("A quantidade de cada material deve ser maior que zero");
@@ -447,8 +472,8 @@ function ProductsPage() {
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       <PageHeader
-        title="Produtos"
-        description="Catálogo completo com fichas técnicas"
+        title="Produtos de Produção"
+        description="Fichas técnicas e catálogo de produtos fabricados que consomem matérias-primas."
         icon={Package}
         actions={
           <Button onClick={openNew} className="gap-2 bg-gradient-gold border-none shadow-gold font-bold">
@@ -461,7 +486,7 @@ function ProductsPage() {
         <div className="relative flex-1 max-w-md">
           <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
-            placeholder="Buscar produto..."
+            placeholder="Buscar produto de produção..."
             className="pl-10"
             value={term}
             onChange={(e) => setTerm(e.target.value)}
@@ -487,6 +512,24 @@ function ProductsPage() {
           {[1, 2, 3].map((i) => (
             <div key={i} className="h-96 animate-pulse rounded-2xl sm:rounded-3xl bg-card" />
           ))}
+        </div>
+      ) : filtered.length === 0 ? (
+        <div className="flex flex-col items-center justify-center p-8 sm:p-14 text-center rounded-3xl border border-dashed border-border/70 bg-card/50">
+          <div className="size-16 rounded-full bg-gold/10 text-gold flex items-center justify-center mb-4">
+            <Package className="size-8" />
+          </div>
+          <h3 className="text-lg font-bold">Nenhum produto de produção encontrado</h3>
+          <p className="text-sm text-muted-foreground max-w-md mt-1.5 mb-6">
+            Esta página lista exclusivamente produtos com ficha técnica para confecção fabril. Produtos prontos para revenda direta (sem consumo de matérias-primas) são cadastrados diretamente na página de <strong>Estoque</strong>.
+          </p>
+          <div className="flex flex-wrap gap-3 justify-center">
+            <Button onClick={openNew} className="gap-2 bg-gradient-gold border-none shadow-gold font-bold">
+              <Plus className="size-4" /> Cadastrar Produto de Produção
+            </Button>
+            <Button variant="outline" onClick={() => window.location.href = "/stock"} className="gap-2">
+              <Boxes className="size-4" /> Ver Estoque Geral
+            </Button>
+          </div>
         </div>
       ) : (
         <div className="grid gap-3.5 sm:gap-6 sm:grid-cols-2 lg:grid-cols-3">
@@ -589,12 +632,24 @@ function ProductsPage() {
       <Dialog open={formOpen} onOpenChange={setFormOpen}>
         <DialogContent className="w-[96vw] sm:max-w-4xl gap-0 overflow-hidden p-0 rounded-2xl sm:rounded-3xl max-h-[90vh] flex flex-col">
           <DialogHeader className="flex-row items-center justify-between border-b border-border/60 px-4 sm:px-6 py-3.5 sm:py-4">
-            <DialogTitle className="font-display text-base font-bold">
-              {editing ? "Editar Produto" : "Novo Produto"}
-            </DialogTitle>
+            <div>
+              <DialogTitle className="font-display text-base font-bold">
+                {editing ? "Editar Produto de Produção" : "Novo Produto de Produção"}
+              </DialogTitle>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Configure a composição e matérias-primas necessárias para confecção
+              </p>
+            </div>
           </DialogHeader>
 
           <div className="max-h-[72vh] space-y-4 sm:space-y-5 overflow-y-auto px-4 sm:px-6 py-4 sm:py-5">
+            <div className="rounded-xl bg-gold/10 border border-gold/20 p-3 text-xs text-foreground flex items-start gap-2.5">
+              <Info className="size-4 text-gold shrink-0 mt-0.5" />
+              <div>
+                <strong>Atenção:</strong> Este cadastro é exclusivo para produtos produzidos internamente. A ficha técnica de matérias-primas abaixo é obrigatória para gerar ordens de produção. Para produtos prontos de revenda, use o botão <strong>+ Produto Direto</strong> na página de Estoque.
+              </div>
+            </div>
+
             {/* ---------- Informações básicas ---------- */}
             <section className="rounded-2xl border border-border/60 p-4">
               <h4 className="mb-4 flex items-center gap-2 text-sm font-bold">
