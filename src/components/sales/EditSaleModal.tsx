@@ -413,7 +413,7 @@ export function EditSaleModal({
 
                 {/* Seletor de busca de produto */}
                 {showProductSearch && (
-                  <div className="p-4 rounded-xl border-2 border-dashed border-gold/40 bg-gold/5 space-y-2">
+                  <div className="p-4 rounded-xl border-2 border-dashed border-gold/40 bg-gold/5 space-y-2 relative z-30 overflow-visible">
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-bold text-gold uppercase tracking-wider">
                         Selecione o produto no estoque para incluir na venda:

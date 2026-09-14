@@ -7,6 +7,7 @@ import { brl } from "@/lib/format";
 import { Badge } from "@/components/ui/badge";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 export interface StockProduct {
   id: string;
@@ -296,7 +297,7 @@ export function ProductSearch({
   const isLoading = isLoadingStock || isLoadingFallback;
 
   return (
-    <div ref={containerRef} className="relative w-full">
+    <div ref={containerRef} className={cn("relative w-full", isOpen ? "z-50" : "z-10")}>
       {/* Barra de Busca ÚNICA Direta com botão de seta para expandir/recolher */}
       <div className="relative flex items-center">
         <Search className="absolute left-4 size-5 text-muted-foreground pointer-events-none" />
@@ -440,7 +441,7 @@ export function ProductSearch({
             </div>
           ) : (
             /* Sub-tela elegante de seleção de numeração quando aplicável */
-            <div className="p-4 space-y-3.5 animate-in fade-in slide-in-from-right-2">
+            <div className="p-4 space-y-3.5 max-h-[440px] overflow-y-auto animate-in fade-in slide-in-from-right-2">
               <div className="flex items-center justify-between pb-2 border-b border-border/40">
                 <div className="flex items-center gap-2 min-w-0">
                   <Button

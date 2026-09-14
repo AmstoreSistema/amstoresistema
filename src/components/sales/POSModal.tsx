@@ -586,7 +586,7 @@ function POSModalInner({ open, onOpenChange, initialClient, initialItems }: POSM
         <div className="flex flex-col lg:flex-row flex-1 overflow-hidden bg-background min-h-0">
           {/* Área 1: Seleção de Produtos e Carrinho */}
           <div className={cn(
-            "flex-1 flex-col overflow-hidden p-3 sm:p-5 gap-3 sm:gap-5 min-w-0",
+            "flex-1 flex-col overflow-visible relative z-20 p-3 sm:p-5 gap-3 sm:gap-5 min-w-0",
             mobileTab === "cart" ? "flex" : "hidden lg:flex"
           )}>
             <ProductSearch onAdd={addItem} />

@@ -442,7 +442,7 @@ function CondicionaisPage() {
 
   // ──────────────────────────────────────────────────────────────────────────
   return (
-    <div className="space-y-6 animate-in fade-in duration-500">
+    <div className="space-y-6 pb-24 animate-in fade-in duration-500">
       <PageHeader
         title="Condicionais"
         description="Saídas para avaliação e retorno de mercadorias"
@@ -483,9 +483,9 @@ function CondicionaisPage() {
         <TabsContent value="saida" className="mt-6">
           <div className="grid gap-6 lg:grid-cols-5">
             {/* Coluna esquerda: busca */}
-            <div className="lg:col-span-3 space-y-4">
-              <Card className="rounded-3xl border-border/50 bg-card overflow-hidden">
-                <CardContent className="p-5 space-y-4">
+            <div className="lg:col-span-3 space-y-4 relative z-20">
+              <Card className="rounded-3xl border-border/50 bg-card overflow-visible relative z-20">
+                <CardContent className="p-5 space-y-4 relative">
                   <div className="flex items-center gap-2 mb-1">
                     <User className="size-4 text-gold" />
                     <span className="text-sm font-bold uppercase tracking-wider text-muted-foreground">Cliente</span>
