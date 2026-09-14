@@ -72,6 +72,7 @@ import { Label } from "@/components/ui/label";
 import { brl, num, dateBR } from "@/lib/format";
 import { useRows, useSaveRow, useDeleteRow } from "@/lib/data";
 import { AddProductDirectModal } from "@/components/stock/AddProductDirectModal";
+import { EditProductModal } from "@/components/stock/EditProductModal";
 
 export const Route = createFileRoute("/_authenticated/stock")({
   head: () => ({
@@ -295,6 +296,8 @@ function StockPage() {
   const [newQty, setNewQty] = useState("");
   const [adjustQuantities, setAdjustQuantities] = useState<Record<string, number>>({});
   const [addDirectOpen, setAddDirectOpen] = useState(false);
+  const [editProductOpen, setEditProductOpen] = useState(false);
+  const [productToEdit, setProductToEdit] = useState<Product | null>(null);
 
   const selectedStockRecord = useMemo(() => {
     if (!selectedProduct) return null;
@@ -1131,8 +1134,21 @@ function StockPage() {
                       </div>
                     )}
 
-                    <div className="pt-2 border-t border-border/30">
-                      <p className="text-[9px] uppercase font-black text-muted-foreground tracking-widest mb-2">Valores Unitários</p>
+                    <div 
+                      className="pt-2 border-t border-border/30 group/prices cursor-pointer hover:bg-muted/40 p-2 -mx-2 rounded-xl transition-all"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setProductToEdit(p);
+                        setEditProductOpen(true);
+                      }}
+                      title="Clique para editar valores de Custo, Varejo e Atacado"
+                    >
+                      <div className="flex items-center justify-between mb-1.5">
+                        <p className="text-[9px] uppercase font-black text-muted-foreground tracking-widest">Valores Unitários</p>
+                        <span className="text-[9px] font-bold text-primary flex items-center gap-0.5 opacity-80 group-hover/prices:opacity-100 transition-opacity">
+                          <Pencil className="size-2.5" /> Editar Preços
+                        </span>
+                      </div>
                       <div className="grid grid-cols-3 gap-2">
                          <div className="text-left">
                             <p className="text-[8px] uppercase font-bold text-muted-foreground tracking-tighter">Custo</p>
@@ -1155,26 +1171,61 @@ function StockPage() {
                       <TrendingUp className="size-3" />
                       <span className="text-[10px] font-black uppercase tracking-tight">Disponível para venda</span>
                     </div>
-                    <Button 
-                       variant="outline" 
-                       size="icon"
-                       className="size-9 rounded-lg border-border/40 hover:bg-muted"
-                       onClick={() => {
-                          setSelectedProduct(p);
-                          setNewQty(p.current_stock.toString());
-                          const rawNumeracoes = stockRecord?.numeracoes;
-                          let parsedNumeracoes: Record<string, number> = {};
-                          if (typeof rawNumeracoes === "object" && rawNumeracoes !== null) {
-                            parsedNumeracoes = { ...(rawNumeracoes as Record<string, number>) };
-                          } else if (typeof rawNumeracoes === "string") {
-                            try { parsedNumeracoes = JSON.parse(rawNumeracoes); } catch { parsedNumeracoes = {}; }
-                          }
-                          setAdjustQuantities(parsedNumeracoes);
-                          setAdjustOpen(true);
-                       }}
-                    >
-                       <Pencil className="size-4" />
-                    </Button>
+
+                    {/* Botão Editar Produto e Preços */}
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button 
+                             variant="outline" 
+                             size="icon"
+                             className="size-9 rounded-lg border-border/40 hover:bg-primary/10 hover:text-primary hover:border-primary/40 transition-colors"
+                             onClick={() => {
+                                setProductToEdit(p);
+                                setEditProductOpen(true);
+                             }}
+                             aria-label="Editar Produto e Preços"
+                          >
+                             <Pencil className="size-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent side="top">
+                          <p className="text-xs font-medium">Editar Produto e Preços (Custo, Varejo, Atacado)</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+
+                    {/* Botão Ajustar Saldo / Numerações */}
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button 
+                             variant="outline" 
+                             size="icon"
+                             className="size-9 rounded-lg border-border/40 hover:bg-muted transition-colors"
+                             onClick={() => {
+                                setSelectedProduct(p);
+                                setNewQty(p.current_stock.toString());
+                                const rawNumeracoes = stockRecord?.numeracoes;
+                                let parsedNumeracoes: Record<string, number> = {};
+                                if (typeof rawNumeracoes === "object" && rawNumeracoes !== null) {
+                                  parsedNumeracoes = { ...(rawNumeracoes as Record<string, number>) };
+                                } else if (typeof rawNumeracoes === "string") {
+                                  try { parsedNumeracoes = JSON.parse(rawNumeracoes); } catch { parsedNumeracoes = {}; }
+                                }
+                                setAdjustQuantities(parsedNumeracoes);
+                                setAdjustOpen(true);
+                             }}
+                             aria-label="Ajustar Saldo de Estoque"
+                          >
+                             <SlidersHorizontal className="size-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent side="top">
+                          <p className="text-xs font-medium">Ajustar Saldo de Estoque / Numerações</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                   </div>
                   
                   <div className="mt-4 flex justify-center">
@@ -1369,6 +1420,12 @@ function StockPage() {
       </AlertDialog>
 
       <AddProductDirectModal open={addDirectOpen} onOpenChange={setAddDirectOpen} />
+      <EditProductModal 
+        open={editProductOpen} 
+        onOpenChange={setEditProductOpen}
+        product={productToEdit}
+        stockRecord={stockRecords.find(s => s.produto_id === productToEdit?.id) || null}
+      />
     </div>
   );
 }
