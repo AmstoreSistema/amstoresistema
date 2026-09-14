@@ -210,6 +210,9 @@ export function EditProductModal({
       void Promise.all([
         qc.invalidateQueries({ queryKey: ["stock-products"] }),
         qc.invalidateQueries({ queryKey: ["stock_products"] }),
+        qc.invalidateQueries({ queryKey: ["stock_products_with_images"] }),
+        qc.invalidateQueries({ queryKey: ["stock_products_registered_ids"] }),
+        qc.invalidateQueries({ queryKey: ["products_pos_fallback"] }),
         qc.invalidateQueries({ queryKey: ["products"] }),
         qc.invalidateQueries({ queryKey: ["stock-stats"] }),
       ]);

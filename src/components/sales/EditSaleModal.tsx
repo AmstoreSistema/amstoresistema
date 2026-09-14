@@ -287,6 +287,8 @@ export function EditSaleModal({
         qc.invalidateQueries({ queryKey: ["stock-products"] }),
         qc.invalidateQueries({ queryKey: ["products"] }),
         qc.invalidateQueries({ queryKey: ["stock_products_with_images"] }),
+        qc.invalidateQueries({ queryKey: ["stock_products_registered_ids"] }),
+        qc.invalidateQueries({ queryKey: ["products_pos_fallback"] }),
       ]);
 
       onOpenChange(false);

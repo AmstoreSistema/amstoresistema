@@ -476,22 +476,27 @@ function StockPage() {
         .eq("id", selectedProduct.id);
       if (pErr) throw pErr;
 
-      // Atualiza ou insere na tabela stock_products
-      if (stockRecord) {
+      // Atualiza ou insere na tabela stock_products para todos os registros do produto
+      const { data: existingStockList } = await supabase
+        .from("stock_products")
+        .select("id")
+        .eq("produto_id", selectedProduct.id);
+
+      if (existingStockList && existingStockList.length > 0) {
         const { error: sErr } = await supabase
           .from("stock_products")
           .update({
             quantidade_disponivel: totalQty,
             numeracoes: isFootwear ? cleanQuantities : null,
           })
-          .eq("id", stockRecord.id);
+          .eq("produto_id", selectedProduct.id);
         if (sErr) throw sErr;
-      } else if (isFootwear) {
+      } else {
         const { error: sErr } = await supabase.from("stock_products").insert({
           produto_id: selectedProduct.id,
           produto_nome: selectedProduct.name,
           quantidade_disponivel: totalQty,
-          numeracoes: cleanQuantities,
+          numeracoes: isFootwear ? cleanQuantities : null,
           categoria: selectedProduct.category,
         });
         if (sErr) throw sErr;
@@ -504,10 +509,13 @@ function StockPage() {
       setAdjustQuantities({});
       toast.success("Estoque ajustado com sucesso");
 
-      // Invalida em paralelo todas as chaves pertinentes para atualização imediata na tela
+      // Invalida em paralelo todas as chaves pertinentes para atualização imediata na tela e no PDV
       void Promise.all([
         qc.invalidateQueries({ queryKey: ["stock-products"] }),
         qc.invalidateQueries({ queryKey: ["stock_products"] }),
+        qc.invalidateQueries({ queryKey: ["stock_products_with_images"] }),
+        qc.invalidateQueries({ queryKey: ["stock_products_registered_ids"] }),
+        qc.invalidateQueries({ queryKey: ["products_pos_fallback"] }),
         qc.invalidateQueries({ queryKey: ["products"] }),
         qc.invalidateQueries({ queryKey: ["stock-stats"] }),
       ]);

@@ -43,6 +43,7 @@ import { ReceiptModal } from "./ReceiptModal";
 import { DebtAlertModal } from "./DebtAlertModal";
 import { createSale } from "@/lib/sales.functions";
 import { getClientDetails } from "@/lib/clients.functions";
+import { syncStockConsistency } from "@/lib/products.functions";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -125,11 +126,13 @@ function POSModalInner({ open, onOpenChange, initialClient, initialItems }: POSM
   const totalItemsCount = React.useMemo(() => items.reduce((acc, i) => acc + i.quantity, 0), [items]);
 
   const fetchClientDetails = useServerFn(getClientDetails);
+  const syncStock = useServerFn(syncStockConsistency);
 
-  // Injeta cliente e itens vindos de um Condicional quando o modal abre
+  // Injeta cliente e itens vindos de um Condicional quando o modal abre e sincroniza integridade do estoque
   React.useEffect(() => {
     if (open) {
       setMobileTab("cart");
+      syncStock().catch(() => {});
       if (initialItems && initialItems.length > 0) {
         setItems(initialItems.map(i => ({ ...i, discount: (i as any).discount ?? 0 })));
         if (initialClient) setClient(initialClient);
@@ -298,10 +301,19 @@ function POSModalInner({ open, onOpenChange, initialClient, initialItems }: POSM
 
 
   const addItem = (stock: any, size: string | null) => {
+    const availableQty = Number(stock.quantidade_disponivel ?? 0);
+    if (availableQty <= 0) {
+      toast.error(`O produto "${stock.produto_nome}" está com o estoque zerado.`);
+      return;
+    }
     const key = `${stock.id}-${size || 'default'}`;
     setItems(prev => {
       const existing = prev.find(i => i.id === key);
       if (existing) {
+        if (existing.quantity >= availableQty) {
+          toast.warning(`Limite de estoque disponível atingido (${availableQty} un.)`);
+          return prev;
+        }
         return prev.map(i => i.id === key ? { ...i, quantity: i.quantity + 1 } : i);
       }
       return [...prev, {
@@ -460,8 +472,11 @@ function POSModalInner({ open, onOpenChange, initialClient, initialItems }: POSM
         qc.invalidateQueries({ queryKey: ["sales"] }),
         qc.invalidateQueries({ queryKey: ["sales-stats"] }),
         qc.invalidateQueries({ queryKey: ["products"] }),
+        qc.invalidateQueries({ queryKey: ["products_pos_fallback"] }),
         qc.invalidateQueries({ queryKey: ["stock-products"] }),
         qc.invalidateQueries({ queryKey: ["stock_products"] }),
+        qc.invalidateQueries({ queryKey: ["stock_products_with_images"] }),
+        qc.invalidateQueries({ queryKey: ["stock_products_registered_ids"] }),
         qc.invalidateQueries({ queryKey: ["stock-stats"] }),
         qc.invalidateQueries({ queryKey: ["financial_accounts"] }),
         qc.invalidateQueries({ queryKey: ["transactions"] }),

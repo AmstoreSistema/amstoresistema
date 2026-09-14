@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { brl } from "@/lib/format";
 import { Badge } from "@/components/ui/badge";
 import { useQuery } from "@tanstack/react-query";
+import { toast } from "sonner";
 
 export interface StockProduct {
   id: string;
@@ -31,7 +32,7 @@ export function ProductSearch({
   const containerRef = React.useRef<HTMLDivElement>(null);
   const inputRef = React.useRef<HTMLInputElement>(null);
 
-  // Busca produtos disponíveis com imagem e SKU vinculados (cache de 1 min para respostas instantâneas)
+  // 1. Busca produtos em stock_products com dados sincronizados da tabela mestre products
   const { data: stockItems = [], isLoading: isLoadingStock } = useQuery({
     queryKey: ["stock_products_with_images"],
     queryFn: async () => {
@@ -46,13 +47,16 @@ export function ProductSearch({
           numeracoes,
           categoria,
           products:produto_id (
+            id,
             sku,
-            image_url
+            image_url,
+            current_stock,
+            active
           )
         `)
         .gt("quantidade_disponivel", 0)
         .order("produto_nome", { ascending: true })
-        .limit(350);
+        .limit(400);
       
       if (error) throw error;
       
@@ -60,35 +64,112 @@ export function ProductSearch({
         ...item,
         sku: item.products?.sku || null,
         imagem_url: item.products?.image_url || null,
-      })) as StockProduct[];
+        product_current_stock: item.products?.current_stock ?? null,
+        product_active: item.products?.active ?? true,
+      })) as (StockProduct & { product_current_stock?: number | null; product_active?: boolean })[];
     },
-    staleTime: 60_000,
-    gcTime: 5 * 60_000,
+    staleTime: 5_000,
+    gcTime: 60_000,
   });
 
-  // Fallback: produtos cadastrados com estoque mas ainda sem registro individual em stock_products
+  // 2. Mapeia TODOS os produto_id presentes em stock_products para nunca ressuscitar produtos zerados via fallback
+  const { data: registeredStockProdIds = new Set<string>() } = useQuery({
+    queryKey: ["stock_products_registered_ids"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("stock_products")
+        .select("produto_id");
+      if (error) throw error;
+      return new Set((data || []).map((r: any) => r.produto_id).filter(Boolean) as string[]);
+    },
+    staleTime: 5_000,
+    gcTime: 60_000,
+  });
+
+  // 3. Fallback: produtos cadastrados que possuem estoque mas NUNCA tiveram linha em stock_products
   const { data: fallbackProducts = [], isLoading: isLoadingFallback } = useQuery({
     queryKey: ["products_pos_fallback"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("products")
-        .select("id, name, sku, category, sale_price, current_stock, image_url")
+        .select("id, name, sku, category, sale_price, current_stock, image_url, active")
         .gt("current_stock", 0)
         .order("name", { ascending: true })
         .limit(200);
       if (error) throw error;
-      return data || [];
+      return (data || []).filter((p: any) => p.active !== false && Number(p.current_stock ?? 0) > 0);
     },
-    staleTime: 60_000,
-    gcTime: 5 * 60_000,
+    staleTime: 5_000,
+    gcTime: 60_000,
   });
 
-  // Lista unificada em memória para busca instantânea sem latência de rede
+  // Lista unificada em memória com filtragem estrita contra estoque zerado
   const availableItems = React.useMemo(() => {
-    const fromStock = stockItems.filter((item) => (item.quantidade_disponivel ?? 0) > 0);
-    const covered = new Set(fromStock.map((i) => i.produto_id));
+    // 1. Filtra itens do estoque detalhado
+    const fromStock = stockItems
+      .filter((item) => {
+        // Se o produto foi inativado no sistema, descarta
+        if (item.product_active === false) return false;
+
+        // Se a tabela mestre 'products' reporta estoque <= 0, o produto está ZERADO
+        if (item.product_current_stock !== null && item.product_current_stock !== undefined) {
+          if (Number(item.product_current_stock) <= 0) return false;
+        }
+
+        // Se quantidade_disponivel for <= 0, o produto está ZERADO
+        const stockQty = Number(item.quantidade_disponivel ?? 0);
+        if (stockQty <= 0) return false;
+
+        // Se for calçado ou possuir grade de numerações
+        if (item.numeracoes && typeof item.numeracoes === "object") {
+          const sizeEntries = Object.entries(item.numeracoes as Record<string, any>);
+          if (sizeEntries.length > 0) {
+            const sumSizes = sizeEntries.reduce((acc, [_, qty]) => {
+              const n = Number(qty);
+              return acc + (n > 0 ? n : 0);
+            }, 0);
+            // Se todas as numerações estão zeradas, descarta o produto
+            if (sumSizes <= 0) return false;
+          }
+        }
+
+        return true;
+      })
+      .map((item) => {
+        // Ajusta a quantidade exibida para a quantidade real e conservadora
+        let realQty = Number(item.quantidade_disponivel ?? 0);
+
+        if (item.numeracoes && typeof item.numeracoes === "object") {
+          const sizeEntries = Object.entries(item.numeracoes as Record<string, any>);
+          if (sizeEntries.length > 0) {
+            const sumSizes = sizeEntries.reduce((acc, [_, qty]) => {
+              const n = Number(qty);
+              return acc + (n > 0 ? n : 0);
+            }, 0);
+            if (sumSizes > 0) {
+              realQty = Math.min(realQty, sumSizes);
+            }
+          }
+        }
+
+        if (item.product_current_stock !== null && item.product_current_stock !== undefined && Number(item.product_current_stock) > 0) {
+          realQty = Math.min(realQty, Number(item.product_current_stock));
+        }
+
+        return {
+          ...item,
+          quantidade_disponivel: realQty,
+        } as StockProduct;
+      });
+
+    // 2. Fallback: somente para produtos órfãos que NÃO existem na tabela stock_products
     const virtuals: StockProduct[] = fallbackProducts
-      .filter((p: any) => !covered.has(p.id))
+      .filter((p: any) => {
+        // Se o produto já possui registro em stock_products, o estoque oficial é de stock_products (não ressuscita)
+        if (registeredStockProdIds.has(p.id)) return false;
+        if (Number(p.current_stock ?? 0) <= 0) return false;
+        return true;
+      })
       .map((p: any) => ({
         id: `virtual:${p.id}`,
         produto_id: p.id,
@@ -101,20 +182,23 @@ export function ProductSearch({
         imagem_url: p.image_url ?? null,
       }));
 
-    return [...fromStock, ...virtuals].sort((a, b) =>
-      (a.produto_nome || "").localeCompare(b.produto_nome || "")
-    );
-  }, [stockItems, fallbackProducts]);
+    // 3. Garante que NENHUM produto com saldo <= 0 seja retornado
+    return [...fromStock, ...virtuals]
+      .filter((item) => Number(item.quantidade_disponivel ?? 0) > 0)
+      .sort((a, b) => (a.produto_nome || "").localeCompare(b.produto_nome || ""));
+  }, [stockItems, registeredStockProdIds, fallbackProducts]);
 
   // Filtro inteligente e rápido por texto (nome, SKU ou categoria)
   const filteredItems = React.useMemo(() => {
+    // Filtragem estrita: somente produtos com estoque real > 0
+    const inStockItems = availableItems.filter((i) => Number(i.quantidade_disponivel ?? 0) > 0);
     const clean = query.trim().toLowerCase();
     if (!clean) {
-      // Quando vazio, exibe os 25 primeiros produtos para acesso imediato
-      return availableItems.slice(0, 25);
+      // Quando vazio, exibe os 25 primeiros produtos disponíveis
+      return inStockItems.slice(0, 25);
     }
 
-    const matches = availableItems.filter((item) => {
+    const matches = inStockItems.filter((item) => {
       const name = (item.produto_nome || "").toLowerCase();
       const sku = (item.sku || "").toLowerCase();
       const cat = (item.categoria || "").toLowerCase();
@@ -138,8 +222,19 @@ export function ProductSearch({
   }, []);
 
   const handleSelectProduct = (item: StockProduct) => {
-    // Se o produto possui numerações cadastradas, solicita a seleção do tamanho
+    const qty = Number(item.quantidade_disponivel ?? 0);
+    if (qty <= 0) {
+      toast.error(`O produto "${item.produto_nome}" está com o estoque zerado.`);
+      return;
+    }
+
+    // Se o produto possui numerações cadastradas, verifica se há pelo menos um tamanho com estoque
     if (item.numeracoes && typeof item.numeracoes === "object" && Object.keys(item.numeracoes).length > 0) {
+      const hasAnySizeInStock = Object.values(item.numeracoes as Record<string, any>).some((q) => Number(q) > 0);
+      if (!hasAnySizeInStock) {
+        toast.error(`Todas as numerações de "${item.produto_nome}" estão esgotadas.`);
+        return;
+      }
       setSelectedStock(item);
     } else {
       // Produto padrão: adiciona diretamente, fecha e foca o campo novamente
@@ -153,6 +248,11 @@ export function ProductSearch({
 
   const handleSelectSize = (size: string) => {
     if (!selectedStock) return;
+    const sizeQty = Number(selectedStock.numeracoes?.[size] ?? 0);
+    if (sizeQty <= 0) {
+      toast.error(`A numeração ${size} está sem estoque disponível.`);
+      return;
+    }
     onAdd(selectedStock, size);
     setIsOpen(false);
     setSelectedStock(null);
