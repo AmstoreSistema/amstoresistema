@@ -95,10 +95,10 @@ export const syncStockConsistency = createServerFn({ method: "POST" })
   .handler(async () => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    // 1. Busca produtos e registros de estoque detalhado
+    // 1. Busca produtos e registros de estoque detalhado completos
     const [{ data: products, error: pErr }, { data: stockRecords, error: sErr }] = await Promise.all([
-      supabaseAdmin.from("products").select("id, name, current_stock, category, active"),
-      supabaseAdmin.from("stock_products").select("id, produto_id, produto_nome, quantidade_disponivel, numeracoes"),
+      supabaseAdmin.from("products").select("id, name, sku, current_stock, category, active, sale_price, cost_price"),
+      supabaseAdmin.from("stock_products").select("id, produto_id, produto_nome, quantidade_disponivel, numeracoes, preco_venda, preco_custo"),
     ]);
 
     if (pErr || sErr) {
@@ -106,12 +106,96 @@ export const syncStockConsistency = createServerFn({ method: "POST" })
       return { success: false, synced: 0 };
     }
 
-    const prodMap = new Map((products || []).map((p: any) => [p.id, p]));
+    const prodMapById = new Map((products || []).map((p: any) => [p.id, p]));
+    const prodMapByName = new Map((products || []).map((p: any) => [(p.name || "").trim().toLowerCase(), p]));
     let syncedCount = 0;
 
+    // Agrupa registros de stock_products por produto_id (ou nome)
+    const recordsByProdId = new Map<string, any[]>();
+
+    for (const record of (stockRecords || []) as any[]) {
+      let prodId = record.produto_id;
+
+      // Se produto_id for nulo, tenta vincular pelo nome
+      if (!prodId && record.produto_nome) {
+        const match = prodMapByName.get(record.produto_nome.trim().toLowerCase());
+        if (match) {
+          prodId = match.id;
+          await supabaseAdmin
+            .from("stock_products")
+            .update({ produto_id: match.id })
+            .eq("id", record.id);
+          record.produto_id = match.id;
+          syncedCount++;
+        }
+      }
+
+      const key = prodId || (record.produto_nome ? `name:${record.produto_nome.trim().toLowerCase()}` : record.id);
+      const list = recordsByProdId.get(key) || [];
+      list.push(record);
+      recordsByProdId.set(key, list);
+    }
+
+    // 2. Resolve duplicatas e corrige preços zerados
+    for (const [key, records] of recordsByProdId.entries()) {
+      const isId = !key.startsWith("name:");
+      const linkedProduct = isId ? prodMapById.get(key) : prodMapByName.get(key.replace("name:", ""));
+      const masterPrice = Number(linkedProduct?.sale_price ?? 0);
+
+      if (records.length > 1) {
+        // Ordena para priorizar o registro com preço válido > 0 e maior quantidade
+        records.sort((a, b) => {
+          const priceA = Number(a.preco_venda || 0);
+          const priceB = Number(b.preco_venda || 0);
+          if (priceA > 0 && priceB <= 0) return -1;
+          if (priceB > 0 && priceA <= 0) return 1;
+          return Number(b.quantidade_disponivel || 0) - Number(a.quantidade_disponivel || 0);
+        });
+
+        const primaryRecord = records[0];
+        const duplicates = records.slice(1);
+
+        // Exclui registros duplicados desnecessários
+        for (const dup of duplicates) {
+          await supabaseAdmin.from("stock_products").delete().eq("id", dup.id);
+          syncedCount++;
+        }
+
+        // Garante que o registro principal tenha preço válido
+        const primaryPrice = Number(primaryRecord.preco_venda || 0);
+        if (primaryPrice <= 0 && masterPrice > 0) {
+          await supabaseAdmin
+            .from("stock_products")
+            .update({ preco_venda: masterPrice, updated_at: new Date().toISOString() })
+            .eq("id", primaryRecord.id);
+          primaryRecord.preco_venda = masterPrice;
+          syncedCount++;
+        }
+      } else {
+        const record = records[0];
+        const stockPrice = Number(record.preco_venda || 0);
+
+        if (stockPrice <= 0 && masterPrice > 0) {
+          await supabaseAdmin
+            .from("stock_products")
+            .update({ preco_venda: masterPrice, updated_at: new Date().toISOString() })
+            .eq("id", record.id);
+          record.preco_venda = masterPrice;
+          syncedCount++;
+        } else if (stockPrice > 0 && masterPrice <= 0 && linkedProduct) {
+          await supabaseAdmin
+            .from("products")
+            .update({ sale_price: stockPrice, updated_at: new Date().toISOString() })
+            .eq("id", linkedProduct.id);
+          syncedCount++;
+        }
+      }
+    }
+
+    // 3. Verifica regras de estoque zerado e numerações esgotadas
     for (const record of (stockRecords || []) as any[]) {
       if (!record.produto_id) continue;
-      const linkedProduct = prodMap.get(record.produto_id);
+      const linkedProduct = prodMapById.get(record.produto_id);
 
       let needsUpdate = false;
       let newQty = Number(record.quantidade_disponivel ?? 0);

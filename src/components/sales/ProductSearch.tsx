@@ -51,7 +51,8 @@ export function ProductSearch({
             sku,
             image_url,
             current_stock,
-            active
+            active,
+            sale_price
           )
         `)
         .gt("quantidade_disponivel", 0)
@@ -66,27 +67,18 @@ export function ProductSearch({
         imagem_url: item.products?.image_url || null,
         product_current_stock: item.products?.current_stock ?? null,
         product_active: item.products?.active ?? true,
-      })) as (StockProduct & { product_current_stock?: number | null; product_active?: boolean })[];
+        product_sale_price: item.products?.sale_price ?? null,
+      })) as (StockProduct & { 
+        product_current_stock?: number | null; 
+        product_active?: boolean;
+        product_sale_price?: number | null;
+      })[];
     },
     staleTime: 5_000,
     gcTime: 60_000,
   });
 
-  // 2. Mapeia TODOS os produto_id presentes em stock_products para nunca ressuscitar produtos zerados via fallback
-  const { data: registeredStockProdIds = new Set<string>() } = useQuery({
-    queryKey: ["stock_products_registered_ids"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("stock_products")
-        .select("produto_id");
-      if (error) throw error;
-      return new Set((data || []).map((r: any) => r.produto_id).filter(Boolean) as string[]);
-    },
-    staleTime: 5_000,
-    gcTime: 60_000,
-  });
-
-  // 3. Fallback: produtos cadastrados que possuem estoque mas NUNCA tiveram linha em stock_products
+  // 2. Fallback: produtos cadastrados que possuem estoque mas NUNCA tiveram linha em stock_products
   const { data: fallbackProducts = [], isLoading: isLoadingFallback } = useQuery({
     queryKey: ["products_pos_fallback"],
     queryFn: async () => {
@@ -103,90 +95,103 @@ export function ProductSearch({
     gcTime: 60_000,
   });
 
-  // Lista unificada em memória com filtragem estrita contra estoque zerado
+  // Lista unificada em memória com filtragem estrita contra estoque zerado e duplicações
   const availableItems = React.useMemo(() => {
-    // 1. Filtra itens do estoque detalhado
-    const fromStock = stockItems
-      .filter((item) => {
-        // Se o produto foi inativado no sistema, descarta
-        if (item.product_active === false) return false;
+    const productMap = new Map<string, StockProduct>();
 
-        // Se a tabela mestre 'products' reporta estoque <= 0, o produto está ZERADO
-        if (item.product_current_stock !== null && item.product_current_stock !== undefined) {
-          if (Number(item.product_current_stock) <= 0) return false;
+    // 1. Processa itens do estoque detalhado (stock_products)
+    for (const item of stockItems) {
+      if (item.product_active === false) continue;
+
+      // Se a tabela mestre 'products' reporta estoque <= 0, o produto está ZERADO
+      if (item.product_current_stock !== null && item.product_current_stock !== undefined) {
+        if (Number(item.product_current_stock) <= 0) continue;
+      }
+
+      // Se quantidade_disponivel for <= 0, o produto está ZERADO
+      const stockQty = Number(item.quantidade_disponivel ?? 0);
+      if (stockQty <= 0) continue;
+
+      // Se for calçado ou possuir grade de numerações
+      let realQty = stockQty;
+      if (item.numeracoes && typeof item.numeracoes === "object") {
+        const sizeEntries = Object.entries(item.numeracoes as Record<string, any>);
+        if (sizeEntries.length > 0) {
+          const sumSizes = sizeEntries.reduce((acc, [_, qty]) => {
+            const n = Number(qty);
+            return acc + (n > 0 ? n : 0);
+          }, 0);
+          // Se todas as numerações estão zeradas, descarta o produto
+          if (sumSizes <= 0) continue;
+          realQty = Math.min(realQty, sumSizes);
         }
+      }
 
-        // Se quantidade_disponivel for <= 0, o produto está ZERADO
-        const stockQty = Number(item.quantidade_disponivel ?? 0);
-        if (stockQty <= 0) return false;
+      if (item.product_current_stock !== null && item.product_current_stock !== undefined && Number(item.product_current_stock) > 0) {
+        realQty = Math.min(realQty, Number(item.product_current_stock));
+      }
 
-        // Se for calçado ou possuir grade de numerações
-        if (item.numeracoes && typeof item.numeracoes === "object") {
-          const sizeEntries = Object.entries(item.numeracoes as Record<string, any>);
-          if (sizeEntries.length > 0) {
-            const sumSizes = sizeEntries.reduce((acc, [_, qty]) => {
-              const n = Number(qty);
-              return acc + (n > 0 ? n : 0);
-            }, 0);
-            // Se todas as numerações estão zeradas, descarta o produto
-            if (sumSizes <= 0) return false;
-          }
+      if (realQty <= 0) continue;
+
+      // Preço de venda: prioriza preço válido (> 0) de stock_products ou de products
+      const stockPrice = Number(item.preco_venda ?? 0);
+      const masterPrice = Number(item.product_sale_price ?? 0);
+      const finalPrice = stockPrice > 0 ? stockPrice : (masterPrice > 0 ? masterPrice : 0);
+
+      // Chave única para evitar duplicações: produto_id ou SKU ou id
+      const dedupeKey = item.produto_id || (item.sku ? `sku:${item.sku}` : item.id);
+
+      const candidate: StockProduct = {
+        ...item,
+        quantidade_disponivel: realQty,
+        preco_venda: finalPrice,
+      };
+
+      if (!productMap.has(dedupeKey)) {
+        productMap.set(dedupeKey, candidate);
+      } else {
+        const existing = productMap.get(dedupeKey)!;
+        // Se já existe e o existente estava com preço zero, substitui pelo que tem preço válido (> 0)
+        if (Number(existing.preco_venda) <= 0 && finalPrice > 0) {
+          productMap.set(dedupeKey, candidate);
         }
+      }
+    }
 
-        return true;
-      })
-      .map((item) => {
-        // Ajusta a quantidade exibida para a quantidade real e conservadora
-        let realQty = Number(item.quantidade_disponivel ?? 0);
+    // 2. Fallback: somente para produtos órfãos que NÃO existem em productMap
+    for (const p of fallbackProducts) {
+      if (p.active === false) continue;
+      if (Number(p.current_stock ?? 0) <= 0) continue;
 
-        if (item.numeracoes && typeof item.numeracoes === "object") {
-          const sizeEntries = Object.entries(item.numeracoes as Record<string, any>);
-          if (sizeEntries.length > 0) {
-            const sumSizes = sizeEntries.reduce((acc, [_, qty]) => {
-              const n = Number(qty);
-              return acc + (n > 0 ? n : 0);
-            }, 0);
-            if (sumSizes > 0) {
-              realQty = Math.min(realQty, sumSizes);
-            }
-          }
-        }
+      const dedupeKey = p.id;
+      const skuDedupeKey = p.sku ? `sku:${p.sku}` : null;
 
-        if (item.product_current_stock !== null && item.product_current_stock !== undefined && Number(item.product_current_stock) > 0) {
-          realQty = Math.min(realQty, Number(item.product_current_stock));
-        }
+      if (productMap.has(dedupeKey)) continue;
+      if (skuDedupeKey && productMap.has(skuDedupeKey)) continue;
+      if (Array.from(productMap.values()).some((i) => i.produto_id === p.id || (p.sku && i.sku === p.sku))) {
+        continue;
+      }
 
-        return {
-          ...item,
-          quantidade_disponivel: realQty,
-        } as StockProduct;
-      });
+      const finalPrice = Number(p.sale_price ?? 0);
 
-    // 2. Fallback: somente para produtos órfãos que NÃO existem na tabela stock_products
-    const virtuals: StockProduct[] = fallbackProducts
-      .filter((p: any) => {
-        // Se o produto já possui registro em stock_products, o estoque oficial é de stock_products (não ressuscita)
-        if (registeredStockProdIds.has(p.id)) return false;
-        if (Number(p.current_stock ?? 0) <= 0) return false;
-        return true;
-      })
-      .map((p: any) => ({
+      productMap.set(dedupeKey, {
         id: `virtual:${p.id}`,
         produto_id: p.id,
         produto_nome: p.name,
         quantidade_disponivel: Number(p.current_stock ?? 0),
-        preco_venda: Number(p.sale_price ?? 0),
+        preco_venda: finalPrice,
         numeracoes: null,
         categoria: p.category ?? null,
         sku: p.sku ?? null,
         imagem_url: p.image_url ?? null,
-      }));
+      });
+    }
 
-    // 3. Garante que NENHUM produto com saldo <= 0 seja retornado
-    return [...fromStock, ...virtuals]
+    // 3. Converte para lista, garantindo preço válido e estoque positivo
+    return Array.from(productMap.values())
       .filter((item) => Number(item.quantidade_disponivel ?? 0) > 0)
       .sort((a, b) => (a.produto_nome || "").localeCompare(b.produto_nome || ""));
-  }, [stockItems, registeredStockProdIds, fallbackProducts]);
+  }, [stockItems, fallbackProducts]);
 
   // Filtro inteligente e rápido por texto (nome, SKU ou categoria)
   const filteredItems = React.useMemo(() => {
