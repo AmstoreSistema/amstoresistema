@@ -68,8 +68,10 @@ export const formatSaleDateISO = (saleDateString?: string | null): string => {
   }
 
   const parts = saleDateString.split("-").map(Number);
-  if (parts.length === 3 && !parts.some(isNaN)) {
-    const [year, month, day] = parts;
+  const year = parts[0];
+  const month = parts[1];
+  const day = parts[2];
+  if (year !== undefined && month !== undefined && day !== undefined && !isNaN(year) && !isNaN(month) && !isNaN(day)) {
     const isToday =
       year === now.getFullYear() &&
       month === now.getMonth() + 1 &&

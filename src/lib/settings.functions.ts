@@ -200,7 +200,7 @@ export const syncCurrentAdminProfile = createServerFn({ method: "POST" })
   .handler(async ({ context }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const userId = context.userId;
-    const userEmail = (context.claims?.email || context.claims?.user_metadata?.email || "").toLowerCase();
+    const userEmail = (context.claims?.email || (context.claims?.user_metadata as Record<string, any>)?.[ "email" ] || "").toLowerCase();
 
     const isFixedAdmin = FIXED_ADMINS.includes(userEmail);
 
@@ -218,7 +218,7 @@ export const syncCurrentAdminProfile = createServerFn({ method: "POST" })
       .eq("id", userId)
       .maybeSingle();
 
-    const metaName = context.claims?.user_metadata?.display_name || context.claims?.display_name;
+    const metaName = (context.claims?.user_metadata as Record<string, any>)?.[ "display_name" ] || (context.claims as any)?.["display_name"];
     const displayName = (profile?.display_name || metaName || "").trim();
 
     // 3. Se houver nome nos metadados ou no perfil, assegura que ambos estejam preenchidos

@@ -433,8 +433,8 @@ function TransactionsPage() {
             className="h-7 px-2.5 text-[11px] font-medium rounded-lg shrink-0"
             onClick={() => {
               const now = new Date();
-              const firstDay = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split("T")[0];
-              const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split("T")[0];
+              const firstDay = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split("T")[0] || "";
+              const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split("T")[0] || "";
               setStartDate(firstDay);
               setEndDate(lastDay);
             }}
@@ -448,8 +448,8 @@ function TransactionsPage() {
             className="h-7 px-2.5 text-[11px] font-medium rounded-lg shrink-0"
             onClick={() => {
               const now = new Date();
-              const firstDay = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString().split("T")[0];
-              const lastDay = new Date(now.getFullYear(), now.getMonth(), 0).toISOString().split("T")[0];
+              const firstDay = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString().split("T")[0] || "";
+              const lastDay = new Date(now.getFullYear(), now.getMonth(), 0).toISOString().split("T")[0] || "";
               setStartDate(firstDay);
               setEndDate(lastDay);
             }}
@@ -464,8 +464,8 @@ function TransactionsPage() {
             onClick={() => {
               const past30 = new Date();
               past30.setDate(past30.getDate() - 30);
-              setStartDate(past30.toISOString().split("T")[0]);
-              setEndDate(new Date().toISOString().split("T")[0]);
+              setStartDate(past30.toISOString().split("T")[0] || "");
+              setEndDate(new Date().toISOString().split("T")[0] || "");
             }}
           >
             Últimos 30 dias

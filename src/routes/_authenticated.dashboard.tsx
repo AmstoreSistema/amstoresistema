@@ -200,7 +200,7 @@ function Dashboard() {
     return Math.min(100, Math.round((totalRevenueToday / dailyGoal) * 100));
   }, [totalRevenueToday, dailyGoal]);
 
-  const todayIso = useMemo(() => new Date().toISOString().split("T")[0], []);
+  const todayIso = useMemo(() => new Date().toISOString().split("T")[0] || "", []);
   const clientById = useMemo(() => new Map(clients.map((c: any) => [c.id, c])), [clients]);
 
   // Cálculo fiel dos fiados vencidos por cliente
@@ -245,7 +245,7 @@ function Dashboard() {
       if (pendingSaleInsts.length > 0) {
         pendingSaleInsts.forEach((i: any) => {
           const instRem = Math.max(0, Number(i.amount || 0) - Number(i.paid_amount || 0));
-          const iDueIso = i.due_date ? String(i.due_date).split("T")[0] : null;
+          const iDueIso = i.due_date ? (String(i.due_date).split("T")[0] || "") : null;
           if (iDueIso && iDueIso < todayIso) {
             isSaleOverdue = true;
             saleOverdueAmount += instRem;
@@ -257,8 +257,8 @@ function Dashboard() {
       } else {
         const fallbackDate = s.created_at || null;
         if (fallbackDate) {
-          const sDateIso = String(fallbackDate).split("T")[0];
-          if (sDateIso < todayIso) {
+          const sDateIso = String(fallbackDate).split("T")[0] || "";
+          if (sDateIso && sDateIso < todayIso) {
             isSaleOverdue = true;
             saleOverdueAmount = remaining;
             earliestOverdueDate = fallbackDate;

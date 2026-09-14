@@ -69,7 +69,7 @@ interface POSModalProps {
   /** Cliente pré-selecionado vindo de um Condicional */
   initialClient?: any;
   /** Itens pré-carregados vindos de um Condicional */
-  initialItems?: POSCartItem[];
+  initialItems?: POSCartItem[] | undefined;
 }
 
 export function POSModal({ open, onOpenChange, initialClient, initialItems }: POSModalProps) {

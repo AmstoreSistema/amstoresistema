@@ -109,7 +109,7 @@ function CondicionaisPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("condicionais" as any)
-        .select("*")
+        .select("id, codigo, client_id, client_name, status, notes, created_at, closed_at")
         .order("created_at", { ascending: false });
       if (error) throw error;
       return (data as any[]) ?? [];

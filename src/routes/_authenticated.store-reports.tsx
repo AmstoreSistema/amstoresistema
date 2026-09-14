@@ -156,8 +156,12 @@ function periodKey(iso: string, grouping: string) {
   const formatted = dateBR(iso);
   if (formatted === "—") return "—";
   const parts = formatted.split("/").map(Number);
-  if (parts.length < 3) return formatted;
-  const [day, month, year] = parts;
+  const day = parts[0];
+  const month = parts[1];
+  const year = parts[2];
+  if (day === undefined || month === undefined || year === undefined || isNaN(day) || isNaN(month) || isNaN(year)) {
+    return formatted;
+  }
   if (grouping === "yearly") return String(year);
   if (grouping === "weekly") {
     const d = new Date(year, month - 1, day);

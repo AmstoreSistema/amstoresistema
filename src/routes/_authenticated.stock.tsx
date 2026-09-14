@@ -70,7 +70,7 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { brl, num, dateBR } from "@/lib/format";
-import { useRows, useSaveRow, useDeleteRow } from "@/lib/data";
+import { useRows, useSaveRow, useDeleteRow, logAudit } from "@/lib/data";
 import { AddProductDirectModal } from "@/components/stock/AddProductDirectModal";
 import { EditProductModal } from "@/components/stock/EditProductModal";
 
@@ -184,7 +184,10 @@ function StockPage() {
     queryFn: async () => {
       let q = supabase
         .from("products")
-        .select("*", { count: "exact" });
+        .select(
+          "id, name, sku, category, color, current_stock, min_stock, cost_price, sale_price, wholesale_price, image_url, updated_at",
+          { count: "exact" }
+        );
 
       // Ordenação configurável
       if (sortBy === "name-asc") {
@@ -1052,7 +1055,13 @@ function StockPage() {
 
                 <div className="relative aspect-[16/10] sm:aspect-video bg-muted/20 shrink-0">
                   {p.image_url ? (
-                    <img src={p.image_url} alt={p.name} className="h-full w-full object-cover" />
+                    <img
+                      src={p.image_url}
+                      alt={p.name}
+                      className="h-full w-full object-cover"
+                      loading="lazy"
+                      decoding="async"
+                    />
                   ) : (
                     <div className="flex h-full w-full items-center justify-center text-muted-foreground/10">
                       <Package className="size-12 sm:size-16" />

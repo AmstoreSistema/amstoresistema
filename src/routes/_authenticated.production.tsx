@@ -215,7 +215,7 @@ function ProductionPage() {
         
         const { data: composition } = await supabase
           .from("product_materials")
-          .select("*")
+          .select("id, product_id, material_id, material_name, material_type, variation_name, unit, quantity, unit_cost, total_cost, notes")
           .eq("product_id", order.product_id);
         
         setSelectedOrderDoc({ ...order, status: 'completed', completed_at: new Date().toISOString() });
@@ -297,7 +297,7 @@ function ProductionPage() {
     if (order.product_id) {
       const { data } = await supabase
         .from("product_materials")
-        .select("*")
+        .select("id, product_id, material_id, material_name, material_type, variation_name, unit, quantity, unit_cost, total_cost, notes")
         .eq("product_id", order.product_id);
       
       setOrderComposition(data || []);

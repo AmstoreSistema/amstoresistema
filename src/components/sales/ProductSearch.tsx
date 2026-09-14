@@ -1,25 +1,13 @@
 import * as React from "react";
-import { Search, Package, Check, Plus, Hash } from "lucide-react";
+import { Search, Package, Hash, ArrowLeft, X, Loader2, Barcode } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { brl } from "@/lib/format";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@/components/ui/command";
 import { Badge } from "@/components/ui/badge";
 import { useQuery } from "@tanstack/react-query";
 
-interface StockProduct {
+export interface StockProduct {
   id: string;
   produto_id: string;
   produto_nome: string;
@@ -27,6 +15,7 @@ interface StockProduct {
   preco_venda: number;
   numeracoes: any;
   categoria: string | null;
+  sku?: string | null;
   imagem_url?: string | null;
 }
 
@@ -35,10 +24,14 @@ export function ProductSearch({
 }: { 
   onAdd: (product: StockProduct, numeracao: string | null) => void 
 }) {
-  const [open, setOpen] = React.useState(false);
+  const [query, setQuery] = React.useState("");
+  const [isOpen, setIsOpen] = React.useState(false);
   const [selectedStock, setSelectedStock] = React.useState<StockProduct | null>(null);
-  
-  // Busca produtos disponíveis com imagem vinculada (com cache de 1 minuto para alta performance)
+
+  const containerRef = React.useRef<HTMLDivElement>(null);
+  const inputRef = React.useRef<HTMLInputElement>(null);
+
+  // Busca produtos disponíveis com imagem e SKU vinculados (cache de 1 min para respostas instantâneas)
   const { data: stockItems = [], isLoading: isLoadingStock } = useQuery({
     queryKey: ["stock_products_with_images"],
     queryFn: async () => {
@@ -53,18 +46,20 @@ export function ProductSearch({
           numeracoes,
           categoria,
           products:produto_id (
+            sku,
             image_url
           )
         `)
         .gt("quantidade_disponivel", 0)
         .order("produto_nome", { ascending: true })
-        .limit(300);
+        .limit(350);
       
       if (error) throw error;
       
-      return (data || []).map(item => ({
+      return (data || []).map((item: any) => ({
         ...item,
-        imagem_url: (item as any).products?.image_url
+        sku: item.products?.sku || null,
+        imagem_url: item.products?.image_url || null,
       })) as StockProduct[];
     },
     staleTime: 60_000,
@@ -77,7 +72,7 @@ export function ProductSearch({
     queryFn: async () => {
       const { data, error } = await supabase
         .from("products")
-        .select("id, name, category, sale_price, current_stock, image_url")
+        .select("id, name, sku, category, sale_price, current_stock, image_url")
         .gt("current_stock", 0)
         .order("name", { ascending: true })
         .limit(200);
@@ -88,12 +83,13 @@ export function ProductSearch({
     gcTime: 5 * 60_000,
   });
 
+  // Lista unificada em memória para busca instantânea sem latência de rede
   const availableItems = React.useMemo(() => {
-    const fromStock = stockItems.filter(item => (item.quantidade_disponivel ?? 0) > 0);
-    const covered = new Set(fromStock.map(i => i.produto_id));
+    const fromStock = stockItems.filter((item) => (item.quantidade_disponivel ?? 0) > 0);
+    const covered = new Set(fromStock.map((i) => i.produto_id));
     const virtuals: StockProduct[] = fallbackProducts
-      .filter(p => !covered.has(p.id))
-      .map(p => ({
+      .filter((p: any) => !covered.has(p.id))
+      .map((p: any) => ({
         id: `virtual:${p.id}`,
         produto_id: p.id,
         produto_nome: p.name,
@@ -101,116 +97,271 @@ export function ProductSearch({
         preco_venda: Number(p.sale_price ?? 0),
         numeracoes: null,
         categoria: p.category ?? null,
-        imagem_url: p.image_url
+        sku: p.sku ?? null,
+        imagem_url: p.image_url ?? null,
       }));
 
-    return [...fromStock, ...virtuals]
-      .sort((a, b) => (a.produto_nome || "").localeCompare(b.produto_nome || ""));
+    return [...fromStock, ...virtuals].sort((a, b) =>
+      (a.produto_nome || "").localeCompare(b.produto_nome || "")
+    );
   }, [stockItems, fallbackProducts]);
 
-  const handleSelectStock = (item: StockProduct) => {
-    if (item.numeracoes && Object.keys(item.numeracoes).length > 0) {
+  // Filtro inteligente e rápido por texto (nome, SKU ou categoria)
+  const filteredItems = React.useMemo(() => {
+    const clean = query.trim().toLowerCase();
+    if (!clean) {
+      // Quando vazio, exibe os 25 primeiros produtos para acesso imediato
+      return availableItems.slice(0, 25);
+    }
+
+    const matches = availableItems.filter((item) => {
+      const name = (item.produto_nome || "").toLowerCase();
+      const sku = (item.sku || "").toLowerCase();
+      const cat = (item.categoria || "").toLowerCase();
+      return name.includes(clean) || sku.includes(clean) || cat.includes(clean);
+    });
+
+    // Ordena priorizando correspondência exata no início
+    return matches.slice(0, 30);
+  }, [availableItems, query]);
+
+  // Fecha o dropdown ao clicar fora
+  React.useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setIsOpen(false);
+        setSelectedStock(null);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const handleSelectProduct = (item: StockProduct) => {
+    // Se o produto possui numerações cadastradas, solicita a seleção do tamanho
+    if (item.numeracoes && typeof item.numeracoes === "object" && Object.keys(item.numeracoes).length > 0) {
       setSelectedStock(item);
     } else {
+      // Produto padrão: adiciona diretamente, fecha e foca o campo novamente
       onAdd(item, null);
-      setOpen(false);
+      setIsOpen(false);
       setSelectedStock(null);
+      setQuery("");
+      inputRef.current?.focus();
     }
   };
 
+  const handleSelectSize = (size: string) => {
+    if (!selectedStock) return;
+    onAdd(selectedStock, size);
+    setIsOpen(false);
+    setSelectedStock(null);
+    setQuery("");
+    inputRef.current?.focus();
+  };
+
+  // Suporte a leitor de código de barras ou Enter
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Escape") {
+      setIsOpen(false);
+      setSelectedStock(null);
+      return;
+    }
+
+    if (e.key === "Enter") {
+      e.preventDefault();
+      const clean = query.trim().toLowerCase();
+      if (!clean) return;
+
+      // 1. Procura match exato de SKU ou ID
+      const exactMatch = availableItems.find(
+        (i) => (i.sku || "").toLowerCase() === clean || i.id.toLowerCase() === clean
+      );
+      if (exactMatch) {
+        handleSelectProduct(exactMatch);
+        return;
+      }
+
+      // 2. Se houver apenas 1 produto filtrado, adiciona ele
+      if (filteredItems.length === 1 && filteredItems[0]) {
+        handleSelectProduct(filteredItems[0]);
+      }
+    }
+  };
+
+  const isLoading = isLoadingStock || isLoadingFallback;
+
   return (
-    <div className="space-y-4">
-      <Popover open={open} onOpenChange={(val) => {
-        setOpen(val);
-        if (!val) setSelectedStock(null);
-      }}>
-        <PopoverTrigger asChild>
-          <Button
-            variant="outline"
-            className="w-full justify-start h-12 rounded-2xl bg-card border-border/40 gap-3"
+    <div ref={containerRef} className="relative w-full">
+      {/* Barra de Busca ÚNICA Direta */}
+      <div className="relative flex items-center">
+        <Search className="absolute left-4 size-5 text-muted-foreground pointer-events-none" />
+        <Input
+          ref={inputRef}
+          type="text"
+          value={query}
+          onChange={(e) => {
+            setQuery(e.target.value);
+            if (!isOpen) setIsOpen(true);
+            if (selectedStock) setSelectedStock(null);
+          }}
+          onFocus={() => {
+            setIsOpen(true);
+          }}
+          onKeyDown={handleKeyDown}
+          placeholder="Buscar produto por nome, código SKU ou bipar..."
+          className="h-12 w-full pl-12 pr-10 rounded-2xl bg-card border-border/50 text-sm font-medium shadow-xs focus-visible:ring-2 focus-visible:ring-gold/30 focus-visible:border-gold transition-all"
+        />
+        {query ? (
+          <button
+            type="button"
+            onClick={() => {
+              setQuery("");
+              setSelectedStock(null);
+              inputRef.current?.focus();
+            }}
+            className="absolute right-3.5 p-1 text-muted-foreground hover:text-foreground rounded-full transition-colors"
+            title="Limpar busca"
           >
-            <Search className="size-5 text-muted-foreground" />
-            <span className="text-muted-foreground">Buscar produto ou bipar código...</span>
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-[calc(100vw-2rem)] sm:w-[450px] max-w-[450px] p-0" align="start">
+            <X className="size-4" />
+          </button>
+        ) : null}
+      </div>
+
+      {/* Lista Dropdown Única que abre diretamente abaixo da barra */}
+      {isOpen && (
+        <div className="absolute left-0 right-0 top-full mt-2 z-50 bg-popover/95 backdrop-blur-md border border-border/60 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-1 duration-200">
           {!selectedStock ? (
-            <Command>
-              <CommandInput placeholder="Nome, SKU ou categoria..." />
-              <CommandList className="max-h-[350px]">
-                <CommandEmpty>
-                  {isLoadingStock || isLoadingFallback ? "Carregando produtos da loja..." : "Nenhum produto disponível em estoque."}
-                </CommandEmpty>
-                <CommandGroup heading="Produtos em Estoque">
-                  {availableItems.map((item) => (
-                    <CommandItem
+            <div>
+              <div className="px-4 py-2 border-b border-border/40 bg-muted/20 flex items-center justify-between text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
+                <span>
+                  {query.trim() ? `Resultados para "${query}" (${filteredItems.length})` : "Produtos Disponíveis em Estoque"}
+                </span>
+                {isLoading && (
+                  <span className="flex items-center gap-1 text-primary lowercase">
+                    <Loader2 className="size-3 animate-spin" /> carregando...
+                  </span>
+                )}
+              </div>
+
+              <div className="max-h-[360px] overflow-y-auto divide-y divide-border/20">
+                {isLoading ? (
+                  <div className="p-8 text-center text-sm text-muted-foreground flex flex-col items-center gap-2">
+                    <Loader2 className="size-6 animate-spin text-primary" />
+                    <span>Carregando catálogo de produtos...</span>
+                  </div>
+                ) : filteredItems.length === 0 ? (
+                  <div className="p-8 text-center text-sm text-muted-foreground space-y-1">
+                    <p className="font-bold text-foreground">Nenhum produto encontrado</p>
+                    <p className="text-xs opacity-75">Tente buscar por outra palavra-chave ou código.</p>
+                  </div>
+                ) : (
+                  filteredItems.map((item) => (
+                    <div
                       key={item.id}
-                      onSelect={() => handleSelectStock(item)}
-                      className="cursor-pointer p-3"
+                      onClick={() => handleSelectProduct(item)}
+                      className="group flex items-center gap-3 p-3 hover:bg-muted/40 cursor-pointer transition-colors"
                     >
+                      {/* Imagem do Produto */}
                       {item.imagem_url ? (
-                        <div className="mr-3 size-10 rounded-lg overflow-hidden shrink-0 border border-border/40">
-                          <img 
-                            src={item.imagem_url} 
-                            alt={item.produto_nome} 
+                        <div className="size-11 rounded-xl overflow-hidden shrink-0 border border-border/30 bg-muted/10">
+                          <img
+                            src={item.imagem_url}
+                            alt={item.produto_nome}
                             className="w-full h-full object-cover"
+                            loading="lazy"
+                            decoding="async"
                           />
                         </div>
                       ) : (
-                        <Package className="mr-3 size-5 text-muted-foreground shrink-0" />
+                        <div className="size-11 rounded-xl bg-muted/30 border border-border/20 flex items-center justify-center shrink-0 text-muted-foreground">
+                          <Package className="size-5" />
+                        </div>
                       )}
 
-                      <div className="flex flex-col flex-1">
-                        <span className="font-bold">{item.produto_nome}</span>
-                        <div className="flex items-center gap-2 mt-0.5">
-                           <Badge variant="secondary" className="text-[9px] h-4 py-0 px-1 bg-muted">
-                             {item.categoria || "Geral"}
-                           </Badge>
-                           <span className="text-[10px] text-muted-foreground font-medium">
-                             Qtd: {item.quantidade_disponivel}
-                           </span>
+                      {/* Informações do Produto */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-sm text-foreground truncate group-hover:text-primary transition-colors">
+                            {item.produto_nome}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2 mt-0.5 text-xs text-muted-foreground">
+                          {item.categoria && (
+                            <Badge variant="secondary" className="text-[10px] h-4 py-0 px-1.5 font-semibold bg-muted/60">
+                              {item.categoria}
+                            </Badge>
+                          )}
+                          {item.sku && (
+                            <span className="text-[11px] font-mono opacity-80 flex items-center gap-0.5">
+                              <Barcode className="size-3" /> {item.sku}
+                            </span>
+                          )}
+                          <span className="text-[11px] font-medium text-emerald-600 dark:text-emerald-400">
+                            Estoque: {item.quantidade_disponivel} un.
+                          </span>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <span className="text-sm font-black text-gold">{brl(item.preco_venda)}</span>
+
+                      {/* Preço de Venda */}
+                      <div className="text-right shrink-0">
+                        <span className="font-display font-black text-sm text-primary">
+                          {brl(item.preco_venda)}
+                        </span>
                       </div>
-                    </CommandItem>
-                  ))}
-                </CommandGroup>
-              </CommandList>
-            </Command>
-          ) : (
-            <div className="p-4 space-y-4 animate-in fade-in slide-in-from-right-2">
-              <div className="flex items-center justify-between">
-                <h3 className="font-bold flex items-center gap-2">
-                  <Hash className="size-4 text-gold" /> Selecionar Tamanho
-                </h3>
-                <Button variant="ghost" size="sm" onClick={() => setSelectedStock(null)}>Voltar</Button>
+                    </div>
+                  ))
+                )}
               </div>
-              
-              <div className="grid grid-cols-4 gap-2">
-                {Object.entries(selectedStock.numeracoes as Record<string, number>)
-                  .filter(([_, qty]) => qty > 0)
-                  .map(([size, qty]) => (
-                    <Button
-                      key={size}
-                      variant="outline"
-                      className="h-12 flex flex-col gap-0 rounded-xl hover:border-gold hover:text-gold transition-all"
-                      onClick={() => {
-                        onAdd(selectedStock, size);
-                        setOpen(false);
-                        setSelectedStock(null);
-                      }}
-                    >
-                      <span className="text-sm font-black">{size}</span>
-                      <span className="text-[9px] opacity-60">Qtd: {qty}</span>
-                    </Button>
-                  ))}
+            </div>
+          ) : (
+            /* Sub-tela elegante de seleção de numeração quando aplicável */
+            <div className="p-4 space-y-3.5 animate-in fade-in slide-in-from-right-2">
+              <div className="flex items-center justify-between pb-2 border-b border-border/40">
+                <div className="flex items-center gap-2 min-w-0">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 px-2 rounded-lg text-xs font-bold gap-1 text-muted-foreground hover:text-foreground"
+                    onClick={() => setSelectedStock(null)}
+                  >
+                    <ArrowLeft className="size-3.5" /> Voltar
+                  </Button>
+                  <span className="font-bold text-xs truncate">
+                    Tamanho para: <strong className="text-foreground">{selectedStock.produto_nome}</strong>
+                  </span>
+                </div>
+                <Badge variant="outline" className="text-xs font-bold text-primary border-primary/20 shrink-0">
+                  {brl(selectedStock.preco_venda)}
+                </Badge>
+              </div>
+
+              <div className="space-y-1.5">
+                <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider flex items-center gap-1">
+                  <Hash className="size-3" /> Numerações com estoque disponível:
+                </span>
+                <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
+                  {Object.entries(selectedStock.numeracoes as Record<string, number>)
+                    .filter(([_, qty]) => Number(qty) > 0)
+                    .map(([size, qty]) => (
+                      <Button
+                        key={size}
+                        type="button"
+                        variant="outline"
+                        className="h-12 flex flex-col gap-0 rounded-xl hover:border-primary hover:bg-primary/5 hover:text-primary transition-all"
+                        onClick={() => handleSelectSize(size)}
+                      >
+                        <span className="text-sm font-black">{size}</span>
+                        <span className="text-[9px] opacity-70 font-semibold">{qty} un</span>
+                      </Button>
+                    ))}
+                </div>
               </div>
             </div>
           )}
-        </PopoverContent>
-      </Popover>
+        </div>
+      )}
     </div>
   );
 }

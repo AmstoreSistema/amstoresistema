@@ -34,16 +34,16 @@ import { ClientSearch } from "./ClientSearch";
 import { supabase } from "@/integrations/supabase/client";
 
 interface EditableItem {
-  id?: string;
+  id?: string | undefined;
   product_id: string;
   product_name: string;
-  image_url?: string | null;
+  image_url?: string | null | undefined;
   quantity: number;
   unit_price: number;
   numeracao: string | null;
   discount: number;
-  available_sizes?: string[];
-  is_new?: boolean;
+  available_sizes?: string[] | undefined;
+  is_new?: boolean | undefined;
 }
 
 interface EditSaleModalProps {
@@ -181,40 +181,33 @@ export function EditSaleModal({
   // Altera quantidade de um item
   const handleChangeQty = (index: number, delta: number) => {
     setItems((prev) => {
-      const next = [...prev];
-      const target = next[index];
+      const target = prev[index];
+      if (!target) return prev;
       const newQty = target.quantity + delta;
-      if (newQty <= 0) return next;
-      next[index] = { ...target, quantity: newQty };
-      return next;
+      if (newQty <= 0) return prev;
+      return prev.map((item, i) => (i === index ? { ...item, quantity: newQty } : item));
     });
   };
 
   // Altera desconto de um item específico
   const handleChangeItemDiscount = (index: number, discount: number) => {
-    setItems((prev) => {
-      const next = [...prev];
-      next[index] = { ...next[index], discount: Math.max(0, discount) };
-      return next;
-    });
+    setItems((prev) =>
+      prev.map((item, i) => (i === index ? { ...item, discount: Math.max(0, discount) } : item))
+    );
   };
 
   // Altera preço unitário de um item
   const handleChangeUnitPrice = (index: number, unit_price: number) => {
-    setItems((prev) => {
-      const next = [...prev];
-      next[index] = { ...next[index], unit_price: Math.max(0, unit_price) };
-      return next;
-    });
+    setItems((prev) =>
+      prev.map((item, i) => (i === index ? { ...item, unit_price: Math.max(0, unit_price) } : item))
+    );
   };
 
   // Altera numeração de um item
   const handleChangeNumeracao = (index: number, newSize: string) => {
-    setItems((prev) => {
-      const next = [...prev];
-      next[index] = { ...next[index], numeracao: newSize };
-      return next;
-    });
+    setItems((prev) =>
+      prev.map((item, i) => (i === index ? { ...item, numeracao: newSize } : item))
+    );
     toast.success(`Numeração alterada para ${newSize}.`);
   };
 
@@ -226,7 +219,9 @@ export function EditSaleModal({
     }
     const itemToRemove = items[index];
     setItems((prev) => prev.filter((_, i) => i !== index));
-    toast.info(`"${itemToRemove.product_name}" removido. O estoque será devolvido ao salvar.`);
+    if (itemToRemove) {
+      toast.info(`"${itemToRemove.product_name}" removido. O estoque será devolvido ao salvar.`);
+    }
   };
 
   // Confirma e salva a edição

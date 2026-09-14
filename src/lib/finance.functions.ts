@@ -77,7 +77,19 @@ export const updateTransaction = createServerFn({ method: "POST" })
       ? `${data.description.trim()} (${data.observations.trim()})`
       : data.description.trim();
 
-    const updatePayload: Record<string, any> = {
+    const updatePayload: {
+      type: string;
+      amount: number;
+      description: string;
+      account_id: string;
+      category: string | null;
+      status: string;
+      due_date: string | null;
+      payment_method: string | null;
+      client_id: string | null;
+      supplier_id: string | null;
+      created_at?: string;
+    } = {
       type: data.type,
       amount: data.type === "saida" ? -Math.abs(data.amount) : Math.abs(data.amount),
       description: finalDescription,

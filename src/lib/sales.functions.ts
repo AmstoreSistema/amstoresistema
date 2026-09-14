@@ -409,7 +409,7 @@ export const editSaleItems = createServerFn({ method: "POST" })
     if (oldItemsErr) throw new Error(`Erro ao buscar itens da venda: ${oldItemsErr.message}`);
 
     // 3. DEVOLUÇÃO AO ESTOQUE: Estorna todos os itens antigos
-    for (const oldItem of oldItems) {
+    for (const oldItem of (oldItems || [])) {
       if (!oldItem.product_id) continue;
       const qty = Number(oldItem.quantity) || 1;
 
@@ -434,19 +434,20 @@ export const editSaleItems = createServerFn({ method: "POST" })
         .eq("produto_id", oldItem.product_id);
 
       if (stockRecords && stockRecords.length > 0) {
-        // Atualiza no primeiro registro ou registro correspondente
         const stockRow = stockRecords[0];
-        const updates: Record<string, any> = {
-          quantidade_disponivel: Number(stockRow.quantidade_disponivel || 0) + qty,
-        };
+        if (stockRow) {
+          const updates: { quantidade_disponivel: number; numeracoes?: any } = {
+            quantidade_disponivel: Number(stockRow.quantidade_disponivel || 0) + qty,
+          };
 
-        if (oldItem.numeracao && stockRow.numeracoes && typeof stockRow.numeracoes === "object") {
-          const nums = { ...(stockRow.numeracoes as Record<string, any>) };
-          nums[oldItem.numeracao] = (Number(nums[oldItem.numeracao]) || 0) + qty;
-          updates.numeracoes = nums;
+          if (oldItem.numeracao && stockRow.numeracoes && typeof stockRow.numeracoes === "object") {
+            const nums = { ...(stockRow.numeracoes as Record<string, any>) };
+            nums[oldItem.numeracao] = (Number(nums[oldItem.numeracao]) || 0) + qty;
+            updates.numeracoes = nums;
+          }
+
+          await admin.from("stock_products").update(updates as any).eq("id", stockRow.id);
         }
-
-        await admin.from("stock_products").update(updates).eq("id", stockRow.id);
       }
     }
 
@@ -476,17 +477,19 @@ export const editSaleItems = createServerFn({ method: "POST" })
 
       if (stockRecords && stockRecords.length > 0) {
         const stockRow = stockRecords[0];
-        const updates: Record<string, any> = {
-          quantidade_disponivel: Math.max(0, Number(stockRow.quantidade_disponivel || 0) - qty),
-        };
+        if (stockRow) {
+          const updates: { quantidade_disponivel: number; numeracoes?: any } = {
+            quantidade_disponivel: Math.max(0, Number(stockRow.quantidade_disponivel || 0) - qty),
+          };
 
-        if (newItem.numeracao && stockRow.numeracoes && typeof stockRow.numeracoes === "object") {
-          const nums = { ...(stockRow.numeracoes as Record<string, any>) };
-          nums[newItem.numeracao] = Math.max(0, (Number(nums[newItem.numeracao]) || 0) - qty);
-          updates.numeracoes = nums;
+          if (newItem.numeracao && stockRow.numeracoes && typeof stockRow.numeracoes === "object") {
+            const nums = { ...(stockRow.numeracoes as Record<string, any>) };
+            nums[newItem.numeracao] = Math.max(0, (Number(nums[newItem.numeracao]) || 0) - qty);
+            updates.numeracoes = nums;
+          }
+
+          await admin.from("stock_products").update(updates as any).eq("id", stockRow.id);
         }
-
-        await admin.from("stock_products").update(updates).eq("id", stockRow.id);
       }
     }
 
@@ -536,7 +539,15 @@ export const editSaleItems = createServerFn({ method: "POST" })
         ? "partial"
         : "pending";
 
-    const updatePayload: Record<string, any> = {
+    const updatePayload: {
+      total_amount: number;
+      discount: number;
+      discount_amount: number;
+      cashback_used: number;
+      status: string;
+      client_id?: string | null;
+      created_at?: string;
+    } = {
       total_amount: newTotal,
       discount: discountGeneral,
       discount_amount: discountGeneral,
@@ -554,7 +565,7 @@ export const editSaleItems = createServerFn({ method: "POST" })
 
     await admin
       .from("sales")
-      .update(updatePayload)
+      .update(updatePayload as any)
       .eq("id", data.sale_id);
 
     return {

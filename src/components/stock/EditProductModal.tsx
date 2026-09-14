@@ -108,7 +108,7 @@ export function EditProductModal({
         lote: stockRecord?.lote || "",
         localizacao: stockRecord?.localizacao || "",
         data_entrada: stockRecord?.data_entrada
-          ? stockRecord.data_entrada.split("T")[0]
+          ? (stockRecord.data_entrada.split("T")[0] || "")
           : "",
       });
     }

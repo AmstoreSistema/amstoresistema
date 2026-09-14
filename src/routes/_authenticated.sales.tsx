@@ -140,7 +140,27 @@ function SalesPage() {
     queryFn: async () => {
       let q = supabase
         .from("sales")
-        .select("*, clients(id, name)", { count: "exact" })
+        .select(
+          `
+          id,
+          sale_code,
+          created_at,
+          total_amount,
+          paid_amount,
+          discount,
+          discount_amount,
+          cashback_used,
+          cashback_earned,
+          payment_method,
+          status,
+          is_debt,
+          client_id,
+          seller_id,
+          notes,
+          clients(id, name)
+        `,
+          { count: "exact" }
+        )
         .order("created_at", { ascending: false });
 
       if (term.toLowerCase() === "pending") {
@@ -219,13 +239,13 @@ function SalesPage() {
       // 2. Fiados em Aberto
       const { count: pendingFiadoCount } = await supabase
         .from("sales")
-        .select("*", { count: "exact", head: true })
+        .select("id", { count: "exact", head: true })
         .eq("is_debt", true);
 
       // 3. Contagem Total de Vendas
       const { count: totalSalesCount } = await supabase
         .from("sales")
-        .select("*", { count: "exact", head: true });
+        .select("id", { count: "exact", head: true });
 
       // 4. Faturamento Total (vendas válidas não canceladas)
       const { data: allSalesData } = await supabase

@@ -245,7 +245,7 @@ function PurchasesPage() {
             const currentHeight = Number(mat.height) || 0;
             const newHeight = Number((currentHeight + addedLength).toFixed(2));
 
-            const updatePayload: Record<string, any> = {
+            const updatePayload: { height: number; cost_price: number; width?: number; unit?: string } = {
               height: newHeight,
               cost_price: item.cost,
             };
@@ -262,7 +262,7 @@ function PurchasesPage() {
 
             await supabase
               .from("materials")
-              .update(updatePayload)
+              .update(updatePayload as any)
               .eq("id", mat.id);
           }
         }
