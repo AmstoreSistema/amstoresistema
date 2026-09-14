@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Search, Package, Hash, ArrowLeft, X, Loader2, Barcode } from "lucide-react";
+import { Search, Package, Hash, ArrowLeft, X, Loader2, Barcode, ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
@@ -56,7 +56,7 @@ export function ProductSearch({
         `)
         .gt("quantidade_disponivel", 0)
         .order("produto_nome", { ascending: true })
-        .limit(400);
+        .limit(2500);
       
       if (error) throw error;
       
@@ -95,7 +95,7 @@ export function ProductSearch({
         .select("id, name, sku, category, sale_price, current_stock, image_url, active")
         .gt("current_stock", 0)
         .order("name", { ascending: true })
-        .limit(200);
+        .limit(2500);
       if (error) throw error;
       return (data || []).filter((p: any) => p.active !== false && Number(p.current_stock ?? 0) > 0);
     },
@@ -194,8 +194,8 @@ export function ProductSearch({
     const inStockItems = availableItems.filter((i) => Number(i.quantidade_disponivel ?? 0) > 0);
     const clean = query.trim().toLowerCase();
     if (!clean) {
-      // Quando vazio, exibe os 25 primeiros produtos disponíveis
-      return inStockItems.slice(0, 25);
+      // Quando não há busca digitada, exibe TODOS os produtos com estoque disponível
+      return inStockItems;
     }
 
     const matches = inStockItems.filter((item) => {
@@ -205,8 +205,7 @@ export function ProductSearch({
       return name.includes(clean) || sku.includes(clean) || cat.includes(clean);
     });
 
-    // Ordena priorizando correspondência exata no início
-    return matches.slice(0, 30);
+    return matches;
   }, [availableItems, query]);
 
   // Fecha o dropdown ao clicar fora
@@ -293,7 +292,7 @@ export function ProductSearch({
 
   return (
     <div ref={containerRef} className="relative w-full">
-      {/* Barra de Busca ÚNICA Direta */}
+      {/* Barra de Busca ÚNICA Direta com botão de seta para expandir/recolher */}
       <div className="relative flex items-center">
         <Search className="absolute left-4 size-5 text-muted-foreground pointer-events-none" />
         <Input
@@ -308,24 +307,42 @@ export function ProductSearch({
           onFocus={() => {
             setIsOpen(true);
           }}
+          onClick={() => {
+            if (!isOpen) setIsOpen(true);
+          }}
           onKeyDown={handleKeyDown}
           placeholder="Buscar produto por nome, código SKU ou bipar..."
-          className="h-12 w-full pl-12 pr-10 rounded-2xl bg-card border-border/50 text-sm font-medium shadow-xs focus-visible:ring-2 focus-visible:ring-gold/30 focus-visible:border-gold transition-all"
+          className="h-12 w-full pl-12 pr-20 rounded-2xl bg-card border-border/50 text-sm font-medium shadow-xs focus-visible:ring-2 focus-visible:ring-gold/30 focus-visible:border-gold transition-all"
         />
-        {query ? (
+        <div className="absolute right-2.5 flex items-center gap-0.5">
+          {query ? (
+            <button
+              type="button"
+              onClick={() => {
+                setQuery("");
+                setSelectedStock(null);
+                inputRef.current?.focus();
+              }}
+              className="p-1.5 text-muted-foreground hover:text-foreground rounded-full hover:bg-muted/50 transition-colors"
+              title="Limpar busca"
+            >
+              <X className="size-4" />
+            </button>
+          ) : null}
           <button
             type="button"
             onClick={() => {
-              setQuery("");
-              setSelectedStock(null);
-              inputRef.current?.focus();
+              setIsOpen((prev) => !prev);
+              if (!isOpen) {
+                inputRef.current?.focus();
+              }
             }}
-            className="absolute right-3.5 p-1 text-muted-foreground hover:text-foreground rounded-full transition-colors"
-            title="Limpar busca"
+            className="p-1.5 text-muted-foreground hover:text-foreground rounded-xl hover:bg-muted/50 transition-colors cursor-pointer"
+            title={isOpen ? "Recolher catálogo" : "Ver todos os produtos disponíveis"}
           >
-            <X className="size-4" />
+            {isOpen ? <ChevronUp className="size-5 text-primary" /> : <ChevronDown className="size-5" />}
           </button>
-        ) : null}
+        </div>
       </div>
 
       {/* Lista Dropdown Única que abre diretamente abaixo da barra */}
@@ -333,9 +350,11 @@ export function ProductSearch({
         <div className="absolute left-0 right-0 top-full mt-2 z-50 bg-popover/95 backdrop-blur-md border border-border/60 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-1 duration-200">
           {!selectedStock ? (
             <div>
-              <div className="px-4 py-2 border-b border-border/40 bg-muted/20 flex items-center justify-between text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
+              <div className="px-4 py-2.5 border-b border-border/40 bg-muted/20 flex items-center justify-between text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
                 <span>
-                  {query.trim() ? `Resultados para "${query}" (${filteredItems.length})` : "Produtos Disponíveis em Estoque"}
+                  {query.trim()
+                    ? `Resultados para "${query}" (${filteredItems.length})`
+                    : `Todos os Produtos em Estoque (${filteredItems.length})`}
                 </span>
                 {isLoading && (
                   <span className="flex items-center gap-1 text-primary lowercase">
@@ -344,7 +363,7 @@ export function ProductSearch({
                 )}
               </div>
 
-              <div className="max-h-[360px] overflow-y-auto divide-y divide-border/20">
+              <div className="max-h-[440px] overflow-y-auto divide-y divide-border/20">
                 {isLoading ? (
                   <div className="p-8 text-center text-sm text-muted-foreground flex flex-col items-center gap-2">
                     <Loader2 className="size-6 animate-spin text-primary" />
