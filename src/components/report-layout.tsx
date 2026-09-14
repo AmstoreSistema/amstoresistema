@@ -1,8 +1,7 @@
 import * as React from "react";
 import { brl, dateBR, num } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import { Calendar, Store, FileText, Calculator, DollarSign, Package, FileDown, Printer } from "lucide-react";
-import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "./ui/table";
+import { Calendar, Store, FileText, Calculator, DollarSign, Package, FileDown, Printer, ArrowRightLeft } from "lucide-react";
 
 export interface ReportLayoutProps {
   /** Nome ou título principal do relatório */
@@ -231,7 +230,7 @@ export function ReportLayout({
       id={id}
       className={cn(
         // Container do relatório compatível com tela e folha A4 perfeita
-        "report-container report-corporate-layout w-full max-w-5xl mx-auto bg-white text-slate-900 p-3 sm:p-6 md:p-10 rounded-xl sm:rounded-2xl shadow-sm border border-slate-200/80 animate-in fade-in duration-300 overflow-hidden",
+        "report-container report-corporate-layout w-full max-w-5xl mx-auto bg-white text-slate-900 p-3 sm:p-6 md:p-10 rounded-xl sm:rounded-2xl shadow-sm border border-slate-200/80 animate-in fade-in duration-300 pb-24 sm:pb-8",
         // Regras estritas de impressão folha A4 (sem cortes, bordas perfeitas)
         "print:p-0 print:m-0 print:max-w-none print:w-full print:border-none print:shadow-none print:bg-white print:rounded-none",
         // Herança automática de estilo corporativo para qualquer tabela ou planilha inserida
@@ -264,7 +263,7 @@ export function ReportLayout({
       `}</style>
 
       {/* ============================================================ */}
-      {/* BARRA DE AÇÕES INTEGRADA (TELA / MOBILE / DESKTOP)          */}
+      {/* BARRA DE AÇÕES INTEGRADA NO TOPO (TELA / DESKTOP / MOBILE)   */}
       {/* ============================================================ */}
       {(actions || onPrint || onExportCsv) && (
         <div className="print:hidden w-full mb-5 p-2.5 sm:p-4 rounded-xl sm:rounded-2xl bg-slate-900 text-white shadow-md flex flex-col sm:flex-row sm:items-center justify-between gap-3 border border-slate-800">
@@ -297,6 +296,35 @@ export function ReportLayout({
               </button>
             )}
           </div>
+        </div>
+      )}
+
+      {/* ============================================================ */}
+      {/* BARRA FLUTUANTE FIXA NO RODAPÉ (EXCLUSIVA MOBILE)           */}
+      {/* Garante que 'Imprimir A4' NUNCA fique escondido no celular    */}
+      {/* ============================================================ */}
+      {(onPrint || onExportCsv) && (
+        <div className="sm:hidden fixed bottom-3 left-3 right-3 z-50 p-2.5 rounded-2xl bg-slate-950/95 backdrop-blur-md border border-slate-700/80 shadow-2xl flex items-center gap-2 print:hidden animate-in slide-in-from-bottom-5 duration-300">
+          {onExportCsv && (
+            <button
+              type="button"
+              onClick={onExportCsv}
+              className="flex-1 flex items-center justify-center gap-2 h-11 rounded-xl bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-100 text-xs font-bold border border-slate-600 transition-all shadow-sm cursor-pointer"
+            >
+              <FileDown className="size-4 text-amber-400 shrink-0" />
+              <span>Exportar CSV</span>
+            </button>
+          )}
+          {onPrint && (
+            <button
+              type="button"
+              onClick={onPrint}
+              className="flex-1 flex items-center justify-center gap-2 h-11 rounded-xl bg-amber-500 hover:bg-amber-400 active:scale-95 text-slate-950 text-xs font-black transition-all shadow-lg shadow-amber-500/25 cursor-pointer"
+            >
+              <Printer className="size-4 shrink-0" />
+              <span>Imprimir A4</span>
+            </button>
+          )}
         </div>
       )}
 
@@ -368,20 +396,36 @@ export function ReportLayout({
           // Conteúdo passado diretamente como children
           children
         ) : columns && rows ? (
-          // Tabela corporativa com suporte a totais/subtotais automáticos e rolagem no mobile
-          <div className="w-full max-w-full overflow-x-auto rounded-xl border border-slate-200/90 shadow-xs print:overflow-visible print:border-slate-300 print:shadow-none touch-pan-x">
-            <div className="sm:hidden flex items-center justify-between px-3 py-1.5 bg-slate-100/80 border-b border-slate-200 text-[10px] font-semibold text-slate-500">
-              <span>Deslize a tabela para ver todas as colunas &rarr;</span>
-              <span className="font-bold text-slate-700">{rows.length} registros</span>
+          // Tabela corporativa com suporte a totais/subtotais automáticos e rolagem fluida e suave no mobile
+          <div 
+            className="w-full max-w-full overflow-x-auto overscroll-x-contain rounded-xl border border-slate-200/90 shadow-xs print:overflow-visible print:border-slate-300 print:shadow-none"
+            style={{
+              WebkitOverflowScrolling: "touch",
+              touchAction: "pan-x pan-y",
+            }}
+          >
+            {/* Indicador visual de rolagem horizontal para mobile */}
+            <div className="sm:hidden flex items-center justify-between px-3 py-2 bg-amber-500/10 border-b border-amber-500/20 text-[11px] font-bold text-amber-900 select-none">
+              <span className="flex items-center gap-1.5">
+                <ArrowRightLeft className="size-3.5 text-amber-600 animate-pulse shrink-0" />
+                <span>Arraste para os lados para ver colunas &rarr;</span>
+              </span>
+              <span className="font-black text-amber-700 shrink-0">{rows.length} itens</span>
             </div>
-            <Table className="min-w-[650px] sm:min-w-full">
-              <TableHeader>
-                <TableRow className="bg-slate-100/80 hover:bg-slate-100/80 print:bg-slate-100">
+
+            <table 
+              className={cn(
+                "w-full caption-bottom text-sm border-collapse",
+                columns.length >= 7 ? "min-w-[880px]" : "min-w-[700px]"
+              )}
+            >
+              <thead className="bg-slate-100/80 hover:bg-slate-100/80 print:bg-slate-100 border-b border-slate-200">
+                <tr>
                   {columns.map((col) => (
-                    <TableHead
+                    <th
                       key={col.key}
                       className={cn(
-                        "h-8 px-2.5 py-1.5 print:px-1 print:py-0.5 text-[11px] print:text-[8.5px] font-black uppercase tracking-tight text-slate-700 print:text-slate-900",
+                        "h-9 px-3 py-2 print:px-1 print:py-0.5 text-[11px] print:text-[8.5px] font-black uppercase tracking-tight text-slate-700 print:text-slate-900 border-b border-slate-200 whitespace-nowrap",
                         col.align === "right"
                           ? "text-right"
                           : col.align === "center"
@@ -391,14 +435,14 @@ export function ReportLayout({
                       )}
                     >
                       {col.label}
-                    </TableHead>
+                    </th>
                   ))}
-                </TableRow>
-              </TableHeader>
-              <TableBody>
+                </tr>
+              </thead>
+              <tbody className="[&_tr:last-child]:border-0">
                 {rows.length === 0 ? (
-                  <TableRow>
-                    <TableCell
+                  <tr>
+                    <td
                       colSpan={columns.length}
                       className="h-32 text-center text-sm font-medium text-slate-500"
                     >
@@ -406,19 +450,19 @@ export function ReportLayout({
                         <FileText className="size-8 text-slate-300" />
                         <span>Nenhum dado encontrado para o período selecionado.</span>
                       </div>
-                    </TableCell>
-                  </TableRow>
+                    </td>
+                  </tr>
                 ) : (
                   rows.map((row, i) => (
-                    <TableRow
+                    <tr
                       key={i}
-                      className="border-b border-slate-100 even:bg-slate-50/50 hover:bg-slate-100/50 print:even:bg-slate-50 print:break-inside-avoid"
+                      className="border-b border-slate-100 even:bg-slate-50/50 hover:bg-slate-100/50 print:even:bg-slate-50 print:break-inside-avoid transition-colors"
                     >
                       {columns.map((col) => (
-                        <TableCell
+                        <td
                           key={col.key}
                           className={cn(
-                            "px-2.5 py-1.5 print:px-1 print:py-0.5 text-xs print:text-[9px] font-medium text-slate-700",
+                            "px-3 py-2.5 print:px-1 print:py-0.5 text-xs print:text-[9px] font-medium text-slate-700",
                             col.align === "right"
                               ? "text-right"
                               : col.align === "center"
@@ -428,21 +472,21 @@ export function ReportLayout({
                           )}
                         >
                           {row[col.key] ?? "—"}
-                        </TableCell>
+                        </td>
                       ))}
-                    </TableRow>
+                    </tr>
                   ))
                 )}
-              </TableBody>
+              </tbody>
 
               {/* LINHA DE TOTAIS / SUBTOTAIS NA TABELA */}
               {rows.length > 0 && finalTotals && showTotals && (
-                <TableFooter className="bg-slate-100/90 border-t-2 border-slate-300 text-slate-900 print:bg-slate-100">
+                <tfoot className="bg-slate-100/90 border-t-2 border-slate-300 text-slate-900 print:bg-slate-100 font-medium">
                   {/* Linha de Subtotal opcional */}
                   {customSubtotals && (
-                    <TableRow className="border-b border-slate-200 bg-slate-50 font-bold text-slate-800">
+                    <tr className="border-b border-slate-200 bg-slate-50 font-bold text-slate-800">
                       {columns.map((col, idx) => (
-                        <TableCell
+                        <td
                           key={`subtotal-${col.key}`}
                           className={cn(
                             "px-4 py-2.5 text-xs font-bold uppercase",
@@ -455,15 +499,15 @@ export function ReportLayout({
                           )}
                         >
                           {idx === 0 ? "Subtotal" : customSubtotals[col.key] ?? ""}
-                        </TableCell>
+                        </td>
                       ))}
-                    </TableRow>
+                    </tr>
                   )}
 
                   {/* Linha de Total Geral */}
-                  <TableRow className="bg-slate-100 font-extrabold text-slate-900 border-t-2 border-slate-300 print:bg-slate-100">
+                  <tr className="bg-slate-100 font-extrabold text-slate-900 border-t-2 border-slate-300 print:bg-slate-100">
                     {columns.map((col, idx) => (
-                      <TableCell
+                      <td
                         key={`total-${col.key}`}
                         className={cn(
                           "px-4 py-3.5 text-sm font-black uppercase tracking-tight",
@@ -477,12 +521,12 @@ export function ReportLayout({
                         )}
                       >
                         {idx === 0 ? "TOTAL GERAL" : finalTotals[col.key] ?? ""}
-                      </TableCell>
+                      </td>
                     ))}
-                  </TableRow>
-                </TableFooter>
+                  </tr>
+                </tfoot>
               )}
-            </Table>
+            </table>
           </div>
         ) : null}
 

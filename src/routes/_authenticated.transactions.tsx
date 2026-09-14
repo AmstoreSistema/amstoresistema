@@ -240,6 +240,28 @@ function TransactionsPage() {
     }).catch(() => {});
   }, [fetchSettings]);
 
+  const handleExportCsv = () => {
+    if (transactions.length === 0) {
+      toast.error("Nenhuma transação para exportar");
+      return;
+    }
+    const csv = exportTransactionsToCSV(transactions, typeFilter, {
+      clients,
+      suppliers,
+      accounts,
+    });
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", `relatorio_transacoes_${typeFilter}_${startDate || "inicio"}_${endDate || "fim"}.csv`);
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast.success("Relatório de transações exportado em CSV.");
+  };
+
   const handleDeleteItem = async (id: string) => {
     if (!confirm("Deseja realmente excluir este lançamento? Esta ação pode afetar o saldo das contas.")) return;
     try {
@@ -378,42 +400,29 @@ function TransactionsPage() {
         description="Gerencie receitas e despesas com filtros por guia e período"
         icon={ArrowLeftRight}
         actions={
-          <div className="flex gap-2">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
+            <div className="grid grid-cols-2 sm:flex sm:items-center gap-2">
+              <Button 
+                variant="outline" 
+                size="sm"
+                className="gap-1.5 rounded-xl text-xs font-bold h-10 sm:h-9"
+                onClick={handleExportCsv}
+              >
+                <Download className="size-3.5" /> CSV
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1.5 rounded-xl text-xs font-bold h-10 sm:h-9 bg-amber-500/10 hover:bg-amber-500/20 text-amber-900 border-amber-500/30"
+                onClick={() => setIsReportModalOpen(true)}
+              >
+                <Printer className="size-3.5 text-amber-600" /> Relatório Executivo
+              </Button>
+            </div>
             <Button 
-              variant="outline" 
-              className="gap-2 rounded-xl"
-              onClick={() => {
-                if (transactions.length === 0) {
-                  toast.error("Nenhuma transação para exportar");
-                  return;
-                }
-                const csv = exportTransactionsToCSV(transactions, typeFilter, {
-                  clients,
-                  suppliers,
-                  accounts,
-                });
-                const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-                const link = document.createElement("a");
-                const url = URL.createObjectURL(blob);
-                link.setAttribute("href", url);
-                link.setAttribute("download", `relatorio_transacoes_${typeFilter}_${startDate || "inicio"}_${endDate || "fim"}.csv`);
-                link.style.visibility = "hidden";
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-                toast.success("Relatório de transações exportado em CSV.");
-              }}
+              onClick={() => setIsNewModalOpen(true)} 
+              className="gap-2 bg-green-500 hover:bg-green-600 border-none shadow-lg shadow-green-100 font-bold rounded-xl h-10 sm:h-9 text-xs text-white"
             >
-              <Download className="size-4" /> Exportar CSV
-            </Button>
-            <Button
-              variant="outline"
-              className="gap-2 rounded-xl"
-              onClick={() => setIsReportModalOpen(true)}
-            >
-              <Printer className="size-4" /> Relatório Executivo
-            </Button>
-            <Button onClick={() => setIsNewModalOpen(true)} className="gap-2 bg-green-500 border-none shadow-lg shadow-green-100 font-bold rounded-xl h-11">
               <Plus className="size-4" /> Nova Transação
             </Button>
           </div>
@@ -905,53 +914,37 @@ function TransactionsPage() {
 
       {/* Modal de Relatório Executivo com ReportLayout e Impressão A4 */}
       <Dialog open={isReportModalOpen} onOpenChange={setIsReportModalOpen}>
-        <DialogContent className="max-w-5xl max-h-[92vh] p-4 sm:p-6 overflow-y-auto bg-white dark:bg-card">
-          <DialogHeader className="flex flex-row items-center justify-between pb-3 border-b print:hidden">
-            <div>
-              <DialogTitle className="text-lg font-black font-display">
+        <DialogContent className="w-[96vw] sm:w-full max-w-5xl max-h-[92vh] p-3 sm:p-6 overflow-y-auto overflow-x-hidden bg-white dark:bg-card">
+          <DialogHeader className="flex flex-col gap-3 pb-3 border-b print:hidden">
+            <div className="pr-8 text-left">
+              <DialogTitle className="text-base sm:text-lg font-black font-display leading-tight">
                 Relatório de Transações Financeiras
               </DialogTitle>
-              <DialogDescription className="text-xs text-muted-foreground">
+              <DialogDescription className="text-xs text-muted-foreground mt-0.5">
                 Visualização executiva com totais, colunas detalhadas e formato para impressão A4.
               </DialogDescription>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="grid grid-cols-2 sm:flex sm:items-center sm:justify-end gap-2 w-full">
               <Button
                 variant="outline"
                 size="sm"
-                className="gap-1.5 rounded-xl text-xs font-bold"
-                onClick={() => {
-                  const csv = exportTransactionsToCSV(transactions, typeFilter, {
-                    clients,
-                    suppliers,
-                    accounts,
-                  });
-                  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-                  const link = document.createElement("a");
-                  const url = URL.createObjectURL(blob);
-                  link.setAttribute("href", url);
-                  link.setAttribute("download", `relatorio_transacoes_${typeFilter}_${startDate || "inicio"}_${endDate || "fim"}.csv`);
-                  link.style.visibility = "hidden";
-                  document.body.appendChild(link);
-                  link.click();
-                  document.body.removeChild(link);
-                  toast.success("Relatório exportado em CSV.");
-                }}
+                className="h-10 sm:h-9 gap-1.5 rounded-xl text-xs font-bold w-full sm:w-auto"
+                onClick={handleExportCsv}
               >
-                <Download className="size-3.5" /> CSV
+                <Download className="size-4 text-amber-500" /> Exportar CSV
               </Button>
               <Button
                 variant="default"
                 size="sm"
-                className="gap-1.5 rounded-xl text-xs font-bold bg-primary text-primary-foreground"
+                className="h-10 sm:h-9 gap-1.5 rounded-xl text-xs font-black bg-amber-500 hover:bg-amber-600 text-slate-950 shadow-sm w-full sm:w-auto"
                 onClick={() => window.print()}
               >
-                <Printer className="size-3.5" /> Imprimir A4
+                <Printer className="size-4" /> Imprimir A4
               </Button>
             </div>
           </DialogHeader>
 
-          <div className="pt-2">
+          <div className="pt-2 min-w-0 max-w-full">
             {(() => {
               const rep = buildTransactionReportData(transactions, typeFilter, {
                 clients,
@@ -969,6 +962,8 @@ function TransactionsPage() {
                   rows={rep.rows}
                   summaryCards={rep.summaryCards}
                   summaryPosition="top"
+                  onPrint={() => window.print()}
+                  onExportCsv={handleExportCsv}
                 />
               );
             })()}
