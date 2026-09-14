@@ -837,11 +837,19 @@ function ReportsPage() {
           const isPaid = details.status === "Pago";
           const isPending = details.status === "Pendente";
 
+          const dateSpan = <span className="whitespace-nowrap">{details.date}</span>;
+          const methodSpan = <span className="whitespace-nowrap">{details.method}</span>;
+          const categorySpan = <span className="whitespace-nowrap">{details.category}</span>;
+
           const statusBadge = (
             <span
               className={cn(
-                "inline-flex items-center px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-tight",
-                isPaid ? "bg-emerald-100 text-emerald-800" : isPending ? "bg-amber-100 text-amber-800" : "bg-rose-100 text-rose-800"
+                "inline-flex items-center justify-center px-1.5 py-0.5 rounded text-[9px] print:text-[8px] font-black uppercase tracking-tight whitespace-nowrap",
+                isPaid
+                  ? "bg-emerald-100 text-emerald-800 print:bg-emerald-50 print:text-emerald-900"
+                  : isPending
+                  ? "bg-amber-100 text-amber-800 print:bg-amber-50 print:text-amber-900"
+                  : "bg-rose-100 text-rose-800 print:bg-rose-50 print:text-rose-900"
               )}
             >
               {details.status}
@@ -851,8 +859,8 @@ function ReportsPage() {
           const typeBadge = (
             <span
               className={cn(
-                "inline-flex items-center px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-tight",
-                details.isIncome ? "bg-emerald-50 text-emerald-700" : "bg-rose-50 text-rose-700"
+                "inline-flex items-center justify-center px-1.5 py-0.5 rounded text-[9px] print:text-[8px] font-black uppercase tracking-tight whitespace-nowrap",
+                details.isIncome ? "bg-emerald-50 text-emerald-700 print:bg-emerald-50 print:text-emerald-900" : "bg-rose-50 text-rose-700 print:bg-rose-50 print:text-rose-900"
               )}
             >
               {details.isIncome ? "Receita" : "Despesa"}
@@ -860,34 +868,34 @@ function ReportsPage() {
           );
 
           const amountFormatted = (
-            <span className={cn("font-black", details.isIncome ? "text-emerald-600" : "text-rose-600")}>
+            <span className={cn("font-black whitespace-nowrap font-mono text-xs print:text-[9.5px]", details.isIncome ? "text-emerald-600 print:text-emerald-800" : "text-rose-600 print:text-rose-800")}>
               {details.isIncome ? "+ " : "- "}
               {details.amountFormatted}
             </span>
           );
 
           if (generalTypeFilter === "receita") {
-            data.date = details.date;
-            data.sale_code = details.saleCode;
+            data.date = dateSpan;
+            data.sale_code = <span className="whitespace-nowrap font-mono font-bold text-slate-900">{details.saleCode}</span>;
             data.client_name = details.clientName;
-            data.category = details.category;
-            data.method = details.method;
+            data.category = categorySpan;
+            data.method = methodSpan;
             data.status = statusBadge;
             data.amount = amountFormatted;
           } else if (generalTypeFilter === "despesa") {
-            data.date = details.date;
+            data.date = dateSpan;
             data.description = details.description;
-            data.category = details.category;
-            data.method = details.method;
+            data.category = categorySpan;
+            data.method = methodSpan;
             data.status = statusBadge;
             data.amount = amountFormatted;
           } else {
-            data.date = details.date;
+            data.date = dateSpan;
             data.type = typeBadge;
-            data.desc_code = details.isIncome ? (details.saleCode || details.description) : details.description;
+            data.desc_code = details.isIncome ? (details.saleCode ? <span className="whitespace-nowrap font-mono font-bold">{details.saleCode}</span> : details.description) : details.description;
             data.client_supplier = details.isIncome ? details.clientName : (details.supplierName || "—");
-            data.category = details.category;
-            data.method = details.method;
+            data.category = categorySpan;
+            data.method = methodSpan;
             data.status = statusBadge;
             data.amount = amountFormatted;
           }

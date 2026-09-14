@@ -194,33 +194,33 @@ export function buildTransactionReportData(
 
   if (typeFilter === "receita") {
     columns.push(
-      { key: "date", label: "Data" },
-      { key: "sale_code", label: "Código Venda" },
-      { key: "client_name", label: "Nome Cliente" },
-      { key: "category", label: "Categoria" },
-      { key: "method", label: "Forma de Pagamento" },
-      { key: "status", label: "Situação", align: "center" },
-      { key: "amount", label: "Valor", align: "right" }
+      { key: "date", label: "Data", className: "whitespace-nowrap w-[75px]" },
+      { key: "sale_code", label: "Código Venda", className: "whitespace-nowrap font-mono font-bold text-slate-900 w-[110px]" },
+      { key: "client_name", label: "Nome Cliente", className: "min-w-[120px]" },
+      { key: "category", label: "Categoria", className: "whitespace-nowrap w-[90px]" },
+      { key: "method", label: "Forma de Pagamento", className: "whitespace-nowrap w-[100px]" },
+      { key: "status", label: "Situação", align: "center", className: "whitespace-nowrap w-[65px]" },
+      { key: "amount", label: "Valor", align: "right", className: "whitespace-nowrap font-mono w-[95px]" }
     );
   } else if (typeFilter === "despesa") {
     columns.push(
-      { key: "date", label: "Data" },
-      { key: "description", label: "Descrição da Transação" },
-      { key: "category", label: "Categoria" },
-      { key: "method", label: "Forma de Pagamento" },
-      { key: "status", label: "Situação", align: "center" },
-      { key: "amount", label: "Valor", align: "right" }
+      { key: "date", label: "Data", className: "whitespace-nowrap w-[75px]" },
+      { key: "description", label: "Descrição da Transação", className: "min-w-[180px]" },
+      { key: "category", label: "Categoria", className: "whitespace-nowrap w-[100px]" },
+      { key: "method", label: "Forma de Pagamento", className: "whitespace-nowrap w-[100px]" },
+      { key: "status", label: "Situação", align: "center", className: "whitespace-nowrap w-[65px]" },
+      { key: "amount", label: "Valor", align: "right", className: "whitespace-nowrap font-mono w-[95px]" }
     );
   } else {
     columns.push(
-      { key: "date", label: "Data" },
-      { key: "type", label: "Tipo", align: "center" },
-      { key: "desc_code", label: "Descrição / Cód. Venda" },
-      { key: "client_supplier", label: "Cliente / Favorecido" },
-      { key: "category", label: "Categoria" },
-      { key: "method", label: "Forma de Pagamento" },
-      { key: "status", label: "Situação", align: "center" },
-      { key: "amount", label: "Valor", align: "right" }
+      { key: "date", label: "Data", className: "whitespace-nowrap w-[72px]" },
+      { key: "type", label: "Tipo", align: "center", className: "whitespace-nowrap w-[60px]" },
+      { key: "desc_code", label: "Descrição / Cód. Venda", className: "min-w-[140px]" },
+      { key: "client_supplier", label: "Cliente / Favorecido", className: "min-w-[110px]" },
+      { key: "category", label: "Categoria", className: "whitespace-nowrap w-[80px]" },
+      { key: "method", label: "Forma de Pagamento", className: "whitespace-nowrap w-[85px]" },
+      { key: "status", label: "Situação", align: "center", className: "whitespace-nowrap w-[60px]" },
+      { key: "amount", label: "Valor", align: "right", className: "whitespace-nowrap font-mono w-[90px]" }
     );
   }
 
@@ -241,14 +241,18 @@ export function buildTransactionReportData(
     const isPaid = item.status === "Pago";
     const isPending = item.status === "Pendente";
 
+    const dateSpan = <span className="whitespace-nowrap">{item.date}</span>;
+    const methodSpan = <span className="whitespace-nowrap">{item.method}</span>;
+    const categorySpan = <span className="whitespace-nowrap">{item.category}</span>;
+
     const statusBadge = (
       <span
-        className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-tight ${
+        className={`inline-flex items-center justify-center px-1.5 py-0.5 rounded text-[9px] print:text-[8px] font-black uppercase tracking-tight whitespace-nowrap ${
           isPaid
-            ? "bg-emerald-100 text-emerald-800"
+            ? "bg-emerald-100 text-emerald-800 print:bg-emerald-50 print:text-emerald-900"
             : isPending
-            ? "bg-amber-100 text-amber-800"
-            : "bg-rose-100 text-rose-800"
+            ? "bg-amber-100 text-amber-800 print:bg-amber-50 print:text-amber-900"
+            : "bg-rose-100 text-rose-800 print:bg-rose-50 print:text-rose-900"
         }`}
       >
         {item.status}
@@ -257,8 +261,10 @@ export function buildTransactionReportData(
 
     const typeBadge = (
       <span
-        className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-tight ${
-          item.isIncome ? "bg-emerald-50 text-emerald-700" : "bg-rose-50 text-rose-700"
+        className={`inline-flex items-center justify-center px-1.5 py-0.5 rounded text-[9px] print:text-[8px] font-black uppercase tracking-tight whitespace-nowrap ${
+          item.isIncome
+            ? "bg-emerald-50 text-emerald-700 print:bg-emerald-50 print:text-emerald-900"
+            : "bg-rose-50 text-rose-700 print:bg-rose-50 print:text-rose-900"
         }`}
       >
         {item.isIncome ? "Receita" : "Despesa"}
@@ -267,8 +273,8 @@ export function buildTransactionReportData(
 
     const amountFormatted = (
       <span
-        className={`font-black ${
-          item.isIncome ? "text-emerald-600" : "text-rose-600"
+        className={`font-black whitespace-nowrap font-mono text-xs print:text-[9.5px] ${
+          item.isIncome ? "text-emerald-600 print:text-emerald-800" : "text-rose-600 print:text-rose-800"
         }`}
       >
         {item.isIncome ? "+ " : "- "}
@@ -278,11 +284,11 @@ export function buildTransactionReportData(
 
     if (typeFilter === "receita") {
       return {
-        date: item.date,
-        sale_code: item.saleCode,
+        date: dateSpan,
+        sale_code: <span className="whitespace-nowrap font-mono font-bold text-slate-900">{item.saleCode}</span>,
         client_name: item.clientName,
-        category: item.category,
-        method: item.method,
+        category: categorySpan,
+        method: methodSpan,
         status: statusBadge,
         amount: amountFormatted,
         // Chaves puras para CSV/limpeza
@@ -293,10 +299,10 @@ export function buildTransactionReportData(
 
     if (typeFilter === "despesa") {
       return {
-        date: item.date,
+        date: dateSpan,
         description: item.description,
-        category: item.category,
-        method: item.method,
+        category: categorySpan,
+        method: methodSpan,
         status: statusBadge,
         amount: amountFormatted,
         // Chaves puras para CSV/limpeza
@@ -306,12 +312,12 @@ export function buildTransactionReportData(
     }
 
     return {
-      date: item.date,
+      date: dateSpan,
       type: typeBadge,
-      desc_code: item.isIncome ? item.saleCode || item.description : item.description,
-      client_supplier: item.isIncome ? item.clientName : item.supplierName || "—",
-      category: item.category,
-      method: item.method,
+      desc_code: item.isIncome ? (item.saleCode ? <span className="whitespace-nowrap font-mono font-bold">{item.saleCode}</span> : item.description) : item.description,
+      client_supplier: item.isIncome ? item.clientName : (item.supplierName || "—"),
+      category: categorySpan,
+      method: methodSpan,
       status: statusBadge,
       amount: amountFormatted,
       // Chaves puras para CSV/limpeza

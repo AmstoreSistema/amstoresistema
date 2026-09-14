@@ -278,8 +278,8 @@ div:has(> a[href*="lovable.app"]) {
 
 @media print {
   @page {
-    size: A4 portrait;
-    margin: 8mm 8mm 8mm 8mm;
+    size: auto;
+    margin: 6mm 6mm 6mm 6mm;
   }
 
   /* Desativa animações e transições na impressão para renderização imediata e sólida */
@@ -369,7 +369,7 @@ div:has(> a[href*="lovable.app"]) {
     max-width: 100% !important;
     table-layout: auto !important;
     border-collapse: collapse !important;
-    font-size: 8.5pt !important;
+    font-size: 8pt !important;
     page-break-inside: auto !important;
     break-inside: auto !important;
   }
@@ -401,19 +401,28 @@ div:has(> a[href*="lovable.app"]) {
 
   .report-container th,
   #printable-report th {
-    padding: 5px 6px !important;
+    padding: 4px 4px !important;
     font-size: 7.5pt !important;
     background-color: #f1f5f9 !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
-    white-space: normal !important;
   }
 
   .report-container td,
   #printable-report td {
-    padding: 4.5px 6px !important;
-    font-size: 8pt !important;
-    word-break: break-word !important;
+    padding: 3.5px 4px !important;
+    font-size: 7.8pt !important;
+    word-break: normal !important;
+    overflow-wrap: break-word !important;
+  }
+
+  /* Preservar células e badges que não devem quebrar (datas, tipos, moedas, status) */
+  .report-container .whitespace-nowrap,
+  #printable-report .whitespace-nowrap,
+  .report-container [class*="whitespace-nowrap"],
+  #printable-report [class*="whitespace-nowrap"] {
+    white-space: nowrap !important;
+    word-break: keep-all !important;
   }
 
   /* Preservar zebras e fundos nítidos na impressão */
@@ -431,3 +440,4 @@ div:has(> a[href*="lovable.app"]) {
     print-color-adjust: exact !important;
   }
 }
+

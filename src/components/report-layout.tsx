@@ -41,6 +41,8 @@ export interface ReportLayoutProps {
   className?: string;
   /** Se true, oculta o rodapé de emissão */
   hideFooter?: boolean;
+  /** Orientação da folha para impressão: 'portrait' | 'landscape' | 'auto' (padrão: 'auto', se >= 7 colunas usa landscape) */
+  orientation?: "portrait" | "landscape" | "auto";
 }
 
 export function ReportLayout({
@@ -59,7 +61,9 @@ export function ReportLayout({
   id = "printable-report",
   className,
   hideFooter = false,
+  orientation = "auto",
 }: ReportLayoutProps) {
+  const isLandscape = orientation === "landscape" || (orientation === "auto" && Boolean(columns && columns.length >= 7));
   // 1. Formatação exclusiva do filtro de datas (sem contagem de registros no cabeçalho)
   const periodText = React.useMemo(() => {
     if (startDate && endDate) {
@@ -222,16 +226,33 @@ export function ReportLayout({
         // Regras estritas de impressão folha A4 (sem cortes, bordas perfeitas)
         "print:p-0 print:m-0 print:max-w-none print:w-full print:border-none print:shadow-none print:bg-white print:rounded-none",
         // Herança automática de estilo corporativo para qualquer tabela ou planilha inserida
-        "[&_table]:w-full [&_table]:border-collapse [&_table]:text-sm",
+        "[&_table]:w-full [&_table]:border-collapse [&_table]:text-sm print:[&_table]:text-[9.5px] print:[&_table]:leading-snug",
         "[&_thead]:bg-slate-100/75 [&_thead]:border-b [&_thead]:border-slate-200",
-        "[&_th]:px-4 [&_th]:py-3.5 [&_th]:text-xs [&_th]:font-bold [&_th]:uppercase [&_th]:tracking-wider [&_th]:text-slate-600 [&_th]:border-b [&_th]:border-slate-200",
+        "[&_th]:px-3 [&_th]:py-2 print:[&_th]:px-1 print:[&_th]:py-1 [&_th]:text-xs print:[&_th]:text-[8.5px] [&_th]:font-bold [&_th]:uppercase [&_th]:tracking-tight [&_th]:text-slate-700 [&_th]:border-b [&_th]:border-slate-200",
         "[&_tbody_tr]:border-b [&_tbody_tr]:border-slate-100 [&_tbody_tr]:transition-colors print:[&_tbody_tr]:break-inside-avoid",
         "[&_tbody_tr:nth-child(even)]:bg-slate-50/50 [&_tbody_tr:hover]:bg-slate-100/60",
-        "[&_td]:px-4 [&_td]:py-3 [&_td]:text-sm [&_td]:text-slate-700 [&_td]:font-medium [&_td]:border-b [&_td]:border-slate-100",
-        "[&_tfoot]:bg-slate-100/90 [&_tfoot_td]:font-bold [&_tfoot_td]:text-slate-900",
+        "[&_td]:px-3 [&_td]:py-2 print:[&_td]:px-1 print:[&_td]:py-1 [&_td]:text-xs print:[&_td]:text-[9px] [&_td]:text-slate-800 [&_td]:font-medium [&_td]:border-b [&_td]:border-slate-100",
+        "[&_tfoot]:bg-slate-100/90 [&_tfoot_td]:font-bold [&_tfoot_td]:text-slate-900 print:[&_tfoot_td]:px-1 print:[&_tfoot_td]:py-1 print:[&_tfoot_td]:text-[9.5px]",
         className
       )}
     >
+      <style>{`
+        @media print {
+          @page {
+            size: A4 ${isLandscape ? "landscape" : "portrait"} !important;
+            margin: 6mm 6mm 6mm 6mm !important;
+          }
+          .report-container table {
+            width: 100% !important;
+            table-layout: auto !important;
+          }
+          .report-container th,
+          .report-container td {
+            padding: 3px 5px !important;
+            word-break: normal !important;
+          }
+        }
+      `}</style>
       {/* ============================================================ */}
       {/* CABEÇALHO TOTALMENTE CENTRALIZADO                           */}
       {/* ============================================================ */}
@@ -309,7 +330,7 @@ export function ReportLayout({
                     <TableHead
                       key={col.key}
                       className={cn(
-                        "h-11 px-4 text-[11px] font-black uppercase tracking-wider text-slate-700 print:text-slate-900",
+                        "h-8 px-2.5 py-1.5 print:px-1 print:py-0.5 text-[11px] print:text-[8.5px] font-black uppercase tracking-tight text-slate-700 print:text-slate-900",
                         col.align === "right"
                           ? "text-right"
                           : col.align === "center"
@@ -346,7 +367,7 @@ export function ReportLayout({
                         <TableCell
                           key={col.key}
                           className={cn(
-                            "px-4 py-3 text-sm font-semibold text-slate-700",
+                            "px-2.5 py-1.5 print:px-1 print:py-0.5 text-xs print:text-[9px] font-medium text-slate-700",
                             col.align === "right"
                               ? "text-right"
                               : col.align === "center"
