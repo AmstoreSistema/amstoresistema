@@ -917,6 +917,9 @@ function ReportsPage() {
   const handleGenerateReport = () => {
     setShowResults(true);
     toast.success(`Relatório de ${reportButtons.find(b => b.id === selectedType)?.label} carregado.`);
+    setTimeout(() => {
+      document.getElementById("report-results-section")?.scrollIntoView({ behavior: "smooth" });
+    }, 150);
   };
 
   const handleExportCsv = () => {
@@ -970,22 +973,22 @@ function ReportsPage() {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500 pb-12">
-      <Card className="rounded-[2rem] border-border/40 bg-card overflow-hidden shadow-sm">
-        <CardContent className="p-8 space-y-8">
-          <div className="flex items-start justify-between">
-            <div className="flex items-start gap-4">
-              <div className="size-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
-                <FileBarChart className="size-6" />
+      <Card className="rounded-2xl sm:rounded-[2rem] border-border/40 bg-card overflow-hidden shadow-sm">
+        <CardContent className="p-4 sm:p-8 space-y-6 sm:space-y-8">
+          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+            <div className="flex items-start gap-3 sm:gap-4">
+              <div className="size-11 sm:size-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                <FileBarChart className="size-5 sm:size-6" />
               </div>
               <div>
-                <h1 className="text-2xl font-display font-black tracking-tight">Central de Relatórios Corporativos</h1>
-                <p className="text-muted-foreground text-sm">Gere relatórios gerenciais, operacionais e financeiros completos com padrão executivo.</p>
+                <h1 className="text-xl sm:text-2xl font-display font-black tracking-tight">Central de Relatórios Corporativos</h1>
+                <p className="text-muted-foreground text-xs sm:text-sm">Gere relatórios gerenciais, operacionais e financeiros completos com padrão executivo.</p>
               </div>
             </div>
             <Button 
               asChild 
               variant="outline" 
-              className="rounded-xl border-border/40 hover:bg-muted/50 gap-2 font-bold"
+              className="rounded-xl border-border/40 hover:bg-muted/50 gap-2 font-bold self-start text-xs"
             >
               <Link to={config.url}>
                 IR PARA MÓDULO <ChevronRight className="size-4" />
@@ -993,11 +996,11 @@ function ReportsPage() {
             </Button>
           </div>
 
-          <div className="space-y-4">
+          <div className="space-y-3 sm:space-y-4">
             <h2 className="text-sm font-bold flex items-center gap-2">
               <span className="text-primary">1.</span> Escolha o Tipo de Relatório
             </h2>
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2 sm:gap-3">
               {reportButtons.map((btn) => (
                 <button
                   key={btn.id}
@@ -1006,67 +1009,55 @@ function ReportsPage() {
                     setShowResults(false);
                   }}
                   className={cn(
-                    "flex flex-col items-center justify-center p-4 rounded-2xl border transition-all gap-3 text-center group h-28",
+                    "flex flex-col items-center justify-center p-3 sm:p-4 rounded-xl sm:rounded-2xl border transition-all gap-2 sm:gap-3 text-center group h-24 sm:h-28 cursor-pointer",
                     selectedType === btn.id 
-                      ? "bg-primary border-primary text-primary-foreground shadow-lg shadow-primary/20" 
+                      ? "bg-primary border-primary text-primary-foreground shadow-md shadow-primary/20" 
                       : "bg-muted/30 border-border/40 hover:border-primary/50 hover:bg-muted/50"
                   )}
                 >
                   <btn.icon className={cn(
-                    "size-6",
+                    "size-5 sm:size-6 shrink-0",
                     selectedType === btn.id ? "text-primary-foreground" : "text-muted-foreground group-hover:text-primary"
                   )} />
-                  <span className="text-[11px] font-bold uppercase leading-tight">{btn.label}</span>
+                  <span className="text-[10px] sm:text-[11px] font-bold uppercase leading-tight line-clamp-2">{btn.label}</span>
                 </button>
               ))}
             </div>
           </div>
 
-          <div className="space-y-4">
+          <div className="space-y-4 pt-2 border-t border-border/40">
             <h2 className="text-sm font-bold flex items-center gap-2">
               <span className="text-primary">2.</span> {config.noFilter ? "Relatório Cadastral Completo (sem restrição de data)" : "Filtro por Período"}
             </h2>
-            <div className="flex flex-col md:flex-row gap-4">
-              {config.noFilter ? (
-                <div className="flex-1 h-14 flex items-center justify-center border-2 border-dashed border-border/40 rounded-2xl text-muted-foreground text-[11px] uppercase font-bold tracking-widest bg-muted/10">
-                  Este relatório exibe todos os registros cadastrais ativos na base de dados
-                </div>
-              ) : (
-                <div className="flex-1 grid grid-cols-2 gap-4">
-                  <div className="relative">
-                    <label className="text-[10px] font-black uppercase text-muted-foreground block mb-1">Data Inicial</label>
-                    <Input 
-                      type="date" 
-                      value={dateRange.start}
-                      onChange={(e) => setDateRange({...dateRange, start: e.target.value})}
-                      className="h-12 rounded-xl bg-muted/20 border-border/40 font-bold px-4"
-                    />
-                  </div>
-                  <div className="relative">
-                    <label className="text-[10px] font-black uppercase text-muted-foreground block mb-1">Data Final</label>
-                    <Input 
-                      type="date" 
-                      value={dateRange.end}
-                      onChange={(e) => setDateRange({...dateRange, end: e.target.value})}
-                      className="h-12 rounded-xl bg-muted/20 border-border/40 font-bold px-4"
-                    />
-                  </div>
-                </div>
-              )}
-              <div className="flex items-end">
-                <Button 
-                  onClick={handleGenerateReport}
-                  disabled={isMainLoading}
-                  className="h-12 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-black px-10 gap-3 shadow-lg shadow-primary/20 md:w-auto w-full"
-                >
-                  {isMainLoading ? <RefreshCw className="size-5 animate-spin" /> : <FileBarChart className="size-5" />}
-                  GERAR RELATÓRIO
-                </Button>
+            {config.noFilter ? (
+              <div className="w-full h-14 flex items-center justify-center border-2 border-dashed border-border/40 rounded-2xl text-muted-foreground text-[11px] uppercase font-bold tracking-widest bg-muted/10 text-center px-4">
+                Este relatório exibe todos os registros cadastrais ativos na base de dados
               </div>
-            </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                <div className="relative">
+                  <label className="text-[10px] font-black uppercase text-muted-foreground block mb-1">Data Inicial</label>
+                  <Input 
+                    type="date" 
+                    value={dateRange.start}
+                    onChange={(e) => setDateRange({...dateRange, start: e.target.value})}
+                    className="h-11 sm:h-12 rounded-xl bg-muted/20 border-border/40 font-bold px-3 sm:px-4 text-xs sm:text-sm"
+                  />
+                </div>
+                <div className="relative">
+                  <label className="text-[10px] font-black uppercase text-muted-foreground block mb-1">Data Final</label>
+                  <Input 
+                    type="date" 
+                    value={dateRange.end}
+                    onChange={(e) => setDateRange({...dateRange, end: e.target.value})}
+                    className="h-11 sm:h-12 rounded-xl bg-muted/20 border-border/40 font-bold px-3 sm:px-4 text-xs sm:text-sm"
+                  />
+                </div>
+              </div>
+            )}
 
             {selectedType === "general" && (
-              <div className="grid gap-4 sm:grid-cols-2 pt-4 border-t border-border/40">
+              <div className="grid gap-4 sm:grid-cols-2 pt-3 border-t border-border/40">
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-black uppercase text-muted-foreground block">
                     Tipo de Lançamento (Transação)
@@ -1083,7 +1074,7 @@ function ReportsPage() {
                         variant={generalTypeFilter === t.key ? "default" : "outline"}
                         size="sm"
                         className={cn(
-                          "rounded-xl text-xs font-bold h-9 px-3",
+                          "rounded-xl text-xs font-bold h-9 px-3 flex-1 sm:flex-none",
                           generalTypeFilter === t.key && t.key === "receita" && "bg-emerald-600 hover:bg-emerald-700 text-white border-transparent",
                           generalTypeFilter === t.key && t.key === "despesa" && "bg-rose-600 hover:bg-rose-700 text-white border-transparent"
                         )}
@@ -1110,7 +1101,7 @@ function ReportsPage() {
                         type="button"
                         variant={generalStatusFilter === s.key ? "default" : "outline"}
                         size="sm"
-                        className="rounded-xl text-xs font-bold h-9 px-3"
+                        className="rounded-xl text-xs font-bold h-9 px-3 flex-1 sm:flex-none"
                         onClick={() => setGeneralStatusFilter(s.key)}
                       >
                         {s.label}
@@ -1120,58 +1111,71 @@ function ReportsPage() {
                 </div>
               </div>
             )}
+
+            <div className="pt-2">
+              <Button 
+                onClick={handleGenerateReport}
+                disabled={isMainLoading}
+                className="h-12 w-full sm:w-auto rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-black px-10 gap-3 shadow-lg shadow-primary/20 text-sm cursor-pointer"
+              >
+                {isMainLoading ? <RefreshCw className="size-5 animate-spin" /> : <FileBarChart className="size-5" />}
+                GERAR RELATÓRIO
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>
 
-      <div className="grid gap-6">
-        <div className="flex flex-wrap items-center justify-between gap-3 px-2 print:hidden">
-          <h2 className="font-display font-black text-lg">
-            Visualização: {selectedType === "general"
-              ? (generalTypeFilter === "receita"
-                  ? "Relatório de Receitas (Vendas)"
-                  : generalTypeFilter === "despesa"
-                  ? "Relatório de Despesas"
-                  : "Relatório de Transações Financeiras")
-              : `Relatório de ${reportButtons.find(b => b.id === selectedType)?.label}`}
-          </h2>
-          <div className="flex items-center gap-2">
-            {showResults && filteredData.length > 0 && (
-              <>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleExportCsv}
-                  className="rounded-xl border-border/40 hover:bg-muted/50 gap-2 font-bold"
-                >
-                  <FileDown className="size-4" /> EXPORTAR CSV
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => window.print()}
-                  className="rounded-xl border-border/40 hover:bg-muted/50 gap-2 font-bold"
-                >
-                  <Printer className="size-4" /> IMPRIMIR A4
-                </Button>
-              </>
-            )}
+      <div id="report-results-section" className="grid gap-4 sm:gap-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-1 sm:px-2 print:hidden">
+          <div className="flex items-center gap-2 flex-wrap min-w-0">
+            <h2 className="font-display font-black text-base sm:text-lg text-foreground truncate">
+              {selectedType === "general"
+                ? (generalTypeFilter === "receita"
+                    ? "Relatório de Receitas (Vendas)"
+                    : generalTypeFilter === "despesa"
+                    ? "Relatório de Despesas (Saídas)"
+                    : "Relatório de Transações Financeiras")
+                : `Relatório de ${reportButtons.find(b => b.id === selectedType)?.label}`}
+            </h2>
             {showResults && (
-              <Badge className="bg-primary text-primary-foreground border-none font-black uppercase text-[10px]">
+              <Badge className="bg-primary/15 text-primary border border-primary/25 font-black uppercase text-[10px] shrink-0">
                 {filteredData.length} Registros encontrados
               </Badge>
             )}
           </div>
+          {showResults && filteredData.length > 0 && (
+            <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 w-full sm:w-auto">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleExportCsv}
+                className="h-10 rounded-xl border-border/40 hover:bg-muted/50 gap-2 font-bold text-xs"
+              >
+                <FileDown className="size-4 text-amber-500 shrink-0" />
+                <span>EXPORTAR CSV</span>
+              </Button>
+              <Button
+                variant="default"
+                size="sm"
+                onClick={() => window.print()}
+                className="h-10 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 gap-2 font-black text-xs shadow-sm"
+              >
+                <Printer className="size-4 shrink-0" />
+                <span>IMPRIMIR A4</span>
+              </Button>
+            </div>
+          )}
         </div>
         
         {!showResults ? (
-          <Card className="rounded-[2rem] border-border/40 bg-card overflow-hidden print:hidden">
-            <CardContent className="p-12 text-center space-y-4">
-              <div className="size-20 bg-muted/30 rounded-full flex items-center justify-center mx-auto">
-                <Search className="size-8 text-muted-foreground/30" />
+          <Card className="rounded-2xl sm:rounded-[2rem] border-border/40 bg-card overflow-hidden print:hidden">
+            <CardContent className="p-8 sm:p-12 text-center space-y-4">
+              <div className="size-16 sm:size-20 bg-muted/30 rounded-full flex items-center justify-center mx-auto">
+                <Search className="size-6 sm:size-8 text-muted-foreground/30" />
               </div>
               <div className="space-y-1">
-                <p className="font-bold text-muted-foreground">Selecione o tipo de relatório e clique em Gerar</p>
+                <p className="font-bold text-muted-foreground text-sm sm:text-base">Selecione o tipo de relatório e clique em Gerar</p>
                 <p className="text-[10px] uppercase font-bold tracking-[0.2em] text-muted-foreground/40">Os dados e indicadores gerenciais serão exibidos nesta área</p>
               </div>
             </CardContent>
@@ -1179,17 +1183,17 @@ function ReportsPage() {
         ) : (
           <div className="animate-in slide-in-from-bottom-4 duration-500">
             {isMainLoading ? (
-              <Card className="rounded-[2rem] border-border/40 bg-card overflow-hidden shadow-sm print:hidden">
-                <CardContent className="p-12 text-center space-y-4">
+              <Card className="rounded-2xl sm:rounded-[2rem] border-border/40 bg-card overflow-hidden shadow-sm print:hidden">
+                <CardContent className="p-8 sm:p-12 text-center space-y-4">
                   <RefreshCw className="size-8 text-primary animate-spin mx-auto" />
-                  <p className="font-bold text-muted-foreground">Carregando dados do relatório...</p>
+                  <p className="font-bold text-muted-foreground text-sm">Carregando dados do relatório...</p>
                 </CardContent>
               </Card>
             ) : filteredData.length === 0 ? (
-              <Card className="rounded-[2rem] border-border/40 bg-card overflow-hidden shadow-sm print:hidden">
-                <CardContent className="p-12 text-center space-y-4">
+              <Card className="rounded-2xl sm:rounded-[2rem] border-border/40 bg-card overflow-hidden shadow-sm print:hidden">
+                <CardContent className="p-8 sm:p-12 text-center space-y-4">
                   <X className="size-8 text-destructive/30 mx-auto" />
-                  <p className="font-bold text-muted-foreground">Nenhum dado encontrado para os critérios selecionados</p>
+                  <p className="font-bold text-muted-foreground text-sm">Nenhum dado encontrado para os critérios selecionados</p>
                   <Button variant="outline" size="sm" onClick={() => setShowResults(false)} className="rounded-xl">Limpar</Button>
                 </CardContent>
               </Card>
@@ -1210,6 +1214,8 @@ function ReportsPage() {
                 rows={reportResult.rows}
                 summaryCards={reportResult.summaryCards}
                 summaryPosition="top"
+                onPrint={() => window.print()}
+                onExportCsv={handleExportCsv}
               />
             )}
           </div>

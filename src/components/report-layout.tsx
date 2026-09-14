@@ -1,7 +1,7 @@
 import * as React from "react";
 import { brl, dateBR, num } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import { Calendar, Store, FileText, Calculator, DollarSign, Package } from "lucide-react";
+import { Calendar, Store, FileText, Calculator, DollarSign, Package, FileDown, Printer } from "lucide-react";
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "./ui/table";
 
 export interface ReportLayoutProps {
@@ -43,6 +43,12 @@ export interface ReportLayoutProps {
   hideFooter?: boolean;
   /** Orientação da folha para impressão: 'portrait' | 'landscape' | 'auto' (padrão: 'auto', se >= 7 colunas usa landscape) */
   orientation?: "portrait" | "landscape" | "auto";
+  /** Botões ou elementos de ação customizados para a barra de topo */
+  actions?: React.ReactNode;
+  /** Callback para botão de impressão direta */
+  onPrint?: () => void;
+  /** Callback para botão de exportação CSV direta */
+  onExportCsv?: () => void;
 }
 
 export function ReportLayout({
@@ -62,6 +68,9 @@ export function ReportLayout({
   className,
   hideFooter = false,
   orientation = "auto",
+  actions,
+  onPrint,
+  onExportCsv,
 }: ReportLayoutProps) {
   const isLandscape = orientation === "landscape" || (orientation === "auto" && Boolean(columns && columns.length >= 7));
   // 1. Formatação exclusiva do filtro de datas (sem contagem de registros no cabeçalho)
@@ -184,29 +193,29 @@ export function ReportLayout({
     if (!showTotals || summaryCards.length === 0) return null;
     return (
       <section className={cn(
-        "report-summary rounded-2xl border border-slate-200/90 bg-slate-50/70 p-5 print:bg-white print:border-slate-300 print:p-3 print:break-inside-avoid",
-        position === "top" ? "mb-6 print:mb-3" : "mt-6 print:mt-3"
+        "report-summary rounded-xl sm:rounded-2xl border border-slate-200/90 bg-slate-50/70 p-3 sm:p-5 print:bg-white print:border-slate-300 print:p-3 print:break-inside-avoid",
+        position === "top" ? "mb-4 sm:mb-6 print:mb-3" : "mt-4 sm:mt-6 print:mt-3"
       )}>
-        <div className="flex items-center gap-2 border-b border-slate-200 pb-3 mb-4">
+        <div className="flex items-center gap-2 border-b border-slate-200 pb-2.5 mb-3 sm:mb-4">
           <Calculator className="size-4 text-slate-600 print:text-slate-800" />
           <h2 className="text-xs font-black uppercase tracking-wider text-slate-800 font-display">
             Resumo dos Indicadores Principais
           </h2>
         </div>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 print:grid-cols-3 print:gap-2">
+        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 print:grid-cols-3 gap-2 sm:gap-3">
           {summaryCards.map((card, idx) => (
             <div
               key={idx}
-              className="rounded-xl border border-slate-200 bg-white p-3.5 shadow-xs print:border-slate-300 print:shadow-none"
+              className="rounded-xl border border-slate-200 bg-white p-2.5 sm:p-3.5 shadow-xs print:border-slate-300 print:shadow-none"
             >
-              <p className="text-[10px] font-black uppercase tracking-wider text-slate-500">
+              <p className="text-[9px] sm:text-[10px] font-black uppercase tracking-wider text-slate-500 truncate">
                 {card.label}
               </p>
-              <p className="mt-1 text-lg font-black text-slate-900 font-display tracking-tight print:text-base">
+              <p className="mt-0.5 sm:mt-1 text-sm sm:text-lg font-black text-slate-900 font-display tracking-tight print:text-base truncate">
                 {card.value}
               </p>
               {card.helper && (
-                <p className="text-[10px] font-medium text-slate-400 print:hidden">
+                <p className="text-[9px] sm:text-[10px] font-medium text-slate-400 print:hidden truncate">
                   {card.helper}
                 </p>
               )}
@@ -222,16 +231,16 @@ export function ReportLayout({
       id={id}
       className={cn(
         // Container do relatório compatível com tela e folha A4 perfeita
-        "report-container report-corporate-layout w-full max-w-5xl mx-auto bg-white text-slate-900 p-6 sm:p-10 rounded-2xl shadow-sm border border-slate-200/80 animate-in fade-in duration-300",
+        "report-container report-corporate-layout w-full max-w-5xl mx-auto bg-white text-slate-900 p-3 sm:p-6 md:p-10 rounded-xl sm:rounded-2xl shadow-sm border border-slate-200/80 animate-in fade-in duration-300 overflow-hidden",
         // Regras estritas de impressão folha A4 (sem cortes, bordas perfeitas)
         "print:p-0 print:m-0 print:max-w-none print:w-full print:border-none print:shadow-none print:bg-white print:rounded-none",
         // Herança automática de estilo corporativo para qualquer tabela ou planilha inserida
         "[&_table]:w-full [&_table]:border-collapse [&_table]:text-sm print:[&_table]:text-[9.5px] print:[&_table]:leading-snug",
         "[&_thead]:bg-slate-100/75 [&_thead]:border-b [&_thead]:border-slate-200",
-        "[&_th]:px-3 [&_th]:py-2 print:[&_th]:px-1 print:[&_th]:py-1 [&_th]:text-xs print:[&_th]:text-[8.5px] [&_th]:font-bold [&_th]:uppercase [&_th]:tracking-tight [&_th]:text-slate-700 [&_th]:border-b [&_th]:border-slate-200",
+        "[&_th]:px-2.5 sm:[&_th]:px-3 [&_th]:py-2 print:[&_th]:px-1 print:[&_th]:py-1 [&_th]:text-[10px] sm:[&_th]:text-xs print:[&_th]:text-[8.5px] [&_th]:font-bold [&_th]:uppercase [&_th]:tracking-tight [&_th]:text-slate-700 [&_th]:border-b [&_th]:border-slate-200",
         "[&_tbody_tr]:border-b [&_tbody_tr]:border-slate-100 [&_tbody_tr]:transition-colors print:[&_tbody_tr]:break-inside-avoid",
         "[&_tbody_tr:nth-child(even)]:bg-slate-50/50 [&_tbody_tr:hover]:bg-slate-100/60",
-        "[&_td]:px-3 [&_td]:py-2 print:[&_td]:px-1 print:[&_td]:py-1 [&_td]:text-xs print:[&_td]:text-[9px] [&_td]:text-slate-800 [&_td]:font-medium [&_td]:border-b [&_td]:border-slate-100",
+        "[&_td]:px-2.5 sm:[&_td]:px-3 [&_td]:py-2 print:[&_td]:px-1 print:[&_td]:py-1 [&_td]:text-xs print:[&_td]:text-[9px] [&_td]:text-slate-800 [&_td]:font-medium [&_td]:border-b [&_td]:border-slate-100",
         "[&_tfoot]:bg-slate-100/90 [&_tfoot_td]:font-bold [&_tfoot_td]:text-slate-900 print:[&_tfoot_td]:px-1 print:[&_tfoot_td]:py-1 print:[&_tfoot_td]:text-[9.5px]",
         className
       )}
@@ -253,28 +262,66 @@ export function ReportLayout({
           }
         }
       `}</style>
+
+      {/* ============================================================ */}
+      {/* BARRA DE AÇÕES INTEGRADA (TELA / MOBILE / DESKTOP)          */}
+      {/* ============================================================ */}
+      {(actions || onPrint || onExportCsv) && (
+        <div className="print:hidden w-full mb-5 p-2.5 sm:p-4 rounded-xl sm:rounded-2xl bg-slate-900 text-white shadow-md flex flex-col sm:flex-row sm:items-center justify-between gap-3 border border-slate-800">
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="size-2.5 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+            <span className="text-xs sm:text-sm font-bold text-slate-200 truncate">
+              Relatório Pronto ({rows?.length ?? 0} registros)
+            </span>
+          </div>
+          <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 w-full sm:w-auto">
+            {actions}
+            {onExportCsv && (
+              <button
+                type="button"
+                onClick={onExportCsv}
+                className="flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-100 text-xs font-bold border border-slate-700 transition-colors shadow-sm cursor-pointer active:scale-95"
+              >
+                <FileDown className="size-4 text-amber-400 shrink-0" />
+                <span>Exportar CSV</span>
+              </button>
+            )}
+            {onPrint && (
+              <button
+                type="button"
+                onClick={onPrint}
+                className="flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-black transition-colors shadow-sm cursor-pointer active:scale-95"
+              >
+                <Printer className="size-4 shrink-0" />
+                <span>Imprimir A4</span>
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* ============================================================ */}
       {/* CABEÇALHO TOTALMENTE CENTRALIZADO                           */}
       {/* ============================================================ */}
-      <header className="report-header mb-8 flex flex-col items-center justify-center text-center">
+      <header className="report-header mb-6 sm:mb-8 flex flex-col items-center justify-center text-center px-1">
         {/* 1. Logomarca (ou Placeholder Elegante) */}
-        <div className="flex flex-col items-center justify-center mb-3">
+        <div className="flex flex-col items-center justify-center mb-2.5">
           {storeInfo?.logo ? (
             <img
               src={storeInfo.logo}
               alt={storeName}
-              className="max-h-20 max-w-[240px] object-contain print:max-h-16 transition-all"
+              className="max-h-16 sm:max-h-20 max-w-[200px] sm:max-w-[240px] object-contain print:max-h-16 transition-all"
             />
           ) : (
-            <div className="flex items-center gap-3">
-              <div className="flex size-12 items-center justify-center rounded-2xl bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-amber-400 shadow-md border border-slate-700/40 print:bg-slate-900 print:text-amber-400">
-                <Store className="size-6" />
+            <div className="flex items-center gap-2.5 sm:gap-3">
+              <div className="flex size-10 sm:size-12 items-center justify-center rounded-xl sm:rounded-2xl bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-amber-400 shadow-md border border-slate-700/40 print:bg-slate-900 print:text-amber-400">
+                <Store className="size-5 sm:size-6" />
               </div>
               <div className="text-left">
-                <span className="block font-display text-lg font-black tracking-widest text-slate-900 uppercase">
+                <span className="block font-display text-base sm:text-lg font-black tracking-widest text-slate-900 uppercase">
                   {storeName}
                 </span>
-                <span className="block text-[9px] font-bold tracking-[0.25em] text-slate-400 uppercase -mt-0.5">
+                <span className="block text-[8px] sm:text-[9px] font-bold tracking-[0.25em] text-slate-400 uppercase -mt-0.5">
                   Sistema de Gestão
                 </span>
               </div>
@@ -283,7 +330,7 @@ export function ReportLayout({
 
           {/* Dados secundários da empresa (CNPJ, Contato, Endereço) */}
           {(storeInfo?.cnpj || storeInfo?.contact || storeInfo?.address) && (
-            <div className="mt-2 flex flex-wrap items-center justify-center gap-x-3 gap-y-0.5 text-[11px] font-medium text-slate-500">
+            <div className="mt-1.5 flex flex-wrap items-center justify-center gap-x-2 sm:gap-x-3 gap-y-0.5 text-[10px] sm:text-[11px] font-medium text-slate-500">
               {storeInfo.cnpj && <span>CNPJ: {storeInfo.cnpj}</span>}
               {storeInfo.cnpj && storeInfo.contact && <span className="text-slate-300">•</span>}
               {storeInfo.contact && <span>{storeInfo.contact}</span>}
@@ -294,18 +341,18 @@ export function ReportLayout({
         </div>
 
         {/* Separador minimalista e refinado */}
-        <div className="my-2 h-0.5 w-16 rounded-full bg-gradient-to-r from-amber-400/80 via-amber-500 to-amber-400/80 print:bg-slate-300" />
+        <div className="my-1.5 h-0.5 w-12 sm:w-16 rounded-full bg-gradient-to-r from-amber-400/80 via-amber-500 to-amber-400/80 print:bg-slate-300" />
 
         {/* 2. Nome do Relatório */}
-        <h1 className="mt-2 text-2xl font-black uppercase tracking-wider text-slate-900 font-display sm:text-3xl">
+        <h1 className="mt-1.5 text-base sm:text-2xl md:text-3xl font-black uppercase tracking-wide text-slate-900 font-display break-words max-w-full">
           {title}
         </h1>
 
-        {/* 3. Dados do Filtro com a Data (APENAS O FILTRO DAS DATAS) */}
-        <div className="mt-3 flex items-center justify-center">
-          <div className="inline-flex items-center gap-2 rounded-full bg-slate-100/90 px-4 py-1.5 text-xs font-semibold text-slate-700 border border-slate-200/80 print:bg-slate-50 print:border-slate-300">
-            <Calendar className="size-3.5 text-slate-500 print:text-slate-700" />
-            <span>{periodText}</span>
+        {/* 3. Dados do Filtro com a Data */}
+        <div className="mt-2.5 flex items-center justify-center">
+          <div className="inline-flex items-center gap-1.5 sm:gap-2 rounded-full bg-slate-100/90 px-3 sm:px-4 py-1 sm:py-1.5 text-[11px] sm:text-xs font-semibold text-slate-700 border border-slate-200/80 print:bg-slate-50 print:border-slate-300">
+            <Calendar className="size-3 sm:size-3.5 text-slate-500 print:text-slate-700 shrink-0" />
+            <span className="truncate">{periodText}</span>
           </div>
         </div>
       </header>
@@ -321,9 +368,13 @@ export function ReportLayout({
           // Conteúdo passado diretamente como children
           children
         ) : columns && rows ? (
-          // Tabela corporativa com suporte a totais/subtotais automáticos
-          <div className="overflow-x-auto rounded-xl border border-slate-200/90 shadow-sm print:overflow-visible print:border-slate-300 print:shadow-none">
-            <Table>
+          // Tabela corporativa com suporte a totais/subtotais automáticos e rolagem no mobile
+          <div className="w-full max-w-full overflow-x-auto rounded-xl border border-slate-200/90 shadow-xs print:overflow-visible print:border-slate-300 print:shadow-none touch-pan-x">
+            <div className="sm:hidden flex items-center justify-between px-3 py-1.5 bg-slate-100/80 border-b border-slate-200 text-[10px] font-semibold text-slate-500">
+              <span>Deslize a tabela para ver todas as colunas &rarr;</span>
+              <span className="font-bold text-slate-700">{rows.length} registros</span>
+            </div>
+            <Table className="min-w-[650px] sm:min-w-full">
               <TableHeader>
                 <TableRow className="bg-slate-100/80 hover:bg-slate-100/80 print:bg-slate-100">
                   {columns.map((col) => (

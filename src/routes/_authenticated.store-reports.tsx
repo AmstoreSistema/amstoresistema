@@ -1401,9 +1401,12 @@ function StoreReportsPage() {
             onClick={() => {
               setGenerated(selected);
               toast.success(`Relatório "${current.label}" gerado.`);
+              setTimeout(() => {
+                document.getElementById("store-report-results-section")?.scrollIntoView({ behavior: "smooth" });
+              }, 150);
             }}
             disabled={isLoading}
-            className="w-full gap-2 rounded-xl font-black h-12 text-sm shadow-md"
+            className="w-full gap-2 rounded-xl font-black h-12 text-sm shadow-md cursor-pointer"
           >
             <FileBarChart className="size-4" /> Gerar Relatório
           </Button>
@@ -1412,11 +1415,11 @@ function StoreReportsPage() {
 
       {/* Relatório Renderizado */}
       {generated && (
-        <div className="space-y-4 animate-in slide-in-from-bottom-4 duration-500">
-          <div className="flex flex-wrap items-center justify-between gap-3 px-2 print:hidden">
-            <div className="flex items-center gap-3">
-              <h2 className="font-display text-lg font-black text-slate-800">
-                Visualização do Relatório: {selected === "transactions"
+        <div id="store-report-results-section" className="space-y-4 animate-in slide-in-from-bottom-4 duration-500">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-1 sm:px-2 print:hidden">
+            <div className="flex items-center gap-2.5 flex-wrap min-w-0">
+              <h2 className="font-display text-base sm:text-lg font-black text-foreground truncate">
+                Visualização: {selected === "transactions"
                   ? (txTypeFilter === "receita"
                       ? "Receitas (Vendas)"
                       : txTypeFilter === "despesa"
@@ -1424,26 +1427,28 @@ function StoreReportsPage() {
                       : "Transações Financeiras")
                   : current.label}
               </h2>
-              <Badge variant="outline" className="font-bold border-slate-300">
+              <Badge variant="outline" className="font-bold border-border/60 shrink-0 text-[10px]">
                 {result.rows.length} registros
               </Badge>
             </div>
-            <div className="flex gap-2">
+            <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 w-full sm:w-auto">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={handleExport}
-                className="gap-2 rounded-xl font-bold border-border/60 hover:bg-muted/50"
+                className="h-10 rounded-xl font-bold border-border/60 hover:bg-muted/50 gap-2 text-xs"
               >
-                <FileDown className="size-4" /> EXPORTAR CSV
+                <FileDown className="size-4 text-amber-500 shrink-0" />
+                <span>EXPORTAR CSV</span>
               </Button>
               <Button
-                variant="outline"
+                variant="default"
                 size="sm"
                 onClick={() => window.print()}
-                className="gap-2 rounded-xl font-bold border-border/60 hover:bg-muted/50"
+                className="h-10 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-black gap-2 text-xs shadow-sm"
               >
-                <Printer className="size-4" /> IMPRIMIR A4
+                <Printer className="size-4 shrink-0" />
+                <span>IMPRIMIR A4</span>
               </Button>
             </div>
           </div>
@@ -1464,6 +1469,8 @@ function StoreReportsPage() {
             rows={result.rows}
             summaryCards={result.summaryCards}
             summaryPosition="top"
+            onPrint={() => window.print()}
+            onExportCsv={handleExport}
           />
         </div>
       )}

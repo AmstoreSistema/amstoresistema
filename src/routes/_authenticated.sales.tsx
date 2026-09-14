@@ -88,6 +88,18 @@ function SalesPage() {
   });
   const [filterOpen, setFilterOpen] = useState(false);
 
+  // Lista dinâmica de anos disponíveis no histórico (garante no mínimo 2024, 2025 e 2026)
+  const availableYears = useMemo(() => {
+    const cy = new Date().getFullYear();
+    const max = Math.max(cy, 2026);
+    const min = 2024;
+    const list: number[] = [];
+    for (let y = max; y >= min; y--) {
+      list.push(y);
+    }
+    return list;
+  }, []);
+
   const applyPreset = (preset: string) => {
     setPeriodPreset(preset);
     const now = new Date();
@@ -129,6 +141,14 @@ function SalesPage() {
     } else if (preset === "yearPrevious") {
       setStartDate(`${currentYear - 1}-01-01`);
       setEndDate(`${currentYear - 1}-12-31`);
+    } else if (preset.startsWith("year-") || /^\d{4}$/.test(preset)) {
+      const targetYear = parseInt(preset.replace("year-", ""), 10);
+      setStartDate(`${targetYear}-01-01`);
+      if (targetYear === currentYear) {
+        setEndDate(todayStr);
+      } else {
+        setEndDate(`${targetYear}-12-31`);
+      }
     } else if (preset === "all") {
       setStartDate("");
       setEndDate("");
@@ -183,7 +203,26 @@ function SalesPage() {
         .order("created_at", { ascending: false });
 
       if (term.toLowerCase() === "pending") {
-        q = q.eq("is_debt", true);
+        // Busca os IDs de vendas no fiado que realmente possuem saldo devedor em aberto
+        const { data: openDebtSales } = await supabase
+          .from("sales")
+          .select("id, total_amount, paid_amount, status")
+          .or("is_debt.eq.true,payment_method.eq.Fiado")
+          .not("status", "in", '("cancelled","cancelada","estornado")');
+
+        const activeOpenIds = (openDebtSales || [])
+          .filter((s: any) => {
+            const status = String(s.status || "").toLowerCase();
+            if (["paid", "pago", "completed", "finalizado", "quitado"].includes(status)) return false;
+            return (Number(s.total_amount || 0) - Number(s.paid_amount || 0)) > 0.009;
+          })
+          .map((s: any) => s.id);
+
+        if (activeOpenIds.length > 0) {
+          q = q.in("id", activeOpenIds);
+        } else {
+          q = q.eq("id", "00000000-0000-0000-0000-000000000000");
+        }
       } else if (term.trim()) {
         const cleanTerm = term.trim();
         const matchingClientIds = (clients as any[])
@@ -197,9 +236,9 @@ function SalesPage() {
         }
       }
 
-      // Se o usuário digitou uma busca específica (ex: cliente ou código), busca no histórico completo,
-      // a menos que ele tenha clicado em um período customizado específico
-      const isGlobalTextSearch = term.trim().length > 0 && periodPreset === "thisMonth";
+      // Se o usuário digitou uma busca específica (ex: cliente ou código) ou filtrou por fiados em aberto,
+      // busca no histórico completo, a menos que ele tenha clicado em um período customizado específico
+      const isGlobalTextSearch = (term.trim().length > 0) && periodPreset === "thisMonth";
       if (!isGlobalTextSearch) {
         if (startDate) {
           q = q.gte("created_at", `${startDate}T00:00:00`);
@@ -261,11 +300,26 @@ function SalesPage() {
         .gte("created_at", `${today}T00:00:00`)
         .not("status", "in", '("cancelled","cancelada","estornado")');
 
-      // 2. Fiados em Aberto
-      const { count: pendingFiadoCount } = await supabase
+      // 2. Fiados em Aberto (apenas vendas a prazo/fiado ativas com saldo devedor pendente)
+      const { data: debtSales } = await supabase
         .from("sales")
-        .select("id", { count: "exact", head: true })
-        .eq("is_debt", true);
+        .select("id, total_amount, paid_amount, status, is_debt, payment_method")
+        .or("is_debt.eq.true,payment_method.eq.Fiado")
+        .not("status", "in", '("cancelled","cancelada","estornado")');
+
+      const openFiados = (debtSales || []).filter((s: any) => {
+        const status = String(s.status || "").toLowerCase();
+        if (["paid", "pago", "completed", "finalizado", "quitado"].includes(status)) return false;
+        const total = Number(s.total_amount || 0);
+        const paid = Number(s.paid_amount || 0);
+        return (total - paid) > 0.009;
+      });
+
+      const pendingFiadoCount = openFiados.length;
+      const pendingFiadoAmount = openFiados.reduce(
+        (sum: number, s: any) => sum + Math.max(0, Number(s.total_amount || 0) - Number(s.paid_amount || 0)),
+        0
+      );
 
       // 3. Contagem de Vendas no período ativo
       let countQuery = supabase.from("sales").select("id", { count: "exact", head: true });
@@ -290,13 +344,21 @@ function SalesPage() {
         totalToday: todaySales.reduce((sum: number, s: any) => sum + Number(s.total_amount || 0), 0),
         totalSalesCount: periodSalesCount ?? 0,
         totalRevenue,
-        pendingFiado: pendingFiadoCount || 0,
+        pendingFiado: pendingFiadoCount,
+        pendingFiadoAmount,
       };
     },
     staleTime: 10_000,
   });
 
-  const stats = statsData || { countToday: 0, totalToday: 0, totalSalesCount: 0, totalRevenue: 0, pendingFiado: 0 };
+  const stats = statsData || { 
+    countToday: 0, 
+    totalToday: 0, 
+    totalSalesCount: 0, 
+    totalRevenue: 0, 
+    pendingFiado: 0,
+    pendingFiadoAmount: 0,
+  };
 
   const getStatusBadge = (s: any) => {
     // Para vendas fiado, o status vem do saldo devedor (nunca do status default do banco)
@@ -345,7 +407,13 @@ function SalesPage() {
         <StatCard title="Vendas Hoje" value={stats.countToday} icon={ShoppingCart} tone="dark" compact />
         <StatCard title="Faturamento Hoje" value={brl(stats.totalToday)} icon={TrendingUp} tone="gold" compact />
         <StatCard 
-          title={periodPreset === "all" ? "Total de Vendas" : "Vendas no Período"} 
+          title={
+            periodPreset === "all" 
+              ? "Total de Vendas" 
+              : periodPreset.startsWith("year-")
+              ? `Vendas em ${periodPreset.replace("year-", "")}`
+              : "Vendas no Período"
+          } 
           value={stats.totalSalesCount} 
           icon={ShoppingBag} 
           tone="info" 
@@ -357,6 +425,8 @@ function SalesPage() {
               ? "Faturamento Total"
               : periodPreset === "thisMonth"
               ? "Faturamento Mês"
+              : periodPreset.startsWith("year-")
+              ? `Faturamento ${periodPreset.replace("year-", "")}`
               : "Faturamento Período"
           } 
           value={brl(stats.totalRevenue)} 
@@ -365,7 +435,15 @@ function SalesPage() {
           compact 
         />
         <div className="col-span-2 sm:col-span-1 lg:col-span-1">
-          <StatCard title="Fiados em Aberto" value={stats.pendingFiado} icon={AlertTriangle} tone="warning" compact />
+          <StatCard 
+            title="Fiados em Aberto" 
+            value={stats.pendingFiado} 
+            sub={stats.pendingFiadoAmount > 0 ? brl(stats.pendingFiadoAmount) : "Nenhum fiado pendente"}
+            icon={AlertTriangle} 
+            tone={stats.pendingFiado > 0 ? "warning" : "dark"} 
+            to="/credit"
+            compact 
+          />
         </div>
       </div>
 
@@ -378,8 +456,7 @@ function SalesPage() {
           { id: "thisMonth", label: "Este Mês" },
           { id: "30days", label: "Últimos 30 dias" },
           { id: "90days", label: "90 dias" },
-          { id: "yearCurrent", label: `${new Date().getFullYear()}` },
-          { id: "yearPrevious", label: `${new Date().getFullYear() - 1}` },
+          ...availableYears.map((y) => ({ id: `year-${y}`, label: String(y) })),
           { id: "all", label: "Todo o Histórico" },
         ].map((p) => (
           <button
@@ -411,10 +488,16 @@ function SalesPage() {
         <div className="flex gap-2">
           <Button 
             variant={term === "pending" ? "default" : "outline"} 
-            className="h-11 rounded-xl gap-2 font-bold px-4"
+            className={cn(
+              "h-11 rounded-xl gap-2 font-bold px-4 transition-all",
+              term === "pending" 
+                ? "bg-amber-500 hover:bg-amber-600 text-white border-none shadow-sm" 
+                : "hover:border-amber-500/50"
+            )}
             onClick={() => setTerm(term === "pending" ? "" : "pending")}
           >
-            <AlertTriangle className="size-4" /> Atrasados
+            <AlertTriangle className="size-4" />
+            <span>Fiados em Aberto {stats.pendingFiado > 0 ? `(${stats.pendingFiado})` : ""}</span>
           </Button>
           
           <Popover open={filterOpen} onOpenChange={setFilterOpen}>
@@ -467,8 +550,7 @@ function SalesPage() {
                       { id: "thisMonth", label: "Este mês" },
                       { id: "lastMonth", label: "Mês passado" },
                       { id: "90days", label: "90 dias" },
-                      { id: "yearCurrent", label: `Ano ${new Date().getFullYear()}` },
-                      { id: "yearPrevious", label: `Ano ${new Date().getFullYear() - 1}` },
+                      ...availableYears.map((y) => ({ id: `year-${y}`, label: `Ano ${y}` })),
                     ].map((p) => (
                       <Button
                         key={p.id}
