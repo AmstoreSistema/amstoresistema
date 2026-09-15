@@ -62,9 +62,9 @@ function Dashboard() {
     limit: 20
   });
   const { data: sales = [] } = useRows("sales", { 
-    select: "id, created_at, total_amount, client_id",
+    select: "id, created_at, total_amount, client_id, status",
     order: { column: "created_at", ascending: false },
-    limit: 100
+    limit: 500
   });
   const { data: clients = [] } = useRows("clients", { select: "id, name, phone" });
   const { data: fiadoSales = [] } = useRows<any>("sales", { 
@@ -184,7 +184,15 @@ function Dashboard() {
 
   const today = new Date().toDateString();
   const salesToday = useMemo(
-    () => sales.filter((s: any) => s.created_at && new Date(s.created_at).toDateString() === today),
+    () =>
+      sales.filter(
+        (s: any) =>
+          s.created_at &&
+          new Date(s.created_at).toDateString() === today &&
+          (s.status ?? "concluida") !== "cancelada" &&
+          s.status !== "cancelled" &&
+          s.status !== "estornado"
+      ),
     [sales, today]
   );
 

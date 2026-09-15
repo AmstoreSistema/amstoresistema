@@ -65,12 +65,14 @@ function ClientsPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('sales')
-        .select('client_id, total_amount');
+        .select('client_id, total_amount, status');
       
       if (error) return {} as Record<string, number>;
       
       const totals: Record<string, number> = {};
       data.forEach(sale => {
+        const st = String(sale.status || "").toLowerCase();
+        if (st === "cancelled" || st === "cancelada" || st === "estornado") return;
         if (sale.client_id) {
           totals[sale.client_id] = (totals[sale.client_id] || 0) + Number(sale.total_amount || 0);
         }
@@ -97,9 +99,14 @@ function ClientsPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('sales')
-        .select('total_amount');
+        .select('total_amount, status');
       if (error) return 0;
-      return data.reduce((sum, s) => sum + Number(s.total_amount || 0), 0);
+      return data
+        .filter((s: any) => {
+          const st = String(s.status || "").toLowerCase();
+          return st !== "cancelled" && st !== "cancelada" && st !== "estornado";
+        })
+        .reduce((sum, s) => sum + Number(s.total_amount || 0), 0);
     }
   });
 

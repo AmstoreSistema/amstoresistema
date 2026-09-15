@@ -66,9 +66,17 @@ export function SendBillingModal({ open, onOpenChange, debtor }: SendBillingModa
       toast.error("Cliente sem telefone cadastrado.");
       return;
     }
-    const phone = debtor.phone.replace(/\D/g, "");
+    const rawPhone = debtor.phone.replace(/\D/g, "");
+    if (!rawPhone) {
+      toast.error("Número de telefone inválido.");
+      return;
+    }
+    const finalPhone =
+      rawPhone.startsWith("55") && rawPhone.length >= 12
+        ? rawPhone
+        : `55${rawPhone}`;
     const text = encodeURIComponent(message);
-    window.open(`https://wa.me/55${phone}?text=${text}`, "_blank");
+    window.open(`https://wa.me/${finalPhone}?text=${text}`, "_blank");
   };
 
   return (

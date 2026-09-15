@@ -127,13 +127,19 @@ function AccountsPage() {
   const onSubmit = async (values: z.infer<typeof accountSchema>) => {
     const { initial_balance, ...rest } = values;
     
+    const payload = editingAccount
+      ? {
+          ...rest,
+        }
+      : {
+          ...rest,
+          initial_balance,
+          current_balance: initial_balance,
+        };
+
     save.mutate({
       id: editingAccount?.id,
-      values: {
-        ...rest,
-        initial_balance: editingAccount ? editingAccount.initial_balance : initial_balance,
-        current_balance: editingAccount ? initial_balance : initial_balance,
-      }
+      values: payload,
     }, {
       onSuccess: () => {
         setOpen(false);

@@ -155,22 +155,43 @@ export const syncStockConsistency = createServerFn({ method: "POST" })
         const primaryRecord = records[0];
         const duplicates = records.slice(1);
 
-        // Exclui registros duplicados desnecessários
+        let mergedQty = Number(primaryRecord.quantidade_disponivel || 0);
+        let mergedNumeracoes: Record<string, number> | null =
+          primaryRecord.numeracoes && typeof primaryRecord.numeracoes === "object"
+            ? { ...(primaryRecord.numeracoes as Record<string, number>) }
+            : null;
+
+        // Consolida quantidades e grades dos duplicados antes de remover
         for (const dup of duplicates) {
+          mergedQty += Number(dup.quantidade_disponivel || 0);
+          if (dup.numeracoes && typeof dup.numeracoes === "object") {
+            if (!mergedNumeracoes) mergedNumeracoes = {};
+            for (const [size, qty] of Object.entries(dup.numeracoes as Record<string, any>)) {
+              mergedNumeracoes[size] = (Number(mergedNumeracoes[size]) || 0) + (Number(qty) || 0);
+            }
+          }
           await supabaseAdmin.from("stock_products").delete().eq("id", dup.id);
           syncedCount++;
         }
 
-        // Garante que o registro principal tenha preço válido
+        // Garante que o registro principal mantenha a quantidade consolidada e preço válido
         const primaryPrice = Number(primaryRecord.preco_venda || 0);
-        if (primaryPrice <= 0 && masterPrice > 0) {
-          await supabaseAdmin
-            .from("stock_products")
-            .update({ preco_venda: masterPrice, updated_at: new Date().toISOString() })
-            .eq("id", primaryRecord.id);
-          primaryRecord.preco_venda = masterPrice;
-          syncedCount++;
-        }
+        const resolvedPrice = primaryPrice > 0 ? primaryPrice : masterPrice;
+
+        await supabaseAdmin
+          .from("stock_products")
+          .update({
+            quantidade_disponivel: mergedQty,
+            numeracoes: mergedNumeracoes,
+            preco_venda: resolvedPrice,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", primaryRecord.id);
+
+        primaryRecord.quantidade_disponivel = mergedQty;
+        primaryRecord.numeracoes = mergedNumeracoes;
+        primaryRecord.preco_venda = resolvedPrice;
+        syncedCount++;
       } else {
         const record = records[0];
         const stockPrice = Number(record.preco_venda || 0);

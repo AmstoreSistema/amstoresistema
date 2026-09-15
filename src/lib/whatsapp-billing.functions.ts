@@ -15,8 +15,10 @@ export const getDebtorsData = createServerFn({ method: "GET" })
         sales(
           id,
           sale_code,
+          status,
           sale_installments(
             id,
+            sale_id,
             amount,
             paid_amount,
             due_date,
@@ -31,9 +33,14 @@ export const getDebtorsData = createServerFn({ method: "GET" })
     const debtors = (clients || []).map(client => {
       const allInstallments: any[] = [];
       (client.sales || []).forEach((sale: any) => {
+        const saleStatus = String(sale.status || "").toLowerCase();
+        if (saleStatus === "cancelled" || saleStatus === "cancelada" || saleStatus === "estornado") {
+          return;
+        }
         (sale.sale_installments || []).forEach((inst: any) => {
           allInstallments.push({
             ...inst,
+            sale_id: inst.sale_id || sale.id,
             sale_code: sale.sale_code,
             amount: Number(inst.amount),
             paid_amount: Number(inst.paid_amount || 0)

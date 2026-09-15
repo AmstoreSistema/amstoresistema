@@ -93,6 +93,13 @@ function StorePanel() {
   const { data: products = [] } = useRows<any>("products", { select: "id, name" });
   const { data: clients = [] } = useRows<any>("clients", { select: "id, name, cashback_balance" });
   const { data: accounts = [] } = useRows<any>("financial_accounts");
+
+  // Consulta de fiados ativos para refletir a carteira de cobrança total em aberto (independente de data)
+  const { data: allDebtSales = [] } = useRows<any>("sales", {
+    select: "id, total_amount, paid_amount, status, is_debt",
+    filters: [{ column: "is_debt", value: true }],
+    limit: 2500,
+  });
   
   // Parcelas ativas e não quitadas para cálculo de fiados vencidos
   const { data: installments = [] } = useRows<any>("sale_installments", {
@@ -100,7 +107,7 @@ function StorePanel() {
     filters: [
       { column: "status", value: ["paga", "paid", "quitada", "cancelada"], operator: "neq" }
     ],
-    limit: 500,
+    limit: 1000,
   });
 
   const activeSales = useMemo(
@@ -133,14 +140,14 @@ function StorePanel() {
 
   const openCredit = useMemo(
     () =>
-      activeSales
-        .filter((s: any) => s.is_debt)
+      allDebtSales
+        .filter((s: any) => (s.status ?? "concluida") !== "cancelada")
         .reduce(
           (a: number, s: any) =>
             a + Math.max(0, Number(s.total_amount ?? 0) - Number(s.paid_amount ?? 0)),
           0,
         ),
-    [activeSales],
+    [allDebtSales],
   );
 
   const overdueCount = useMemo(
