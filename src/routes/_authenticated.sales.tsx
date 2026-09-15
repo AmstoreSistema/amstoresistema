@@ -166,7 +166,7 @@ function SalesPage() {
     setPage(1);
   }, [term, startDate, endDate]);
 
-  const { data: clients = [] } = useRows("clients", { select: "id, name" });
+  const { data: clients = [] } = useRows("clients", { select: "id, name", limit: 5000 });
   const clientById = useMemo(() => new Map(clients.map((c: any) => [c.id, c])), [clients]);
 
   // Cálculo de limites .range(from, to) baseado na página atual
@@ -229,11 +229,20 @@ function SalesPage() {
           .filter((c: any) => c.name?.toLowerCase().includes(cleanTerm.toLowerCase()))
           .map((c: any) => c.id);
 
+        const orFilters: string[] = [
+          `sale_code.ilike.%${cleanTerm}%`,
+          `notes.ilike.%${cleanTerm}%`,
+        ];
+
         if (matchingClientIds.length > 0) {
-          q = q.or(`sale_code.ilike.%${cleanTerm}%,id.ilike.%${cleanTerm}%,client_id.in.(${matchingClientIds.join(",")})`);
-        } else {
-          q = q.or(`sale_code.ilike.%${cleanTerm}%,id.ilike.%${cleanTerm}%`);
+          orFilters.push(`client_id.in.(${matchingClientIds.join(",")})`);
         }
+
+        if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(cleanTerm)) {
+          orFilters.push(`id.eq.${cleanTerm}`);
+        }
+
+        q = q.or(orFilters.join(","));
       }
 
       // Se o usuário digitou uma busca específica (ex: cliente ou código) ou filtrou por fiados em aberto,

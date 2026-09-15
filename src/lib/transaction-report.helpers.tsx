@@ -30,25 +30,23 @@ export interface ExtractedTransaction {
 }
 
 /**
- * Remove o nome do cliente do final da descrição da venda se estiver presente,
- * padronizando títulos como "Pagamento Venda VEN-1234"
+ * Remove o nome do cliente do final da descrição da venda APENAS se o nome for válido e estiver
+ * claramente exibido em coluna própria, evitando que o nome do cliente seja apagado/escondido.
  */
 export function cleanTransactionTitle(description: string | null | undefined, clientName?: string | null): string {
   if (!description) return "Sem descrição";
 
-  if (clientName && clientName.trim()) {
-    const escaped = clientName.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    const regex = new RegExp(`\\s*-\\s*${escaped}\\s*$`, "i");
-    if (regex.test(description)) {
-      return description.replace(regex, "").trim();
-    }
+  // NUNCA remover texto da descrição se não houver cliente ou se for 'Consumidor Final'
+  if (!clientName || !clientName.trim() || clientName.trim().toLowerCase() === "consumidor final") {
+    return description;
   }
 
-  const paymentMatch = description.match(/^(Pagamento\s+Venda\s+[A-Za-z0-9_-]+)\s*-\s*.+$/i);
-  if (paymentMatch && paymentMatch[1]) return paymentMatch[1].trim();
-
-  const saleMatch = description.match(/^(Venda\s+[A-Za-z0-9_-]+)\s*-\s*.+$/i);
-  if (saleMatch && saleMatch[1]) return saleMatch[1].trim();
+  const trimmedClient = clientName.trim();
+  const escaped = trimmedClient.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const regex = new RegExp(`\\s*-\\s*${escaped}(?:\\s*\\([^)]*\\))?\\s*$`, "i");
+  if (regex.test(description)) {
+    return description.replace(regex, "").trim();
+  }
 
   return description;
 }
@@ -69,11 +67,12 @@ export function extractTransactionDetails(t: any, context?: TransactionDetailsCo
 
   // 1. Código da Venda (se receita ou se vinculado a sale_id)
   let saleCode = "";
+  const tSale = Array.isArray(t.sales) ? t.sales[0] : t.sales;
   if (t.sale_id && saleMap?.has(t.sale_id)) {
     saleCode = saleMap.get(t.sale_id)?.sale_code || "";
   }
-  if (!saleCode && t.sales?.sale_code) {
-    saleCode = t.sales.sale_code;
+  if (!saleCode && tSale?.sale_code) {
+    saleCode = tSale.sale_code;
   }
   if (!saleCode && t.description) {
     const m = t.description.match(/(?:Pagamento\s+)?Venda\s+(?:#)?([A-Za-z0-9_-]+)/i);
@@ -83,24 +82,87 @@ export function extractTransactionDetails(t: any, context?: TransactionDetailsCo
     saleCode = `#${t.sale_id.slice(0, 8)}`;
   }
 
-  // 2. Nome do Cliente
+  // 2. Nome do Cliente - Busca minuciosa e resiliente em todas as fontes disponíveis
   let clientName = "";
-  if (t.clients?.name) {
-    clientName = t.clients.name;
-  } else if (t.client_id && clientMap?.has(t.client_id)) {
-    clientName = clientMap.get(t.client_id)?.name || "";
-  } else if (t.sale_id && saleMap?.has(t.sale_id)) {
+
+  // 2.1. Diretamente no objeto/array clients vinculado à transação
+  const directClient = Array.isArray(t.clients) ? t.clients[0] : t.clients;
+  if (directClient?.name && typeof directClient.name === "string" && directClient.name.trim()) {
+    clientName = directClient.name.trim();
+  }
+
+  // 2.2. Campo client_name diretamente na transação
+  if (!clientName && t.client_name && typeof t.client_name === "string" && t.client_name.trim()) {
+    clientName = t.client_name.trim();
+  }
+
+  // 2.3. No mapa de clientes usando t.client_id
+  if (!clientName && t.client_id && clientMap?.has(t.client_id)) {
+    const c = clientMap.get(t.client_id);
+    if (c?.name && typeof c.name === "string" && c.name.trim()) {
+      clientName = c.name.trim();
+    }
+  }
+
+  // 2.4. Na venda aninhada (join t.sales)
+  if (!clientName && tSale) {
+    const saleClient = Array.isArray(tSale.clients) ? tSale.clients[0] : tSale.clients;
+    if (saleClient?.name && typeof saleClient.name === "string" && saleClient.name.trim()) {
+      clientName = saleClient.name.trim();
+    } else if (tSale.client_id && clientMap?.has(tSale.client_id)) {
+      const c = clientMap.get(tSale.client_id);
+      if (c?.name && typeof c.name === "string" && c.name.trim()) {
+        clientName = c.name.trim();
+      }
+    }
+  }
+
+  // 2.5. Na venda vinculada via saleMap usando t.sale_id
+  if (!clientName && t.sale_id && saleMap?.has(t.sale_id)) {
     const linkedSale = saleMap.get(t.sale_id);
-    if (linkedSale?.client_id && clientMap?.has(linkedSale.client_id)) {
-      clientName = clientMap.get(linkedSale.client_id)?.name || "";
+    const lClient = Array.isArray(linkedSale?.clients) ? linkedSale.clients[0] : linkedSale?.clients;
+    if (lClient?.name && typeof lClient.name === "string" && lClient.name.trim()) {
+      clientName = lClient.name.trim();
+    } else if (linkedSale?.client_name && typeof linkedSale.client_name === "string" && linkedSale.client_name.trim()) {
+      clientName = linkedSale.client_name.trim();
+    } else if (linkedSale?.client_id && clientMap?.has(linkedSale.client_id)) {
+      const c = clientMap.get(linkedSale.client_id);
+      if (c?.name && typeof c.name === "string" && c.name.trim()) {
+        clientName = c.name.trim();
+      }
     }
   }
-  if (!clientName && t.description) {
-    const dashMatch = t.description.match(/\s*-\s*([^()]+?)(?:\s*\(.*|\s*$)/);
-    if (dashMatch && dashMatch[1] && !dashMatch[1].toLowerCase().includes("venda")) {
-      clientName = dashMatch[1].trim();
+
+  // 2.6. No array de sales caso tenha sido passado no contexto
+  if (!clientName && t.sale_id && context?.sales && Array.isArray(context.sales)) {
+    const foundSale = context.sales.find((s: any) => s.id === t.sale_id);
+    if (foundSale) {
+      const fsClient = Array.isArray(foundSale.clients) ? foundSale.clients[0] : foundSale.clients;
+      if (fsClient?.name && typeof fsClient.name === "string" && fsClient.name.trim()) {
+        clientName = fsClient.name.trim();
+      } else if (foundSale.client_id && clientMap?.has(foundSale.client_id)) {
+        const c = clientMap.get(foundSale.client_id);
+        if (c?.name && typeof c.name === "string" && c.name.trim()) {
+          clientName = c.name.trim();
+        }
+      }
     }
   }
+
+  // 2.7. Se ainda não encontrado, extrai da descrição:
+  // Ex: "Venda #VEN-1234 - Maria Santos" ou "Pagamento Venda #10 - João Carlos (Parcela 1/2)"
+  if (!clientName && t.description && typeof t.description === "string") {
+    const dashMatch = t.description.match(/-\s*([^()]+?)(?:\s*\(.*|\s*$)/);
+    if (dashMatch && dashMatch[1]) {
+      const candidate = dashMatch[1].trim();
+      // Não considerar termos comuns do sistema como nome de cliente
+      if (candidate && !/^(venda|parcela|entrada|saída|taxa|pagamento|estorno)/i.test(candidate)) {
+        clientName = candidate;
+      }
+    }
+  }
+
+  // 2.8. Se for receita de venda e não houver NENHUM dado ou cliente em nenhuma fonte:
   if (!clientName && isIncome) {
     clientName = "Consumidor Final";
   }
@@ -188,6 +250,14 @@ export function buildTransactionReportData(
     if (typeFilter === "receita") return item.isIncome;
     if (typeFilter === "despesa") return item.isExpense;
     return true;
+  });
+
+  // Ordenação cronológica rigorosa: começa na data inicial do período e termina na data final
+  filtered.sort((a, b) => {
+    const timeA = new Date(a.rawDate).getTime() || 0;
+    const timeB = new Date(b.rawDate).getTime() || 0;
+    if (timeA !== timeB) return timeA - timeB;
+    return (a.saleCode || "").localeCompare(b.saleCode || "");
   });
 
   const columns: ReportColumnDef[] = [];
@@ -392,6 +462,14 @@ export function exportTransactionsToCSV(
     if (typeFilter === "receita") return item.isIncome;
     if (typeFilter === "despesa") return item.isExpense;
     return true;
+  });
+
+  // Ordenação cronológica rigorosa: começa na data inicial do período e termina na data final
+  filtered.sort((a, b) => {
+    const timeA = new Date(a.rawDate).getTime() || 0;
+    const timeB = new Date(b.rawDate).getTime() || 0;
+    if (timeA !== timeB) return timeA - timeB;
+    return (a.saleCode || "").localeCompare(b.saleCode || "");
   });
 
   let headers: string[] = [];

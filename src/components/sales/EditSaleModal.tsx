@@ -348,24 +348,37 @@ export function EditSaleModal({
                   )}
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
                   <div>
-                    <label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground block mb-1.5">
-                      Buscar / Selecionar Cliente
+                    <label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground block mb-1.5 flex items-center justify-between">
+                      <span>Cliente da Venda (Ordem Alfabética A-Z)</span>
+                      {selectedClient ? (
+                        <span className="text-emerald-600 font-bold text-[10px] flex items-center gap-1">
+                          <CheckCircle2 className="size-3" /> cliente cadastrada
+                        </span>
+                      ) : (
+                        <span className="text-muted-foreground text-[10px]">
+                          consumidor final / avulso
+                        </span>
+                      )}
                     </label>
-                    <ClientSearch selectedClient={selectedClient} onSelect={handleSelectClient} />
-                  </div>
-
-                  <div>
-                    <label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground block mb-1.5">
-                      Nome da Cliente (Editável)
-                    </label>
-                    <Input
-                      value={clientName}
-                      onChange={(e) => setClientName(e.target.value)}
-                      placeholder="Nome da cliente na venda..."
-                      className="h-11 rounded-xl bg-background border-border/40 font-semibold text-sm"
+                    <ClientSearch 
+                      selectedClient={selectedClient} 
+                      onSelect={(client) => {
+                        setSelectedClient(client);
+                        setClientName(client?.name || "");
+                      }} 
                     />
+                    {!selectedClient && (
+                      <div className="mt-2">
+                        <Input
+                          value={clientName}
+                          onChange={(e) => setClientName(e.target.value)}
+                          placeholder="Ou digite o nome avulso / consumidor final..."
+                          className="h-9 rounded-xl bg-background border-border/40 font-medium text-xs"
+                        />
+                      </div>
+                    )}
                   </div>
 
                   <div>
@@ -379,6 +392,9 @@ export function EditSaleModal({
                       onChange={(e) => setSaleDate(e.target.value)}
                       className="h-11 rounded-xl bg-background border-border/40 font-semibold text-sm cursor-pointer"
                     />
+                    <p className="text-[10px] text-muted-foreground mt-1.5">
+                      Altera a data de registro e lançamento financeiro desta venda.
+                    </p>
                   </div>
                 </div>
               </div>

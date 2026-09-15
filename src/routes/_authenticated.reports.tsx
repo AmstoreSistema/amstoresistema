@@ -207,7 +207,7 @@ function ReportsPage() {
   });
 
   const { data: allClients = [] } = useRows<any>("clients", { select: "id, name, phone, cashback_balance, total_spent", limit: 3000 });
-  const { data: allSales = [] } = useRows<any>("sales", { select: "id, sale_code, client_id, installments_count", limit: 3000 });
+  const { data: allSales = [] } = useRows<any>("sales", { select: "id, sale_code, client_id, installments_count, clients(name)", limit: 5000 });
   const { data: allSaleItems = [] } = useRows<any>("sale_items", { select: "sale_id, quantity", limit: 5000 });
   const { data: allProducts = [] } = useRows<any>("products", { select: "id, name, category, cost_price, sale_price, wholesale_price, current_stock", limit: 3000 });
   const { data: allSuppliers = [] } = useRows<any>("suppliers", { select: "id, name", limit: 2000 });
@@ -241,6 +241,13 @@ function ReportsPage() {
         if (dateRange.end && iso > dateRange.end) return false;
         return true;
       });
+
+      // Ordenação cronológica crescente: do início do período (ex: 01/01/2025) até o final (ex: 31/12/2025)
+      list = [...list].sort((a: any, b: any) => {
+        const rawA = a[config.dateColumn] || a.created_at || a.due_date || "";
+        const rawB = b[config.dateColumn] || b.created_at || b.due_date || "";
+        return new Date(rawA).getTime() - new Date(rawB).getTime();
+      });
     }
 
     if (selectedType === "general") {
@@ -255,6 +262,13 @@ function ReportsPage() {
       } else if (generalStatusFilter === "pendente") {
         list = list.filter((t: any) => ["pendente", "pending", "aberto"].includes(String(t.status || "").toLowerCase()));
       }
+
+      // Ordenação cronológica crescente garantida para todas as transações (do mês inicial ao mês final)
+      list = [...list].sort((a: any, b: any) => {
+        const rawA = a.created_at || a.due_date || "";
+        const rawB = b.created_at || b.due_date || "";
+        return new Date(rawA).getTime() - new Date(rawB).getTime();
+      });
     }
 
     return list;
@@ -612,6 +626,8 @@ function ReportsPage() {
           saleMap,
           supplierMap,
           accountMap,
+          clients: allClients,
+          sales: allSales,
         });
         columns.push(...gen.columns);
         summaryCards.push(...gen.summaryCards);
@@ -833,7 +849,14 @@ function ReportsPage() {
         }
 
         case "general": {
-          const details = extractTransactionDetails(row, { clientMap, saleMap, supplierMap, accountMap });
+          const details = extractTransactionDetails(row, { 
+            clientMap, 
+            saleMap, 
+            supplierMap, 
+            accountMap, 
+            clients: allClients, 
+            sales: allSales 
+          });
           const isPaid = details.status === "Pago";
           const isPending = details.status === "Pendente";
 
@@ -868,7 +891,12 @@ function ReportsPage() {
           );
 
           const amountFormatted = (
-            <span className={cn("font-black whitespace-nowrap font-mono text-xs print:text-[9.5px]", details.isIncome ? "text-emerald-600 print:text-emerald-800" : "text-rose-600 print:text-rose-800")}>
+            <span
+              className={cn(
+                "font-black whitespace-nowrap font-mono tabular-nums text-xs print:text-[10px]",
+                details.isIncome ? "text-emerald-600 print:text-emerald-800" : "text-rose-600 print:text-rose-800"
+              )}
+            >
               {details.isIncome ? "+ " : "- "}
               {details.amountFormatted}
             </span>
@@ -929,6 +957,8 @@ function ReportsPage() {
         saleMap,
         supplierMap,
         accountMap,
+        clients: allClients,
+        sales: allSales,
       });
       const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
       const a = document.createElement("a");

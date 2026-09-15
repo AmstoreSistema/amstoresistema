@@ -20,6 +20,7 @@ import {
   Eye,
   Pencil,
   Printer,
+  Loader2,
 } from "lucide-react";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -29,6 +30,7 @@ import { ReportLayout } from "@/components/report-layout";
 import {
   exportTransactionsToCSV,
   buildTransactionReportData,
+  extractTransactionDetails,
 } from "@/lib/transaction-report.helpers";
 import { PaginationBar } from "@/components/ui/pagination-bar";
 import { toast } from "sonner";
@@ -77,25 +79,13 @@ export const Route = createFileRoute("/_authenticated/transactions")({
 function formatTransactionTitle(description: string | null | undefined, clientName?: string | null): string {
   if (!description) return "Sem descrição";
 
-  // Se houver nome do cliente informado e ele estiver no final como " - Nome"
-  if (clientName && clientName.trim()) {
+  // Se houver nome do cliente informado e ele estiver no final como " - Nome", remove apenas para não duplicar visualmente
+  if (clientName && clientName.trim() && clientName.trim().toLowerCase() !== "consumidor final") {
     const escaped = clientName.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    const regex = new RegExp(`\\s*-\\s*${escaped}\\s*$`, "i");
+    const regex = new RegExp(`\\s*-\\s*${escaped}(?:\\s*\\([^)]*\\))?\\s*$`, "i");
     if (regex.test(description)) {
       return description.replace(regex, "").trim();
     }
-  }
-
-  // Padrão: "Pagamento Venda [CÓDIGO] - [Nome do Cliente]" -> "Pagamento Venda [CÓDIGO]"
-  const paymentSaleMatch = description.match(/^(Pagamento\s+Venda\s+[A-Za-z0-9_-]+)\s*-\s*.+$/i);
-  if (paymentSaleMatch && paymentSaleMatch[1]) {
-    return paymentSaleMatch[1].trim();
-  }
-
-  // Padrão: "Venda [CÓDIGO] - [Nome do Cliente]" -> "Venda [CÓDIGO]"
-  const saleMatch = description.match(/^(Venda\s+[A-Za-z0-9_-]+)\s*-\s*.+$/i);
-  if (saleMatch && saleMatch[1]) {
-    return saleMatch[1].trim();
   }
 
   return description;
@@ -128,6 +118,7 @@ function TransactionsPage() {
   const { data: accounts = [] } = useRows("financial_accounts", { filters: [{ column: "active", value: true }] });
   const { data: clients = [] } = useRows("clients");
   const { data: suppliers = [] } = useRows("suppliers");
+  const { data: sales = [] } = useRows<any>("sales", { select: "id, sale_code, client_id, clients(name)", limit: 5000 });
 
   // Cálculo de limites .range(from, to) baseado na página atual
   const from = (page - 1) * PAGE_SIZE;
@@ -139,7 +130,7 @@ function TransactionsPage() {
     queryFn: async () => {
       let q = supabase
         .from("transactions")
-        .select("*, financial_accounts(name), clients(name), suppliers(name)", { count: "exact" })
+        .select("*, financial_accounts(name), clients(name), suppliers(name), sales(id, sale_code, client_id, clients(name))", { count: "exact" })
         .order("created_at", { ascending: false });
 
       // Filtro de tipo
@@ -188,6 +179,12 @@ function TransactionsPage() {
         ];
         if (matchingClientIds.length > 0) {
           orFilters.push(`client_id.in.(${matchingClientIds.join(",")})`);
+          const matchingSaleIds = (sales as any[])
+            .filter(s => matchingClientIds.includes(s.client_id))
+            .map(s => s.id);
+          if (matchingSaleIds.length > 0) {
+            orFilters.push(`sale_id.in.(${matchingSaleIds.join(",")})`);
+          }
         }
         if (matchingSupplierIds.length > 0) {
           orFilters.push(`supplier_id.in.(${matchingSupplierIds.join(",")})`);
@@ -216,6 +213,47 @@ function TransactionsPage() {
   const [newBalance, setNewBalance] = useState("");
   const isOpenModal = isNewModalOpen || !!editingTransaction;
 
+  // Busca completa de transações do período para o relatório executivo (ordem cronológica crescente)
+  const { data: reportTransactions = [], isLoading: isReportLoading } = useQuery({
+    queryKey: ["report-transactions", typeFilter, statusFilter, startDate, endDate, isReportModalOpen],
+    enabled: isReportModalOpen,
+    queryFn: async () => {
+      let q = supabase
+        .from("transactions")
+        .select("*, financial_accounts(name), clients(name), suppliers(name), sales(id, sale_code, client_id, clients(name))")
+        .order("created_at", { ascending: true });
+
+      if (typeFilter === "receita") {
+        q = q.in("type", ["entrada", "income"]);
+      } else if (typeFilter === "despesa") {
+        q = q.in("type", ["saida", "expense"]);
+      }
+
+      if (statusFilter === "pago") {
+        q = q.in("status", ["pago", "paid"]);
+      } else if (statusFilter === "cancelado") {
+        q = q.in("status", ["cancelado", "cancelled", "canceled"]);
+      } else if (statusFilter === "pendente") {
+        q = q.in("status", ["pendente", "pending", "aberto"]);
+      } else if (statusFilter === "atrasado") {
+        const todayStr = new Date().toISOString().split("T")[0];
+        q = q.in("status", ["pendente", "pending", "aberto"]).lt("due_date", todayStr);
+      }
+
+      if (startDate) {
+        q = q.gte("created_at", `${startDate}T00:00:00`);
+      }
+      if (endDate) {
+        q = q.lte("created_at", `${endDate}T23:59:59.999`);
+      }
+
+      q = q.limit(5000);
+      const { data, error } = await q;
+      if (error) throw error;
+      return (data as any[]) || [];
+    },
+  });
+
   const [storeInfo, setStoreInfo] = useState<{
     name?: string;
     cnpj?: string;
@@ -240,13 +278,57 @@ function TransactionsPage() {
     }).catch(() => {});
   }, [fetchSettings]);
 
-  const handleExportCsv = () => {
-    if (transactions.length === 0) {
+  const handleExportCsv = async () => {
+    let listToExport = reportTransactions;
+    if (listToExport.length === 0) {
+      try {
+        let q = supabase
+          .from("transactions")
+          .select("*, financial_accounts(name), clients(name), suppliers(name), sales(id, sale_code, client_id, clients(name))")
+          .order("created_at", { ascending: true });
+
+        if (typeFilter === "receita") {
+          q = q.in("type", ["entrada", "income"]);
+        } else if (typeFilter === "despesa") {
+          q = q.in("type", ["saida", "expense"]);
+        }
+
+        if (statusFilter === "pago") {
+          q = q.in("status", ["pago", "paid"]);
+        } else if (statusFilter === "cancelado") {
+          q = q.in("status", ["cancelado", "cancelled", "canceled"]);
+        } else if (statusFilter === "pendente") {
+          q = q.in("status", ["pendente", "pending", "aberto"]);
+        } else if (statusFilter === "atrasado") {
+          const todayStr = new Date().toISOString().split("T")[0];
+          q = q.in("status", ["pendente", "pending", "aberto"]).lt("due_date", todayStr);
+        }
+
+        if (startDate) {
+          q = q.gte("created_at", `${startDate}T00:00:00`);
+        }
+        if (endDate) {
+          q = q.lte("created_at", `${endDate}T23:59:59.999`);
+        }
+
+        const { data, error } = await q.limit(5000);
+        if (!error && data && data.length > 0) {
+          listToExport = data as any[];
+        } else {
+          listToExport = transactions;
+        }
+      } catch {
+        listToExport = transactions;
+      }
+    }
+
+    if (listToExport.length === 0) {
       toast.error("Nenhuma transação para exportar");
       return;
     }
-    const csv = exportTransactionsToCSV(transactions, typeFilter, {
+    const csv = exportTransactionsToCSV(listToExport, typeFilter, {
       clients,
+      sales,
       suppliers,
       accounts,
     });
@@ -728,6 +810,9 @@ function TransactionsPage() {
                 <div className="bg-white divide-y divide-gray-50">
                   {items.map(t => {
                     const isIncome = t.type === 'entrada' || t.type === 'income';
+                    const details = extractTransactionDetails(t, { clients, sales, suppliers, accounts });
+                    const displayClient = details.clientName && details.clientName !== "Consumidor Final" ? details.clientName : (t.clients?.name || null);
+                    const displaySupplier = details.supplierName && details.supplierName !== "—" ? details.supplierName : (t.suppliers?.name || t.supplier_name || null);
                     return (
                       <div 
                         key={t.id} 
@@ -747,7 +832,7 @@ function TransactionsPage() {
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap sm:flex-nowrap">
                                 <h4 className="font-semibold text-xs sm:text-sm text-gray-900 leading-snug break-words line-clamp-2 sm:line-clamp-none">
-                                  {formatTransactionTitle(t.description, t.clients?.name)}
+                                  {formatTransactionTitle(t.description, displayClient)}
                                 </h4>
                                 <Badge variant="secondary" className={cn(
                                   "text-[9px] font-black uppercase h-4 sm:h-5 px-1 sm:px-1.5 border-none shrink-0",
@@ -757,13 +842,13 @@ function TransactionsPage() {
                                 </Badge>
                               </div>
                               
-                              {t.clients?.name ? (
+                              {displayClient ? (
                                 <p className="text-xs sm:text-sm font-bold text-gray-800 mt-0.5 truncate">
-                                  {t.clients.name}
+                                  {displayClient}
                                 </p>
-                              ) : (t.suppliers?.name || t.supplier_name) ? (
+                              ) : displaySupplier ? (
                                 <p className="text-xs sm:text-sm font-bold text-gray-800 mt-0.5 truncate">
-                                  {t.suppliers?.name || t.supplier_name}
+                                  {displaySupplier}
                                 </p>
                               ) : null}
 
@@ -944,6 +1029,7 @@ function TransactionsPage() {
                 variant="outline"
                 size="sm"
                 className="h-10 sm:h-9 gap-1.5 rounded-xl text-xs font-bold w-full sm:w-auto"
+                disabled={isReportLoading}
                 onClick={handleExportCsv}
               >
                 <Download className="size-4 text-amber-500" /> Exportar CSV
@@ -952,6 +1038,7 @@ function TransactionsPage() {
                 variant="default"
                 size="sm"
                 className="h-10 sm:h-9 gap-1.5 rounded-xl text-xs font-black bg-amber-500 hover:bg-amber-600 text-slate-950 shadow-sm w-full sm:w-auto"
+                disabled={isReportLoading}
                 onClick={() => window.print()}
               >
                 <Printer className="size-4" /> Imprimir A4
@@ -960,9 +1047,19 @@ function TransactionsPage() {
           </DialogHeader>
 
           <div className="pt-2 min-w-0 max-w-full">
-            {(() => {
-              const rep = buildTransactionReportData(transactions, typeFilter, {
+            {isReportLoading ? (
+              <div className="py-16 flex flex-col items-center justify-center gap-3 text-slate-500">
+                <Loader2 className="size-8 animate-spin text-amber-500" />
+                <p className="text-sm font-semibold">Carregando relatório em ordem cronológica...</p>
+                <p className="text-xs text-slate-400">
+                  Organizando transações de {startDate ? startDate.split("-").reverse().join("/") : "início"} até {endDate ? endDate.split("-").reverse().join("/") : "fim"}
+                </p>
+              </div>
+            ) : (() => {
+              const listForReport = reportTransactions.length > 0 ? reportTransactions : transactions;
+              const rep = buildTransactionReportData(listForReport, typeFilter, {
                 clients,
+                sales,
                 suppliers,
                 accounts,
               });

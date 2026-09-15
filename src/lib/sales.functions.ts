@@ -568,10 +568,81 @@ export const editSaleItems = createServerFn({ method: "POST" })
       .update(updatePayload as any)
       .eq("id", data.sale_id);
 
+    // Sincroniza também as transações financeiras vinculadas a esta venda
+    const txUpdates: any = {};
+    if (data.client_id !== undefined) txUpdates.client_id = data.client_id;
+    if (data.created_at) txUpdates.created_at = data.created_at;
+    if (Object.keys(txUpdates).length > 0) {
+      await admin
+        .from("transactions")
+        .update(txUpdates)
+        .eq("sale_id", data.sale_id);
+    }
+
     return {
       success: true,
       sale_id: data.sale_id,
       oldTotal: Number(sale.total_amount),
       newTotal,
     };
+  });
+
+export const syncMissingSaleTransactions = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async () => {
+    const { supabaseAdmin: admin } = await import("@/integrations/supabase/client.server");
+
+    // 1. Busca vendas pagas ou com valor pago que não sejam canceladas
+    const { data: paidSales = [], error: salesErr } = await admin
+      .from("sales")
+      .select("id, sale_code, total_amount, paid_amount, payment_method, status, client_id, financial_account_id, created_at, clients(name)")
+      .or("paid_amount.gt.0,status.in.(paid,pago,completed,finalizado)")
+      .not("status", "in", '("cancelled","cancelada","estornado")');
+
+    if (salesErr) throw new Error(salesErr.message);
+
+    // 2. Busca transações existentes que já possuem sale_id
+    const { data: existingTxs = [] } = await admin
+      .from("transactions")
+      .select("sale_id");
+
+    const existingSaleIds = new Set((existingTxs || []).map((t: any) => t.sale_id).filter(Boolean));
+
+    // 3. Busca conta bancária ativa padrão caso alguma venda não tenha financial_account_id
+    const { data: accounts = [] } = await admin
+      .from("financial_accounts")
+      .select("id")
+      .eq("active", true)
+      .limit(1);
+    const defaultAccountId = (accounts as any[])?.[0]?.id || null;
+
+    let syncedCount = 0;
+
+    for (const sale of (paidSales || [])) {
+      if (!existingSaleIds.has(sale.id)) {
+        const clientName = (sale as any).clients?.name || "";
+        const desc = clientName
+          ? `Pagamento Venda #${sale.sale_code || sale.id.slice(0, 8)} - ${clientName}`
+          : `Pagamento Venda #${sale.sale_code || sale.id.slice(0, 8)}`;
+
+        const amount = Number(sale.paid_amount || sale.total_amount || 0);
+        if (amount > 0) {
+          await admin.from("transactions").insert({
+            amount: amount,
+            type: "income",
+            description: desc,
+            sale_id: sale.id,
+            client_id: sale.client_id || null,
+            category: "Venda",
+            account_id: sale.financial_account_id || defaultAccountId,
+            status: "pago",
+            payment_method: sale.payment_method || "Dinheiro",
+            created_at: sale.created_at || new Date().toISOString(),
+          } as any);
+          syncedCount++;
+        }
+      }
+    }
+
+    return { success: true, syncedCount };
   });

@@ -18,16 +18,28 @@ interface QuickAddClientModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSuccess: (client: any) => void;
+  initialName?: string;
 }
 
-export function QuickAddClientModal({ open, onOpenChange, onSuccess }: QuickAddClientModalProps) {
+export function QuickAddClientModal({ open, onOpenChange, onSuccess, initialName = "" }: QuickAddClientModalProps) {
   const saveClient = useSaveRow("clients", "cliente");
   const [values, setValues] = React.useState({
-    name: "",
+    name: initialName,
     phone: "",
     email: "",
     address: ""
   });
+
+  React.useEffect(() => {
+    if (open) {
+      setValues({
+        name: initialName || "",
+        phone: "",
+        email: "",
+        address: ""
+      });
+    }
+  }, [open, initialName]);
 
   const handleSave = async () => {
     if (!values.name) {
