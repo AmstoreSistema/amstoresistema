@@ -52,6 +52,74 @@ export function cleanTransactionTitle(description: string | null | undefined, cl
 }
 
 /**
+ * Valida se a string é um nome real de cliente (e não genérico como Consumidor Final ou vazio).
+ */
+export function isValidClientName(name?: string | null): boolean {
+  if (!name || typeof name !== "string") return false;
+  const t = name.trim();
+  if (!t) return false;
+  const lower = t.toLowerCase();
+  if (
+    lower === "consumidor final" ||
+    lower === "consumidor" ||
+    lower === "cliente avulso" ||
+    lower === "não informado" ||
+    lower === "nao informado" ||
+    lower === "—" ||
+    lower === "-"
+  ) {
+    return false;
+  }
+  return true;
+}
+
+/**
+ * Extrai o nome do cliente a partir da descrição da transação com suporte a:
+ * - 'Parcial 1/1 • V9218587757-G - Galega'
+ * - 'Parcial 1/1 • V220826105653JS - Jamile Gonçalves da Silva - Estação Sabor'
+ * - 'Pagamento Venda #1234 - Maria Santos'
+ * - 'Venda #VEN-10 - João Carlos (Parcela 1/2)'
+ */
+export function extractClientFromDescription(desc?: string | null): string {
+  if (!desc || typeof desc !== "string") return "";
+  const trimmed = desc.trim();
+
+  // Padrão 1: '• [CODIGO] - [NOME DO CLIENTE]' (suporta hífens dentro do código, ex: V9218587757-G)
+  const bulletMatch = trimmed.match(/•\s*[A-Za-z0-9_-]+\s*-\s*([^()]+?)(?:\s*\(.*|\s*$)/);
+  if (bulletMatch && bulletMatch[1]) {
+    const cand = bulletMatch[1].trim();
+    if (isValidClientName(cand)) return cand;
+  }
+
+  // Padrão 2: '(Pagamento )?Venda #(CODIGO) - [NOME DO CLIENTE]'
+  const saleMatch = trimmed.match(/(?:Pagamento\s+)?Venda\s+(?:#)?([A-Za-z0-9_-]+)\s*-\s*([^()]+?)(?:\s*\(.*|\s*$)/i);
+  if (saleMatch && saleMatch[2]) {
+    const cand = saleMatch[2].trim();
+    if (isValidClientName(cand)) return cand;
+  }
+
+  // Padrão 3: Último separador ' - ' antes de parênteses opcionais
+  const lastDashIdx = trimmed.lastIndexOf(" - ");
+  if (lastDashIdx !== -1) {
+    const cand = trimmed.slice(lastDashIdx + 3).replace(/\s*\(.*$/, "").trim();
+    if (cand && !/^(venda|parcela|entrada|saída|taxa|pagamento|estorno|receita|despesa)/i.test(cand) && isValidClientName(cand)) {
+      return cand;
+    }
+  }
+
+  // Padrão 4: Primeiro separador se não houver marcadores
+  const firstDashMatch = trimmed.match(/-\s*([^()]+?)(?:\s*\(.*|\s*$)/);
+  if (firstDashMatch && firstDashMatch[1]) {
+    const cand = firstDashMatch[1].trim();
+    if (cand && !/^(venda|parcela|entrada|saída|taxa|pagamento|estorno|receita|despesa)/i.test(cand) && isValidClientName(cand)) {
+      return cand;
+    }
+  }
+
+  return "";
+}
+
+/**
  * Extrai todas as informações de uma transação financeira de maneira inteligente,
  * resolvendo relacionamentos e códigos para Vendas e Despesas.
  */
@@ -82,36 +150,38 @@ export function extractTransactionDetails(t: any, context?: TransactionDetailsCo
     saleCode = `#${t.sale_id.slice(0, 8)}`;
   }
 
-  // 2. Nome do Cliente - Busca minuciosa e resiliente em todas as fontes disponíveis
+  // 2. Nome do Cliente - Busca minuciosa e prioritária de nomes reais em todas as fontes
   let clientName = "";
 
-  // 2.1. Diretamente no objeto/array clients vinculado à transação
+  // 2.1. Diretamente no objeto/array clients vinculado à transação (join)
   const directClient = Array.isArray(t.clients) ? t.clients[0] : t.clients;
-  if (directClient?.name && typeof directClient.name === "string" && directClient.name.trim()) {
+  if (directClient?.name && isValidClientName(directClient.name)) {
     clientName = directClient.name.trim();
   }
 
   // 2.2. Campo client_name diretamente na transação
-  if (!clientName && t.client_name && typeof t.client_name === "string" && t.client_name.trim()) {
+  if (!clientName && t.client_name && isValidClientName(t.client_name)) {
     clientName = t.client_name.trim();
   }
 
   // 2.3. No mapa de clientes usando t.client_id
   if (!clientName && t.client_id && clientMap?.has(t.client_id)) {
     const c = clientMap.get(t.client_id);
-    if (c?.name && typeof c.name === "string" && c.name.trim()) {
+    if (c?.name && isValidClientName(c.name)) {
       clientName = c.name.trim();
     }
   }
 
-  // 2.4. Na venda aninhada (join t.sales)
+  // 2.4. Na venda aninhada via join (t.sales.clients ou t.sales.client_id)
   if (!clientName && tSale) {
     const saleClient = Array.isArray(tSale.clients) ? tSale.clients[0] : tSale.clients;
-    if (saleClient?.name && typeof saleClient.name === "string" && saleClient.name.trim()) {
+    if (saleClient?.name && isValidClientName(saleClient.name)) {
       clientName = saleClient.name.trim();
+    } else if (tSale.client_name && isValidClientName(tSale.client_name)) {
+      clientName = tSale.client_name.trim();
     } else if (tSale.client_id && clientMap?.has(tSale.client_id)) {
       const c = clientMap.get(tSale.client_id);
-      if (c?.name && typeof c.name === "string" && c.name.trim()) {
+      if (c?.name && isValidClientName(c.name)) {
         clientName = c.name.trim();
       }
     }
@@ -121,13 +191,13 @@ export function extractTransactionDetails(t: any, context?: TransactionDetailsCo
   if (!clientName && t.sale_id && saleMap?.has(t.sale_id)) {
     const linkedSale = saleMap.get(t.sale_id);
     const lClient = Array.isArray(linkedSale?.clients) ? linkedSale.clients[0] : linkedSale?.clients;
-    if (lClient?.name && typeof lClient.name === "string" && lClient.name.trim()) {
+    if (lClient?.name && isValidClientName(lClient.name)) {
       clientName = lClient.name.trim();
-    } else if (linkedSale?.client_name && typeof linkedSale.client_name === "string" && linkedSale.client_name.trim()) {
+    } else if (linkedSale?.client_name && isValidClientName(linkedSale.client_name)) {
       clientName = linkedSale.client_name.trim();
     } else if (linkedSale?.client_id && clientMap?.has(linkedSale.client_id)) {
       const c = clientMap.get(linkedSale.client_id);
-      if (c?.name && typeof c.name === "string" && c.name.trim()) {
+      if (c?.name && isValidClientName(c.name)) {
         clientName = c.name.trim();
       }
     }
@@ -138,31 +208,42 @@ export function extractTransactionDetails(t: any, context?: TransactionDetailsCo
     const foundSale = context.sales.find((s: any) => s.id === t.sale_id);
     if (foundSale) {
       const fsClient = Array.isArray(foundSale.clients) ? foundSale.clients[0] : foundSale.clients;
-      if (fsClient?.name && typeof fsClient.name === "string" && fsClient.name.trim()) {
+      if (fsClient?.name && isValidClientName(fsClient.name)) {
         clientName = fsClient.name.trim();
+      } else if (foundSale.client_name && isValidClientName(foundSale.client_name)) {
+        clientName = foundSale.client_name.trim();
       } else if (foundSale.client_id && clientMap?.has(foundSale.client_id)) {
         const c = clientMap.get(foundSale.client_id);
-        if (c?.name && typeof c.name === "string" && c.name.trim()) {
+        if (c?.name && isValidClientName(c.name)) {
           clientName = c.name.trim();
         }
       }
     }
   }
 
-  // 2.7. Se ainda não encontrado, extrai da descrição:
-  // Ex: "Venda #VEN-1234 - Maria Santos" ou "Pagamento Venda #10 - João Carlos (Parcela 1/2)"
+  // 2.7. Extração direta da descrição da transação (ex: 'Parcial 1/1 • V9218587757-G - Galega')
   if (!clientName && t.description && typeof t.description === "string") {
-    const dashMatch = t.description.match(/-\s*([^()]+?)(?:\s*\(.*|\s*$)/);
-    if (dashMatch && dashMatch[1]) {
-      const candidate = dashMatch[1].trim();
-      // Não considerar termos comuns do sistema como nome de cliente
-      if (candidate && !/^(venda|parcela|entrada|saída|taxa|pagamento|estorno)/i.test(candidate)) {
-        clientName = candidate;
+    const fromDesc = extractClientFromDescription(t.description);
+    if (fromDesc) {
+      clientName = fromDesc;
+    }
+  }
+
+  // 2.8. Se ainda não encontrado, busca em array de clientes por correspondência no texto da descrição
+  if (!clientName && t.description && context?.clients && Array.isArray(context.clients)) {
+    const descLower = t.description.toLowerCase();
+    for (const c of context.clients) {
+      if (c?.name && c.name.trim().length >= 3 && isValidClientName(c.name)) {
+        const cNameLower = c.name.trim().toLowerCase();
+        if (descLower.includes(cNameLower)) {
+          clientName = c.name.trim();
+          break;
+        }
       }
     }
   }
 
-  // 2.8. Se for receita de venda e não houver NENHUM dado ou cliente em nenhuma fonte:
+  // 2.9. Se for receita de venda e não houver NENHUM dado ou cliente em nenhuma fonte:
   if (!clientName && isIncome) {
     clientName = "Consumidor Final";
   }
@@ -284,11 +365,11 @@ export function buildTransactionReportData(
   } else {
     columns.push(
       { key: "date", label: "Data", className: "whitespace-nowrap w-[68px] print:w-[58px]" },
-      { key: "type", label: "Tipo", align: "center", className: "whitespace-nowrap w-[52px] print:w-[44px]" },
-      { key: "desc_code", label: "Descrição / Cód. Venda", className: "min-w-[120px]" },
-      { key: "client_supplier", label: "Cliente / Favorecido", className: "min-w-[100px]" },
-      { key: "category", label: "Categoria", align: "center", className: "whitespace-nowrap w-[60px] print:w-[48px]" },
-      { key: "method", label: "Forma de Pagamento", className: "whitespace-nowrap w-[80px] print:w-[68px]" },
+      { key: "type", label: "Tipo", align: "center", className: "whitespace-nowrap w-[54px] print:w-[46px]" },
+      { key: "desc_code", label: "Descrição / Cód. Venda", className: "min-w-[130px]" },
+      { key: "client_supplier", label: "Cliente / Favorecido", className: "min-w-[110px]" },
+      { key: "category", label: "Categoria", className: "whitespace-nowrap w-[70px] print:w-[55px]" },
+      { key: "method", label: "Forma de Pagamento", className: "whitespace-nowrap w-[85px] print:w-[70px]" },
       { key: "status", label: "Situação", align: "center", className: "whitespace-nowrap w-[48px] print:w-[42px]" },
       { key: "amount", label: "Valor", align: "right", className: "whitespace-nowrap font-mono font-black min-w-[105px] print:min-w-[95px] print:w-[95px]" }
     );
@@ -311,46 +392,43 @@ export function buildTransactionReportData(
     const isPaid = item.status === "Pago";
     const isPending = item.status === "Pendente";
 
-    const dateSpan = <span className="whitespace-nowrap">{item.date}</span>;
-    const methodSpan = <span className="whitespace-nowrap">{item.method}</span>;
+    const dateSpan = <span className="whitespace-nowrap font-medium text-slate-800 text-xs">{item.date}</span>;
+    const methodSpan = <span className="whitespace-nowrap font-medium text-slate-700 text-xs uppercase">{item.method}</span>;
     const categorySpan = (
-      <span
-        className="block truncate max-w-[80px] print:max-w-[60px] text-[10.5px] print:text-[8px] font-semibold text-slate-700"
-        title={item.category}
-      >
+      <span className="whitespace-nowrap text-slate-700 text-xs font-normal">
         {item.category}
       </span>
     );
 
     const statusBadge = (
       <span
-        className={`inline-flex items-center justify-center px-1.5 py-0.5 print:px-1 print:py-0 rounded text-[8.5px] print:text-[7.5px] font-black uppercase tracking-tighter whitespace-nowrap ${
+        className={`inline-flex items-center justify-center px-2 py-0.5 rounded text-[9px] print:text-[8px] font-bold uppercase tracking-wider whitespace-nowrap border ${
           isPaid
-            ? "bg-emerald-100 text-emerald-800 print:bg-emerald-50 print:text-emerald-900"
+            ? "bg-emerald-50 text-emerald-700 border-emerald-200/80 print:bg-emerald-50 print:text-emerald-900"
             : isPending
-            ? "bg-amber-100 text-amber-800 print:bg-amber-50 print:text-amber-900"
-            : "bg-rose-100 text-rose-800 print:bg-rose-50 print:text-rose-900"
+            ? "bg-amber-50 text-amber-700 border-amber-200/80 print:bg-amber-50 print:text-amber-900"
+            : "bg-rose-50 text-rose-700 border-rose-200/80 print:bg-rose-50 print:text-rose-900"
         }`}
       >
-        {item.status}
+        {item.status.toUpperCase()}
       </span>
     );
 
     const typeBadge = (
       <span
-        className={`inline-flex items-center justify-center px-1.5 py-0.5 print:px-1 print:py-0 rounded text-[8.5px] print:text-[7.5px] font-black uppercase tracking-tighter whitespace-nowrap ${
+        className={`inline-flex items-center justify-center px-2 py-0.5 rounded text-[9px] print:text-[8px] font-bold uppercase tracking-wider whitespace-nowrap border ${
           item.isIncome
-            ? "bg-emerald-50 text-emerald-700 print:bg-emerald-50 print:text-emerald-900"
-            : "bg-rose-50 text-rose-700 print:bg-rose-50 print:text-rose-900"
+            ? "bg-emerald-50 text-emerald-700 border-emerald-200/80 print:bg-emerald-50 print:text-emerald-900"
+            : "bg-rose-50 text-rose-700 border-rose-200/80 print:bg-rose-50 print:text-rose-900"
         }`}
       >
-        {item.isIncome ? "Receita" : "Despesa"}
+        {item.isIncome ? "RECEITA" : "DESPESA"}
       </span>
     );
 
     const amountFormatted = (
       <span
-        className={`font-black whitespace-nowrap font-mono text-xs print:text-[10px] tabular-nums tracking-tight ${
+        className={`font-bold whitespace-nowrap font-mono text-xs print:text-[10px] tabular-nums tracking-tight ${
           item.isIncome ? "text-emerald-600 print:text-emerald-800" : "text-rose-600 print:text-rose-800"
         }`}
       >
@@ -362,8 +440,8 @@ export function buildTransactionReportData(
     if (typeFilter === "receita") {
       return {
         date: dateSpan,
-        sale_code: <span className="whitespace-nowrap font-mono font-bold text-slate-900">{item.saleCode}</span>,
-        client_name: item.clientName,
+        sale_code: <span className="whitespace-nowrap font-mono font-bold text-slate-900 text-xs">{item.saleCode}</span>,
+        client_name: <span className="text-slate-800 font-medium text-xs">{item.clientName}</span>,
         category: categorySpan,
         method: methodSpan,
         status: statusBadge,
@@ -377,7 +455,7 @@ export function buildTransactionReportData(
     if (typeFilter === "despesa") {
       return {
         date: dateSpan,
-        description: item.description,
+        description: <span className="text-slate-800 font-normal text-xs">{item.description}</span>,
         category: categorySpan,
         method: methodSpan,
         status: statusBadge,
@@ -391,8 +469,16 @@ export function buildTransactionReportData(
     return {
       date: dateSpan,
       type: typeBadge,
-      desc_code: item.isIncome ? (item.saleCode ? <span className="whitespace-nowrap font-mono font-bold">{item.saleCode}</span> : item.description) : item.description,
-      client_supplier: item.isIncome ? item.clientName : (item.supplierName || "—"),
+      desc_code: item.isIncome ? (
+        item.saleCode ? (
+          <span className="whitespace-nowrap font-mono font-bold text-slate-900 text-xs">{item.saleCode}</span>
+        ) : (
+          <span className="text-slate-800 font-normal text-xs">{item.description}</span>
+        )
+      ) : (
+        <span className="text-slate-800 font-normal text-xs">{item.description}</span>
+      ),
+      client_supplier: <span className="text-slate-800 font-normal text-xs">{item.isIncome ? item.clientName : (item.supplierName || "—")}</span>,
       category: categorySpan,
       method: methodSpan,
       status: statusBadge,
@@ -408,27 +494,27 @@ export function buildTransactionReportData(
 
   if (typeFilter === "receita") {
     summaryCards.push(
-      { label: "Total Receitas (+)", value: brl(totalReceitas), helper: `${filtered.length} lançamentos de venda` },
-      { label: "Receitas Pagas", value: pagasCount, helper: "Concluídas e compensadas" },
-      { label: "Pendentes / A Receber", value: pendentesCount, helper: "Aguardando pagamento" }
+      { label: "TOTAL RECEITAS (+)", value: brl(totalReceitas), helper: `${filtered.length} lançamentos de venda` },
+      { label: "RECEITAS PAGAS", value: pagasCount, helper: "Concluídas e compensadas" },
+      { label: "PENDENTES / A RECEBER", value: pendentesCount, helper: "Aguardando pagamento" }
     );
   } else if (typeFilter === "despesa") {
     summaryCards.push(
-      { label: "Total Despesas (-)", value: brl(totalDespesas), helper: `${filtered.length} despesas e custos` },
-      { label: "Despesas Quitadas", value: pagasCount, helper: "Pagas com comprovante" },
-      { label: "Despesas Pendentes", value: pendentesCount, helper: "A pagar no vencimento" }
+      { label: "TOTAL DESPESAS (-)", value: brl(totalDespesas), helper: `${filtered.length} despesas e custos` },
+      { label: "DESPESAS QUITADAS", value: pagasCount, helper: "Pagas com comprovante" },
+      { label: "DESPESAS PENDENTES", value: pendentesCount, helper: "A pagar no vencimento" }
     );
   } else {
     const bal = totalReceitas - totalDespesas;
     summaryCards.push(
-      { label: "Total Receitas (+)", value: brl(totalReceitas), helper: "Entradas financeiras" },
-      { label: "Total Despesas (-)", value: brl(totalDespesas), helper: "Saídas e custos operacionais" },
+      { label: "TOTAL RECEITAS (+)", value: brl(totalReceitas), helper: "Entradas financeiras" },
+      { label: "TOTAL DESPESAS (-)", value: brl(totalDespesas), helper: "Saídas e custos operacionais" },
       {
-        label: "Resultado Líquido",
+        label: "RESULTADO LÍQUIDO",
         value: brl(bal),
         helper: bal >= 0 ? "Superávit do período" : "Déficit do período",
       },
-      { label: "Lançamentos", value: filtered.length, helper: `${pagasCount} pagos / ${pendentesCount} pendentes` }
+      { label: "LANÇAMENTOS", value: filtered.length, helper: `${pagasCount} pagos / ${pendentesCount} pendentes` }
     );
   }
 

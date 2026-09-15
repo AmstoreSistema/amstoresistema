@@ -42,6 +42,8 @@ import {
   extractTransactionDetails,
   buildTransactionReportData,
   exportTransactionsToCSV,
+  isValidClientName,
+  extractClientFromDescription,
 } from "@/lib/transaction-report.helpers";
 
 export const Route = createFileRoute("/_authenticated/reports")({
@@ -67,6 +69,7 @@ interface ReportConfig {
   table: string;
   url: string;
   dateColumn: string;
+  select?: string;
   filters?: { column: string; value: any }[];
   noFilter?: boolean;
 }
@@ -75,7 +78,8 @@ const REPORT_CONFIG: Record<ReportType, ReportConfig> = {
   sales: { 
     table: "sales", 
     url: "/sales", 
-    dateColumn: "created_at" 
+    dateColumn: "created_at",
+    select: "*, clients(name)"
   },
   installments: { 
     table: "sale_installments", 
@@ -138,7 +142,8 @@ const REPORT_CONFIG: Record<ReportType, ReportConfig> = {
   general: { 
     table: "transactions", 
     url: "/transactions", 
-    dateColumn: "created_at" 
+    dateColumn: "created_at",
+    select: "*, financial_accounts(name), clients(name), suppliers(name), sales(id, sale_code, client_id, clients(name))"
   },
 };
 
@@ -196,6 +201,7 @@ function ReportsPage() {
   
   // Consultas principais com filtro de data no banco para velocidade máxima
   const { data: reportData = [], isLoading: isMainLoading } = useRows(config.table, {
+    select: config.select,
     filters: config.filters,
     dateRange: !isNoFilter && (dateRange.start || dateRange.end) ? {
       column: config.dateColumn,
@@ -208,6 +214,7 @@ function ReportsPage() {
 
   const { data: allClients = [] } = useRows<any>("clients", { select: "id, name, phone, cashback_balance, total_spent", limit: 3000 });
   const { data: allSales = [] } = useRows<any>("sales", { select: "id, sale_code, client_id, installments_count, clients(name)", limit: 5000 });
+  const { data: allTransactions = [] } = useRows<any>("transactions", { select: "id, sale_id, client_id, description, client_name, amount, type, created_at, clients(name)", limit: 5000 });
   const { data: allSaleItems = [] } = useRows<any>("sale_items", { select: "sale_id, quantity", limit: 5000 });
   const { data: allProducts = [] } = useRows<any>("products", { select: "id, name, category, cost_price, sale_price, wholesale_price, current_stock", limit: 3000 });
   const { data: allSuppliers = [] } = useRows<any>("suppliers", { select: "id, name", limit: 2000 });
@@ -218,6 +225,31 @@ function ReportsPage() {
   const productMap = useMemo(() => new Map(allProducts.map((p: any) => [p.id, p])), [allProducts]);
   const supplierMap = useMemo(() => new Map(allSuppliers.map((sup: any) => [sup.id, sup])), [allSuppliers]);
   const accountMap = useMemo(() => new Map(allAccounts.map((a: any) => [a.id, a])), [allAccounts]);
+
+  // Mapas para resolução rápida de transações por venda vinculada
+  const txBySaleIdMap = useMemo(() => {
+    const map = new Map<string, any>();
+    allTransactions.forEach((tx: any) => {
+      if (tx.sale_id && !map.has(tx.sale_id)) {
+        map.set(tx.sale_id, tx);
+      }
+    });
+    return map;
+  }, [allTransactions]);
+
+  const txBySaleCodeMap = useMemo(() => {
+    const map = new Map<string, any>();
+    allTransactions.forEach((tx: any) => {
+      if (tx.description) {
+        const m = tx.description.match(/(?:#|•\s*)([A-Za-z0-9_-]+)/);
+        if (m && m[1]) {
+          const code = m[1].toUpperCase();
+          if (!map.has(code)) map.set(code, tx);
+        }
+      }
+    });
+    return map;
+  }, [allTransactions]);
 
   // Contagem de itens por venda
   const saleItemsCountMap = useMemo(() => {
@@ -645,7 +677,42 @@ function ReportsPage() {
           const disc = Number(row.discount_amount ?? row.discount ?? 0);
           data.code = row.sale_code || row.id?.slice(0, 8) || "—";
           data.date = dateTimeBR(row.created_at);
-          data.client = row.clients?.name || c?.name || "Consumidor Final";
+
+          // Resolução robusta e profunda do cliente (igual à exibição abaixo do código em transações)
+          let resolvedClient = "";
+          const directClient = Array.isArray(row.clients) ? row.clients[0] : row.clients;
+          if (directClient?.name && isValidClientName(directClient.name)) {
+            resolvedClient = directClient.name.trim();
+          } else if (c?.name && isValidClientName(c.name)) {
+            resolvedClient = c.name.trim();
+          } else if (row.client_name && isValidClientName(row.client_name)) {
+            resolvedClient = row.client_name.trim();
+          }
+
+          // Se ainda não encontrou, busca na transação vinculada a esta venda (onde o cliente aparece abaixo do código)
+          if (!resolvedClient) {
+            const linkedTx = txBySaleIdMap.get(row.id) || (row.sale_code ? txBySaleCodeMap.get(row.sale_code.toUpperCase()) : null);
+            if (linkedTx) {
+              const txClient = Array.isArray(linkedTx.clients) ? linkedTx.clients[0] : linkedTx.clients;
+              if (txClient?.name && isValidClientName(txClient.name)) {
+                resolvedClient = txClient.name.trim();
+              } else if (linkedTx.client_id && clientMap.has(linkedTx.client_id)) {
+                const tc = clientMap.get(linkedTx.client_id);
+                if (tc?.name && isValidClientName(tc.name)) {
+                  resolvedClient = tc.name.trim();
+                }
+              } else if (linkedTx.client_name && isValidClientName(linkedTx.client_name)) {
+                resolvedClient = linkedTx.client_name.trim();
+              } else if (linkedTx.description) {
+                const fromDesc = extractClientFromDescription(linkedTx.description);
+                if (fromDesc) {
+                  resolvedClient = fromDesc;
+                }
+              }
+            }
+          }
+
+          data.client = resolvedClient || "Consumidor Final";
           data.type = row.is_debt ? "Fiado / Parcela" : "Venda Direta";
           data.method = (row.payment_method || "—").toUpperCase();
           data.items_count = num(saleItemsCountMap.get(row.id) ?? 1, 0);
@@ -1244,6 +1311,8 @@ function ReportsPage() {
                 rows={reportResult.rows}
                 summaryCards={reportResult.summaryCards}
                 summaryPosition="top"
+                orientation={selectedType === "general" ? "landscape" : undefined}
+                showTableTotals={selectedType !== "general"}
                 onPrint={() => window.print()}
                 onExportCsv={handleExportCsv}
               />

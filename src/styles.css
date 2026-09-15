@@ -348,11 +348,11 @@ div:has(> a[href*="lovable.app"]) {
     display: block !important;
   }
 
-  /* Encaixe rigoroso em folha A4 a partir do topo */
+  /* Encaixe rigoroso em folha A4 com paginação contínua (Página 1 -> Página 2+) */
   .report-container,
   #printable-report,
   #printable-transactions-report {
-    position: absolute !important;
+    position: relative !important;
     left: 0 !important;
     top: 0 !important;
     width: 100% !important;
@@ -364,6 +364,26 @@ div:has(> a[href*="lovable.app"]) {
     box-shadow: none !important;
     border: none !important;
     box-sizing: border-box !important;
+    display: block !important;
+  }
+
+  /* Reset para modais e dialogs durante impressão para permitir quebra de página A4 natural */
+  [role="dialog"],
+  [data-radix-portal],
+  [data-radix-popper-content-wrapper],
+  [data-state="open"] {
+    position: static !important;
+    transform: none !important;
+    max-height: none !important;
+    height: auto !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow: visible !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+    background: transparent !important;
   }
 
   /* Tabela contida na largura da folha A4 sem transbordar */
@@ -393,19 +413,22 @@ div:has(> a[href*="lovable.app"]) {
   }
 
   .report-container thead,
-  #printable-report thead {
+  #printable-report thead,
+  #printable-transactions-report thead {
     display: table-header-group !important;
   }
 
   .report-container tfoot,
-  #printable-report tfoot {
+  #printable-report tfoot,
+  #printable-transactions-report tfoot {
     display: table-footer-group !important;
     page-break-inside: avoid !important;
     break-inside: avoid !important;
   }
 
   .report-container tr,
-  #printable-report tr {
+  #printable-report tr,
+  #printable-transactions-report tr {
     page-break-inside: avoid !important;
     break-inside: avoid !important;
   }
@@ -418,7 +441,8 @@ div:has(> a[href*="lovable.app"]) {
   }
 
   .report-container th,
-  #printable-report th {
+  #printable-report th,
+  #printable-transactions-report th {
     padding: 4px 4px !important;
     font-size: 7.5pt !important;
     background-color: #f1f5f9 !important;
@@ -427,7 +451,8 @@ div:has(> a[href*="lovable.app"]) {
   }
 
   .report-container td,
-  #printable-report td {
+  #printable-report td,
+  #printable-transactions-report td {
     padding: 3.5px 4px !important;
     font-size: 7.8pt !important;
     word-break: normal !important;

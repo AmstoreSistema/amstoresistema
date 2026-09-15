@@ -1014,14 +1014,14 @@ function TransactionsPage() {
 
       {/* Modal de Relatório Executivo com ReportLayout e Impressão A4 */}
       <Dialog open={isReportModalOpen} onOpenChange={setIsReportModalOpen}>
-        <DialogContent className="w-[96vw] sm:w-full max-w-5xl max-h-[92vh] p-3 sm:p-6 overflow-y-auto overflow-x-hidden bg-white dark:bg-card">
+        <DialogContent className="w-[96vw] sm:w-full max-w-6xl xl:max-w-7xl max-h-[92vh] p-3 sm:p-6 overflow-y-auto overflow-x-hidden bg-white dark:bg-card">
           <DialogHeader className="flex flex-col gap-3 pb-3 border-b print:hidden">
             <div className="pr-8 text-left">
               <DialogTitle className="text-base sm:text-lg font-black font-display leading-tight">
                 Relatório de Transações Financeiras
               </DialogTitle>
               <DialogDescription className="text-xs text-muted-foreground mt-0.5">
-                Visualização executiva com totais, colunas detalhadas e formato para impressão A4.
+                Visualização executiva idêntica ao padrão de tela e folha A4 com indicadores e paginação contínua.
               </DialogDescription>
             </div>
             <div className="grid grid-cols-2 sm:flex sm:items-center sm:justify-end gap-2 w-full">
@@ -1074,6 +1074,9 @@ function TransactionsPage() {
                   rows={rep.rows}
                   summaryCards={rep.summaryCards}
                   summaryPosition="top"
+                  showTotals={true}
+                  showTableTotals={false}
+                  orientation="landscape"
                   onPrint={() => window.print()}
                   onExportCsv={handleExportCsv}
                 />

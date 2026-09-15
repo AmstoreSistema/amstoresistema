@@ -23,6 +23,8 @@ import {
   extractTransactionDetails,
   buildTransactionReportData,
   exportTransactionsToCSV,
+  isValidClientName,
+  extractClientFromDescription,
 } from "@/lib/transaction-report.helpers";
 
 import { Button } from "@/components/ui/button";
@@ -221,6 +223,7 @@ function StoreReportsPage() {
   const isNoFilter = current?.noFilter ?? false;
 
   const { data: sales = [], isLoading: l1 } = useRows<any>("sales", {
+    select: "*, clients(name)",
     dateRange: !isNoFilter && (range.start || range.end) ? {
       column: "created_at",
       gte: range.start ? `${range.start}T00:00:00` : undefined,
@@ -259,6 +262,7 @@ function StoreReportsPage() {
   const { data: clients = [] } = useRows<any>("clients", { limit: 3000 });
   const { data: installments = [] } = useRows<any>("sale_installments", { limit: 5000 });
   const { data: transactions = [] } = useRows<any>("transactions", {
+    select: "*, financial_accounts(name), clients(name), suppliers(name), sales(id, sale_code, client_id, clients(name))",
     dateRange: !isNoFilter && (range.start || range.end) ? {
       column: "created_at",
       gte: range.start ? `${range.start}T00:00:00` : undefined,
@@ -285,7 +289,30 @@ function StoreReportsPage() {
 
   const productMap = useMemo(() => new Map(products.map((p: any) => [p.id, p])), [products]);
   const clientMap = useMemo(() => new Map(clients.map((c: any) => [c.id, c])), [clients]);
+  const saleMap = useMemo(() => new Map(sales.map((s: any) => [s.id, s])), [sales]);
   const profileMap = useMemo(() => new Map(profiles.map((pr: any) => [pr.id, pr])), [profiles]);
+
+  const txBySaleIdMap = useMemo(() => {
+    const map = new Map<string, any>();
+    transactions.forEach((tx: any) => {
+      if (tx.sale_id && !map.has(tx.sale_id)) map.set(tx.sale_id, tx);
+    });
+    return map;
+  }, [transactions]);
+
+  const txBySaleCodeMap = useMemo(() => {
+    const map = new Map<string, any>();
+    transactions.forEach((tx: any) => {
+      if (tx.description) {
+        const m = tx.description.match(/(?:#|•\s*)([A-Za-z0-9_-]+)/);
+        if (m && m[1]) {
+          const code = m[1].toUpperCase();
+          if (!map.has(code)) map.set(code, tx);
+        }
+      }
+    });
+    return map;
+  }, [transactions]);
 
   const productName = (id?: string | null) => productMap.get(id)?.name ?? "—";
   const productCategory = (id?: string | null) => productMap.get(id)?.category ?? "Sem categoria";
@@ -294,6 +321,33 @@ function StoreReportsPage() {
   const sellerName = (id?: string | null) => {
     const prof = profileMap.get(id);
     return prof?.display_name || prof?.email || "Balcão Loja";
+  };
+
+  const resolveSaleClient = (sale: any) => {
+    if (!sale) return "Consumidor final";
+    const directClient = Array.isArray(sale.clients) ? sale.clients[0] : sale.clients;
+    if (directClient?.name && isValidClientName(directClient.name)) return directClient.name.trim();
+    if (sale.client_id && clientMap.has(sale.client_id)) {
+      const c = clientMap.get(sale.client_id);
+      if (c?.name && isValidClientName(c.name)) return c.name.trim();
+    }
+    if (sale.client_name && isValidClientName(sale.client_name)) return sale.client_name.trim();
+
+    const linkedTx = txBySaleIdMap.get(sale.id) || (sale.sale_code ? txBySaleCodeMap.get(sale.sale_code.toUpperCase()) : null);
+    if (linkedTx) {
+      const txClient = Array.isArray(linkedTx.clients) ? linkedTx.clients[0] : linkedTx.clients;
+      if (txClient?.name && isValidClientName(txClient.name)) return txClient.name.trim();
+      if (linkedTx.client_id && clientMap.has(linkedTx.client_id)) {
+        const tc = clientMap.get(linkedTx.client_id);
+        if (tc?.name && isValidClientName(tc.name)) return tc.name.trim();
+      }
+      if (linkedTx.client_name && isValidClientName(linkedTx.client_name)) return linkedTx.client_name.trim();
+      if (linkedTx.description) {
+        const fromDesc = extractClientFromDescription(linkedTx.description);
+        if (fromDesc) return fromDesc;
+      }
+    }
+    return "Consumidor final";
   };
 
   const result = useMemo<Result>(() => {
@@ -521,6 +575,8 @@ function StoreReportsPage() {
             clients,
             sales,
             suppliers,
+            clientMap,
+            saleMap,
           }
         );
 
@@ -552,7 +608,7 @@ function StoreReportsPage() {
           rows: validSales.map((s: any) => ({
             code: s.sale_code ?? s.id?.slice(0, 8),
             date: dateTimeBR(s.created_at),
-            client: clientName(s.client_id),
+            client: resolveSaleClient(s),
             type: s.is_debt ? "Fiado" : "À Vista",
             method: (s.payment_method ?? "—").toUpperCase(),
             total: brl(s.total_amount),
@@ -574,7 +630,7 @@ function StoreReportsPage() {
           return {
             code: sale?.sale_code ?? sale?.id?.slice(0, 8) ?? "—",
             date: dateTimeBR(sale?.created_at),
-            client: clientName(sale?.client_id),
+            client: resolveSaleClient(sale),
             product: productName(i.product_id),
             size: i.numeracao ?? "—",
             qty: num(q, 0),
@@ -1469,6 +1525,8 @@ function StoreReportsPage() {
             rows={result.rows}
             summaryCards={result.summaryCards}
             summaryPosition="top"
+            orientation={selected === "transactions" ? "landscape" : undefined}
+            showTableTotals={selected !== "transactions"}
             onPrint={() => window.print()}
             onExportCsv={handleExport}
           />

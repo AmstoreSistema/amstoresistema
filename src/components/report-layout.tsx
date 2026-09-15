@@ -29,25 +29,27 @@ export interface ReportLayoutProps {
   /** Subtotais explícitos por coluna (opcional) */
   subtotals?: Record<string, string | number>;
   /** Cards de resumo personalizados (opcional) */
-  summaryCards?: { label: string; value: string | number; helper?: string; icon?: any }[];
+  summaryCards?: { label: string; value: string | number; helper?: string | undefined; icon?: any }[] | undefined;
   /** Posição dos cards de resumo: 'top' | 'bottom' | 'both' (padrão: 'top') */
-  summaryPosition?: "top" | "bottom" | "both";
+  summaryPosition?: "top" | "bottom" | "both" | undefined;
   /** Se false, oculta a somatória de totais e subtotais */
-  showTotals?: boolean;
+  showTotals?: boolean | undefined;
+  /** Se false, oculta a linha de totais no rodapé da tabela (tfoot). Por padrão é false se houver summaryCards para não duplicar valores */
+  showTableTotals?: boolean | undefined;
   /** Identificador HTML para controle de impressão */
-  id?: string;
+  id?: string | undefined;
   /** Classes CSS adicionais no container */
-  className?: string;
+  className?: string | undefined;
   /** Se true, oculta o rodapé de emissão */
-  hideFooter?: boolean;
+  hideFooter?: boolean | undefined;
   /** Orientação da folha para impressão: 'portrait' | 'landscape' | 'auto' (padrão: 'auto', se >= 7 colunas usa landscape) */
-  orientation?: "portrait" | "landscape" | "auto";
+  orientation?: "portrait" | "landscape" | "auto" | undefined;
   /** Botões ou elementos de ação customizados para a barra de topo */
-  actions?: React.ReactNode;
+  actions?: React.ReactNode | undefined;
   /** Callback para botão de impressão direta */
-  onPrint?: () => void;
+  onPrint?: (() => void) | undefined;
   /** Callback para botão de exportação CSV direta */
-  onExportCsv?: () => void;
+  onExportCsv?: (() => void) | undefined;
 }
 
 export function ReportLayout({
@@ -63,6 +65,7 @@ export function ReportLayout({
   summaryCards: customSummaryCards,
   summaryPosition = "top",
   showTotals = true,
+  showTableTotals,
   id = "printable-report",
   className,
   hideFooter = false,
@@ -72,6 +75,7 @@ export function ReportLayout({
   onExportCsv,
 }: ReportLayoutProps) {
   const isLandscape = orientation === "landscape" || (orientation === "auto" && Boolean(columns && columns.length >= 7));
+  const shouldShowTableTotals = showTableTotals ?? (!customSummaryCards || customSummaryCards.length === 0);
   // 1. Formatação exclusiva do filtro de datas (sem contagem de registros no cabeçalho)
   const periodText = React.useMemo(() => {
     if (startDate && endDate) {
@@ -192,29 +196,29 @@ export function ReportLayout({
     if (!showTotals || summaryCards.length === 0) return null;
     return (
       <section className={cn(
-        "report-summary rounded-xl sm:rounded-2xl border border-slate-200/90 bg-slate-50/70 p-3 sm:p-5 print:bg-white print:border-slate-300 print:p-3 print:break-inside-avoid",
-        position === "top" ? "mb-4 sm:mb-6 print:mb-3" : "mt-4 sm:mt-6 print:mt-3"
+        "report-summary rounded-2xl border border-slate-200/90 bg-slate-50/50 p-4 sm:p-5 print:bg-white print:border-slate-300 print:p-3 print:break-inside-avoid",
+        position === "top" ? "mb-5 sm:mb-6 print:mb-4" : "mt-5 sm:mt-6 print:mt-4"
       )}>
-        <div className="flex items-center gap-2 border-b border-slate-200 pb-2.5 mb-3 sm:mb-4">
+        <div className="flex items-center gap-2 border-b border-slate-200 pb-2.5 mb-3.5 sm:mb-4">
           <Calculator className="size-4 text-slate-600 print:text-slate-800" />
           <h2 className="text-xs font-black uppercase tracking-wider text-slate-800 font-display">
             Resumo dos Indicadores Principais
           </h2>
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 print:grid-cols-3 gap-2 sm:gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-4 print:grid-cols-4 gap-2.5 sm:gap-3.5">
           {summaryCards.map((card, idx) => (
             <div
               key={idx}
-              className="rounded-xl border border-slate-200 bg-white p-2.5 sm:p-3.5 shadow-xs print:border-slate-300 print:shadow-none"
+              className="rounded-xl border border-slate-200 bg-white p-3 sm:p-4 shadow-xs print:border-slate-300 print:shadow-none"
             >
-              <p className="text-[9px] sm:text-[10px] font-black uppercase tracking-wider text-slate-500 truncate">
+              <p className="text-[10px] sm:text-[10.5px] font-black uppercase tracking-wider text-slate-500 truncate">
                 {card.label}
               </p>
-              <p className="mt-0.5 sm:mt-1 text-sm sm:text-lg font-black text-slate-900 font-display tracking-tight print:text-base truncate">
+              <p className="mt-1 text-base sm:text-xl font-black text-slate-900 font-display tracking-tight print:text-lg truncate">
                 {card.value}
               </p>
               {card.helper && (
-                <p className="text-[9px] sm:text-[10px] font-medium text-slate-400 print:hidden truncate">
+                <p className="mt-0.5 text-[10px] sm:text-[11px] font-medium text-slate-400 print:text-slate-400 block truncate">
                   {card.helper}
                 </p>
               )}
@@ -230,16 +234,16 @@ export function ReportLayout({
       id={id}
       className={cn(
         // Container do relatório compatível com tela e folha A4 perfeita
-        "report-container report-corporate-layout w-full max-w-5xl mx-auto bg-white text-slate-900 p-3 sm:p-6 md:p-10 rounded-xl sm:rounded-2xl shadow-sm border border-slate-200/80 animate-in fade-in duration-300 pb-24 sm:pb-8",
+        "report-container report-corporate-layout w-full max-w-6xl mx-auto bg-white text-slate-900 p-4 sm:p-6 md:p-8 rounded-2xl shadow-sm border border-slate-200/80 animate-in fade-in duration-300 pb-24 sm:pb-8",
         // Regras estritas de impressão folha A4 (sem cortes, bordas perfeitas)
         "print:p-0 print:m-0 print:max-w-none print:w-full print:border-none print:shadow-none print:bg-white print:rounded-none",
         // Herança automática de estilo corporativo para qualquer tabela ou planilha inserida
         "[&_table]:w-full [&_table]:border-collapse [&_table]:text-sm print:[&_table]:text-[9.5px] print:[&_table]:leading-snug",
-        "[&_thead]:bg-slate-100/75 [&_thead]:border-b [&_thead]:border-slate-200",
-        "[&_th]:px-2.5 sm:[&_th]:px-3 [&_th]:py-2 print:[&_th]:px-1 print:[&_th]:py-1 [&_th]:text-[10px] sm:[&_th]:text-xs print:[&_th]:text-[8.5px] [&_th]:font-bold [&_th]:uppercase [&_th]:tracking-tight [&_th]:text-slate-700 [&_th]:border-b [&_th]:border-slate-200",
+        "[&_thead]:bg-slate-100/90 [&_thead]:border-b [&_thead]:border-slate-200",
+        "[&_th]:px-3 [&_th]:py-2.5 print:[&_th]:px-1.5 print:[&_th]:py-1 [&_th]:text-[11px] print:[&_th]:text-[9px] [&_th]:font-bold [&_th]:uppercase [&_th]:tracking-tight [&_th]:text-slate-700 [&_th]:border-b [&_th]:border-slate-200",
         "[&_tbody_tr]:border-b [&_tbody_tr]:border-slate-100 [&_tbody_tr]:transition-colors print:[&_tbody_tr]:break-inside-avoid",
-        "[&_tbody_tr:nth-child(even)]:bg-slate-50/50 [&_tbody_tr:hover]:bg-slate-100/60",
-        "[&_td]:px-2.5 sm:[&_td]:px-3 [&_td]:py-2 print:[&_td]:px-1 print:[&_td]:py-1 [&_td]:text-xs print:[&_td]:text-[9px] [&_td]:text-slate-800 [&_td]:font-medium [&_td]:border-b [&_td]:border-slate-100",
+        "[&_tbody_tr:nth-child(even)]:bg-slate-50/40 [&_tbody_tr:hover]:bg-slate-100/60",
+        "[&_td]:px-3 [&_td]:py-2 print:[&_td]:px-1.5 print:[&_td]:py-1 [&_td]:text-xs print:[&_td]:text-[9px] [&_td]:text-slate-800 [&_td]:font-medium [&_td]:border-b [&_td]:border-slate-100",
         "[&_tfoot]:bg-slate-100/90 [&_tfoot_td]:font-bold [&_tfoot_td]:text-slate-900 print:[&_tfoot_td]:px-1 print:[&_tfoot_td]:py-1 print:[&_tfoot_td]:text-[9.5px]",
         className
       )}
@@ -248,7 +252,11 @@ export function ReportLayout({
         @media print {
           @page {
             size: A4 ${isLandscape ? "landscape" : "portrait"} !important;
-            margin: 5mm 5mm 5mm 5mm !important;
+            margin: 8mm 6mm 8mm 6mm !important;
+          }
+          html, body {
+            background: #ffffff !important;
+            color: #0f172a !important;
           }
           .report-container,
           #printable-report,
@@ -258,6 +266,14 @@ export function ReportLayout({
             min-width: 0 !important;
             padding: 0 !important;
             margin: 0 !important;
+            background: #ffffff !important;
+            box-shadow: none !important;
+            border: none !important;
+          }
+          .report-header,
+          .report-summary {
+            break-inside: avoid !important;
+            page-break-inside: avoid !important;
           }
           .report-container table,
           #printable-report table,
@@ -266,6 +282,17 @@ export function ReportLayout({
             min-width: 0 !important;
             max-width: 100% !important;
             table-layout: auto !important;
+            border-collapse: collapse !important;
+          }
+          thead {
+            display: table-header-group !important;
+          }
+          tfoot {
+            display: table-footer-group !important;
+          }
+          tbody tr {
+            break-inside: avoid !important;
+            page-break-inside: avoid !important;
           }
           .report-container th,
           .report-container td,
@@ -273,8 +300,9 @@ export function ReportLayout({
           #printable-report td,
           #printable-transactions-report th,
           #printable-transactions-report td {
-            padding: 2.5px 3.5px !important;
+            padding: 3px 5px !important;
             word-break: normal !important;
+            font-size: 8.5pt !important;
           }
           /* Garante que a coluna de Valor nunca seja cortada ou sofra quebra */
           .report-container th:last-child,
@@ -285,7 +313,7 @@ export function ReportLayout({
           #printable-transactions-report td:last-child {
             white-space: nowrap !important;
             text-align: right !important;
-            min-width: 95px !important;
+            min-width: 90px !important;
             padding-right: 4px !important;
           }
         }
@@ -361,8 +389,8 @@ export function ReportLayout({
       {/* CABEÇALHO TOTALMENTE CENTRALIZADO                           */}
       {/* ============================================================ */}
       <header className="report-header mb-6 sm:mb-8 flex flex-col items-center justify-center text-center px-1">
-        {/* 1. Logomarca (ou Placeholder Elegante) */}
-        <div className="flex flex-col items-center justify-center mb-2.5">
+        {/* 1. Logomarca e Informações da Loja */}
+        <div className="flex flex-col items-center justify-center mb-1">
           {storeInfo?.logo ? (
             <img
               src={storeInfo.logo}
@@ -371,44 +399,51 @@ export function ReportLayout({
             />
           ) : (
             <div className="flex items-center gap-2.5 sm:gap-3">
-              <div className="flex size-10 sm:size-12 items-center justify-center rounded-xl sm:rounded-2xl bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-amber-400 shadow-md border border-slate-700/40 print:bg-slate-900 print:text-amber-400">
-                <Store className="size-5 sm:size-6" />
+              <div className="flex size-10 sm:size-11 items-center justify-center rounded-xl bg-slate-900 text-amber-400 shadow-md border border-slate-800 print:bg-slate-900 print:text-amber-400">
+                <Store className="size-5 sm:size-5.5" />
               </div>
               <div className="text-left">
-                <span className="block font-display text-base sm:text-lg font-black tracking-widest text-slate-900 uppercase">
-                  {storeName}
+                <span className="block font-display text-base sm:text-xl font-black tracking-wide text-slate-900 uppercase">
+                  {storeName || "AMSTORE BAGSHOES"}
                 </span>
-                <span className="block text-[8px] sm:text-[9px] font-bold tracking-[0.25em] text-slate-400 uppercase -mt-0.5">
+                <span className="block text-[8.5px] sm:text-[9.5px] font-bold tracking-[0.25em] text-slate-400 uppercase -mt-0.5">
                   Sistema de Gestão
                 </span>
               </div>
             </div>
           )}
 
-          {/* Dados secundários da empresa (CNPJ, Contato, Endereço) */}
-          {(storeInfo?.cnpj || storeInfo?.contact || storeInfo?.address) && (
-            <div className="mt-1.5 flex flex-wrap items-center justify-center gap-x-2 sm:gap-x-3 gap-y-0.5 text-[10px] sm:text-[11px] font-medium text-slate-500">
-              {storeInfo.cnpj && <span>CNPJ: {storeInfo.cnpj}</span>}
-              {storeInfo.cnpj && storeInfo.contact && <span className="text-slate-300">•</span>}
-              {storeInfo.contact && <span>{storeInfo.contact}</span>}
-              {storeInfo.address && <span className="text-slate-300">•</span>}
-              {storeInfo.address && <span>{storeInfo.address}</span>}
-            </div>
-          )}
+          {/* Endereço / Contatos com Bullet Âmbar */}
+          <div className="mt-2 flex flex-wrap items-center justify-center gap-x-2 text-[11px] sm:text-xs font-medium text-slate-500">
+            <span className="text-amber-500 font-bold">•</span>
+            <span>{storeInfo?.address || "Rua Medeiros Neto, 12-A - Centro"}</span>
+            {storeInfo?.cnpj && (
+              <>
+                <span className="text-slate-300">•</span>
+                <span>CNPJ: {storeInfo.cnpj}</span>
+              </>
+            )}
+            {storeInfo?.contact && (
+              <>
+                <span className="text-slate-300">•</span>
+                <span>{storeInfo.contact}</span>
+              </>
+            )}
+          </div>
         </div>
 
-        {/* Separador minimalista e refinado */}
-        <div className="my-1.5 h-0.5 w-12 sm:w-16 rounded-full bg-gradient-to-r from-amber-400/80 via-amber-500 to-amber-400/80 print:bg-slate-300" />
+        {/* Linha de destaque dourada idêntica ao modelo */}
+        <div className="w-12 h-1 bg-amber-400 rounded-full mx-auto my-3 print:my-2" />
 
         {/* 2. Nome do Relatório */}
-        <h1 className="mt-1.5 text-base sm:text-2xl md:text-3xl font-black uppercase tracking-wide text-slate-900 font-display break-words max-w-full">
+        <h1 className="text-2xl sm:text-3xl font-black uppercase tracking-wide text-slate-900 font-display break-words max-w-full print:text-2xl">
           {title}
         </h1>
 
         {/* 3. Dados do Filtro com a Data */}
         <div className="mt-2.5 flex items-center justify-center">
-          <div className="inline-flex items-center gap-1.5 sm:gap-2 rounded-full bg-slate-100/90 px-3 sm:px-4 py-1 sm:py-1.5 text-[11px] sm:text-xs font-semibold text-slate-700 border border-slate-200/80 print:bg-slate-50 print:border-slate-300">
-            <Calendar className="size-3 sm:size-3.5 text-slate-500 print:text-slate-700 shrink-0" />
+          <div className="inline-flex items-center gap-2 rounded-xl bg-slate-100/90 px-4 py-1.5 text-xs font-semibold text-slate-700 border border-slate-200/80 print:bg-slate-50 print:border-slate-300">
+            <Calendar className="size-3.5 text-slate-500 print:text-slate-700 shrink-0" />
             <span className="truncate">{periodText}</span>
           </div>
         </div>
@@ -508,8 +543,8 @@ export function ReportLayout({
                 )}
               </tbody>
 
-              {/* LINHA DE TOTAIS / SUBTOTAIS NA TABELA */}
-              {rows.length > 0 && finalTotals && showTotals && (
+              {/* LINHA DE TOTAIS / SUBTOTAIS NA TABELA (Exibida somente se não houver cards ou se showTableTotals=true) */}
+              {rows.length > 0 && finalTotals && showTotals && shouldShowTableTotals && (
                 <tfoot className="bg-slate-100/90 border-t-2 border-slate-300 text-slate-900 print:bg-slate-100 font-medium">
                   {/* Linha de Subtotal opcional */}
                   {customSubtotals && (
