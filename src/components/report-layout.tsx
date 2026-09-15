@@ -248,16 +248,45 @@ export function ReportLayout({
         @media print {
           @page {
             size: A4 ${isLandscape ? "landscape" : "portrait"} !important;
-            margin: 6mm 6mm 6mm 6mm !important;
+            margin: 5mm 5mm 5mm 5mm !important;
           }
-          .report-container table {
+          .report-container,
+          #printable-report,
+          #printable-transactions-report {
             width: 100% !important;
+            max-width: 100% !important;
+            min-width: 0 !important;
+            padding: 0 !important;
+            margin: 0 !important;
+          }
+          .report-container table,
+          #printable-report table,
+          #printable-transactions-report table {
+            width: 100% !important;
+            min-width: 0 !important;
+            max-width: 100% !important;
             table-layout: auto !important;
           }
           .report-container th,
-          .report-container td {
-            padding: 3px 5px !important;
+          .report-container td,
+          #printable-report th,
+          #printable-report td,
+          #printable-transactions-report th,
+          #printable-transactions-report td {
+            padding: 2.5px 3.5px !important;
             word-break: normal !important;
+          }
+          /* Garante que a coluna de Valor nunca seja cortada ou sofra quebra */
+          .report-container th:last-child,
+          .report-container td:last-child,
+          #printable-report th:last-child,
+          #printable-report td:last-child,
+          #printable-transactions-report th:last-child,
+          #printable-transactions-report td:last-child {
+            white-space: nowrap !important;
+            text-align: right !important;
+            min-width: 95px !important;
+            padding-right: 4px !important;
           }
         }
       `}</style>
@@ -415,8 +444,8 @@ export function ReportLayout({
 
             <table 
               className={cn(
-                "w-full caption-bottom text-sm border-collapse",
-                columns.length >= 7 ? "min-w-[880px]" : "min-w-[700px]"
+                "w-full caption-bottom text-sm border-collapse print:min-w-0 print:w-full",
+                columns.length >= 7 ? "min-w-[880px] print:min-w-0" : "min-w-[700px] print:min-w-0"
               )}
             >
               <thead className="bg-slate-100/80 hover:bg-slate-100/80 print:bg-slate-100 border-b border-slate-200">
@@ -489,7 +518,7 @@ export function ReportLayout({
                         <td
                           key={`subtotal-${col.key}`}
                           className={cn(
-                            "px-4 py-2.5 text-xs font-bold uppercase",
+                            "px-4 py-2.5 print:px-1 print:py-0.5 text-xs print:text-[8.5px] font-bold uppercase",
                             col.align === "right"
                               ? "text-right"
                               : col.align === "center"
@@ -510,7 +539,7 @@ export function ReportLayout({
                       <td
                         key={`total-${col.key}`}
                         className={cn(
-                          "px-4 py-3.5 text-sm font-black uppercase tracking-tight",
+                          "px-4 py-3.5 print:px-1 print:py-1 text-sm print:text-[9.5px] font-black uppercase tracking-tight",
                           col.align === "right"
                             ? "text-right"
                             : col.align === "center"

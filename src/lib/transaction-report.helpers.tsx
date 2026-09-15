@@ -194,33 +194,33 @@ export function buildTransactionReportData(
 
   if (typeFilter === "receita") {
     columns.push(
-      { key: "date", label: "Data", className: "whitespace-nowrap w-[75px]" },
-      { key: "sale_code", label: "Código Venda", className: "whitespace-nowrap font-mono font-bold text-slate-900 w-[110px]" },
-      { key: "client_name", label: "Nome Cliente", className: "min-w-[120px]" },
-      { key: "category", label: "Categoria", className: "whitespace-nowrap w-[90px]" },
-      { key: "method", label: "Forma de Pagamento", className: "whitespace-nowrap w-[100px]" },
-      { key: "status", label: "Situação", align: "center", className: "whitespace-nowrap w-[65px]" },
-      { key: "amount", label: "Valor", align: "right", className: "whitespace-nowrap font-mono w-[95px]" }
+      { key: "date", label: "Data", className: "whitespace-nowrap w-[70px] print:w-[58px]" },
+      { key: "sale_code", label: "Código Venda", className: "whitespace-nowrap font-mono font-bold text-slate-900 w-[95px] print:w-[80px]" },
+      { key: "client_name", label: "Nome Cliente", className: "min-w-[110px]" },
+      { key: "category", label: "Categoria", align: "center", className: "whitespace-nowrap w-[65px] print:w-[52px]" },
+      { key: "method", label: "Forma de Pagamento", className: "whitespace-nowrap w-[85px] print:w-[72px]" },
+      { key: "status", label: "Situação", align: "center", className: "whitespace-nowrap w-[50px] print:w-[44px]" },
+      { key: "amount", label: "Valor", align: "right", className: "whitespace-nowrap font-mono font-black min-w-[105px] print:min-w-[95px] print:w-[95px]" }
     );
   } else if (typeFilter === "despesa") {
     columns.push(
-      { key: "date", label: "Data", className: "whitespace-nowrap w-[75px]" },
-      { key: "description", label: "Descrição da Transação", className: "min-w-[180px]" },
-      { key: "category", label: "Categoria", className: "whitespace-nowrap w-[100px]" },
-      { key: "method", label: "Forma de Pagamento", className: "whitespace-nowrap w-[100px]" },
-      { key: "status", label: "Situação", align: "center", className: "whitespace-nowrap w-[65px]" },
-      { key: "amount", label: "Valor", align: "right", className: "whitespace-nowrap font-mono w-[95px]" }
+      { key: "date", label: "Data", className: "whitespace-nowrap w-[70px] print:w-[58px]" },
+      { key: "description", label: "Descrição da Transação", className: "min-w-[150px]" },
+      { key: "category", label: "Categoria", align: "center", className: "whitespace-nowrap w-[68px] print:w-[55px]" },
+      { key: "method", label: "Forma de Pagamento", className: "whitespace-nowrap w-[85px] print:w-[72px]" },
+      { key: "status", label: "Situação", align: "center", className: "whitespace-nowrap w-[50px] print:w-[44px]" },
+      { key: "amount", label: "Valor", align: "right", className: "whitespace-nowrap font-mono font-black min-w-[105px] print:min-w-[95px] print:w-[95px]" }
     );
   } else {
     columns.push(
-      { key: "date", label: "Data", className: "whitespace-nowrap w-[72px]" },
-      { key: "type", label: "Tipo", align: "center", className: "whitespace-nowrap w-[60px]" },
-      { key: "desc_code", label: "Descrição / Cód. Venda", className: "min-w-[140px]" },
-      { key: "client_supplier", label: "Cliente / Favorecido", className: "min-w-[110px]" },
-      { key: "category", label: "Categoria", className: "whitespace-nowrap w-[80px]" },
-      { key: "method", label: "Forma de Pagamento", className: "whitespace-nowrap w-[85px]" },
-      { key: "status", label: "Situação", align: "center", className: "whitespace-nowrap w-[60px]" },
-      { key: "amount", label: "Valor", align: "right", className: "whitespace-nowrap font-mono w-[90px]" }
+      { key: "date", label: "Data", className: "whitespace-nowrap w-[68px] print:w-[58px]" },
+      { key: "type", label: "Tipo", align: "center", className: "whitespace-nowrap w-[52px] print:w-[44px]" },
+      { key: "desc_code", label: "Descrição / Cód. Venda", className: "min-w-[120px]" },
+      { key: "client_supplier", label: "Cliente / Favorecido", className: "min-w-[100px]" },
+      { key: "category", label: "Categoria", align: "center", className: "whitespace-nowrap w-[60px] print:w-[48px]" },
+      { key: "method", label: "Forma de Pagamento", className: "whitespace-nowrap w-[80px] print:w-[68px]" },
+      { key: "status", label: "Situação", align: "center", className: "whitespace-nowrap w-[48px] print:w-[42px]" },
+      { key: "amount", label: "Valor", align: "right", className: "whitespace-nowrap font-mono font-black min-w-[105px] print:min-w-[95px] print:w-[95px]" }
     );
   }
 
@@ -243,11 +243,18 @@ export function buildTransactionReportData(
 
     const dateSpan = <span className="whitespace-nowrap">{item.date}</span>;
     const methodSpan = <span className="whitespace-nowrap">{item.method}</span>;
-    const categorySpan = <span className="whitespace-nowrap">{item.category}</span>;
+    const categorySpan = (
+      <span
+        className="block truncate max-w-[80px] print:max-w-[60px] text-[10.5px] print:text-[8px] font-semibold text-slate-700"
+        title={item.category}
+      >
+        {item.category}
+      </span>
+    );
 
     const statusBadge = (
       <span
-        className={`inline-flex items-center justify-center px-1.5 py-0.5 rounded text-[9px] print:text-[8px] font-black uppercase tracking-tight whitespace-nowrap ${
+        className={`inline-flex items-center justify-center px-1.5 py-0.5 print:px-1 print:py-0 rounded text-[8.5px] print:text-[7.5px] font-black uppercase tracking-tighter whitespace-nowrap ${
           isPaid
             ? "bg-emerald-100 text-emerald-800 print:bg-emerald-50 print:text-emerald-900"
             : isPending
@@ -261,7 +268,7 @@ export function buildTransactionReportData(
 
     const typeBadge = (
       <span
-        className={`inline-flex items-center justify-center px-1.5 py-0.5 rounded text-[9px] print:text-[8px] font-black uppercase tracking-tight whitespace-nowrap ${
+        className={`inline-flex items-center justify-center px-1.5 py-0.5 print:px-1 print:py-0 rounded text-[8.5px] print:text-[7.5px] font-black uppercase tracking-tighter whitespace-nowrap ${
           item.isIncome
             ? "bg-emerald-50 text-emerald-700 print:bg-emerald-50 print:text-emerald-900"
             : "bg-rose-50 text-rose-700 print:bg-rose-50 print:text-rose-900"
@@ -273,7 +280,7 @@ export function buildTransactionReportData(
 
     const amountFormatted = (
       <span
-        className={`font-black whitespace-nowrap font-mono text-xs print:text-[9.5px] ${
+        className={`font-black whitespace-nowrap font-mono text-xs print:text-[10px] tabular-nums tracking-tight ${
           item.isIncome ? "text-emerald-600 print:text-emerald-800" : "text-rose-600 print:text-rose-800"
         }`}
       >
