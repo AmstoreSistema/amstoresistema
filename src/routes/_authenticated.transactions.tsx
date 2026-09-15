@@ -32,6 +32,7 @@ import {
   buildTransactionReportData,
   extractTransactionDetails,
 } from "@/lib/transaction-report.helpers";
+import { printReport } from "@/lib/print-report";
 import { PaginationBar } from "@/components/ui/pagination-bar";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/page-header";
@@ -1039,7 +1040,7 @@ function TransactionsPage() {
                 size="sm"
                 className="h-10 sm:h-9 gap-1.5 rounded-xl text-xs font-black bg-amber-500 hover:bg-amber-600 text-slate-950 shadow-sm w-full sm:w-auto"
                 disabled={isReportLoading}
-                onClick={() => window.print()}
+                onClick={() => printReport("printable-transactions-report", "landscape")}
               >
                 <Printer className="size-4" /> Imprimir A4
               </Button>
@@ -1077,7 +1078,7 @@ function TransactionsPage() {
                   showTotals={true}
                   showTableTotals={false}
                   orientation="landscape"
-                  onPrint={() => window.print()}
+                  onPrint={() => printReport("printable-transactions-report", "landscape")}
                   onExportCsv={handleExportCsv}
                 />
               );

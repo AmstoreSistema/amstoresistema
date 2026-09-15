@@ -1,6 +1,7 @@
 import * as React from "react";
 import { brl, dateBR, num } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { printReport, type PrintOrientation } from "@/lib/print-report";
 import { Calendar, Store, FileText, Calculator, DollarSign, Package, FileDown, Printer, ArrowRightLeft } from "lucide-react";
 
 export interface ReportLayoutProps {
@@ -248,76 +249,7 @@ export function ReportLayout({
         className
       )}
     >
-      <style>{`
-        @media print {
-          @page {
-            size: A4 ${isLandscape ? "landscape" : "portrait"} !important;
-            margin: 8mm 6mm 8mm 6mm !important;
-          }
-          html, body {
-            background: #ffffff !important;
-            color: #0f172a !important;
-          }
-          .report-container,
-          #printable-report,
-          #printable-transactions-report {
-            width: 100% !important;
-            max-width: 100% !important;
-            min-width: 0 !important;
-            padding: 0 !important;
-            margin: 0 !important;
-            background: #ffffff !important;
-            box-shadow: none !important;
-            border: none !important;
-          }
-          .report-header,
-          .report-summary {
-            break-inside: avoid !important;
-            page-break-inside: avoid !important;
-          }
-          .report-container table,
-          #printable-report table,
-          #printable-transactions-report table {
-            width: 100% !important;
-            min-width: 0 !important;
-            max-width: 100% !important;
-            table-layout: auto !important;
-            border-collapse: collapse !important;
-          }
-          thead {
-            display: table-header-group !important;
-          }
-          tfoot {
-            display: table-footer-group !important;
-          }
-          tbody tr {
-            break-inside: avoid !important;
-            page-break-inside: avoid !important;
-          }
-          .report-container th,
-          .report-container td,
-          #printable-report th,
-          #printable-report td,
-          #printable-transactions-report th,
-          #printable-transactions-report td {
-            padding: 3px 5px !important;
-            word-break: normal !important;
-            font-size: 8.5pt !important;
-          }
-          /* Garante que a coluna de Valor nunca seja cortada ou sofra quebra */
-          .report-container th:last-child,
-          .report-container td:last-child,
-          #printable-report th:last-child,
-          #printable-report td:last-child,
-          #printable-transactions-report th:last-child,
-          #printable-transactions-report td:last-child {
-            white-space: nowrap !important;
-            text-align: right !important;
-            min-width: 90px !important;
-            padding-right: 4px !important;
-          }
-        }
-      `}</style>
+      {/* Estilos auxiliares apenas para visualização na tela (impressão feita via printReport em janela isolada) */}
 
       {/* ============================================================ */}
       {/* BARRA DE AÇÕES INTEGRADA NO TOPO (TELA / DESKTOP / MOBILE)   */}
@@ -345,7 +277,7 @@ export function ReportLayout({
             {onPrint && (
               <button
                 type="button"
-                onClick={onPrint}
+                onClick={() => printReport(id, (orientation === "auto" ? (isLandscape ? "landscape" : "portrait") : orientation) as PrintOrientation)}
                 className="flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-black transition-colors shadow-sm cursor-pointer active:scale-95"
               >
                 <Printer className="size-4 shrink-0" />
@@ -375,7 +307,7 @@ export function ReportLayout({
           {onPrint && (
             <button
               type="button"
-              onClick={onPrint}
+              onClick={() => printReport(id, (orientation === "auto" ? (isLandscape ? "landscape" : "portrait") : orientation) as PrintOrientation)}
               className="flex-1 flex items-center justify-center gap-2 h-11 rounded-xl bg-amber-500 hover:bg-amber-400 active:scale-95 text-slate-950 text-xs font-black transition-all shadow-lg shadow-amber-500/25 cursor-pointer"
             >
               <Printer className="size-4 shrink-0" />
@@ -388,7 +320,7 @@ export function ReportLayout({
       {/* ============================================================ */}
       {/* CABEÇALHO TOTALMENTE CENTRALIZADO                           */}
       {/* ============================================================ */}
-      <header className="report-header mb-6 sm:mb-8 flex flex-col items-center justify-center text-center px-1">
+      <div className="report-header mb-6 sm:mb-8 flex flex-col items-center justify-center text-center px-1">
         {/* 1. Logomarca e Informações da Loja */}
         <div className="flex flex-col items-center justify-center mb-1">
           {storeInfo?.logo ? (
@@ -447,7 +379,7 @@ export function ReportLayout({
             <span className="truncate">{periodText}</span>
           </div>
         </div>
-      </header>
+      </div>
 
       {/* ============================================================ */}
       {/* CONTEÚDO PRINCIPAL (CHILDREN OU TABELA AUTOMÁTICA)          */}

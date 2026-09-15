@@ -45,6 +45,7 @@ import {
   isValidClientName,
   extractClientFromDescription,
 } from "@/lib/transaction-report.helpers";
+import { printReport } from "@/lib/print-report";
 
 export const Route = createFileRoute("/_authenticated/reports")({
   head: () => ({
@@ -1255,7 +1256,7 @@ function ReportsPage() {
               <Button
                 variant="default"
                 size="sm"
-                onClick={() => window.print()}
+                onClick={() => printReport("printable-report", selectedType === "general" ? "landscape" : "portrait")}
                 className="h-10 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 gap-2 font-black text-xs shadow-sm"
               >
                 <Printer className="size-4 shrink-0" />
@@ -1313,7 +1314,7 @@ function ReportsPage() {
                 summaryPosition="top"
                 orientation={selectedType === "general" ? "landscape" : undefined}
                 showTableTotals={selectedType !== "general"}
-                onPrint={() => window.print()}
+                onPrint={() => printReport("printable-report", selectedType === "general" ? "landscape" : "portrait")}
                 onExportCsv={handleExportCsv}
               />
             )}

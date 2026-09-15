@@ -47,6 +47,7 @@ import { toast } from "sonner";
 import { ReportLayout } from "@/components/report-layout";
 import { getAppSettings } from "@/lib/settings.functions";
 import { useServerFn } from "@tanstack/react-start";
+import { printReport } from "@/lib/print-report";
 
 export const Route = createFileRoute("/_authenticated/store-reports")({
   head: () => ({
@@ -1500,7 +1501,7 @@ function StoreReportsPage() {
               <Button
                 variant="default"
                 size="sm"
-                onClick={() => window.print()}
+                onClick={() => printReport("printable-report", selected === "transactions" ? "landscape" : "portrait")}
                 className="h-10 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-black gap-2 text-xs shadow-sm"
               >
                 <Printer className="size-4 shrink-0" />
@@ -1527,7 +1528,7 @@ function StoreReportsPage() {
             summaryPosition="top"
             orientation={selected === "transactions" ? "landscape" : undefined}
             showTableTotals={selected !== "transactions"}
-            onPrint={() => window.print()}
+            onPrint={() => printReport("printable-report", selected === "transactions" ? "landscape" : "portrait")}
             onExportCsv={handleExport}
           />
         </div>
