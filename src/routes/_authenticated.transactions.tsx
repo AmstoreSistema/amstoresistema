@@ -552,20 +552,35 @@ function TransactionsPage() {
           </Button>
           <Button
             type="button"
-            variant={periodPreset === "yearPrevious" ? "default" : "outline"}
+            variant={periodPreset === "yearPrevious" || periodPreset === "year2025" ? "default" : "outline"}
             size="sm"
             className={cn(
               "h-7 px-2.5 text-[11px] font-bold rounded-lg shrink-0",
-              periodPreset === "yearPrevious" ? "bg-gradient-gold text-primary-foreground border-transparent shadow-xs" : ""
+              (periodPreset === "yearPrevious" || periodPreset === "year2025") ? "bg-gradient-gold text-primary-foreground border-transparent shadow-xs" : ""
             )}
             onClick={() => {
-              setPeriodPreset("yearPrevious");
-              const prevYear = new Date().getFullYear() - 1;
-              setStartDate(`${prevYear}-01-01`);
-              setEndDate(`${prevYear}-12-31`);
+              setPeriodPreset("year2025");
+              setStartDate("2025-01-01");
+              setEndDate("2025-12-31");
             }}
           >
-            Ano {new Date().getFullYear() - 1}
+            Ano 2025
+          </Button>
+          <Button
+            type="button"
+            variant={periodPreset === "year2024" ? "default" : "outline"}
+            size="sm"
+            className={cn(
+              "h-7 px-2.5 text-[11px] font-bold rounded-lg shrink-0",
+              periodPreset === "year2024" ? "bg-gradient-gold text-primary-foreground border-transparent shadow-xs" : ""
+            )}
+            onClick={() => {
+              setPeriodPreset("year2024");
+              setStartDate("2024-01-01");
+              setEndDate("2024-12-31");
+            }}
+          >
+            Ano 2024
           </Button>
           <Button
             type="button"
