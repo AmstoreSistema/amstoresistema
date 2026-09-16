@@ -171,6 +171,55 @@ export const createSale = createServerFn({ method: "POST" })
       }
     }
 
+    // 3. Registra auditoria detalhada e profissional da venda
+    try {
+      let clientName = "Consumidor Balcão";
+      if (data.client_id) {
+        const { data: c } = await admin.from("clients").select("name").eq("id", data.client_id).maybeSingle();
+        if (c?.name) clientName = c.name;
+      }
+
+      const productIds = Array.from(new Set(data.items.map(i => i.product_id).filter(Boolean)));
+      const productMap = new Map<string, string>();
+      if (productIds.length > 0) {
+        const { data: prods } = await admin.from("products").select("id, name").in("id", productIds);
+        (prods || []).forEach(p => productMap.set(p.id, p.name));
+      }
+
+      const detailedItems = data.items.map(it => ({
+        produto: productMap.get(it.product_id) || "Produto",
+        quantidade: it.quantity,
+        preco_unitario: it.unit_price,
+        numeracao: it.numeracao || null,
+        desconto: it.discount || 0,
+        subtotal: (it.quantity * it.unit_price) - (it.discount || 0),
+      }));
+
+      const saleCodeDisplay = data.sale_code || String(saleId).slice(0, 8).toUpperCase();
+      const userEmail = (context.claims?.email || (context.claims?.user_metadata as any)?.email || "vendedor").toLowerCase();
+
+      await admin.from("audit_log").insert({
+        action: "criacao",
+        entity: "sales",
+        entity_id: String(saleId),
+        user_email: userEmail,
+        details: JSON.stringify({
+          resumo: `Realizou a venda #${saleCodeDisplay} para ${clientName} no valor de R$ ${data.total_amount.toFixed(2)} (${data.items.length} ${data.items.length === 1 ? 'item' : 'itens'})`,
+          tipo: "VENDA_REALIZADA",
+          codigo_venda: saleCodeDisplay,
+          cliente: clientName,
+          total: data.total_amount,
+          forma_pagamento: data.payment_method,
+          desconto: data.discount_amount || data.discount || 0,
+          itens: detailedItems,
+          vendedor: userEmail,
+          data_venda: data.created_at || new Date().toISOString(),
+        }),
+      });
+    } catch (auditErr) {
+      console.warn("Aviso ao registrar auditoria de venda:", auditErr);
+    }
+
     return { 
       saleId: saleId as string,
       promoQr: promoQr,
@@ -184,11 +233,54 @@ export const cancelSale = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((data) => z.object({ sale_id: z.string() }).parse(data))
   .handler(async ({ data, context }) => {
+    const { supabaseAdmin: admin } = await import("@/integrations/supabase/client.server");
+
+    // Coleta dados da venda antes do cancelamento para registrar auditoria
+    let saleCodeDisplay = data.sale_id.slice(0, 8);
+    let clientName = "Consumidor Final";
+    let totalAmount = 0;
+    try {
+      const { data: sale } = await admin
+        .from("sales")
+        .select("sale_code, total_amount, client_id, clients(name)")
+        .eq("id", data.sale_id)
+        .maybeSingle();
+      if (sale) {
+        if (sale.sale_code) saleCodeDisplay = sale.sale_code;
+        if ((sale.clients as any)?.name) clientName = (sale.clients as any).name;
+        totalAmount = Number(sale.total_amount || 0);
+      }
+    } catch {
+      // fallback
+    }
+
     const { error } = await context.supabase.rpc('cancel_complete_sale', {
       p_sale_id: data.sale_id
     });
     
     if (error) throw new Error(`Erro ao cancelar venda: ${error.message}`);
+
+    // Registra o cancelamento detalhado na auditoria
+    try {
+      const userEmail = (context.claims?.email || "usuario").toLowerCase();
+      await admin.from("audit_log").insert({
+        action: "exclusao",
+        entity: "sales",
+        entity_id: data.sale_id,
+        user_email: userEmail,
+        details: JSON.stringify({
+          resumo: `Estornou a venda #${saleCodeDisplay} de ${clientName} no valor de R$ ${totalAmount.toFixed(2)}`,
+          tipo: "VENDA_ESTORNADA",
+          codigo_venda: saleCodeDisplay,
+          cliente: clientName,
+          total: totalAmount,
+          operador: userEmail,
+        }),
+      });
+    } catch (auditErr) {
+      console.warn("Aviso ao registrar auditoria de cancelamento:", auditErr);
+    }
+
     return { success: true };
   });
 

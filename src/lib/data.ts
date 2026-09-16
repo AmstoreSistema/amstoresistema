@@ -74,15 +74,47 @@ export function useSaveRow(table: string, label: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, values }: { id?: string | undefined; values: Record<string, any> }) => {
+      const itemName = values.name || values.nome || values.title || values.description || "";
+
       if (id) {
         const { data, error } = await supabase.from(table as any).update(values).eq("id", id).select().single();
         if (error) throw error;
-        await logAudit("atualizar", table, `${label} atualizado`, id);
+
+        const summaryText = itemName
+          ? `Atualizou ${label}: "${itemName}"`
+          : `Atualizou ${label}`;
+
+        const auditPayload = JSON.stringify({
+          resumo: summaryText,
+          acao: "ATUALIZACAO",
+          entidade: label,
+          nome: itemName,
+          id,
+          campos: values,
+        });
+
+        await logAudit("atualizar", table, auditPayload, id);
         return data as any;
       }
+
       const { data, error } = await supabase.from(table as any).insert(values).select().single();
       if (error) throw error;
-      await logAudit("criar", table, `${label} criado`, (data as any)?.id);
+
+      const newId = (data as any)?.id;
+      const summaryText = itemName
+        ? `Cadastrou novo ${label}: "${itemName}"`
+        : `Cadastrou novo ${label}`;
+
+      const auditPayload = JSON.stringify({
+        resumo: summaryText,
+        acao: "CRIACAO",
+        entidade: label,
+        nome: itemName,
+        id: newId,
+        dados: values,
+      });
+
+      await logAudit("criar", table, auditPayload, newId);
       return data as any;
     },
     onSuccess: () => {
@@ -97,9 +129,37 @@ export function useDeleteRow(table: string, label: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
+      // Tenta obter o nome/descrição do item antes de excluir para auditoria legível
+      let itemName = "";
+      try {
+        const { data: item } = await supabase
+          .from(table as any)
+          .select("name, nome, title, description, sale_code")
+          .eq("id", id)
+          .maybeSingle();
+        if (item) {
+          itemName = (item as any).name || (item as any).nome || (item as any).title || (item as any).sale_code || (item as any).description || "";
+        }
+      } catch {
+        // fallback silencioso
+      }
+
       const { error } = await supabase.from(table as any).delete().eq("id", id);
       if (error) throw error;
-      await logAudit("excluir", table, `${label} excluído`, id);
+
+      const summaryText = itemName
+        ? `Excluiu ${label}: "${itemName}"`
+        : `Excluiu ${label}`;
+
+      const auditPayload = JSON.stringify({
+        resumo: summaryText,
+        acao: "EXCLUSAO",
+        entidade: label,
+        identificador: itemName || id,
+        id,
+      });
+
+      await logAudit("excluir", table, auditPayload, id);
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: [table] });

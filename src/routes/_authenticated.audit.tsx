@@ -1,7 +1,39 @@
 import { createFileRoute } from "@tanstack/react-router";
 import * as React from "react";
 import { useRows } from "@/lib/data";
-import { FileText, Eye, Calendar, User, Search, Plus, Pencil, Trash2, Printer, FileDown, AlertTriangle, Loader2 } from "lucide-react";
+import { 
+  FileText, 
+  Eye, 
+  Calendar, 
+  User, 
+  Search, 
+  Plus, 
+  Pencil, 
+  Trash2, 
+  Printer, 
+  FileDown, 
+  AlertTriangle, 
+  Loader2,
+  ShoppingCart,
+  Users,
+  Package,
+  Warehouse,
+  Layers,
+  ShoppingBag,
+  Truck,
+  ArrowLeftRight,
+  Wallet,
+  Hammer,
+  Gift,
+  Coins,
+  UserCheck,
+  ShieldCheck,
+  CheckCircle2,
+  Clock,
+  ChevronDown,
+  ChevronUp,
+  Tag
+} from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -17,6 +49,7 @@ import { getAuditYearsSummary, purgeAuditLogsByYear } from "@/lib/audit-cleanup.
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
+import { brl } from "@/lib/format";
 
 export const Route = createFileRoute("/_authenticated/audit")({
   head: () => ({
@@ -66,38 +99,160 @@ function actionKind(action: string): ActionKind {
 
 const ACTION_META: Record<ActionKind, { label: string; className: string; dataTitle: string }> = {
   criacao: {
-    label: "Criacao",
-    className: "bg-emerald-50 text-emerald-700 border-emerald-200",
-    dataTitle: "Dados Criados",
+    label: "Criação",
+    className: "bg-emerald-500/10 text-emerald-600 border-emerald-500/30",
+    dataTitle: "Dados Cadastrados",
   },
   edicao: {
-    label: "Edicao",
-    className: "bg-blue-50 text-blue-700 border-blue-200",
-    dataTitle: "Dados Alterados",
+    label: "Edição",
+    className: "bg-blue-500/10 text-blue-600 border-blue-500/30",
+    dataTitle: "Campos Alterados",
   },
   exclusao: {
-    label: "Exclusao",
-    className: "bg-rose-50 text-rose-700 border-rose-200",
-    dataTitle: "Dados Excluídos",
+    label: "Exclusão / Estorno",
+    className: "bg-rose-500/10 text-rose-600 border-rose-500/30",
+    dataTitle: "Dados Removidos",
   },
   outro: {
     label: "Registro",
     className: "bg-muted text-muted-foreground border-border",
-    dataTitle: "Dados do Registro",
+    dataTitle: "Informações da Operação",
   },
 };
 
-function parseDetails(details: string | null): { json: any | null; text: string | null } {
-  if (!details) return { json: null, text: null };
+const ENTITY_ICONS: Record<string, any> = {
+  sales: ShoppingCart,
+  sale_items: ShoppingCart,
+  sale_installments: ShoppingCart,
+  clients: Users,
+  products: Package,
+  materials: Layers,
+  stock_products: Warehouse,
+  purchases: ShoppingBag,
+  suppliers: Truck,
+  transactions: ArrowLeftRight,
+  financial_accounts: Wallet,
+  production_orders: Hammer,
+  promotions: Gift,
+  cashback_config: Coins,
+  user_profiles: UserCheck,
+  audit_log: ShieldCheck,
+};
+
+const ENTITY_STYLES: Record<string, { bg: string; text: string; border: string }> = {
+  sales: { bg: "bg-amber-500/10", text: "text-amber-600", border: "border-amber-500/30" },
+  clients: { bg: "bg-blue-500/10", text: "text-blue-600", border: "border-blue-500/30" },
+  products: { bg: "bg-purple-500/10", text: "text-purple-600", border: "border-purple-500/30" },
+  stock_products: { bg: "bg-emerald-500/10", text: "text-emerald-600", border: "border-emerald-500/30" },
+  transactions: { bg: "bg-indigo-500/10", text: "text-indigo-600", border: "border-indigo-500/30" },
+  financial_accounts: { bg: "bg-cyan-500/10", text: "text-cyan-600", border: "border-cyan-500/30" },
+};
+
+interface AuditItemDetails {
+  resumo: string;
+  json: any | null;
+  text: string | null;
+  isVenda: boolean;
+  isCliente: boolean;
+  isProduto: boolean;
+  venda?: {
+    codigo?: string;
+    cliente?: string;
+    total?: number;
+    forma_pagamento?: string;
+    desconto?: number;
+    itens?: Array<{
+      produto: string;
+      quantidade: number;
+      preco_unitario: number;
+      numeracao?: string | null;
+      desconto?: number;
+      subtotal: number;
+    }>;
+  };
+  dadosGerais?: Record<string, any>;
+}
+
+function parseAuditDetails(details: string | null, entity: string, action: string, entityId: string | null): AuditItemDetails {
+  const kind = actionKind(action);
+  const entLabel = entityLabel(entity);
+
+  if (!details) {
+    return {
+      resumo: `${ACTION_META[kind].label} em ${entLabel} (ID: ${entityId || "—"})`,
+      json: null,
+      text: null,
+      isVenda: entity === "sales",
+      isCliente: entity === "clients",
+      isProduto: entity === "products" || entity === "stock_products",
+    };
+  }
+
   const trimmed = details.trim();
+  let json: any = null;
   if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
     try {
-      return { json: JSON.parse(trimmed), text: null };
+      json = JSON.parse(trimmed);
     } catch {
-      return { json: null, text: details };
+      json = null;
     }
   }
-  return { json: null, text: details };
+
+  if (json && typeof json === "object") {
+    const isVenda = entity === "sales" || json.tipo === "VENDA_REALIZADA" || json.tipo === "VENDA_ESTORNADA";
+    const isCliente = entity === "clients";
+    const isProduto = entity === "products" || entity === "stock_products";
+
+    let resumo = json.resumo;
+    if (!resumo) {
+      if (isVenda) {
+        resumo = `Venda #${json.codigo_venda || entityId || "—"} (${json.cliente || "Consumidor"}) — Total: ${brl(json.total || 0)}`;
+      } else if (json.nome) {
+        resumo = `${ACTION_META[kind].label} de ${entLabel}: "${json.nome}"`;
+      } else if (json.dados && json.dados.name) {
+        resumo = `${ACTION_META[kind].label} de ${entLabel}: "${json.dados.name}"`;
+      } else {
+        resumo = `${ACTION_META[kind].label} de ${entLabel} (ID: ${entityId || "—"})`;
+      }
+    }
+
+    return {
+      resumo,
+      json,
+      text: null,
+      isVenda,
+      isCliente,
+      isProduto,
+      venda: isVenda ? {
+        codigo: json.codigo_venda,
+        cliente: json.cliente,
+        total: json.total,
+        forma_pagamento: json.forma_pagamento,
+        desconto: json.desconto,
+        itens: Array.isArray(json.itens) ? json.itens : undefined,
+      } : undefined,
+      dadosGerais: json.dados || json.campos || json.alteracoes || json,
+    };
+  }
+
+  // Texto legado (ex: "cliente criado", "produto atualizado")
+  let resumo = details;
+  if (details.toLowerCase().includes("criado")) {
+    resumo = `Cadastro de ${entLabel} (ID: ${entityId || "—"})`;
+  } else if (details.toLowerCase().includes("atualizado")) {
+    resumo = `Alteração em ${entLabel} (ID: ${entityId || "—"})`;
+  } else if (details.toLowerCase().includes("excluído") || details.toLowerCase().includes("excluido")) {
+    resumo = `Exclusão de ${entLabel} (ID: ${entityId || "—"})`;
+  }
+
+  return {
+    resumo,
+    json: null,
+    text: details,
+    isVenda: entity === "sales",
+    isCliente: entity === "clients",
+    isProduto: entity === "products" || entity === "stock_products",
+  };
 }
 
 function formatDateTime(value: string | null) {
@@ -183,11 +338,13 @@ function AuditPage() {
       if (entityFilter !== "all" && log.entity !== entityFilter) return false;
       if (actionFilter !== "all" && actionKind(log.action) !== actionFilter) return false;
       if (!term) return true;
+      const parsed = parseAuditDetails(log.details, log.entity, log.action, log.entity_id);
       const haystack = [
         log.entity,
         entityLabel(log.entity),
         log.entity_id,
         log.details,
+        parsed.resumo,
         log.user_email,
         displayName(log.user_email),
         log.action,
@@ -205,16 +362,21 @@ function AuditPage() {
       { key: "user", label: "Usuário" },
       { key: "action", label: "Ação" },
       { key: "entity", label: "Entidade" },
-      { key: "entity_id", label: "ID Entidade" },
+      { key: "summary", label: "O que foi feito" },
+      { key: "entity_id", label: "Ref / ID" },
     ];
 
-    const rows = filtered.map((log: any) => ({
-      date: formatDateTime(log.created_at),
-      user: displayName(log.user_email),
-      action: actionKind(log.action).toUpperCase(),
-      entity: entityLabel(log.entity),
-      entity_id: log.entity_id || "—",
-    }));
+    const rows = filtered.map((log: any) => {
+      const parsed = parseAuditDetails(log.details, log.entity, log.action, log.entity_id);
+      return {
+        date: formatDateTime(log.created_at),
+        user: displayName(log.user_email),
+        action: actionKind(log.action).toUpperCase(),
+        entity: entityLabel(log.entity),
+        summary: parsed.resumo,
+        entity_id: log.entity_id || "—",
+      };
+    });
 
     return { columns, rows };
   }, [filtered, displayName]);
@@ -350,40 +512,78 @@ function AuditPage() {
           {filtered.map((log: any) => {
             const kind = actionKind(log.action);
             const meta = ACTION_META[kind];
-            const parsed = parseDetails(log.details);
-            const changedFields = parsed.json && !Array.isArray(parsed.json) ? Object.keys(parsed.json).length : null;
+            const parsed = parseAuditDetails(log.details, log.entity, log.action, log.entity_id);
+            const IconComponent = ENTITY_ICONS[log.entity] || FileText;
+            const style = ENTITY_STYLES[log.entity] || { bg: "bg-primary/10", text: "text-primary", border: "border-primary/20" };
+
             return (
-              <Card key={log.id} className="border-border/60 shadow-sm">
-                <CardContent className="p-5">
-                  <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-                    <div className="space-y-2">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <Badge variant="outline" className={cn("font-semibold", meta.className)}>
-                          {meta.label}
-                        </Badge>
-                        <Badge variant="outline" className="font-medium">
-                          {entityLabel(log.entity)}
-                        </Badge>
-                        <span className="font-black tracking-tight">{log.entity_id || "—"}</span>
+              <Card key={log.id} className="border-border/60 shadow-sm hover:border-border transition-all">
+                <CardContent className="p-4 sm:p-5">
+                  <div className="flex flex-col gap-3.5 sm:gap-4 md:flex-row md:items-center md:justify-between">
+                    <div className="flex items-start gap-3.5 min-w-0 flex-1">
+                      {/* Ícone da Entidade */}
+                      <div className={cn("size-10 rounded-xl flex items-center justify-center shrink-0 border", style.bg, style.text, style.border)}>
+                        <IconComponent className="size-5" />
                       </div>
-                      <div className="flex flex-wrap items-center gap-x-10 gap-y-1 text-sm text-muted-foreground">
-                        <span className="flex items-center gap-1.5">
-                          <User className="size-4" />
-                          {displayName(log.user_email)}
-                          {log.user_email ? ` (${log.user_email})` : ""}
-                        </span>
-                        <span className="flex items-center gap-1.5">
-                          <Calendar className="size-4" />
-                          {formatDateTime(log.created_at)}
-                        </span>
+
+                      <div className="space-y-1.5 min-w-0 flex-1">
+                        {/* Linha de Badges e Metadados */}
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Badge variant="outline" className={cn("font-bold text-[11px]", meta.className)}>
+                            {meta.label}
+                          </Badge>
+                          <Badge variant="outline" className="font-semibold text-[11px]">
+                            {entityLabel(log.entity)}
+                          </Badge>
+                          {log.entity_id && (
+                            <span className="text-[10px] font-mono text-muted-foreground px-1.5 py-0.5 rounded bg-muted/60">
+                              #{log.entity_id.slice(0, 8)}
+                            </span>
+                          )}
+                          <span className="text-xs text-muted-foreground flex items-center gap-1 ml-auto sm:ml-0 font-medium">
+                            <Clock className="size-3 text-muted-foreground/70" />
+                            {formatDateTime(log.created_at)}
+                          </span>
+                        </div>
+
+                        {/* Título Principal Humano e Claro */}
+                        <p className="font-bold text-sm text-foreground leading-snug">
+                          {parsed.resumo}
+                        </p>
+
+                        {/* Linha com Responsável e Tags Rápidas */}
+                        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground pt-0.5">
+                          <span className="flex items-center gap-1.5 font-medium">
+                            <User className="size-3.5 text-gold" />
+                            <span>Operador:</span>
+                            <strong className="text-foreground">{displayName(log.user_email)}</strong>
+                            {log.user_email && (
+                              <span className="text-[10px] text-muted-foreground/80">({log.user_email})</span>
+                            )}
+                          </span>
+
+                          {parsed.venda?.forma_pagamento && (
+                            <span className="flex items-center gap-1 font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200/50">
+                              {parsed.venda.forma_pagamento} · {brl(parsed.venda.total || 0)}
+                            </span>
+                          )}
+
+                          {parsed.venda?.itens && parsed.venda.itens.length > 0 && (
+                            <span className="text-[11px] text-muted-foreground font-medium">
+                              {parsed.venda.itens.length} {parsed.venda.itens.length === 1 ? "produto vendido" : "produtos vendidos"}
+                            </span>
+                          )}
+                        </div>
                       </div>
-                      {kind === "edicao" && changedFields !== null && (
-                        <p className="text-sm font-medium">{changedFields} campo(s) alterado(s)</p>
-                      )}
-                      {parsed.text && <p className="text-sm italic text-muted-foreground">{parsed.text}</p>}
                     </div>
-                    <Button variant="outline" className="gap-2 shrink-0" onClick={() => setSelected(log)}>
-                      <Eye className="size-4" /> Ver Detalhes
+
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      className="gap-2 shrink-0 rounded-xl font-bold hover:bg-muted/50 h-9" 
+                      onClick={() => setSelected(log)}
+                    >
+                      <Eye className="size-4 text-gold" /> Ver Detalhes
                     </Button>
                   </div>
                 </CardContent>
@@ -438,74 +638,181 @@ function AuditDetailsModal({
   onClose: () => void;
   displayName: (email: string | null) => string;
 }) {
+  const [showRawJson, setShowRawJson] = useState(false);
   if (!log) return null;
+
   const kind = actionKind(log.action);
   const meta = ACTION_META[kind];
-  const parsed = parseDetails(log.details);
+  const parsed = parseAuditDetails(log.details, log.entity, log.action, log.entity_id);
+  const IconComponent = ENTITY_ICONS[log.entity] || FileText;
+  const style = ENTITY_STYLES[log.entity] || { bg: "bg-primary/10", text: "text-primary", border: "border-primary/20" };
 
   return (
     <Dialog open={!!log} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-3xl">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-xl font-black">
-            <FileText className="size-5 text-primary" />
-            Detalhes da Auditoria
-          </DialogTitle>
-          <DialogDescription>Registro completo da alteração</DialogDescription>
-        </DialogHeader>
-
-        <div className="grid gap-5 sm:grid-cols-2">
-          <div className="space-y-1.5">
-            <p className="text-sm text-muted-foreground">Entidade</p>
-            <div className="flex items-center gap-2">
-              <Badge variant="outline" className="font-medium">
-                {entityLabel(log.entity)}
-              </Badge>
-              <span className="font-black">{log.entity_id || "—"}</span>
+      <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col p-0 overflow-hidden sm:rounded-2xl">
+        <DialogHeader className="p-5 pb-4 border-b bg-card/60 backdrop-blur">
+          <div className="flex items-center gap-3">
+            <div className={cn("size-10 rounded-xl flex items-center justify-center border shrink-0", style.bg, style.text, style.border)}>
+              <IconComponent className="size-5" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <DialogTitle className="text-base sm:text-lg font-black leading-snug">
+                {parsed.resumo}
+              </DialogTitle>
+              <DialogDescription className="text-xs mt-0.5">
+                Rastreamento e auditoria detalhada de alteração no sistema
+              </DialogDescription>
             </div>
           </div>
-          <div className="space-y-1.5">
-            <p className="text-sm text-muted-foreground">Ação</p>
-            <Badge variant="outline" className={cn("font-semibold", meta.className)}>
-              {meta.label}
-            </Badge>
-          </div>
-          <div className="space-y-1.5">
-            <p className="text-sm text-muted-foreground">Usuário</p>
-            <p className="flex items-center gap-1.5 font-bold">
-              <User className="size-4 text-muted-foreground" />
-              {displayName(log.user_email)}
-              {log.user_email && (
-                <span className="font-normal text-muted-foreground">({log.user_email})</span>
-              )}
-            </p>
-          </div>
-          <div className="space-y-1.5">
-            <p className="text-sm text-muted-foreground">Data e Hora</p>
-            <p className="flex items-center gap-1.5 font-bold">
-              <Calendar className="size-4 text-muted-foreground" />
-              {formatDateTimeFull(log.created_at)}
-            </p>
-          </div>
-        </div>
+        </DialogHeader>
 
-        <div className="space-y-2">
-          <h3 className="text-lg font-black">{meta.dataTitle}</h3>
-          <ScrollArea
-            className={cn(
-              "h-64 rounded-xl border p-4",
-              kind === "exclusao" ? "bg-rose-50/60 border-rose-100" : "bg-muted/40",
-            )}
-          >
-            {parsed.json ? (
-              <pre className="text-xs font-mono whitespace-pre-wrap break-words">
-                {JSON.stringify(parsed.json, null, 2)}
-              </pre>
-            ) : (
-              <p className="text-sm">{parsed.text || "Nenhum detalhe adicional registrado."}</p>
-            )}
-          </ScrollArea>
-        </div>
+        <ScrollArea className="flex-1 p-5 space-y-5">
+          {/* Card Resumo do Registro */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-muted/30 p-3.5 rounded-xl border border-border/50 text-xs">
+            <div>
+              <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Entidade</p>
+              <div className="mt-0.5">
+                <Badge variant="outline" className="font-semibold text-[11px]">
+                  {entityLabel(log.entity)}
+                </Badge>
+              </div>
+            </div>
+            <div>
+              <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Ação</p>
+              <div className="mt-0.5">
+                <Badge variant="outline" className={cn("font-bold text-[11px]", meta.className)}>
+                  {meta.label}
+                </Badge>
+              </div>
+            </div>
+            <div>
+              <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Operador</p>
+              <p className="text-xs font-bold truncate mt-0.5" title={log.user_email}>
+                {displayName(log.user_email)}
+              </p>
+            </div>
+            <div>
+              <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Data e Horário</p>
+              <p className="text-xs font-mono font-bold mt-0.5">
+                {formatDateTimeFull(log.created_at)}
+              </p>
+            </div>
+          </div>
+
+          {/* Seção 1: Se for VENDA */}
+          {parsed.isVenda && parsed.venda && (
+            <div className="space-y-4 pt-2">
+              <div className="flex items-center justify-between border-b pb-2">
+                <h4 className="font-display font-black text-xs uppercase tracking-wider flex items-center gap-2 text-foreground">
+                  <ShoppingCart className="size-4 text-gold" /> Detalhes da Venda
+                </h4>
+                <Badge variant="outline" className="font-mono font-bold text-gold border-gold/30 bg-gold/5">
+                  {parsed.venda.codigo ? `#${parsed.venda.codigo}` : `#${log.entity_id?.slice(0, 8)}`}
+                </Badge>
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                <div className="p-3 bg-card rounded-xl border">
+                  <span className="text-[10px] uppercase text-muted-foreground font-bold">Cliente</span>
+                  <p className="text-xs font-bold truncate mt-0.5">{parsed.venda.cliente || "Consumidor Balcão"}</p>
+                </div>
+                <div className="p-3 bg-card rounded-xl border">
+                  <span className="text-[10px] uppercase text-muted-foreground font-bold">Forma de Pagamento</span>
+                  <p className="text-xs font-bold truncate mt-0.5">{parsed.venda.forma_pagamento || "—"}</p>
+                </div>
+                <div className="p-3 bg-card rounded-xl border col-span-2 sm:col-span-1">
+                  <span className="text-[10px] uppercase text-muted-foreground font-bold">Total da Venda</span>
+                  <p className="text-xs font-mono font-black text-emerald-600 mt-0.5">
+                    {brl(parsed.venda.total || 0)}
+                  </p>
+                </div>
+              </div>
+
+              {/* Tabela de Itens Vendidos */}
+              {parsed.venda.itens && parsed.venda.itens.length > 0 && (
+                <div className="space-y-2 pt-1">
+                  <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
+                    Produtos Vendidos ({parsed.venda.itens.length}):
+                  </p>
+                  <div className="rounded-xl border overflow-hidden">
+                    <table className="w-full text-xs">
+                      <thead className="bg-muted/50 text-muted-foreground uppercase font-bold border-b text-[10px]">
+                        <tr>
+                          <th className="py-2 px-3 text-left">Produto</th>
+                          <th className="py-2 px-2 text-center w-14">Tam/Nº</th>
+                          <th className="py-2 px-2 text-center w-12">Qtd</th>
+                          <th className="py-2 px-3 text-right w-20">Unitário</th>
+                          <th className="py-2 px-3 text-right w-20">Subtotal</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y">
+                        {parsed.venda.itens.map((it: any, idx: number) => (
+                          <tr key={idx} className="hover:bg-muted/30">
+                            <td className="py-2 px-3 font-semibold text-foreground">{it.produto}</td>
+                            <td className="py-2 px-2 text-center text-muted-foreground font-mono">{it.numeracao || "—"}</td>
+                            <td className="py-2 px-2 text-center font-bold">{it.quantidade}</td>
+                            <td className="py-2 px-3 text-right font-mono text-muted-foreground">{brl(it.preco_unitario)}</td>
+                            <td className="py-2 px-3 text-right font-mono font-bold text-foreground">{brl(it.subtotal)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Seção 2: Se for CLIENTE ou PRODUTO ou campos gerais */}
+          {(!parsed.isVenda || !parsed.venda) && parsed.dadosGerais && typeof parsed.dadosGerais === "object" && (
+            <div className="space-y-2.5 pt-2">
+              <h4 className="font-display font-black text-xs uppercase tracking-wider text-muted-foreground">
+                Dados Registrados da Operação
+              </h4>
+              <div className="rounded-xl border divide-y overflow-hidden text-xs">
+                {Object.entries(parsed.dadosGerais)
+                  .filter(([k]) => !["resumo", "tipo", "itens", "alteracoes"].includes(k))
+                  .map(([key, value]) => (
+                    <div key={key} className="flex flex-col sm:flex-row sm:items-center justify-between p-2.5 hover:bg-muted/20 gap-1">
+                      <span className="font-bold text-muted-foreground uppercase text-[10px] tracking-wider">{key}:</span>
+                      <span className="font-semibold text-foreground text-right break-all">
+                        {typeof value === "object" ? JSON.stringify(value) : String(value ?? "—")}
+                      </span>
+                    </div>
+                  ))}
+              </div>
+            </div>
+          )}
+
+          {/* Seção 3: Texto plano (se houver) */}
+          {parsed.text && (
+            <div className="p-3 rounded-xl bg-muted/40 border text-xs text-muted-foreground italic">
+              {parsed.text}
+            </div>
+          )}
+
+          {/* Seção 4: Visualização Técnica Retrátil (JSON puro) */}
+          {parsed.json && (
+            <div className="pt-2 border-t">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="w-full flex items-center justify-between text-xs text-muted-foreground h-8 font-bold"
+                onClick={() => setShowRawJson(!showRawJson)}
+              >
+                <span>Visualização Técnica do Registro (JSON)</span>
+                {showRawJson ? <ChevronUp className="size-3.5" /> : <ChevronDown className="size-3.5" />}
+              </Button>
+              {showRawJson && (
+                <div className="mt-2 p-3 bg-muted/40 rounded-xl border">
+                  <pre className="text-[11px] font-mono whitespace-pre-wrap break-words max-h-56 overflow-y-auto">
+                    {JSON.stringify(parsed.json, null, 2)}
+                  </pre>
+                </div>
+              )}
+            </div>
+          )}
+        </ScrollArea>
       </DialogContent>
     </Dialog>
   );
