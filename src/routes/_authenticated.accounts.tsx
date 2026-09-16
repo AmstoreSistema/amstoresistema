@@ -342,12 +342,52 @@ function AccountsPage() {
         }
       />
 
-      <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-5">
-        <StatCard title="Saldo Atual" value={brl(stats.totalBalance)} icon={Wallet} tone="gold" />
-        <StatCard title="Total de Receitas" value={brl(stats.totalIncome)} icon={TrendingUp} tone="success" />
-        <StatCard title="Total de Despesas" value={brl(stats.totalExpense)} icon={TrendingDown} tone="destructive" />
-        <StatCard title="Receita do Mês" value={brl(stats.monthIncome)} icon={ArrowUpRight} tone="info" />
-        <StatCard title="Despesas do Mês" value={brl(stats.monthExpense)} icon={ArrowDownRight} tone="warning" />
+      <div className="grid gap-3 sm:gap-3.5 grid-cols-1 sm:grid-cols-2 lg:grid-cols-5">
+        <StatCard 
+          title="Saldo Atual" 
+          value={brl(stats.totalBalance)} 
+          icon={Wallet} 
+          tone="gold" 
+          compact
+          className="p-3 sm:p-3.5 rounded-2xl border-border/40 hover:shadow-md transition-all"
+          valueClassName="text-sm sm:text-base lg:text-sm xl:text-base 2xl:text-lg font-black font-display tracking-tight text-gold whitespace-nowrap overflow-visible"
+        />
+        <StatCard 
+          title="Total de Receitas" 
+          value={brl(stats.totalIncome)} 
+          icon={TrendingUp} 
+          tone="success" 
+          compact
+          className="p-3 sm:p-3.5 rounded-2xl border-border/40 hover:shadow-md transition-all"
+          valueClassName="text-sm sm:text-base lg:text-sm xl:text-base 2xl:text-lg font-black font-display tracking-tight text-emerald-600 whitespace-nowrap overflow-visible"
+        />
+        <StatCard 
+          title="Total de Despesas" 
+          value={brl(stats.totalExpense)} 
+          icon={TrendingDown} 
+          tone="destructive" 
+          compact
+          className="p-3 sm:p-3.5 rounded-2xl border-border/40 hover:shadow-md transition-all"
+          valueClassName="text-sm sm:text-base lg:text-sm xl:text-base 2xl:text-lg font-black font-display tracking-tight text-destructive whitespace-nowrap overflow-visible"
+        />
+        <StatCard 
+          title="Receita do Mês" 
+          value={brl(stats.monthIncome)} 
+          icon={ArrowUpRight} 
+          tone="info" 
+          compact
+          className="p-3 sm:p-3.5 rounded-2xl border-border/40 hover:shadow-md transition-all"
+          valueClassName="text-sm sm:text-base lg:text-sm xl:text-base 2xl:text-lg font-black font-display tracking-tight text-blue-600 whitespace-nowrap overflow-visible"
+        />
+        <StatCard 
+          title="Despesas do Mês" 
+          value={brl(stats.monthExpense)} 
+          icon={ArrowDownRight} 
+          tone="warning" 
+          compact
+          className="p-3 sm:p-3.5 rounded-2xl border-border/40 hover:shadow-md transition-all"
+          valueClassName="text-sm sm:text-base lg:text-sm xl:text-base 2xl:text-lg font-black font-display tracking-tight text-amber-600 whitespace-nowrap overflow-visible"
+        />
       </div>
 
       {isLoading ? (
@@ -447,11 +487,11 @@ function AccountsPage() {
                     </DropdownMenu>
                   </div>
 
-                  <div className="space-y-4">
+                  <div className="space-y-3">
                     <div>
-                      <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-[0.2em] mb-1">Saldo Atual</p>
+                      <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider mb-1">Saldo Atual</p>
                       <p className={cn(
-                        "text-2xl font-black font-display",
+                        "text-xl sm:text-2xl font-black font-display tracking-tight",
                         Number(account.current_balance) < 0 ? "text-destructive" : "text-gold"
                       )}>
                         {brl(account.current_balance)}
@@ -459,7 +499,7 @@ function AccountsPage() {
                     </div>
 
                     {account.type === 'banco' && account.bank_name && (
-                      <div className="text-[10px] space-y-0.5 border-t border-border/30 pt-3">
+                      <div className="text-[10px] space-y-0.5 border-t border-border/30 pt-2.5">
                         <p className="font-bold text-muted-foreground uppercase">{account.bank_name}</p>
                         <p className="text-muted-foreground/70 tracking-widest">AG {account.agency} · CC {account.account_number}</p>
                       </div>
@@ -472,7 +512,7 @@ function AccountsPage() {
                         setSelectedAccountForDetails(account);
                         setDetailsOpen(true);
                       }}
-                      className="w-full mt-2 rounded-xl font-bold h-9 text-xs gap-2 border-border/60 hover:border-gold hover:text-gold hover:bg-gold/5 transition-all shadow-sm"
+                      className="w-full mt-2 rounded-xl font-bold h-8 sm:h-9 text-xs gap-2 border-border/60 hover:border-gold hover:text-gold hover:bg-gold/5 transition-all shadow-sm"
                     >
                       <Eye className="size-4 text-gold" /> Ver Detalhes
                     </Button>

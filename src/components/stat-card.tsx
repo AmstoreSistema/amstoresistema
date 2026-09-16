@@ -19,6 +19,8 @@ export function StatCard({
   tone = "dark",
   to,
   compact = false,
+  className,
+  valueClassName,
 }: {
   title: string;
   value: ReactNode;
@@ -27,13 +29,16 @@ export function StatCard({
   tone?: keyof typeof tones | undefined;
   to?: string | undefined;
   compact?: boolean | undefined;
+  className?: string | undefined;
+  valueClassName?: string | undefined;
 }) {
   const body = (
     <div className={cn(
       "group h-full border border-border bg-card shadow-elegant transition-all hover:-translate-y-0.5 hover:border-gold/40 flex flex-col justify-between",
       compact
         ? "rounded-xl sm:rounded-2xl p-2.5 sm:p-3.5"
-        : "rounded-2xl p-3.5 sm:p-5"
+        : "rounded-2xl p-3.5 sm:p-5",
+      className
     )}>
       <div>
         <div className="flex items-start justify-between">
@@ -59,10 +64,12 @@ export function StatCard({
             : "mt-2.5 sm:mt-4 text-[10px] sm:text-xs"
         )}>{title}</p>
         <p className={cn(
-          "font-bold tabular-nums truncate",
+          "font-bold tabular-nums",
+          !valueClassName && "truncate",
           compact
             ? "mt-0.5 text-sm sm:text-base xl:text-lg"
-            : "mt-0.5 sm:mt-1 text-base sm:text-2xl"
+            : "mt-0.5 sm:mt-1 text-base sm:text-2xl",
+          valueClassName
         )}>{value}</p>
       </div>
       {sub && <p className={cn("text-muted-foreground line-clamp-1", compact ? "mt-0.5 text-[9px] sm:text-[10px]" : "mt-1 text-[10px] sm:text-xs")}>{sub}</p>}
