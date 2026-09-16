@@ -131,6 +131,11 @@ export const createSale = createServerFn({ method: "POST" })
 
     if (error) throw new Error(`Erro ao criar venda: ${error.message}`);
 
+    // Vincula o vendedor logado à venda no banco de dados
+    if (context.userId && saleId) {
+      await admin.from("sales").update({ seller_id: context.userId }).eq("id", saleId);
+    }
+
     // Update sale with promo info and log to history
     if (promoConfig && promoConfig.active) {
       await admin.from("sales").update({

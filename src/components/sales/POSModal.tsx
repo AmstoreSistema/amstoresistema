@@ -44,6 +44,7 @@ import { DebtAlertModal } from "./DebtAlertModal";
 import { createSale } from "@/lib/sales.functions";
 import { getClientDetails } from "@/lib/clients.functions";
 import { syncStockConsistency } from "@/lib/products.functions";
+import { syncCurrentAdminProfile } from "@/lib/settings.functions";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -189,6 +190,72 @@ function POSModalInner({ open, onOpenChange, initialClient, initialItems }: POSM
 
   const fetchClientDetails = useServerFn(getClientDetails);
   const syncStock = useServerFn(syncStockConsistency);
+  const syncProfile = useServerFn(syncCurrentAdminProfile);
+
+  // Nome do vendedor logado na sessão ativa
+  const [sellerName, setSellerName] = React.useState<string>("Identificando...");
+
+  React.useEffect(() => {
+    let isMounted = true;
+
+    const resolveSeller = async () => {
+      try {
+        // 1. Tenta sincronização do perfil no servidor (display_name do user_profiles / claims)
+        const profileRes = await syncProfile().catch(() => null);
+        if (profileRes?.displayName && profileRes.displayName.trim()) {
+          if (isMounted) setSellerName(profileRes.displayName.trim());
+          return;
+        }
+
+        // 2. Consulta a sessão local do Supabase Auth
+        const { data } = await supabase.auth.getSession();
+        const user = data.session?.user;
+        if (!user) {
+          if (isMounted) setSellerName("Vendedor");
+          return;
+        }
+
+        const metaName = (user.user_metadata as any)?.display_name ||
+                         (user.user_metadata as any)?.name ||
+                         (user.user_metadata as any)?.full_name;
+        if (metaName && String(metaName).trim()) {
+          if (isMounted) setSellerName(String(metaName).trim());
+          return;
+        }
+
+        // 3. Consulta direta à tabela user_profiles
+        const { data: profile } = await supabase
+          .from("user_profiles")
+          .select("display_name")
+          .eq("id", user.id)
+          .maybeSingle();
+
+        if (profile?.display_name && profile.display_name.trim()) {
+          if (isMounted) setSellerName(profile.display_name.trim());
+          return;
+        }
+
+        // 4. Fallback amigável pelo prefixo do e-mail
+        if (user.email) {
+          const emailPrefix = user.email.split("@")[0] || "Vendedor";
+          const formatted = emailPrefix.charAt(0).toUpperCase() + emailPrefix.slice(1);
+          if (isMounted) setSellerName(formatted);
+          return;
+        }
+
+        if (isMounted) setSellerName("Vendedor");
+      } catch (err) {
+        console.warn("Erro ao identificar vendedor logado:", err);
+        if (isMounted) setSellerName("Vendedor");
+      }
+    };
+
+    resolveSeller();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   // Injeta cliente e itens vindos de um Condicional quando o modal abre e sincroniza integridade do estoque
   React.useEffect(() => {
@@ -571,7 +638,7 @@ function POSModalInner({ open, onOpenChange, initialClient, initialItems }: POSM
                    <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest">Vendedor</p>
                    <div className="flex items-center gap-1.5 justify-end">
                       <User className="size-3 text-gold" />
-                      <p className="text-xs font-black">Sistema Automático</p>
+                      <p className="text-xs font-black truncate max-w-[150px]">{sellerName}</p>
                    </div>
                 </div>
              </div>
@@ -744,17 +811,25 @@ function POSModalInner({ open, onOpenChange, initialClient, initialItems }: POSM
             mobileTab === "checkout" ? "flex" : "hidden lg:flex"
           )}>
             {/* Botão de retorno rápido ao carrinho exclusivo para mobile */}
-            <div className="lg:hidden flex items-center justify-between pb-3 border-b border-border/40 shrink-0">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setMobileTab("cart")}
-                className="text-xs font-bold gap-1.5 text-gold -ml-2 h-8 hover:bg-gold/10"
-              >
-                <ArrowLeft className="size-3.5" />
-                <span>Voltar aos Produtos ({totalItemsCount} un.)</span>
-              </Button>
-              <span className="text-xs font-black text-foreground">{brl(finalTotal)}</span>
+            <div className="lg:hidden flex flex-col gap-2 pb-3 border-b border-border/40 shrink-0">
+              <div className="flex items-center justify-between">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setMobileTab("cart")}
+                  className="text-xs font-bold gap-1.5 text-gold -ml-2 h-8 hover:bg-gold/10"
+                >
+                  <ArrowLeft className="size-3.5" />
+                  <span>Voltar aos Produtos ({totalItemsCount} un.)</span>
+                </Button>
+                <span className="text-xs font-black text-foreground">{brl(finalTotal)}</span>
+              </div>
+              <div className="flex items-center justify-between text-[11px] px-1 bg-muted/40 py-1 rounded-lg">
+                <span className="text-muted-foreground flex items-center gap-1">
+                  <User className="size-3 text-gold" /> Vendedor:
+                </span>
+                <span className="font-bold text-foreground">{sellerName}</span>
+              </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
