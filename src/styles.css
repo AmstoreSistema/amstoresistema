@@ -305,13 +305,25 @@ div:has(> a[href*="lovable.app"]) {
     print-color-adjust: exact !important;
   }
 
-  /* Remove completamente cabeçalhos, barras laterais, popovers e botões */
-  header,
+  /* Remove barras laterais, navegação, popovers e elementos print:hidden.
+     IMPORTANTE: NÃO usar seletor genérico "header" aqui pois esconderia
+     o <header class="report-header"> do relatório. Usar seletores específicos. */
   nav,
   aside,
   [data-sidebar],
   .sidebar,
   .print\:hidden {
+    display: none !important;
+    height: 0 !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* Esconde o header da aplicação (barra superior), mas NÃO o .report-header do relatório */
+  body > #root > header,
+  body > #root header:not(.report-header),
+  [data-sidebar] ~ header:not(.report-header) {
     display: none !important;
     height: 0 !important;
     min-height: 0 !important;
@@ -348,6 +360,49 @@ div:has(> a[href*="lovable.app"]) {
     display: block !important;
   }
 
+  /* Reset TOTAL para modais, dialogs e overlays durante impressão.
+     Estes elementos criam páginas em branco fantasmas porque:
+     1. O overlay (backdrop) ocupa 100vh de altura mesmo invisível.
+     2. O wrapper de posicionamento do dialog cria espaço vertical.
+     Solução: colapsar TUDO para zero e deixar o conteúdo fluir normalmente. */
+  [data-radix-portal],
+  [data-radix-popper-content-wrapper],
+  [role="dialog"],
+  [data-state="open"],
+  .fixed,
+  .absolute {
+    position: static !important;
+    transform: none !important;
+    max-height: none !important;
+    height: auto !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow: visible !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+    background: transparent !important;
+    inset: unset !important;
+    top: unset !important;
+    left: unset !important;
+    right: unset !important;
+    bottom: unset !important;
+  }
+
+  /* Overlay / backdrop do dialog: DEVE desaparecer totalmente para não criar página em branco */
+  [data-radix-portal] > [data-state],
+  [role="dialog"] ~ div,
+  [role="dialog"]::backdrop,
+  .bg-black\/80,
+  [class*="DialogOverlay"],
+  [data-state="open"][data-radix-portal] > div:first-child:not([role="dialog"]) {
+    display: none !important;
+    height: 0 !important;
+    width: 0 !important;
+    overflow: hidden !important;
+  }
+
   /* Encaixe rigoroso em folha A4 com paginação contínua (Página 1 -> Página 2+) */
   .report-container,
   #printable-report,
@@ -365,25 +420,7 @@ div:has(> a[href*="lovable.app"]) {
     border: none !important;
     box-sizing: border-box !important;
     display: block !important;
-  }
-
-  /* Reset para modais e dialogs durante impressão para permitir quebra de página A4 natural */
-  [role="dialog"],
-  [data-radix-portal],
-  [data-radix-popper-content-wrapper],
-  [data-state="open"] {
-    position: static !important;
-    transform: none !important;
-    max-height: none !important;
-    height: auto !important;
-    width: 100% !important;
-    max-width: 100% !important;
-    overflow: visible !important;
-    padding: 0 !important;
-    margin: 0 !important;
-    border: none !important;
-    box-shadow: none !important;
-    background: transparent !important;
+    visibility: visible !important;
   }
 
   /* Tabela contida na largura da folha A4 sem transbordar */

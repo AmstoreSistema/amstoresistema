@@ -105,7 +105,69 @@ function POSModalInner({ open, onOpenChange, initialClient, initialItems }: POSM
   const [protectionMethod, setProtectionMethod] = React.useState("Padrão");
   const [notes, setNotes] = React.useState("");
   const [saleDate, setSaleDate] = React.useState(() => toISODate(new Date()));
-  const [saleCode, setSaleCode] = React.useState(() => `V${Date.now().toString().slice(-10)}`);
+
+  /**
+   * Extrai as iniciais do cliente (até 3 letras) ou 'BAL' para vendas de balcão
+   */
+  const getClientCodeSuffix = (clientName?: string | null): string => {
+    if (!clientName || !clientName.trim()) return "BAL";
+    const parts = clientName.trim().split(/\s+/).filter(Boolean);
+    const firstPart = parts[0];
+    if (parts.length === 1 && firstPart) {
+      return firstPart.slice(0, 3).toUpperCase();
+    }
+    const initials = parts
+      .map(p => (p && p[0] ? p[0] : ""))
+      .join("")
+      .slice(0, 3)
+      .toUpperCase();
+    return initials || "BAL";
+  };
+
+  /**
+   * Formata a data da venda para DDMMAA (ex: 2026-09-16 -> 160926)
+   */
+  const formatSaleDateCode = (dateStr: string): string => {
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+      const parts = dateStr.split("-");
+      const yyyy = parts[0] || "";
+      const mm = parts[1] || "";
+      const dd = parts[2] || "";
+      if (dd && mm && yyyy.length >= 4) {
+        return `${dd}${mm}${yyyy.slice(-2)}`;
+      }
+    }
+    const now = new Date();
+    const dd = String(now.getDate()).padStart(2, "0");
+    const mm = String(now.getMonth() + 1).padStart(2, "0");
+    const yy = String(now.getFullYear()).slice(-2);
+    return `${dd}${mm}${yy}`;
+  };
+
+  /**
+   * Monta o código completo da venda: V[5 dígitos]-DDMMAA-[Iniciais ou BAL]
+   * Exemplo: V84291-160926-SB ou V84291-160926-BAL
+   */
+  const buildSaleCode = (randDigits: string, dateStr: string, clientName?: string | null): string => {
+    const digits = randDigits || Math.floor(10000 + Math.random() * 90000).toString();
+    const dateCode = formatSaleDateCode(dateStr);
+    const suffix = getClientCodeSuffix(clientName);
+    return `V${digits}-${dateCode}-${suffix}`;
+  };
+
+  // 5 dígitos aleatórios mantidos consistentes durante a montagem da venda
+  const [saleRandomDigits, setSaleRandomDigits] = React.useState(() =>
+    Math.floor(10000 + Math.random() * 90000).toString()
+  );
+
+  const [saleCode, setSaleCode] = React.useState(() =>
+    buildSaleCode(saleRandomDigits, saleDate, client?.name)
+  );
+
+  // Mantém o código de venda sincronizado sempre que os dígitos, data ou cliente mudarem
+  React.useEffect(() => {
+    setSaleCode(buildSaleCode(saleRandomDigits, saleDate, client?.name));
+  }, [saleRandomDigits, saleDate, client?.id, client?.name]);
 
   const [receiptOpen, setReceiptOpen] = React.useState(false);
   const [previewOpen, setPreviewOpen] = React.useState(false);
@@ -136,6 +198,9 @@ function POSModalInner({ open, onOpenChange, initialClient, initialItems }: POSM
       if (initialItems && initialItems.length > 0) {
         setItems(initialItems.map(i => ({ ...i, discount: (i as any).discount ?? 0 })));
         if (initialClient) setClient(initialClient);
+      } else {
+        // Gera novos 5 dígitos para a nova venda aberta
+        setSaleRandomDigits(Math.floor(10000 + Math.random() * 90000).toString());
       }
     }
   }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -150,7 +215,7 @@ function POSModalInner({ open, onOpenChange, initialClient, initialItems }: POSM
     }
   }, [accounts, open]);
 
-  // Update sale code and check for debts when client changes
+  // Check for debts when client changes
   React.useEffect(() => {
     // Reset alert immediately when client changes (or is cleared)
     setDebtAlert(prev => ({ ...prev, isOpen: false }));
@@ -192,20 +257,6 @@ function POSModalInner({ open, onOpenChange, initialClient, initialItems }: POSM
       };
       
       checkDebts();
-
-      const initials = (client.name || "")
-        .split(' ')
-        .filter((n: string) => n.length > 0)
-        .map((n: string) => (n[0] || "").toUpperCase())
-        .join('')
-        .slice(0, 3);
-      
-      setSaleCode(prev => {
-        const base = (prev || "").split('-')[0] || "";
-        return `${base}-${initials}`;
-      });
-    } else {
-      setSaleCode(prev => (prev || "").split('-')[0] || "");
     }
   }, [client?.id]); // Only run when client ID changes to avoid unnecessary triggers
 
@@ -419,6 +470,7 @@ function POSModalInner({ open, onOpenChange, initialClient, initialItems }: POSM
           debtAmount: 0,
           pendingSalesCount: 0
         });
+        setSaleRandomDigits(Math.floor(10000 + Math.random() * 90000).toString());
       };
 
       try {

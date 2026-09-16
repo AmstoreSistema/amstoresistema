@@ -346,7 +346,7 @@ export function buildTransactionReportData(
   if (typeFilter === "receita") {
     columns.push(
       { key: "date", label: "Data", className: "whitespace-nowrap w-[70px] print:w-[58px]" },
-      { key: "sale_code", label: "Código Venda", className: "whitespace-nowrap font-mono font-bold text-slate-900 w-[95px] print:w-[80px]" },
+      { key: "sale_code", label: "Código Venda", className: "whitespace-nowrap font-mono font-bold text-slate-900 w-[130px] print:w-[110px]" },
       { key: "client_name", label: "Nome Cliente", className: "min-w-[110px]" },
       { key: "category", label: "Categoria", align: "center", className: "whitespace-nowrap w-[65px] print:w-[52px]" },
       { key: "method", label: "Forma de Pagamento", className: "whitespace-nowrap w-[85px] print:w-[72px]" },
