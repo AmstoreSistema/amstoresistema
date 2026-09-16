@@ -402,14 +402,9 @@ function Dashboard() {
       {/* Cabeçalho com Saudação e Data */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-border/40 pb-4 sm:pb-5">
         <div>
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-semibold uppercase tracking-widest text-gold">
+          <div className="flex items-center">
+            <span className="text-[11px] sm:text-xs font-semibold uppercase tracking-wider text-gold whitespace-nowrap">
               {formattedDate}
-            </span>
-            <span className="text-muted-foreground/40">•</span>
-            <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-emerald-500 bg-emerald-500/10 px-2 py-0.5 rounded-full">
-              <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              Loja em Operação
             </span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-display font-bold tracking-tight bg-gradient-gold bg-clip-text text-transparent mt-1">
