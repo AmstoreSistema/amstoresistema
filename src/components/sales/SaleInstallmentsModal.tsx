@@ -101,6 +101,9 @@ export function SaleInstallmentsModal({
         qc.invalidateQueries({ queryKey: ["transactions"] }),
         qc.invalidateQueries({ queryKey: ["transactions-stats"] }),
         qc.invalidateQueries({ queryKey: ["sale-details", inst.sale_id] }),
+        qc.invalidateQueries({ queryKey: ["client-details"] }),
+        qc.invalidateQueries({ queryKey: ["clients"] }),
+        qc.invalidateQueries({ queryKey: ["credit"] }),
       ]);
     } catch (err: any) {
       toast.error(err.message);
@@ -133,6 +136,9 @@ export function SaleInstallmentsModal({
         qc.invalidateQueries({ queryKey: ["sale_installments"] }),
         qc.invalidateQueries({ queryKey: ["sales"] }),
         qc.invalidateQueries({ queryKey: ["sale-details", saleId] }),
+        qc.invalidateQueries({ queryKey: ["client-details"] }),
+        qc.invalidateQueries({ queryKey: ["clients"] }),
+        qc.invalidateQueries({ queryKey: ["credit"] }),
       ]);
     } catch (err: any) {
       toast.error(err.message);
@@ -141,7 +147,17 @@ export function SaleInstallmentsModal({
 
   if (!saleId) return null;
 
-  const unpaidInstallments = installments.filter((i: any) => !['paid', 'pago'].includes(String(i.status || '').toLowerCase()));
+  const isInstallmentPaid = (inst: any) => {
+    const s = String(inst?.status || '').toLowerCase().trim();
+    const amount = Number(inst?.amount || 0);
+    const paid = Number(inst?.paid_amount || 0);
+    const rem = Number(inst?.remaining_amount ?? (amount - paid));
+    return ['paid', 'pago', 'paga', 'quitada', 'liquidada'].includes(s) ||
+      (paid >= amount - 0.009) ||
+      (rem <= 0.009);
+  };
+
+  const unpaidInstallments = installments.filter((i: any) => !isInstallmentPaid(i));
   const remainingTotal = unpaidInstallments.reduce((acc: number, curr: any) => acc + Number(curr.remaining_amount ?? curr.amount), 0);
 
   return (
@@ -252,15 +268,18 @@ export function SaleInstallmentsModal({
                <div className="py-10 text-center text-muted-foreground">Nenhuma parcela encontrada.</div>
             ) : (
               installments.map((inst: any) => {
-                const isOverdue = inst.status !== 'paid' && new Date(inst.due_date) < new Date();
+                const isPaid = isInstallmentPaid(inst);
+                const isPartial = !isPaid && (inst.status === 'partial' || inst.status === 'parcial' || Number(inst.paid_amount || 0) > 0);
+                const isOverdue = !isPaid && new Date(inst.due_date) < new Date();
+                const remaining = Number(inst.remaining_amount ?? (Number(inst.amount) - Number(inst.paid_amount || 0)));
                 return (
                   <div key={inst.id} className={`flex items-center justify-between p-4 rounded-2xl border transition-all ${isOverdue ? 'border-destructive/30 bg-destructive/5' : 'border-border/40 bg-card hover:bg-muted/5'}`}>
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
                         <span className="font-black text-sm">{inst.installment_number}ª Parcela</span>
-                        {inst.status === 'paid' ? (
+                        {isPaid ? (
                           <Badge className="bg-success/10 text-success border-none text-[9px] h-4">Pago</Badge>
-                        ) : inst.status === 'partial' ? (
+                        ) : isPartial ? (
                           <Badge className="bg-warning/10 text-warning border-none text-[9px] h-4">Parcial</Badge>
                         ) : isOverdue ? (
                           <Badge className="bg-destructive text-white border-none text-[9px] h-4 animate-pulse">Atrasado</Badge>
@@ -272,7 +291,7 @@ export function SaleInstallmentsModal({
                         Vencimento: {new Date(inst.due_date).toLocaleDateString('pt-BR')}
                       </p>
                       <p className="text-[9px] text-blue-600 font-bold uppercase">
-                        Valor Original: {brl(inst.amount)} | Pago: {brl(inst.paid_amount || 0)} | Restante: {brl(inst.remaining_amount ?? (Number(inst.amount) - Number(inst.paid_amount || 0)))}
+                        Valor Original: {brl(inst.amount)} | Pago: {brl(inst.paid_amount || 0)} | Restante: {brl(remaining)}
                       </p>
                     </div>
                     
@@ -280,33 +299,33 @@ export function SaleInstallmentsModal({
                       <div className="flex flex-col items-end">
                         <span className={cn(
                           "font-black text-lg",
-                          inst.status === 'paid' || inst.status === 'pago' ? 'text-success' : 
-                          inst.status === 'partial' ? 'text-blue-600' :
+                          isPaid ? 'text-success' : 
+                          isPartial ? 'text-blue-600' :
                           isOverdue ? 'text-destructive' : 'text-gold'
                         )}>
                           {brl(inst.amount)}
                         </span>
                         
-                        {inst.status !== 'paid' && inst.status !== 'pago' && (
+                        {!isPaid && (
                           <div className="text-[9px] font-bold text-muted-foreground uppercase">
-                            {inst.status === 'partial' ? `Restante: ${brl(inst.remaining_amount)}` : 'Pendente'}
+                            {isPartial ? `Restante: ${brl(remaining)}` : 'Pendente'}
                           </div>
                         )}
 
-                        {inst.status !== 'paid' && inst.status !== 'pago' && Number(sale?.cashback_earned) > 0 && (
+                        {!isPaid && Number(sale?.cashback_earned) > 0 && (
                           <div className="text-[9px] text-yellow-600 font-bold mt-1">
-                            Liberará {brl((Number(sale.cashback_earned) * Number(inst.remaining_amount ?? inst.amount)) / Number(sale.total_amount))} cashback
+                            Liberará {brl((Number(sale.cashback_earned) * remaining) / Number(sale.total_amount))} cashback
                           </div>
                         )}
                       </div>
 
-                      {inst.status !== 'paid' && (
+                      {!isPaid && (
                         <div className="flex gap-2">
                           <Button 
                             size="sm" 
                             variant="outline"
                             className="rounded-xl h-8 text-[9px] font-black border-success/30 text-success hover:bg-success/10"
-                            onClick={() => setPayModal({ open: true, inst, amount: String(inst.remaining_amount ?? inst.amount) })}
+                            onClick={() => setPayModal({ open: true, inst, amount: String(remaining) })}
                           >
                             PAG. PARCIAL
                           </Button>
@@ -317,7 +336,7 @@ export function SaleInstallmentsModal({
                               setPayModal({ 
                                 open: true, 
                                 inst, 
-                                amount: String(inst.remaining_amount ?? inst.amount) 
+                                amount: String(remaining) 
                               });
                             }}
                           >

@@ -249,13 +249,27 @@ export function ClientDetailsModal({ client, isOpen, onClose }: ClientDetailsMod
                   </div>
                 ) : (
                     data?.sales.map((sale: any) => {
-                      const saleInstallments = data?.installments?.filter((i: any) => i.sale_id === sale.id) || [];
-                      const unpaidInstallments = saleInstallments.filter((i: any) => !['paid', 'pago'].includes(String(i.status || '').toLowerCase()));
-                      const remainingBalance = Math.max(0, Number(sale.total_amount) - Number(sale.paid_amount));
-                      const isFullyPaid = remainingBalance <= 0.009 && unpaidInstallments.length === 0;
-                      const isCreditSale = Boolean(sale.is_debt) || sale.payment_method === 'Fiado' || saleInstallments.length > 0;
+                      const isInstPaid = (i: any) => {
+                        const st = String(i.status || '').toLowerCase().trim();
+                        if (['paid', 'pago', 'paga', 'quitada', 'liquidada', 'cancelada'].includes(st)) return true;
+                        const amt = Number(i.amount || 0);
+                        const paid = Number(i.paid_amount || 0);
+                        return amt > 0 && paid >= amt - 0.009;
+                      };
 
-                    
+                      const saleInstallments = data?.installments?.filter((i: any) => i.sale_id === sale.id) || [];
+                      const unpaidInstallments = saleInstallments.filter((i: any) => !isInstPaid(i));
+
+                      const isStatusPaid = ['paid', 'pago', 'quitado', 'completed', 'finalizado'].includes(String(sale.status || '').toLowerCase());
+                      const remainingBalance = sale.remaining_balance !== undefined 
+                        ? Number(sale.remaining_balance) 
+                        : Math.max(0, Number(sale.total_amount || 0) - Number(sale.paid_amount || 0));
+
+                      const allInstallmentsSettled = saleInstallments.length > 0 && unpaidInstallments.length === 0;
+                      const isFullyPaid = sale.is_fully_paid === true || isStatusPaid || (remainingBalance <= 0.009 && (saleInstallments.length === 0 || allInstallmentsSettled));
+                      const isCreditSale = Boolean(sale.is_debt) || sale.payment_method === 'Fiado' || saleInstallments.length > 0;
+                      const isPartial = !isFullyPaid && Number(sale.paid_amount || 0) > 0;
+
                     return (
                       <div 
                         key={sale.id} 
@@ -267,17 +281,24 @@ export function ClientDetailsModal({ client, isOpen, onClose }: ClientDetailsMod
                             <span className="font-bold text-foreground text-sm">{sale.sale_code}</span>
                             <span className={cn(
                               "text-[10px] font-bold px-2 py-0.5 rounded uppercase",
-                              (isFullyPaid) 
-                                ? "bg-green-100 text-green-700" 
-                                : isCreditSale ? "bg-orange-100 text-orange-700" : "bg-orange-100 text-orange-700"
+                              isFullyPaid 
+                                ? "bg-emerald-100 text-emerald-700 font-black" 
+                                : isPartial 
+                                  ? "bg-amber-100 text-amber-700" 
+                                  : "bg-rose-100 text-rose-700"
                             )}>
-                              {(isFullyPaid) 
-                                ? 'pago' 
-                                : isCreditSale ? 'pendente / fiado' : 'pendente'}
+                              {isFullyPaid 
+                                ? 'Pago' 
+                                : isPartial 
+                                  ? 'Pendente (Parcial)' 
+                                  : isCreditSale ? 'Pendente / Fiado' : 'Pendente'}
                             </span>
                             {isCreditSale && (
-                              <span className="text-[10px] font-bold px-2 py-0.5 rounded uppercase bg-blue-100 text-blue-700">
-                                Fiado
+                              <span className={cn(
+                                "text-[10px] font-bold px-2 py-0.5 rounded uppercase",
+                                isFullyPaid ? "bg-muted/70 text-muted-foreground" : "bg-blue-100 text-blue-700"
+                              )}>
+                                {isFullyPaid ? "Fiado Quitado" : "Fiado"}
                               </span>
                             )}
                           </div>
@@ -300,7 +321,17 @@ export function ClientDetailsModal({ client, isOpen, onClose }: ClientDetailsMod
                           )}
                         </div>
                         <div className="text-right">
-                          <div className="font-bold text-green-600">{brl(sale.total_amount)}</div>
+                          <div className="font-bold text-foreground">{brl(sale.total_amount)}</div>
+                          {!isFullyPaid && remainingBalance > 0 && (
+                            <div className="text-[10px] font-bold text-destructive mt-0.5">
+                              Resta {brl(remainingBalance)}
+                            </div>
+                          )}
+                          {isFullyPaid && (
+                            <div className="text-[10px] font-bold text-emerald-600 mt-0.5 flex items-center justify-end gap-1">
+                              <CheckCircle2 className="size-3" /> Quitado
+                            </div>
+                          )}
                         </div>
                       </div>
                     );

@@ -284,6 +284,90 @@ export const cancelSale = createServerFn({ method: "POST" })
     return { success: true };
   });
 
+// Sincroniza e corrige o status de pagamento e quitação na tabela sales
+export async function syncSalePaymentState(admin: any, saleId: string) {
+  try {
+    const { data: sale } = await admin
+      .from("sales")
+      .select("id, total_amount, paid_amount, status, is_debt")
+      .eq("id", saleId)
+      .maybeSingle();
+
+    if (!sale) return null;
+
+    const totalAmount = Number(sale.total_amount || 0);
+
+    // Busca parcelas
+    const { data: installments = [] } = await admin
+      .from("sale_installments")
+      .select("id, amount, paid_amount, status")
+      .eq("sale_id", saleId);
+
+    // Busca transações de receita vinculadas à venda
+    const { data: transactions = [] } = await admin
+      .from("transactions")
+      .select("id, amount")
+      .eq("sale_id", saleId)
+      .eq("type", "income");
+
+    const sumTransactions = (transactions || []).reduce((acc: number, t: any) => acc + Number(t.amount || 0), 0);
+
+    let sumInstallmentsPaid = 0;
+    let hasOpenInstallments = false;
+
+    if (installments && installments.length > 0) {
+      for (const inst of installments) {
+        const instStatus = String(inst.status || '').toLowerCase().trim();
+        const instAmount = Number(inst.amount || 0);
+        const instPaid = Number(inst.paid_amount || 0);
+
+        const isInstPaid = ['paid', 'pago', 'paga', 'quitada', 'liquidada'].includes(instStatus) ||
+          instPaid >= instAmount - 0.009;
+
+        if (isInstPaid) {
+          sumInstallmentsPaid += Math.max(instAmount, instPaid);
+        } else {
+          sumInstallmentsPaid += Math.max(0, instPaid);
+          hasOpenInstallments = true;
+        }
+      }
+    }
+
+    const currentSalePaid = Number(sale.paid_amount || 0);
+    const calculatedPaid = Math.max(currentSalePaid, sumInstallmentsPaid, sumTransactions);
+
+    const isFullyPaid = (installments && installments.length > 0 && !hasOpenInstallments) ||
+      (calculatedPaid >= totalAmount - 0.009) ||
+      ['paid', 'pago', 'quitada', 'liquidada'].includes(String(sale.status || '').toLowerCase().trim());
+
+    const newPaidAmount = isFullyPaid ? Math.max(calculatedPaid, totalAmount) : calculatedPaid;
+    const newStatus = isFullyPaid ? 'paid' : (newPaidAmount > 0.009 ? 'partial' : 'pending');
+    const newIsDebt = !isFullyPaid;
+
+    if (
+      Number(sale.paid_amount) !== newPaidAmount ||
+      sale.status !== newStatus ||
+      Boolean(sale.is_debt) !== newIsDebt
+    ) {
+      await admin.from("sales").update({
+        paid_amount: newPaidAmount,
+        status: newStatus,
+        is_debt: newIsDebt
+      }).eq("id", saleId);
+    }
+
+    return {
+      paid_amount: newPaidAmount,
+      status: newStatus,
+      is_debt: newIsDebt,
+      isFullyPaid
+    };
+  } catch (err) {
+    console.error("Erro ao sincronizar status de pagamento da venda:", err);
+    return null;
+  }
+}
+
 export const registerSalePayment = createServerFn({ method: "POST" })
   .validator((data) => z.object({
     installment_id: z.string().optional(),
@@ -305,6 +389,9 @@ export const registerSalePayment = createServerFn({ method: "POST" })
         p_description: data.description
       });
       if (error) throw new Error(`Erro ao registrar pagamento da parcela: ${error.message}`);
+
+      // Sincroniza a tabela sales imediatamente para refletir a quitação
+      await syncSalePaymentState(admin, data.sale_id);
     } else {
       // Direct sale payment (non-installment)
       const { data: sale } = await admin
@@ -325,25 +412,21 @@ export const registerSalePayment = createServerFn({ method: "POST" })
 
       if (paymentError) throw new Error(`Erro ao registrar pagamento: ${paymentError.message}`);
 
-      const newPaidAmount = Number(sale.paid_amount) + data.amount;
-      const newStatus = newPaidAmount >= Number(sale.total_amount) - 0.009 ? "paid" : "partial";
+      const newPaidAmount = Number(sale.paid_amount || 0) + data.amount;
+      const isPaid = newPaidAmount >= Number(sale.total_amount) - 0.009;
+      const newStatus = isPaid ? "paid" : "partial";
       
       await admin
         .from("sales")
         .update({ 
           paid_amount: newPaidAmount,
-          status: newStatus
+          status: newStatus,
+          is_debt: !isPaid
         })
         .eq("id", data.sale_id);
 
       // Description for the record
       const finalDesc = data.description || `Pagamento Venda #${sale.sale_code || data.sale_id.slice(0, 8)}`;
-      
-      // Removed manual transaction insert and account balance update.
-      // The database trigger 'transaction_balance_trigger' on 'transactions' table 
-      // handles account balances automatically when a transaction is inserted.
-      // We still need one source of transaction truth. 
-      // If we are here (registerSalePayment without installment_id), we insert it once.
       
       await admin
         .from("transactions")
@@ -358,6 +441,9 @@ export const registerSalePayment = createServerFn({ method: "POST" })
           payment_method: data.payment_method,
           client_id: sale.client_id
         } as any);
+
+      // Sincronização e verificação final
+      await syncSalePaymentState(admin, data.sale_id);
     }
 
     return { success: true };
@@ -405,7 +491,7 @@ export const processBulkPayment = createServerFn({ method: "POST" })
       .from("sale_installments")
       .select("*")
       .eq("sale_id", data.sale_id)
-      .not("status", "in", "('paid','pago')")
+      .not("status", "in", "('paid','pago','quitada','liquidada')")
       .order("installment_number", { ascending: true })
       .order("due_date", { ascending: true });
 
@@ -443,6 +529,9 @@ export const processBulkPayment = createServerFn({ method: "POST" })
       }
     }
 
+    // Sincroniza a venda no banco de dados após abater todas as parcelas
+    await syncSalePaymentState(admin, data.sale_id);
+
     return { success: true };
   });
 
@@ -460,11 +549,64 @@ export const getSaleDetails = createServerFn({ method: "GET" })
 
     if (saleResult.error) throw new Error(`Erro ao buscar venda: ${saleResult.error.message}`);
     
+    const rawSale = saleResult.data;
+    const installments = installmentsResult.data || [];
+    const payments = paymentsResult.data || [];
+
+    // Verificação de quitação precisa e cura em background se necessário
+    const sumTransactions = payments.reduce((acc: number, t: any) => acc + Number(t.amount || 0), 0);
+    let sumInstallmentsPaid = 0;
+    let hasOpenInstallments = false;
+
+    if (installments.length > 0) {
+      for (const inst of installments) {
+        const instStatus = String(inst.status || '').toLowerCase().trim();
+        const instAmount = Number(inst.amount || 0);
+        const instPaid = Number(inst.paid_amount || 0);
+        const isInstPaid = ['paid', 'pago', 'paga', 'quitada', 'liquidada'].includes(instStatus) ||
+          instPaid >= instAmount - 0.009;
+
+        if (isInstPaid) {
+          sumInstallmentsPaid += Math.max(instAmount, instPaid);
+        } else {
+          sumInstallmentsPaid += Math.max(0, instPaid);
+          hasOpenInstallments = true;
+        }
+      }
+    }
+
+    const totalAmount = Number(rawSale.total_amount || 0);
+    const computedPaid = Math.max(Number(rawSale.paid_amount || 0), sumInstallmentsPaid, sumTransactions);
+    const isFullyPaid = (installments.length > 0 && !hasOpenInstallments) ||
+      (computedPaid >= totalAmount - 0.009) ||
+      ['paid', 'pago', 'quitada', 'liquidada'].includes(String(rawSale.status || '').toLowerCase().trim());
+
+    const finalPaidAmount = isFullyPaid ? Math.max(computedPaid, totalAmount) : computedPaid;
+    const finalStatus = isFullyPaid ? 'paid' : (finalPaidAmount > 0.009 ? 'partial' : rawSale.status);
+    const finalIsDebt = !isFullyPaid;
+
+    if (
+      Number(rawSale.paid_amount) !== finalPaidAmount ||
+      rawSale.status !== finalStatus ||
+      Boolean(rawSale.is_debt) !== finalIsDebt
+    ) {
+      void supabaseAdmin.from("sales").update({
+        paid_amount: finalPaidAmount,
+        status: finalStatus,
+        is_debt: finalIsDebt
+      }).eq("id", data.sale_id);
+    }
+
     return {
-      sale: saleResult.data,
+      sale: {
+        ...rawSale,
+        paid_amount: finalPaidAmount,
+        status: finalStatus,
+        is_debt: finalIsDebt
+      },
       items: itemsResult.data || [],
-      payments: paymentsResult.data || [],
-      installments: installmentsResult.data || []
+      payments,
+      installments
     };
   });
 

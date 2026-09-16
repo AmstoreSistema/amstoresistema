@@ -77,6 +77,18 @@ export function SaleDetailsModal({
     }
   }, [accounts, payAccountId]);
 
+  const invalidateAllRelatedQueries = () => {
+    qc.invalidateQueries({ queryKey: ['sale-details', saleId] });
+    qc.invalidateQueries({ queryKey: ['client-details'] });
+    qc.invalidateQueries({ queryKey: ['sales'] });
+    qc.invalidateQueries({ queryKey: ['sales-stats'] });
+    qc.invalidateQueries({ queryKey: ['sale_installments'] });
+    qc.invalidateQueries({ queryKey: ['clients'] });
+    qc.invalidateQueries({ queryKey: ['financial_accounts'] });
+    qc.invalidateQueries({ queryKey: ['transactions'] });
+    qc.invalidateQueries({ queryKey: ['credit'] });
+  };
+
   const handleQuickPayment = async (installment: any) => {
     const val = paymentType === 'quitar' ? Number(installment.remaining_amount ?? installment.amount) : Number(payAmount);
     if (val <= 0) {
@@ -98,7 +110,7 @@ export function SaleDetailsModal({
       toast.success("Pagamento registrado!");
       setExpandedPaymentId(null);
       setPayAmount("");
-      qc.invalidateQueries({ queryKey: ['sale-details', saleId] });
+      invalidateAllRelatedQueries();
     } catch (e: any) {
       toast.error(e.message);
     } finally {
@@ -118,12 +130,28 @@ export function SaleDetailsModal({
   const items = data?.items || [];
   const payments = data?.payments || [];
   const installments = data?.installments || [];
-  const openInstallments = installments.filter((installment: any) =>
-    !['paid', 'pago'].includes(String(installment.status || '').toLowerCase())
-  );
+
+  const isInstallmentPaid = (inst: any) => {
+    const s = String(inst?.status || '').toLowerCase().trim();
+    const amount = Number(inst?.amount || 0);
+    const paid = Number(inst?.paid_amount || 0);
+    const rem = Number(inst?.remaining_amount ?? (amount - paid));
+    return ['paid', 'pago', 'paga', 'quitada', 'liquidada'].includes(s) ||
+      (paid >= amount - 0.009) ||
+      (rem <= 0.009);
+  };
+
+  const openInstallments = installments.filter((installment: any) => !isInstallmentPaid(installment));
   const remainingBalance = Math.max(0, Number(sale?.total_amount || 0) - Number(sale?.paid_amount || 0));
   const isCreditSale = Boolean(sale?.is_debt) || sale?.payment_method === 'Fiado' || installments.length > 0;
-  const hasOutstandingDebt = isCreditSale && (remainingBalance > 0.009 || openInstallments.length > 0);
+  const isSalePaid = (
+    sale?.status === 'paid' || 
+    sale?.status === 'completed' || 
+    sale?.status === 'finalizado' || 
+    Number(sale?.paid_amount) >= Number(sale?.total_amount) - 0.009 ||
+    (installments.length > 0 && openInstallments.length === 0)
+  );
+  const hasOutstandingDebt = isCreditSale && (remainingBalance > 0.009 || openInstallments.length > 0) && !isSalePaid;
 
   const subtotal = sale ? (Number(sale.total_amount) + Number(sale.discount || 0) + Number(sale.cashback_used || 0)) : 0;
 
@@ -145,9 +173,9 @@ export function SaleDetailsModal({
                     <div className="flex gap-1.5 flex-wrap">
                       <span className={cn(
                         "text-[9px] sm:text-[10px] font-bold px-1.5 sm:px-2 py-0.5 rounded uppercase",
-                        (sale.status === 'paid' || sale.status === 'completed' || sale.status === 'finalizado' || Number(sale.paid_amount) >= Number(sale.total_amount)) && installments.every((i: any) => i.status === 'paid' || i.status === 'pago') ? "bg-green-100 text-green-700" : "bg-orange-100 text-orange-700"
+                        !hasOutstandingDebt ? "bg-green-100 text-green-700" : "bg-orange-100 text-orange-700"
                       )}>
-                        {!hasOutstandingDebt && (sale.status === 'paid' || sale.status === 'completed' || sale.status === 'finalizado' || Number(sale.paid_amount) >= Number(sale.total_amount)) ? 'Pago' : isCreditSale ? 'Pendente / Fiado' : 'Pendente'}
+                        {!hasOutstandingDebt ? 'Pago' : isCreditSale ? 'Pendente / Fiado' : 'Pendente'}
                       </span>
                       <span className="text-[9px] sm:text-[10px] font-bold px-1.5 sm:px-2 py-0.5 rounded uppercase bg-blue-100 text-blue-700">
                         {sale.sale_type || 'Varejo'}
@@ -410,7 +438,7 @@ export function SaleDetailsModal({
                               });
                               toast.success("Pagamento total processado!");
                               setExpandedPaymentId(null);
-                              qc.invalidateQueries({ queryKey: ['sale-details', saleId] });
+                              invalidateAllRelatedQueries();
                             } catch (e: any) {
                               toast.error(e.message);
                             } finally {
@@ -429,8 +457,8 @@ export function SaleDetailsModal({
                         <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-2 block">Plano de Parcelamento</p>
                         <div className="space-y-2">
                           {installments.map((inst: any, i: number) => {
-                            const isPaid = inst.status === 'paid' || inst.status === 'pago';
-                            const isPartial = inst.status === 'parcial' || (Number(inst.paid_amount) > 0 && !isPaid);
+                            const isPaid = isInstallmentPaid(inst);
+                            const isPartial = !isPaid && (inst.status === 'parcial' || inst.status === 'partial' || Number(inst.paid_amount) > 0);
                             const isOverdue = !isPaid && new Date(inst.due_date) < new Date();
                             const remaining = Number(inst.remaining_amount ?? (Number(inst.amount) - Number(inst.paid_amount || 0)));
                             const installmentCashback = Number(sale?.total_amount) > 0

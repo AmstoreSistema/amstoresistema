@@ -106,12 +106,22 @@ function CreditPage() {
     sales.forEach(s => {
       if (!s.client_id) return;
 
-      const status = String(s.status || "").toLowerCase();
-      if (["paid", "pago", "quitado", "cancelado", "cancelled"].includes(status)) return;
+      const status = String(s.status || "").toLowerCase().trim();
+      if (["paid", "pago", "quitado", "quitada", "liquidado", "liquidada", "cancelado", "cancelled"].includes(status)) return;
 
       // Saldo devedor real: ignora fiados já quitados (valor zerado)
       const remaining = Number(s.total_amount || 0) - Number(s.paid_amount || 0);
       if (remaining <= 0.009) return;
+
+      // Filtrar parcelas pendentes da venda
+      const saleInstallments = installmentsBySale.get(s.id) || [];
+      const pendingSaleInsts = saleInstallments.filter(
+        i => !["paid", "pago", "quitado", "quitada", "liquidada", "cancelada"].includes(String(i.status || "").toLowerCase().trim()) &&
+             (Number(i.amount || 0) - Number(i.paid_amount || 0)) > 0.009
+      );
+
+      // Se a venda possuir parcelas e nenhuma estiver pendente, a venda já está quitada
+      if (saleInstallments.length > 0 && pendingSaleInsts.length === 0) return;
 
       const client = clientById.get(s.client_id);
       if (!client) return;
@@ -128,13 +138,6 @@ function CreditPage() {
 
       current.pendingCount += 1;
       current.totalDue += remaining;
-
-      // Filtrar parcelas pendentes da venda
-      const saleInstallments = installmentsBySale.get(s.id) || [];
-      const pendingSaleInsts = saleInstallments.filter(
-        i => !["paid", "pago", "quitado"].includes(String(i.status || "").toLowerCase()) &&
-             (Number(i.amount || 0) - Number(i.paid_amount || 0)) > 0.009
-      );
 
       if (pendingSaleInsts.length > 0) {
         pendingSaleInsts.forEach(i => {
