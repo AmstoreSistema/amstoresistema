@@ -68,7 +68,7 @@ function Dashboard() {
   });
   const { data: clients = [] } = useRows("clients", { select: "id, name, phone" });
   const { data: fiadoSales = [] } = useRows<any>("sales", { 
-    select: "id, client_id, total_amount, paid_amount, status, is_debt, created_at, sale_code",
+    select: "id, client_id, total_amount, paid_amount, status, is_debt, created_at, due_date, sale_code",
     filters: [{ column: "is_debt", value: true }],
   });
   const { data: allInstallments = [] } = useRows<any>("sale_installments" as any, { 
@@ -213,7 +213,25 @@ function Dashboard() {
   const todayIso = useMemo(() => new Date().toISOString().split("T")[0] || "", []);
   const clientById = useMemo(() => new Map(clients.map((c: any) => [c.id, c])), [clients]);
 
-  // Cálculo fiel dos fiados vencidos por cliente
+  const getDaysOverdue = (dateStr: string | null): number => {
+    if (!dateStr) return 0;
+    const cleanDateStr = String(dateStr).split("T")[0].trim();
+    const parts = cleanDateStr.split("-").map(Number);
+    if (parts.length !== 3 || parts.some(isNaN)) return 0;
+
+    const [year, month, day] = parts;
+    const dueDate = new Date(year, month - 1, day, 0, 0, 0, 0);
+
+    const now = new Date();
+    const todayDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+
+    const diffMs = todayDate.getTime() - dueDate.getTime();
+    const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
+
+    return Math.max(0, diffDays);
+  };
+
+  // Cálculo fiel e exato dos fiados vencidos por cliente
   const overdueFiados = useMemo(() => {
     const installmentsBySale = new Map<string, any[]>();
     allInstallments.forEach((inst: any) => {
@@ -221,6 +239,18 @@ function Dashboard() {
       list.push(inst);
       installmentsBySale.set(inst.sale_id, list);
     });
+
+    const isInstPaid = (inst: any) => {
+      const s = String(inst?.status || "").toLowerCase().trim();
+      const amount = Number(inst?.amount || 0);
+      const paid = Number(inst?.paid_amount || 0);
+      const rem = Number(inst?.remaining_amount ?? (amount - paid));
+      return (
+        ["paid", "pago", "paga", "quitada", "liquidada"].includes(s) ||
+        paid >= amount - 0.009 ||
+        rem <= 0.009
+      );
+    };
 
     const stats = new Map<string, {
       clientId: string;
@@ -233,8 +263,8 @@ function Dashboard() {
 
     fiadoSales.forEach((s: any) => {
       if (!s.client_id) return;
-      const status = String(s.status || "").toLowerCase();
-      if (["paid", "pago", "quitado", "cancelado", "cancelled"].includes(status)) return;
+      const status = String(s.status || "").toLowerCase().trim();
+      if (["paid", "pago", "quitado", "quitada", "liquidado", "liquidada", "cancelado", "cancelled"].includes(status)) return;
 
       const remaining = Number(s.total_amount || 0) - Number(s.paid_amount || 0);
       if (remaining <= 0.009) return;
@@ -243,10 +273,10 @@ function Dashboard() {
       if (!client) return;
 
       const saleInstallments = installmentsBySale.get(s.id) || [];
-      const pendingSaleInsts = saleInstallments.filter(
-        (i: any) => !["paid", "pago", "quitado"].includes(String(i.status || "").toLowerCase()) &&
-             (Number(i.amount || 0) - Number(i.paid_amount || 0)) > 0.009
-      );
+      const pendingSaleInsts = saleInstallments.filter((i: any) => !isInstPaid(i));
+
+      // Se a venda possui parcelas cadastradas e nenhuma estiver pendente, a venda está quitada
+      if (saleInstallments.length > 0 && pendingSaleInsts.length === 0) return;
 
       let isSaleOverdue = false;
       let saleOverdueAmount = 0;
@@ -255,19 +285,21 @@ function Dashboard() {
       if (pendingSaleInsts.length > 0) {
         pendingSaleInsts.forEach((i: any) => {
           const instRem = Math.max(0, Number(i.amount || 0) - Number(i.paid_amount || 0));
-          const iDueIso = i.due_date ? (String(i.due_date).split("T")[0] || "") : null;
+          const iDueIso = i.due_date ? String(i.due_date).split("T")[0] : null;
+          
           if (iDueIso && iDueIso < todayIso) {
             isSaleOverdue = true;
             saleOverdueAmount += instRem;
-            if (!earliestOverdueDate || new Date(i.due_date).getTime() < new Date(earliestOverdueDate).getTime()) {
+            if (!earliestOverdueDate || iDueIso < String(earliestOverdueDate).split("T")[0]) {
               earliestOverdueDate = i.due_date;
             }
           }
         });
       } else {
-        const fallbackDate = s.created_at || null;
+        // Venda a prazo sem parcelas desmembradas: usa due_date da venda ou fallback created_at
+        const fallbackDate = s.due_date || s.created_at || null;
         if (fallbackDate) {
-          const sDateIso = String(fallbackDate).split("T")[0] || "";
+          const sDateIso = String(fallbackDate).split("T")[0];
           if (sDateIso && sDateIso < todayIso) {
             isSaleOverdue = true;
             saleOverdueAmount = remaining;
@@ -288,7 +320,10 @@ function Dashboard() {
         current.salesCount += 1;
         current.totalDue += remaining;
         current.overdueDue += saleOverdueAmount;
-        if (!current.overdueDate || (earliestOverdueDate && new Date(earliestOverdueDate).getTime() < new Date(current.overdueDate).getTime())) {
+        if (
+          !current.overdueDate ||
+          (earliestOverdueDate && String(earliestOverdueDate).split("T")[0] < String(current.overdueDate).split("T")[0])
+        ) {
           current.overdueDate = earliestOverdueDate;
         }
         stats.set(s.client_id, current);
@@ -328,14 +363,6 @@ function Dashboard() {
     return d.charAt(0).toUpperCase() + d.slice(1);
   }, []);
 
-  const getDaysOverdue = (dateStr: string | null) => {
-    if (!dateStr) return 0;
-    const due = new Date(dateStr).getTime();
-    const now = new Date().getTime();
-    const diffDays = Math.floor((now - due) / (1000 * 60 * 60 * 24));
-    return Math.max(0, diffDays);
-  };
-
   const handleWhatsAppCobrar = (e: React.MouseEvent, fiado: any) => {
     e.preventDefault();
     e.stopPropagation();
@@ -345,7 +372,11 @@ function Dashboard() {
       toast.error(`Cliente ${fiado.clientName} não possui telefone cadastrado.`);
       return;
     }
-    const dateFormatted = fiado.overdueDate ? new Date(fiado.overdueDate).toLocaleDateString("pt-BR") : "";
+    const dateFormatted = fiado.overdueDate ? (() => {
+      const parts = String(fiado.overdueDate).split("T")[0].split("-");
+      if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`;
+      return new Date(fiado.overdueDate).toLocaleDateString("pt-BR");
+    })() : "";
     const msg = `Olá ${fiado.clientName}, tudo bem? Aqui é da Amstore. Notamos uma pendência no valor de ${brl(fiado.overdueDue)}${dateFormatted ? ` com vencimento em ${dateFormatted}` : ""}. Podemos combinar a melhor forma de acerto? Se preferir via Pix, podemos te enviar a chave. Ficamos no aguardo e à disposição!`;
     window.open(`https://wa.me/55${rawPhone}?text=${encodeURIComponent(msg)}`, "_blank");
   };
@@ -571,7 +602,7 @@ function Dashboard() {
                         <p className="text-[10px] sm:text-[11px] text-muted-foreground flex items-center gap-1.5 mt-0.5">
                           <Clock className="size-3 text-destructive/80" />
                           <span className="text-destructive font-medium">
-                            {days > 0 ? `Venceu há ${days} dia(s)` : "Venceu hoje"}
+                            {days === 0 ? "Vence hoje" : days === 1 ? "Venceu há 1 dia" : `Venceu há ${days} dias`}
                           </span>
                           <span>•</span>
                           <span>{fiado.salesCount} venda(s)</span>
