@@ -194,11 +194,25 @@ export function EditProductModal({
           .eq("produto_id", product.id);
       }
 
-      // 3. Auditoria
+      // 3. Auditoria detalhada
       await logAudit(
         "atualizar",
         "products",
-        `Preços e dados editados: Custo ${brl(cost)}, Varejo ${brl(retail)}, Atacado ${brl(wholesale)}`,
+        JSON.stringify({
+          resumo: `Alteração no Produto "${product.name}" (preços e dados de estoque)`,
+          acao: "ATUALIZACAO",
+          entidade: "Produto",
+          nome: product.name,
+          sku: product.sku,
+          id: product.id,
+          valores: {
+            "Preço de Custo": brl(cost),
+            "Preço de Varejo": brl(retail),
+            "Preço de Atacado": brl(wholesale),
+            "Localização": formData.localizacao.trim() || "Não informada",
+            "Categoria": formData.category,
+          },
+        }),
         product.id
       );
 

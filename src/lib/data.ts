@@ -70,19 +70,60 @@ export async function logAudit(action: string, entity: string, details?: string,
   } as any);
 }
 
+const FRIENDLY_FIELD_NAMES: Record<string, string> = {
+  name: "nome",
+  nome: "nome",
+  phone: "telefone",
+  email: "e-mail",
+  address: "endereço",
+  notes: "observações",
+  document_cpf: "CPF",
+  document: "documento",
+  birth_date: "data de nascimento",
+  zip_code: "CEP",
+  city: "cidade",
+  state: "UF",
+  client_type: "tipo de cliente",
+  cost_price: "custo",
+  retail_price: "preço de venda",
+  wholesale_price: "preço atacado",
+  category: "categoria",
+  quantidade_disponivel: "estoque",
+  localizacao: "localização",
+  status: "status",
+};
+
 export function useSaveRow(table: string, label: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, values }: { id?: string | undefined; values: Record<string, any> }) => {
-      const itemName = values.name || values.nome || values.title || values.description || "";
+      let itemName = values.name || values.nome || values.title || values.description || values.produto_nome || "";
 
       if (id) {
+        // Se values não contiver o nome (ex.: alterou apenas telefone ou endereço), busca o nome do registro atual
+        if (!itemName) {
+          try {
+            const { data: existing } = await supabase
+              .from(table as any)
+              .select("name, nome, title, description, produto_nome, sku")
+              .eq("id", id)
+              .maybeSingle();
+            if (existing) {
+              itemName = (existing as any).name || (existing as any).nome || (existing as any).title || (existing as any).produto_nome || (existing as any).description || "";
+            }
+          } catch {
+            // fallback
+          }
+        }
+
         const { data, error } = await supabase.from(table as any).update(values).eq("id", id).select().single();
         if (error) throw error;
 
+        const alteredKeys = Object.keys(values).filter(k => !["id", "created_at", "updated_at"].includes(k));
+        const alteredLabels = alteredKeys.map(k => FRIENDLY_FIELD_NAMES[k] || k).slice(0, 4).join(", ");
         const summaryText = itemName
-          ? `Atualizou ${label}: "${itemName}"`
-          : `Atualizou ${label}`;
+          ? `Alterou ${label}: "${itemName}"${alteredLabels ? ` (${alteredLabels})` : ""}`
+          : `Alterou ${label}${alteredLabels ? ` (${alteredLabels})` : ""}`;
 
         const auditPayload = JSON.stringify({
           resumo: summaryText,
@@ -90,6 +131,7 @@ export function useSaveRow(table: string, label: string) {
           entidade: label,
           nome: itemName,
           id,
+          campos_alterados: alteredLabels,
           campos: values,
         });
 
@@ -101,6 +143,10 @@ export function useSaveRow(table: string, label: string) {
       if (error) throw error;
 
       const newId = (data as any)?.id;
+      if (!itemName && data) {
+        itemName = (data as any).name || (data as any).nome || (data as any).title || (data as any).produto_nome || "";
+      }
+
       const summaryText = itemName
         ? `Cadastrou novo ${label}: "${itemName}"`
         : `Cadastrou novo ${label}`;

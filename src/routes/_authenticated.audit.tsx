@@ -148,8 +148,17 @@ const ENTITY_STYLES: Record<string, { bg: string; text: string; border: string }
   financial_accounts: { bg: "bg-cyan-500/10", text: "text-cyan-600", border: "border-cyan-500/30" },
 };
 
+export interface AuditLookupContext {
+  clientsMap: Map<string, any>;
+  productsMap: Map<string, any>;
+  salesMap: Map<string, any>;
+  suppliersMap?: Map<string, any>;
+  materialsMap?: Map<string, any>;
+}
+
 interface AuditItemDetails {
   resumo: string;
+  targetName?: string;
   json: any | null;
   text: string | null;
   isVenda: boolean;
@@ -170,21 +179,108 @@ interface AuditItemDetails {
       subtotal: number;
     }>;
   };
+  clientInfo?: {
+    id: string;
+    name: string;
+    phone?: string;
+    document?: string;
+    email?: string;
+    client_type?: string;
+    city?: string;
+    state?: string;
+    address?: string;
+    notes?: string;
+  };
+  productInfo?: {
+    id: string;
+    name: string;
+    sku?: string;
+    category?: string;
+    retail_price?: number;
+    cost_price?: number;
+    wholesale_price?: number;
+  };
   dadosGerais?: Record<string, any>;
 }
 
-function parseAuditDetails(details: string | null, entity: string, action: string, entityId: string | null): AuditItemDetails {
+function parseAuditDetails(
+  details: string | null,
+  entity: string,
+  action: string,
+  entityId: string | null,
+  lookups?: AuditLookupContext
+): AuditItemDetails {
   const kind = actionKind(action);
   const entLabel = entityLabel(entity);
+  const isVenda = entity === "sales";
+  const isCliente = entity === "clients";
+  const isProduto = entity === "products" || entity === "stock_products";
 
+  let targetName: string | undefined = undefined;
+  let clientInfo: AuditItemDetails["clientInfo"] = undefined;
+  let productInfo: AuditItemDetails["productInfo"] = undefined;
+
+  // 1. Resolução pelo ID da entidade nas tabelas de referência
+  if (entityId && lookups) {
+    if (isCliente) {
+      const c = lookups.clientsMap?.get(entityId);
+      if (c) {
+        targetName = c.name;
+        clientInfo = {
+          id: c.id,
+          name: c.name,
+          phone: c.phone,
+          document: c.document_cpf || c.document,
+          email: c.email,
+          client_type: c.client_type,
+          city: c.city,
+          state: c.state,
+          address: c.address,
+          notes: c.notes,
+        };
+      }
+    } else if (isProduto) {
+      const p = lookups.productsMap?.get(entityId);
+      if (p) {
+        targetName = p.name;
+        productInfo = {
+          id: p.id,
+          name: p.name,
+          sku: p.sku,
+          category: p.category,
+          retail_price: p.retail_price,
+          cost_price: p.cost_price,
+          wholesale_price: p.wholesale_price,
+        };
+      }
+    } else if (entity === "suppliers") {
+      const sup = lookups.suppliersMap?.get(entityId);
+      if (sup) targetName = sup.name;
+    } else if (entity === "materials") {
+      const mat = lookups.materialsMap?.get(entityId);
+      if (mat) targetName = mat.name;
+    } else if (isVenda) {
+      const s = lookups.salesMap?.get(entityId);
+      if (s) {
+        const clientName = s.client_id ? lookups.clientsMap?.get(s.client_id)?.name : null;
+        targetName = s.sale_code ? `${s.sale_code}${clientName ? ` (${clientName})` : ""}` : undefined;
+      }
+    }
+  }
+
+  // Se não houver detalhes gravados
   if (!details) {
+    const nomeRef = targetName ? `: "${targetName}"` : "";
     return {
-      resumo: `${ACTION_META[kind].label} em ${entLabel} (ID: ${entityId || "—"})`,
+      resumo: `${ACTION_META[kind].label} em ${entLabel}${nomeRef}`,
+      targetName,
+      clientInfo,
+      productInfo,
       json: null,
       text: null,
-      isVenda: entity === "sales",
-      isCliente: entity === "clients",
-      isProduto: entity === "products" || entity === "stock_products",
+      isVenda,
+      isCliente,
+      isProduto,
     };
   }
 
@@ -199,59 +295,85 @@ function parseAuditDetails(details: string | null, entity: string, action: strin
   }
 
   if (json && typeof json === "object") {
-    const isVenda = entity === "sales" || json.tipo === "VENDA_REALIZADA" || json.tipo === "VENDA_ESTORNADA";
-    const isCliente = entity === "clients";
-    const isProduto = entity === "products" || entity === "stock_products";
+    const isVendaExplicit = isVenda || json.tipo === "VENDA_REALIZADA" || json.tipo === "VENDA_ESTORNADA";
+
+    // Tenta obter nome embutido no JSON caso não tenha vindo do mapa
+    if (!targetName) {
+      targetName = json.nome || json.name || json.dados?.name || json.dados?.nome || json.campos?.name || json.campos?.nome;
+    }
 
     let resumo = json.resumo;
-    if (!resumo) {
-      if (isVenda) {
-        resumo = `Venda #${json.codigo_venda || entityId || "—"} (${json.cliente || "Consumidor"}) — Total: ${brl(json.total || 0)}`;
-      } else if (json.nome) {
-        resumo = `${ACTION_META[kind].label} de ${entLabel}: "${json.nome}"`;
-      } else if (json.dados && json.dados.name) {
-        resumo = `${ACTION_META[kind].label} de ${entLabel}: "${json.dados.name}"`;
+    if (!resumo || resumo.includes("(ID:")) {
+      if (isVendaExplicit) {
+        resumo = `Venda #${json.codigo_venda || entityId?.slice(0, 8) || "—"} (${json.cliente || targetName || "Consumidor"}) — Total: ${brl(json.total || 0)}`;
+      } else if (targetName) {
+        resumo = `${ACTION_META[kind].label} de ${entLabel}: "${targetName}"`;
       } else {
-        resumo = `${ACTION_META[kind].label} de ${entLabel} (ID: ${entityId || "—"})`;
+        resumo = `${ACTION_META[kind].label} de ${entLabel}`;
       }
     }
 
     return {
       resumo,
+      targetName,
+      clientInfo,
+      productInfo,
       json,
       text: null,
-      isVenda,
+      isVenda: isVendaExplicit,
       isCliente,
       isProduto,
-      venda: isVenda ? {
+      venda: isVendaExplicit ? {
         codigo: json.codigo_venda,
-        cliente: json.cliente,
+        cliente: json.cliente || (clientInfo?.name),
         total: json.total,
         forma_pagamento: json.forma_pagamento,
         desconto: json.desconto,
         itens: Array.isArray(json.itens) ? json.itens : undefined,
       } : undefined,
-      dadosGerais: json.dados || json.campos || json.alteracoes || json,
+      dadosGerais: json.dados || json.campos || json.valores || json.alteracoes || json,
     };
   }
 
-  // Texto legado (ex: "cliente criado", "produto atualizado")
+  // Texto legado (ex: "cliente criado", "Estoque ajustado para 10", "Preços e dados editados...")
   let resumo = details;
-  if (details.toLowerCase().includes("criado")) {
-    resumo = `Cadastro de ${entLabel} (ID: ${entityId || "—"})`;
-  } else if (details.toLowerCase().includes("atualizado")) {
-    resumo = `Alteração em ${entLabel} (ID: ${entityId || "—"})`;
-  } else if (details.toLowerCase().includes("excluído") || details.toLowerCase().includes("excluido")) {
-    resumo = `Exclusão de ${entLabel} (ID: ${entityId || "—"})`;
+  const lower = details.toLowerCase();
+
+  if (targetName) {
+    if (lower.includes("criado") || kind === "criacao") {
+      resumo = `Cadastro de ${entLabel}: "${targetName}"`;
+    } else if (lower.includes("atualizado") || kind === "edicao") {
+      if (lower.includes("estoque") || lower.includes("preço") || lower.includes("dados") || lower.includes("ficha")) {
+        resumo = `Alteração em ${entLabel} "${targetName}": ${details}`;
+      } else {
+        resumo = `Alteração em ${entLabel}: "${targetName}"`;
+      }
+    } else if (lower.includes("excluído") || lower.includes("excluido") || kind === "exclusao") {
+      resumo = `Exclusão de ${entLabel}: "${targetName}"`;
+    } else {
+      resumo = `${entLabel} "${targetName}": ${details}`;
+    }
+  } else {
+    // Se o nome não foi encontrado no banco (ex: cliente/produto deletado)
+    if (lower.includes("criado") || kind === "criacao") {
+      resumo = `Cadastro de ${entLabel}`;
+    } else if (lower.includes("atualizado") || kind === "edicao") {
+      resumo = lower.length > 20 ? details : `Alteração em ${entLabel}`;
+    } else if (lower.includes("excluído") || lower.includes("excluido") || kind === "exclusao") {
+      resumo = `Exclusão de ${entLabel}`;
+    }
   }
 
   return {
     resumo,
+    targetName,
+    clientInfo,
+    productInfo,
     json: null,
     text: details,
-    isVenda: entity === "sales",
-    isCliente: entity === "clients",
-    isProduto: entity === "products" || entity === "stock_products",
+    isVenda,
+    isCliente,
+    isProduto,
   };
 }
 
@@ -273,6 +395,11 @@ function AuditPage() {
     limit: 1000,
   });
   const { data: profiles = [] } = useRows<any>("user_profiles");
+  const { data: clients = [] } = useRows<any>("clients");
+  const { data: products = [] } = useRows<any>("products");
+  const { data: sales = [] } = useRows<any>("sales");
+  const { data: suppliers = [] } = useRows<any>("suppliers");
+  const { data: materials = [] } = useRows<any>("materials");
 
   const [search, setSearch] = React.useState("");
   const [entityFilter, setEntityFilter] = React.useState("all");
@@ -303,6 +430,24 @@ function AuditPage() {
     });
   }, [fetchSettings]);
 
+  const lookups = React.useMemo<AuditLookupContext>(() => {
+    const clientsMap = new Map<string, any>();
+    clients.forEach((c: any) => { if (c.id) clientsMap.set(c.id, c); });
+
+    const productsMap = new Map<string, any>();
+    products.forEach((p: any) => { if (p.id) productsMap.set(p.id, p); });
+
+    const salesMap = new Map<string, any>();
+    sales.forEach((s: any) => { if (s.id) salesMap.set(s.id, s); });
+
+    const suppliersMap = new Map<string, any>();
+    suppliers.forEach((s: any) => { if (s.id) suppliersMap.set(s.id, s); });
+
+    const materialsMap = new Map<string, any>();
+    materials.forEach((m: any) => { if (m.id) materialsMap.set(m.id, m); });
+
+    return { clientsMap, productsMap, salesMap, suppliersMap, materialsMap };
+  }, [clients, products, sales, suppliers, materials]);
 
   const displayName = React.useCallback(
     (email: string | null) => {
@@ -338,13 +483,14 @@ function AuditPage() {
       if (entityFilter !== "all" && log.entity !== entityFilter) return false;
       if (actionFilter !== "all" && actionKind(log.action) !== actionFilter) return false;
       if (!term) return true;
-      const parsed = parseAuditDetails(log.details, log.entity, log.action, log.entity_id);
+      const parsed = parseAuditDetails(log.details, log.entity, log.action, log.entity_id, lookups);
       const haystack = [
         log.entity,
         entityLabel(log.entity),
         log.entity_id,
         log.details,
         parsed.resumo,
+        parsed.targetName,
         log.user_email,
         displayName(log.user_email),
         log.action,
@@ -354,7 +500,7 @@ function AuditPage() {
         .toLowerCase();
       return haystack.includes(term);
     });
-  }, [logs, search, entityFilter, actionFilter, displayName]);
+  }, [logs, search, entityFilter, actionFilter, displayName, lookups]);
 
   const reportData = React.useMemo(() => {
     const columns = [
@@ -367,19 +513,19 @@ function AuditPage() {
     ];
 
     const rows = filtered.map((log: any) => {
-      const parsed = parseAuditDetails(log.details, log.entity, log.action, log.entity_id);
+      const parsed = parseAuditDetails(log.details, log.entity, log.action, log.entity_id, lookups);
       return {
         date: formatDateTime(log.created_at),
         user: displayName(log.user_email),
         action: actionKind(log.action).toUpperCase(),
         entity: entityLabel(log.entity),
         summary: parsed.resumo,
-        entity_id: log.entity_id || "—",
+        entity_id: parsed.targetName ? `${parsed.targetName} (#${log.entity_id?.slice(0, 8)})` : (log.entity_id || "—"),
       };
     });
 
     return { columns, rows };
-  }, [filtered, displayName]);
+  }, [filtered, displayName, lookups]);
 
   const handleExportCsv = () => {
     const { columns, rows } = reportData;
@@ -512,7 +658,7 @@ function AuditPage() {
           {filtered.map((log: any) => {
             const kind = actionKind(log.action);
             const meta = ACTION_META[kind];
-            const parsed = parseAuditDetails(log.details, log.entity, log.action, log.entity_id);
+            const parsed = parseAuditDetails(log.details, log.entity, log.action, log.entity_id, lookups);
             const IconComponent = ENTITY_ICONS[log.entity] || FileText;
             const style = ENTITY_STYLES[log.entity] || { bg: "bg-primary/10", text: "text-primary", border: "border-primary/20" };
 
@@ -617,7 +763,7 @@ function AuditPage() {
         />
       </div>
 
-      <AuditDetailsModal log={selected} onClose={() => setSelected(null)} displayName={displayName} />
+      <AuditDetailsModal log={selected} onClose={() => setSelected(null)} displayName={displayName} lookups={lookups} />
       <AuditCleanupModal
         open={cleanupOpen}
         onOpenChange={setCleanupOpen}
@@ -633,17 +779,19 @@ function AuditDetailsModal({
   log,
   onClose,
   displayName,
+  lookups,
 }: {
   log: any | null;
   onClose: () => void;
   displayName: (email: string | null) => string;
+  lookups?: AuditLookupContext;
 }) {
   const [showRawJson, setShowRawJson] = useState(false);
   if (!log) return null;
 
   const kind = actionKind(log.action);
   const meta = ACTION_META[kind];
-  const parsed = parseAuditDetails(log.details, log.entity, log.action, log.entity_id);
+  const parsed = parseAuditDetails(log.details, log.entity, log.action, log.entity_id, lookups);
   const IconComponent = ENTITY_ICONS[log.entity] || FileText;
   const style = ENTITY_STYLES[log.entity] || { bg: "bg-primary/10", text: "text-primary", border: "border-primary/20" };
 
@@ -699,7 +847,89 @@ function AuditDetailsModal({
             </div>
           </div>
 
-          {/* Seção 1: Se for VENDA */}
+          {/* Seção de Cliente Identificado */}
+          {parsed.clientInfo && (
+            <div className="space-y-3 pt-2">
+              <div className="flex items-center justify-between border-b pb-2">
+                <h4 className="font-display font-black text-xs uppercase tracking-wider flex items-center gap-2 text-foreground">
+                  <Users className="size-4 text-blue-500" /> Identificação do Cliente
+                </h4>
+                <Badge variant="outline" className="font-mono text-[11px] text-blue-600 bg-blue-50 border-blue-200">
+                  #{log.entity_id?.slice(0, 8)}
+                </Badge>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                <div className="p-3 bg-card rounded-xl border sm:col-span-2">
+                  <span className="text-[10px] uppercase text-muted-foreground font-bold">Nome do Cliente</span>
+                  <p className="text-sm font-bold text-foreground mt-0.5">{parsed.clientInfo.name}</p>
+                </div>
+                {parsed.clientInfo.phone && (
+                  <div className="p-3 bg-card rounded-xl border">
+                    <span className="text-[10px] uppercase text-muted-foreground font-bold">Telefone / WhatsApp</span>
+                    <p className="text-xs font-mono font-semibold text-foreground mt-0.5">{parsed.clientInfo.phone}</p>
+                  </div>
+                )}
+                {parsed.clientInfo.document && (
+                  <div className="p-3 bg-card rounded-xl border">
+                    <span className="text-[10px] uppercase text-muted-foreground font-bold">CPF / Documento</span>
+                    <p className="text-xs font-mono font-semibold text-foreground mt-0.5">{parsed.clientInfo.document}</p>
+                  </div>
+                )}
+                {parsed.clientInfo.client_type && (
+                  <div className="p-3 bg-card rounded-xl border">
+                    <span className="text-[10px] uppercase text-muted-foreground font-bold">Tipo de Cadastro</span>
+                    <p className="text-xs font-semibold text-foreground mt-0.5">{parsed.clientInfo.client_type}</p>
+                  </div>
+                )}
+                {(parsed.clientInfo.city || parsed.clientInfo.state) && (
+                  <div className="p-3 bg-card rounded-xl border">
+                    <span className="text-[10px] uppercase text-muted-foreground font-bold">Cidade / UF</span>
+                    <p className="text-xs font-semibold text-foreground mt-0.5">
+                      {[parsed.clientInfo.city, parsed.clientInfo.state].filter(Boolean).join(" - ")}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Seção de Produto Identificado */}
+          {parsed.productInfo && (
+            <div className="space-y-3 pt-2">
+              <div className="flex items-center justify-between border-b pb-2">
+                <h4 className="font-display font-black text-xs uppercase tracking-wider flex items-center gap-2 text-foreground">
+                  <Package className="size-4 text-purple-500" /> Identificação do Produto
+                </h4>
+                {parsed.productInfo.sku && (
+                  <Badge variant="outline" className="font-mono text-[11px] text-purple-600 bg-purple-50 border-purple-200">
+                    Ref: {parsed.productInfo.sku}
+                  </Badge>
+                )}
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                <div className="p-3 bg-card rounded-xl border sm:col-span-2">
+                  <span className="text-[10px] uppercase text-muted-foreground font-bold">Produto</span>
+                  <p className="text-sm font-bold text-foreground mt-0.5">{parsed.productInfo.name}</p>
+                </div>
+                {parsed.productInfo.category && (
+                  <div className="p-3 bg-card rounded-xl border">
+                    <span className="text-[10px] uppercase text-muted-foreground font-bold">Categoria</span>
+                    <p className="text-xs font-semibold text-foreground mt-0.5">{parsed.productInfo.category}</p>
+                  </div>
+                )}
+                {parsed.productInfo.retail_price !== undefined && (
+                  <div className="p-3 bg-card rounded-xl border">
+                    <span className="text-[10px] uppercase text-muted-foreground font-bold">Preço de Venda</span>
+                    <p className="text-xs font-mono font-bold text-foreground mt-0.5">{brl(parsed.productInfo.retail_price)}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Seção de Venda */}
           {parsed.isVenda && parsed.venda && (
             <div className="space-y-4 pt-2">
               <div className="flex items-center justify-between border-b pb-2">
@@ -763,7 +993,7 @@ function AuditDetailsModal({
             </div>
           )}
 
-          {/* Seção 2: Se for CLIENTE ou PRODUTO ou campos gerais */}
+          {/* Seção de Dados Registrados / Alterações */}
           {(!parsed.isVenda || !parsed.venda) && parsed.dadosGerais && typeof parsed.dadosGerais === "object" && (
             <div className="space-y-2.5 pt-2">
               <h4 className="font-display font-black text-xs uppercase tracking-wider text-muted-foreground">
@@ -784,7 +1014,7 @@ function AuditDetailsModal({
             </div>
           )}
 
-          {/* Seção 3: Texto plano (se houver) */}
+          {/* Seção de Texto explicativo */}
           {parsed.text && (
             <div className="p-3 rounded-xl bg-muted/40 border text-xs text-muted-foreground italic">
               {parsed.text}

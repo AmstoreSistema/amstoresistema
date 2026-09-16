@@ -502,7 +502,20 @@ function StockPage() {
         if (sErr) throw sErr;
       }
 
-      await logAudit("atualizar", "products", `Estoque ajustado para ${totalQty}`, selectedProduct.id);
+      await logAudit(
+        "atualizar",
+        "products",
+        JSON.stringify({
+          resumo: `Ajuste de estoque do produto "${selectedProduct.name}": nova quantidade ${totalQty}`,
+          acao: "ATUALIZACAO",
+          entidade: "Produto / Estoque",
+          nome: selectedProduct.name,
+          sku: selectedProduct.sku,
+          id: selectedProduct.id,
+          quantidade_ajustada: totalQty,
+        }),
+        selectedProduct.id
+      );
 
       setAdjustOpen(false);
       setNewQty("");
