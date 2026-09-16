@@ -18,7 +18,7 @@ import {
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
-import { deleteFinancialAccount } from "@/lib/finance.functions";
+import { deleteFinancialAccount, updateAccountBalance } from "@/lib/finance.functions";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -95,6 +95,7 @@ function AccountsPage() {
   const { data: accounts = [], isLoading } = useRows("financial_accounts", { order: { column: "name", ascending: true } });
   const save = useSaveRow("financial_accounts", "conta financeira");
   const deleteAccountFn = useServerFn(deleteFinancialAccount);
+  const updateBalanceFn = useServerFn(updateAccountBalance);
   
   const [open, setOpen] = useState(false);
   const [transferOpen, setTransferOpen] = useState(false);
@@ -126,27 +127,62 @@ function AccountsPage() {
 
   const onSubmit = async (values: z.infer<typeof accountSchema>) => {
     const { initial_balance, ...rest } = values;
+    const newBal = Number(initial_balance ?? 0);
     
-    const payload = editingAccount
-      ? {
-          ...rest,
-        }
-      : {
-          ...rest,
-          initial_balance,
-          current_balance: initial_balance,
-        };
+    if (editingAccount) {
+      try {
+        // 1. Atualiza dados cadastrais
+        await save.mutateAsync({
+          id: editingAccount.id,
+          values: {
+            ...rest,
+            current_balance: newBal,
+          },
+        });
 
-    save.mutate({
-      id: editingAccount?.id,
-      values: payload,
-    }, {
-      onSuccess: () => {
+        // 2. Garante a atualização definitiva do saldo no banco
+        await updateBalanceFn({
+          data: {
+            id: editingAccount.id,
+            current_balance: newBal,
+          },
+        });
+
+        toast.success(`Conta "${values.name}" e saldo atualizados com sucesso!`);
         setOpen(false);
         setEditingAccount(null);
         form.reset();
+
+        void Promise.all([
+          qc.invalidateQueries({ queryKey: ["financial_accounts"] }),
+          qc.invalidateQueries({ queryKey: ["transactions"] }),
+          qc.invalidateQueries({ queryKey: ["transactions-stats"] }),
+        ]);
+      } catch (err: any) {
+        toast.error("Erro ao salvar conta: " + (err.message || err));
       }
-    });
+    } else {
+      const payload = {
+        ...rest,
+        initial_balance: newBal,
+        current_balance: newBal,
+      };
+
+      save.mutate({
+        values: payload,
+      }, {
+        onSuccess: () => {
+          setOpen(false);
+          setEditingAccount(null);
+          form.reset();
+          void Promise.all([
+            qc.invalidateQueries({ queryKey: ["financial_accounts"] }),
+            qc.invalidateQueries({ queryKey: ["transactions"] }),
+            qc.invalidateQueries({ queryKey: ["transactions-stats"] }),
+          ]);
+        }
+      });
+    }
   };
 
   const onTransferSubmit = async (values: z.infer<typeof transferSchema>) => {
