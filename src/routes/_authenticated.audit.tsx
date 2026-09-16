@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import * as React from "react";
 import { useRows } from "@/lib/data";
-import { FileText, Eye, Calendar, User, Search, Plus, Pencil, Trash2, Printer, FileDown } from "lucide-react";
+import { FileText, Eye, Calendar, User, Search, Plus, Pencil, Trash2, Printer, FileDown, AlertTriangle, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -13,7 +13,10 @@ import { cn } from "@/lib/utils";
 import { ReportLayout } from "@/components/report-layout";
 import { useServerFn } from "@tanstack/react-start";
 import { getAppSettings } from "@/lib/settings.functions";
+import { getAuditYearsSummary, purgeAuditLogsByYear } from "@/lib/audit-cleanup.functions";
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
 
 export const Route = createFileRoute("/_authenticated/audit")({
   head: () => ({
@@ -128,6 +131,8 @@ function AuditPage() {
     logo?: string;
   }>({});
 
+  const [cleanupOpen, setCleanupOpen] = React.useState(false);
+  const qc = useQueryClient();
   const fetchSettings = useServerFn(getAppSettings);
 
   useEffect(() => {
@@ -264,6 +269,13 @@ function AuditPage() {
               Relatório
             </Button>
           </div>
+          <Button
+            variant="outline"
+            className="rounded-xl border-rose-200 text-rose-600 hover:bg-rose-50 hover:text-rose-700 gap-2 font-bold"
+            onClick={() => setCleanupOpen(true)}
+          >
+            <Trash2 className="size-4" /> Limpar Antigos
+          </Button>
           <Button variant="outline" className="rounded-xl border-border/40 hover:bg-muted/50 gap-2 font-bold" onClick={handleExportCsv}>
             <FileDown className="size-4" /> CSV
           </Button>
@@ -406,6 +418,13 @@ function AuditPage() {
       </div>
 
       <AuditDetailsModal log={selected} onClose={() => setSelected(null)} displayName={displayName} />
+      <AuditCleanupModal
+        open={cleanupOpen}
+        onOpenChange={setCleanupOpen}
+        onSuccess={() => {
+          qc.invalidateQueries({ queryKey: ["audit_log"] });
+        }}
+      />
     </div>
   );
 }
@@ -491,3 +510,158 @@ function AuditDetailsModal({
     </Dialog>
   );
 }
+
+function AuditCleanupModal({
+  open,
+  onOpenChange,
+  onSuccess,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSuccess: () => void;
+}) {
+  const currentYear = new Date().getFullYear();
+  const [selectedYear, setSelectedYear] = useState<number>(currentYear - 1);
+  const [yearsSummary, setYearsSummary] = useState<{ year: number; count: number }[]>([]);
+  const [loadingSummary, setLoadingSummary] = useState(false);
+  const [isPurging, setIsPurging] = useState(false);
+
+  const fetchSummary = useServerFn(getAuditYearsSummary);
+  const executePurge = useServerFn(purgeAuditLogsByYear);
+
+  useEffect(() => {
+    if (open) {
+      setLoadingSummary(true);
+      fetchSummary()
+        .then((data) => {
+          setYearsSummary(data);
+          const priorWithLogs = data.filter((item) => item.year < currentYear && item.count > 0);
+          if (priorWithLogs.length > 0 && priorWithLogs[0]) {
+            setSelectedYear(priorWithLogs[0].year);
+          } else if (data.length > 0 && data[0]) {
+            setSelectedYear(data[0].year);
+          }
+        })
+        .catch((err) => {
+          console.error("Erro ao carregar resumo de anos:", err);
+          toast.error("Falha ao consultar histórico de auditoria por ano.");
+        })
+        .finally(() => setLoadingSummary(false));
+    }
+  }, [open, currentYear, fetchSummary]);
+
+  const selectedInfo = yearsSummary.find((item) => item.year === selectedYear);
+  const recordCount = selectedInfo ? selectedInfo.count : 0;
+
+  const handlePurge = async () => {
+    if (recordCount === 0) {
+      toast.info(`Não há registros de auditoria no ano de ${selectedYear} para apagar.`);
+      return;
+    }
+
+    const confirmMsg = `Deseja realmente apagar os ${recordCount} registros de auditoria do ano ${selectedYear}? Esta ação não pode ser desfeita.`;
+    if (!window.confirm(confirmMsg)) return;
+
+    setIsPurging(true);
+    try {
+      const res = await executePurge({ data: { year: selectedYear } });
+      toast.success(`${res.removedCount} registros de auditoria de ${selectedYear} foram removidos com sucesso!`);
+      onSuccess();
+      onOpenChange(false);
+    } catch (err: any) {
+      console.error("Erro na limpeza de auditoria:", err);
+      toast.error(err.message || "Erro ao excluir registros de auditoria.");
+    } finally {
+      setIsPurging(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-md sm:max-w-lg rounded-2xl">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2 text-lg font-black text-rose-600">
+            <Trash2 className="size-5" />
+            Limpeza de Auditoria Antiga
+          </DialogTitle>
+          <DialogDescription>
+            Exclua registros de auditoria antigos para otimizar o banco de dados e manter o sistema leve.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4 py-2">
+          <div className="space-y-2">
+            <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+              Selecione o ano para apagar:
+            </label>
+            {loadingSummary ? (
+              <div className="flex items-center justify-center p-4 border rounded-xl bg-muted/20 text-muted-foreground text-xs gap-2">
+                <Loader2 className="size-4 animate-spin text-primary" />
+                Carregando histórico por ano...
+              </div>
+            ) : (
+              <Select
+                value={String(selectedYear)}
+                onValueChange={(val) => setSelectedYear(Number(val))}
+              >
+                <SelectTrigger className="h-11 rounded-xl font-bold">
+                  <SelectValue placeholder="Selecione o ano" />
+                </SelectTrigger>
+                <SelectContent>
+                  {yearsSummary.map((item) => (
+                    <SelectItem key={item.year} value={String(item.year)} className="font-medium">
+                      Ano {item.year} — {item.count} {item.count === 1 ? "registro" : "registros"}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          </div>
+
+          <div className="rounded-xl border border-amber-200/80 bg-amber-50/70 p-3.5 space-y-1.5 text-xs text-amber-900">
+            <div className="flex items-center gap-1.5 font-bold text-amber-800">
+              <AlertTriangle className="size-4 shrink-0 text-amber-600" />
+              <span>O que será apagado:</span>
+            </div>
+            <p>
+              Todos os registros de auditoria gerados entre <strong>01/01/{selectedYear}</strong> e <strong>31/12/{selectedYear}</strong> ({recordCount} {recordCount === 1 ? "registro encontrado" : "registros encontrados"}).
+            </p>
+            <p className="text-[11px] text-amber-700/90 pt-1 border-t border-amber-200/60">
+              🔒 <strong>Seus dados continuam seguros:</strong> Vendas, clientes, financeiro, estoque e produtos <strong>NÃO</strong> são apagados. Apenas o histórico de rastreamento de alterações do ano escolhido é limpo.
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center justify-end gap-2 pt-2 border-t">
+          <Button
+            variant="outline"
+            className="rounded-xl font-bold"
+            onClick={() => onOpenChange(false)}
+            disabled={isPurging}
+          >
+            Cancelar
+          </Button>
+          <Button
+            variant="destructive"
+            className="rounded-xl font-bold gap-2 bg-rose-600 hover:bg-rose-700"
+            onClick={handlePurge}
+            disabled={isPurging || loadingSummary || recordCount === 0}
+          >
+            {isPurging ? (
+              <>
+                <Loader2 className="size-4 animate-spin" />
+                Apagando...
+              </>
+            ) : (
+              <>
+                <Trash2 className="size-4" />
+                Apagar Auditoria de {selectedYear}
+              </>
+            )}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
