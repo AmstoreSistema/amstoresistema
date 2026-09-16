@@ -7,18 +7,22 @@ import {
   MoreVertical, 
   PiggyBank, 
   CreditCard, 
-  Wallet,
-  CheckCircle2,
-  XCircle,
-  TrendingUp,
-  TrendingDown,
-  DollarSign,
-  Trash2
+  Wallet, 
+  CheckCircle2, 
+  XCircle, 
+  TrendingUp, 
+  TrendingDown, 
+  DollarSign, 
+  Trash2,
+  Eye,
+  ArrowUpRight,
+  ArrowDownRight
 } from "lucide-react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
 import { deleteFinancialAccount, updateAccountBalance } from "@/lib/finance.functions";
+import { AccountDetailsModal } from "@/components/finance/AccountDetailsModal";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -100,6 +104,8 @@ function AccountsPage() {
   const [open, setOpen] = useState(false);
   const [transferOpen, setTransferOpen] = useState(false);
   const [editingAccount, setEditingAccount] = useState<any>(null);
+  const [selectedAccountForDetails, setSelectedAccountForDetails] = useState<any>(null);
+  const [detailsOpen, setDetailsOpen] = useState(false);
 
   const form = useForm<z.infer<typeof accountSchema>>({
     resolver: zodResolver(accountSchema),
@@ -245,16 +251,66 @@ function AccountsPage() {
     }
   };
 
+  const { data: globalStats } = useQuery({
+    queryKey: ["financial-accounts-global-stats"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("transactions")
+        .select("type, amount, status, created_at, due_date");
+
+      if (error) throw error;
+      const all = (data as any[]) || [];
+
+      let totalIncome = 0;
+      let totalExpense = 0;
+      let monthIncome = 0;
+      let monthExpense = 0;
+
+      const now = new Date();
+      const currentYear = now.getFullYear();
+      const currentMonth = now.getMonth();
+
+      all.forEach((t) => {
+        const isPaid = ["pago", "paid"].includes(String(t.status || "").toLowerCase());
+        if (!isPaid) return;
+
+        const amt = Number(t.amount || 0);
+        const isIncome = t.type === "entrada" || t.type === "income";
+        const isExpense = t.type === "saida" || t.type === "expense";
+
+        if (isIncome) totalIncome += amt;
+        if (isExpense) totalExpense += Math.abs(amt);
+
+        const dateStr = t.created_at || t.due_date;
+        if (dateStr) {
+          const d = new Date(dateStr);
+          if (d.getFullYear() === currentYear && d.getMonth() === currentMonth) {
+            if (isIncome) monthIncome += amt;
+            if (isExpense) monthExpense += Math.abs(amt);
+          }
+        }
+      });
+
+      return {
+        totalIncome,
+        totalExpense,
+        monthIncome,
+        monthExpense,
+      };
+    },
+  });
+
   const stats = useMemo(() => {
     const activeAccounts = (accounts as any[]).filter(a => a.active);
-    const totalBalance = activeAccounts.reduce((s, a) => s + Number(a.current_balance), 0);
+    const totalBalance = activeAccounts.reduce((s, a) => s + Number(a.current_balance || 0), 0);
     return {
       totalBalance,
-      activeCount: activeAccounts.length,
-      bankBalance: activeAccounts.filter(a => a.type === 'banco').reduce((s, a) => s + Number(a.current_balance), 0),
-      cashBalance: activeAccounts.filter(a => a.type === 'caixa').reduce((s, a) => s + Number(a.current_balance), 0),
+      totalIncome: globalStats?.totalIncome ?? 0,
+      totalExpense: globalStats?.totalExpense ?? 0,
+      monthIncome: globalStats?.monthIncome ?? 0,
+      monthExpense: globalStats?.monthExpense ?? 0,
     };
-  }, [accounts]);
+  }, [accounts, globalStats]);
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -286,11 +342,12 @@ function AccountsPage() {
         }
       />
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard title="Saldo Consolidado" value={brl(stats.totalBalance)} icon={DollarSign} tone="gold" />
-        <StatCard title="Em Bancos" value={brl(stats.bankBalance)} icon={Landmark} tone="info" />
-        <StatCard title="Em Caixas" value={brl(stats.cashBalance)} icon={PiggyBank} tone="success" />
-        <StatCard title="Contas Ativas" value={stats.activeCount} icon={CheckCircle2} tone="dark" />
+      <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-5">
+        <StatCard title="Saldo Atual" value={brl(stats.totalBalance)} icon={Wallet} tone="gold" />
+        <StatCard title="Total de Receitas" value={brl(stats.totalIncome)} icon={TrendingUp} tone="success" />
+        <StatCard title="Total de Despesas" value={brl(stats.totalExpense)} icon={TrendingDown} tone="destructive" />
+        <StatCard title="Receita do Mês" value={brl(stats.monthIncome)} icon={ArrowUpRight} tone="info" />
+        <StatCard title="Despesas do Mês" value={brl(stats.monthExpense)} icon={ArrowDownRight} tone="warning" />
       </div>
 
       {isLoading ? (
@@ -327,6 +384,15 @@ function AccountsPage() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" className="rounded-2xl p-2">
+                        <DropdownMenuItem 
+                          onClick={() => {
+                            setSelectedAccountForDetails(account);
+                            setDetailsOpen(true);
+                          }}
+                          className="rounded-xl gap-2 text-gold font-bold"
+                        >
+                          <Eye className="size-4" /> Ver Detalhes
+                        </DropdownMenuItem>
                         <DropdownMenuItem 
                           onClick={() => {
                             setEditingAccount(account);
@@ -398,6 +464,18 @@ function AccountsPage() {
                         <p className="text-muted-foreground/70 tracking-widest">AG {account.agency} · CC {account.account_number}</p>
                       </div>
                     )}
+
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setSelectedAccountForDetails(account);
+                        setDetailsOpen(true);
+                      }}
+                      className="w-full mt-2 rounded-xl font-bold h-9 text-xs gap-2 border-border/60 hover:border-gold hover:text-gold hover:bg-gold/5 transition-all shadow-sm"
+                    >
+                      <Eye className="size-4 text-gold" /> Ver Detalhes
+                    </Button>
                   </div>
                 </CardContent>
               </Card>
@@ -677,6 +755,16 @@ function AccountsPage() {
           </Form>
         </DialogContent>
       </Dialog>
+
+      {/* Modal de Detalhes Financeiros da Conta */}
+      <AccountDetailsModal 
+        account={selectedAccountForDetails}
+        open={detailsOpen}
+        onOpenChange={(isOpen) => {
+          setDetailsOpen(isOpen);
+          if (!isOpen) setSelectedAccountForDetails(null);
+        }}
+      />
     </div>
   );
 }
