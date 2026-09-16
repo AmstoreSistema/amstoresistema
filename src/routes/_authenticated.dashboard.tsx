@@ -13,7 +13,6 @@ import {
   ChevronRight,
   Target,
   Pencil,
-  Zap,
   HandCoins,
   MessageSquare,
   Search,
@@ -419,21 +418,6 @@ function Dashboard() {
           <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
             Aqui está o resumo instantâneo da sua loja e produção hoje.
           </p>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <Button asChild size="sm" variant="outline" className="h-8 gap-1.5 text-xs">
-            <Link to="/live-metrics">
-              <Zap className="size-3.5 text-gold" />
-              <span>Métricas ao Vivo</span>
-            </Link>
-          </Button>
-          <Button asChild size="sm" className="h-8 gap-1.5 text-xs bg-gradient-gold text-primary-foreground font-semibold shadow-gold hover:opacity-95">
-            <Link to="/sales">
-              <ShoppingCart className="size-3.5" />
-              <span>Nova Venda (PDV)</span>
-            </Link>
-          </Button>
         </div>
       </div>
 
