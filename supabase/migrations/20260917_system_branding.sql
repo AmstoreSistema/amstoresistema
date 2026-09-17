@@ -59,3 +59,38 @@ VALUES
     ('loading', 'Imagem de Carregamento', 'Imagem exibida durante carregamentos importantes.', '/bagshoes-logo-white.png'),
     ('fallback', 'Imagem Padrão / Fallback', 'Imagem exibida quando alguma foto de produto ou conteúdo não estiver disponível.', '/bagshoes-logo.png')
 ON CONFLICT (key) DO NOTHING;
+
+-- Ensure bucket 'branding' exists in storage.buckets
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES (
+    'branding',
+    'branding',
+    true,
+    10485760,
+    ARRAY['image/png', 'image/jpeg', 'image/webp', 'image/svg+xml', 'image/x-icon', 'image/vnd.microsoft.icon']
+)
+ON CONFLICT (id) DO UPDATE SET public = true;
+
+-- Storage RLS Policies for branding bucket
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_policies WHERE schemaname = 'storage' AND tablename = 'objects' AND policyname = 'Public Access for branding bucket'
+    ) THEN
+        CREATE POLICY "Public Access for branding bucket"
+        ON storage.objects FOR SELECT
+        TO public
+        USING (bucket_id = 'branding');
+    END IF;
+
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_policies WHERE schemaname = 'storage' AND tablename = 'objects' AND policyname = 'Admin Manage Access for branding bucket'
+    ) THEN
+        CREATE POLICY "Admin Manage Access for branding bucket"
+        ON storage.objects FOR ALL
+        TO authenticated
+        USING (bucket_id = 'branding')
+        WITH CHECK (bucket_id = 'branding');
+    END IF;
+END $$;
+

@@ -11,7 +11,13 @@ export const Route = createFileRoute("/api/public/branding/$")({
         }
 
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-        const { data, error } = await supabaseAdmin.storage.from("branding").download(path);
+        let { data, error } = await supabaseAdmin.storage.from("branding").download(path);
+
+        if (error || !data) {
+          const res = await supabaseAdmin.storage.from("catalog-images").download(`branding/${path}`);
+          data = res.data;
+          error = res.error;
+        }
 
         if (error || !data) {
           return new Response("Not found", { status: 404 });

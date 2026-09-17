@@ -216,6 +216,85 @@ export const getBrandingSettings = createServerFn({ method: "GET" }).handler(asy
 });
 
 /**
+ * Realiza upload com resiliência: tenta criar/usar o bucket 'branding';
+ * se não existir ou falhar, faz fallback automático para o bucket 'catalog-images' (pasta 'branding/').
+ */
+async function uploadToStorage(
+  supabaseAdmin: any,
+  subPath: string,
+  bytes: Buffer,
+  mime: string
+): Promise<{ bucket: string; fullPath: string; publicUrl: string }> {
+  let brandingReady = false;
+  try {
+    const { data: bucketData, error: getErr } = await supabaseAdmin.storage.getBucket("branding");
+    if (bucketData && !getErr) {
+      brandingReady = true;
+    } else {
+      const { error: createErr } = await supabaseAdmin.storage.createBucket("branding", {
+        public: true,
+        fileSizeLimit: 10485760,
+      });
+      if (!createErr) brandingReady = true;
+    }
+  } catch (e) {
+    console.warn("[Branding] Erro ao verificar bucket 'branding':", e);
+  }
+
+  if (brandingReady) {
+    const { error: uploadErr } = await supabaseAdmin.storage
+      .from("branding")
+      .upload(subPath, bytes, { contentType: mime, upsert: true });
+
+    if (!uploadErr) {
+      const { data: urlData } = supabaseAdmin.storage.from("branding").getPublicUrl(subPath);
+      return {
+        bucket: "branding",
+        fullPath: subPath,
+        publicUrl: urlData?.publicUrl || `/api/public/branding/${subPath}`,
+      };
+    }
+    console.warn("[Branding] Upload em 'branding' falhou:", uploadErr.message);
+  }
+
+  // Fallback para 'catalog-images'
+  const fallbackPath = `branding/${subPath}`;
+  const { error: catErr } = await supabaseAdmin.storage
+    .from("catalog-images")
+    .upload(fallbackPath, bytes, { contentType: mime, upsert: true });
+
+  if (!catErr) {
+    const { data: urlData } = supabaseAdmin.storage.from("catalog-images").getPublicUrl(fallbackPath);
+    return {
+      bucket: "catalog-images",
+      fullPath: fallbackPath,
+      publicUrl: urlData?.publicUrl || `/api/public/catalog-image/${fallbackPath}`,
+    };
+  }
+
+  throw new Error(`Falha no upload para o Storage: ${catErr.message || "Bucket não disponível"}`);
+}
+
+/**
+ * Remove arquivo do Storage com segurança em ambos os buckets possíveis.
+ */
+async function deleteFromStorage(supabaseAdmin: any, fullPath: string | null) {
+  if (!fullPath) return;
+  try {
+    if (fullPath.startsWith("branding/")) {
+      await supabaseAdmin.storage.from("catalog-images").remove([fullPath]);
+      const stripped = fullPath.replace(/^branding\//, "");
+      await supabaseAdmin.storage.from("branding").remove([stripped]);
+    } else {
+      await supabaseAdmin.storage.from("branding").remove([fullPath]);
+      await supabaseAdmin.storage.from("catalog-images").remove([`branding/${fullPath}`]);
+    }
+  } catch (e) {
+    console.warn("[Branding] Aviso ao limpar arquivo do storage:", e);
+  }
+}
+
+/**
  * Realiza upload de uma imagem para o bucket 'branding' do Supabase Storage
  * e atualiza o registro no banco de dados.
  */
@@ -271,22 +350,8 @@ export const uploadBrandingImage = createServerFn({ method: "POST" })
       }
     } catch {}
 
-    // Upload para o bucket 'branding'
-    const { error: uploadError } = await supabaseAdmin.storage
-      .from("branding")
-      .upload(filePath, bytes, {
-        contentType: mime,
-        upsert: true,
-      });
-
-    if (uploadError) {
-      console.error("[Branding] Erro ao enviar imagem para Storage:", uploadError);
-      throw new Error(`Falha no upload para o Storage: ${uploadError.message}`);
-    }
-
-    // Obtém URL pública permanente
-    const { data: urlData } = supabaseAdmin.storage.from("branding").getPublicUrl(filePath);
-    const publicUrl = urlData?.publicUrl || `/api/public/branding/${filePath}`;
+    // Upload resiliente para o Storage
+    const { fullPath, publicUrl } = await uploadToStorage(supabaseAdmin, filePath, bytes, mime);
 
     const def = BRANDING_DEFAULTS[data.key] || {
       name: data.key,
@@ -298,7 +363,7 @@ export const uploadBrandingImage = createServerFn({ method: "POST" })
       key: data.key,
       name: def.name,
       description: def.description,
-      file_path: filePath,
+      file_path: fullPath,
       file_url: publicUrl,
       mime_type: mime,
       file_size: bytes.byteLength,
@@ -370,12 +435,8 @@ export const uploadBrandingImage = createServerFn({ method: "POST" })
     }
 
     // Remove arquivo anterior do storage se diferente
-    if (previousFilePath && previousFilePath !== filePath) {
-      try {
-        await supabaseAdmin.storage.from("branding").remove([previousFilePath]);
-      } catch (rmErr) {
-        console.warn("[Branding] Não foi possível remover arquivo órfão anterior:", rmErr);
-      }
+    if (previousFilePath && previousFilePath !== fullPath) {
+      await deleteFromStorage(supabaseAdmin, previousFilePath);
     }
 
     return {
@@ -407,16 +468,27 @@ export const removeBrandingImage = createServerFn({ method: "POST" })
       currentPath = current?.file_path || null;
     } catch {}
 
+    if (!currentPath) {
+      try {
+        const { data: setRow } = await supabaseAdmin
+          .from("app_settings")
+          .select("value")
+          .eq("key", "system_branding")
+          .maybeSingle();
+        if (setRow?.value) {
+          const list = typeof setRow.value === "string" ? JSON.parse(setRow.value) : setRow.value;
+          const found = list.find((it: any) => it.key === data.key);
+          if (found?.file_path) currentPath = found.file_path;
+        }
+      } catch {}
+    }
+
     const def = BRANDING_DEFAULTS[data.key];
     const defaultUrl = def ? def.file_url : "/bagshoes-logo.png";
 
-    // Remove do Storage
+    // Remove do Storage de forma segura em ambos os buckets possíveis
     if (currentPath) {
-      try {
-        await supabaseAdmin.storage.from("branding").remove([currentPath]);
-      } catch (err) {
-        console.warn("[Branding] Erro ao remover do Storage:", err);
-      }
+      await deleteFromStorage(supabaseAdmin, currentPath);
     }
 
     const resetRecord: BrandingItem = {
