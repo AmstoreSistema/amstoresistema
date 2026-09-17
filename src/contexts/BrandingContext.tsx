@@ -1,6 +1,14 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { getBrandingSettings, BrandingItem, BRANDING_DEFAULTS } from "@/lib/branding.functions";
+import {
+  getBrandingSettings,
+  getBrandingColors,
+  updateBrandingColors,
+  BrandingItem,
+  BrandingColors,
+  BRANDING_DEFAULTS,
+  BRANDING_COLORS_DEFAULT,
+} from "@/lib/branding.functions";
 
 interface BrandingContextType {
   branding: Record<string, BrandingItem>;
@@ -13,8 +21,12 @@ interface BrandingContextType {
   favicon: string;
   loading: string;
   fallback: string;
+  splashBgColor: string;
+  pwaBgColor: string;
+  pwaThemeColor: string;
   loadingBranding: boolean;
   refreshBranding: () => Promise<void>;
+  saveBrandingColors: (colors: BrandingColors) => Promise<boolean>;
 }
 
 const BrandingContext = createContext<BrandingContextType | null>(null);
@@ -32,12 +44,26 @@ function createInitialState(): Record<string, BrandingItem> {
 
 export function BrandingProvider({ children }: { children: React.ReactNode }) {
   const [brandingMap, setBrandingMap] = useState<Record<string, BrandingItem>>(createInitialState);
+  const [colors, setColors] = useState<BrandingColors>(BRANDING_COLORS_DEFAULT);
   const [loadingBranding, setLoadingBranding] = useState(true);
+
   const fetchBranding = useServerFn(getBrandingSettings);
+  const fetchColors = useServerFn(getBrandingColors);
+  const doUpdateColors = useServerFn(updateBrandingColors);
 
   const refreshBranding = useCallback(async () => {
     try {
-      const items = await fetchBranding();
+      const [items, loadedColors] = await Promise.all([
+        fetchBranding().catch((e) => {
+          console.warn("[BrandingContext] Falha ao ler itens de marca:", e);
+          return null;
+        }),
+        fetchColors().catch((e) => {
+          console.warn("[BrandingContext] Falha ao ler cores de marca:", e);
+          return null;
+        }),
+      ]);
+
       if (Array.isArray(items) && items.length > 0) {
         const nextMap: Record<string, BrandingItem> = { ...brandingMap };
         items.forEach((it) => {
@@ -58,16 +84,51 @@ export function BrandingProvider({ children }: { children: React.ReactNode }) {
           link.href = `${fav}${fav.includes("?") ? "&" : "?"}v=${v}`;
         }
       }
+
+      if (loadedColors) {
+        setColors(loadedColors);
+        if (typeof document !== "undefined") {
+          let meta = document.querySelector("meta[name='theme-color']") as HTMLMetaElement | null;
+          if (!meta) {
+            meta = document.createElement("meta");
+            meta.name = "theme-color";
+            document.head.appendChild(meta);
+          }
+          meta.content = loadedColors.pwa_theme_color || loadedColors.pwa_bg_color || "#D4AF37";
+        }
+      }
     } catch (err) {
       console.warn("[BrandingContext] Falha ao carregar configurações de marca:", err);
     } finally {
       setLoadingBranding(false);
     }
-  }, [fetchBranding]);
+  }, [fetchBranding, fetchColors]);
 
   useEffect(() => {
     void refreshBranding();
   }, [refreshBranding]);
+
+  const saveBrandingColors = useCallback(
+    async (newColors: BrandingColors): Promise<boolean> => {
+      setColors(newColors);
+      if (typeof document !== "undefined") {
+        let meta = document.querySelector("meta[name='theme-color']") as HTMLMetaElement | null;
+        if (!meta) {
+          meta = document.createElement("meta");
+          meta.name = "theme-color";
+          document.head.appendChild(meta);
+        }
+        meta.content = newColors.pwa_theme_color || newColors.pwa_bg_color || "#D4AF37";
+      }
+
+      const res = await doUpdateColors({ data: newColors });
+      if (res?.success) {
+        return true;
+      }
+      return false;
+    },
+    [doUpdateColors]
+  );
 
   const value: BrandingContextType = {
     branding: brandingMap,
@@ -80,8 +141,12 @@ export function BrandingProvider({ children }: { children: React.ReactNode }) {
     favicon: brandingMap["favicon"]?.file_url || "/favicon.png",
     loading: brandingMap["loading"]?.file_url || "/bagshoes-logo-white.png",
     fallback: brandingMap["fallback"]?.file_url || "/bagshoes-logo.png",
+    splashBgColor: colors.splash_bg_color || BRANDING_COLORS_DEFAULT.splash_bg_color,
+    pwaBgColor: colors.pwa_bg_color || BRANDING_COLORS_DEFAULT.pwa_bg_color,
+    pwaThemeColor: colors.pwa_theme_color || BRANDING_COLORS_DEFAULT.pwa_theme_color,
     loadingBranding,
     refreshBranding,
+    saveBrandingColors,
   };
 
   return <BrandingContext.Provider value={value}>{children}</BrandingContext.Provider>;
@@ -102,8 +167,12 @@ export function useBranding(): BrandingContextType {
       favicon: "/favicon.png",
       loading: "/bagshoes-logo-white.png",
       fallback: "/bagshoes-logo.png",
+      splashBgColor: BRANDING_COLORS_DEFAULT.splash_bg_color,
+      pwaBgColor: BRANDING_COLORS_DEFAULT.pwa_bg_color,
+      pwaThemeColor: BRANDING_COLORS_DEFAULT.pwa_theme_color,
       loadingBranding: false,
       refreshBranding: async () => {},
+      saveBrandingColors: async () => false,
     };
   }
   return ctx;

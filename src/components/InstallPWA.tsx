@@ -17,7 +17,7 @@ export function InstallPWA() {
   const [showInstallModal, setShowInstallModal] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
-  const { pwaIcon } = useBranding();
+  const { pwaIcon, pwaBgColor } = useBranding();
 
   useEffect(() => {
     void setupPWA();
@@ -123,11 +123,14 @@ export function InstallPWA() {
             </Button>
 
             <div className="flex items-start gap-4">
-              <div className="size-16 flex-shrink-0 overflow-hidden rounded-2xl border-2 border-gold/40 bg-black/40 shadow-lg shadow-gold/10 p-0.5">
+              <div
+                className="size-16 flex-shrink-0 overflow-hidden rounded-2xl border-2 border-gold/40 shadow-lg shadow-gold/10 p-1 flex items-center justify-center transition-colors duration-300"
+                style={{ backgroundColor: pwaBgColor || "#D4AF37" }}
+              >
                 <img 
                   src={pwaIcon || "/app-icon-192.png"} 
                   alt="Amstore Bagshoes" 
-                  className="size-full rounded-[14px] object-cover" 
+                  className="size-full rounded-[12px] object-contain drop-shadow" 
                 />
               </div>
 

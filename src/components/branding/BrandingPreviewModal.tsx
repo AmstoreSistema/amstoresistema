@@ -170,10 +170,10 @@ export function BrandingPreviewModal({ open, onOpenChange }: BrandingPreviewModa
                 Simulação: Splash de Inicialização
               </span>
               <div
-                className="w-[280px] h-[480px] rounded-3xl shadow-2xl flex flex-col items-center justify-center p-6 text-center relative overflow-hidden border border-amber-400/40"
+                className="w-[280px] h-[480px] rounded-3xl shadow-2xl flex flex-col items-center justify-center p-6 text-center relative overflow-hidden border border-white/20 transition-all duration-300"
                 style={{
-                  backgroundColor: "#D4AF37",
-                  background: "radial-gradient(circle at center, #E5C158 0%, #D4AF37 60%, #B89020 100%)",
+                  backgroundColor: branding.splashBgColor,
+                  background: `radial-gradient(circle at 50% 45%, rgba(255, 255, 255, 0.18) 0%, rgba(0, 0, 0, 0.28) 100%), ${branding.splashBgColor}`,
                 }}
               >
                 <img
@@ -228,7 +228,10 @@ export function BrandingPreviewModal({ open, onOpenChange }: BrandingPreviewModa
               <div className="w-full max-w-md space-y-6">
                 {/* Ícone na Tela Inicial do Celular */}
                 <div className="p-4 rounded-2xl border border-border bg-black/40 flex items-center gap-4">
-                  <div className="size-16 rounded-2xl bg-[#D4AF37] p-2 flex items-center justify-center shadow-lg shrink-0 border border-gold/40">
+                  <div
+                    className="size-16 rounded-2xl p-2 flex items-center justify-center shadow-lg shrink-0 border border-white/20 transition-all duration-300"
+                    style={{ backgroundColor: branding.pwaBgColor }}
+                  >
                     <img
                       src={branding.pwaIcon}
                       alt="Ícone PWA"
@@ -244,7 +247,10 @@ export function BrandingPreviewModal({ open, onOpenChange }: BrandingPreviewModa
                 {/* Banner de Instalação */}
                 <div className="relative overflow-hidden rounded-2xl border border-gold/40 bg-card p-4 shadow-xl">
                   <div className="flex items-center gap-3">
-                    <div className="size-12 rounded-xl bg-[#D4AF37] p-1.5 flex items-center justify-center shrink-0 border border-gold/40">
+                    <div
+                      className="size-12 rounded-xl p-1.5 flex items-center justify-center shrink-0 border border-white/20 transition-all duration-300"
+                      style={{ backgroundColor: branding.pwaBgColor }}
+                    >
                       <img
                         src={branding.pwaIcon}
                         alt="App"

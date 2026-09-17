@@ -18,6 +18,18 @@ export interface BrandingItem {
   updated_at: string;
 }
 
+export interface BrandingColors {
+  splash_bg_color: string;
+  pwa_bg_color: string;
+  pwa_theme_color: string;
+}
+
+export const BRANDING_COLORS_DEFAULT: BrandingColors = {
+  splash_bg_color: "#D4AF37",
+  pwa_bg_color: "#D4AF37",
+  pwa_theme_color: "#D4AF37",
+};
+
 export const BRANDING_DEFAULTS: Record<string, Omit<BrandingItem, "updated_at">> = {
   logo_primary: {
     key: "logo_primary",
@@ -560,3 +572,110 @@ export const removeBrandingImage = createServerFn({ method: "POST" })
       item: resetRecord,
     };
   });
+
+/**
+ * Recupera as cores customizadas do Splash Screen e da instalação PWA.
+ */
+export const getBrandingColors = createServerFn({ method: "GET" }).handler(async (): Promise<BrandingColors> => {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+  try {
+    const { data } = await supabaseAdmin
+      .from("app_settings")
+      .select("value")
+      .eq("key", "branding_colors")
+      .maybeSingle();
+
+    if (data?.value) {
+      const parsed = typeof data.value === "string" ? JSON.parse(data.value) : data.value;
+      return {
+        splash_bg_color: parsed.splash_bg_color || BRANDING_COLORS_DEFAULT.splash_bg_color,
+        pwa_bg_color: parsed.pwa_bg_color || BRANDING_COLORS_DEFAULT.pwa_bg_color,
+        pwa_theme_color: parsed.pwa_theme_color || BRANDING_COLORS_DEFAULT.pwa_theme_color,
+      };
+    }
+  } catch (e) {
+    console.warn("[Branding] Aviso ao ler branding_colors de app_settings:", e);
+  }
+
+  // Fallback para appearance caso branding_colors ainda não exista
+  try {
+    const { data: appRow } = await supabaseAdmin
+      .from("app_settings")
+      .select("value")
+      .eq("key", "appearance")
+      .maybeSingle();
+    if (appRow?.value) {
+      const parsed = typeof appRow.value === "string" ? JSON.parse(appRow.value) : appRow.value;
+      if (parsed?.splash_bg) {
+        return {
+          splash_bg_color: parsed.splash_bg,
+          pwa_bg_color: parsed.splash_bg,
+          pwa_theme_color: parsed.splash_bg,
+        };
+      }
+    }
+  } catch {}
+
+  return BRANDING_COLORS_DEFAULT;
+});
+
+/**
+ * Atualiza as cores customizadas do Splash Screen e da instalação PWA.
+ */
+export const updateBrandingColors = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((data) =>
+    z
+      .object({
+        splash_bg_color: z.string().min(4).max(9),
+        pwa_bg_color: z.string().min(4).max(9),
+        pwa_theme_color: z.string().min(4).max(9),
+      })
+      .parse(data)
+  )
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.userId, context.claims);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const payload: BrandingColors = {
+      splash_bg_color: data.splash_bg_color,
+      pwa_bg_color: data.pwa_bg_color,
+      pwa_theme_color: data.pwa_theme_color,
+    };
+
+    // 1. Grava em app_settings ("branding_colors")
+    await supabaseAdmin.from("app_settings").upsert({
+      key: "branding_colors",
+      value: JSON.stringify(payload),
+      updated_at: new Date().toISOString(),
+    });
+
+    // 2. Mantém compatibilidade com appearance.splash_bg
+    try {
+      const { data: curApp } = await supabaseAdmin
+        .from("app_settings")
+        .select("value")
+        .eq("key", "appearance")
+        .maybeSingle();
+
+      let appObj: any = {};
+      if (curApp?.value) {
+        appObj = typeof curApp.value === "string" ? JSON.parse(curApp.value) : curApp.value;
+      }
+      appObj.splash_bg = payload.splash_bg_color;
+      await supabaseAdmin.from("app_settings").upsert({
+        key: "appearance",
+        value: JSON.stringify(appObj),
+        updated_at: new Date().toISOString(),
+      });
+    } catch (e) {
+      console.warn("[Branding] Aviso ao sincronizar appearance:", e);
+    }
+
+    return {
+      success: true,
+      colors: payload,
+    };
+  });
+

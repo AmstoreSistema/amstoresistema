@@ -130,7 +130,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 function AppSplashScreen() {
   const [visible, setVisible] = useState(true);
   const [fading, setFading] = useState(false);
-  const { splash } = useBranding();
+  const { splash, splashBgColor } = useBranding();
 
   useEffect(() => {
     // Mantém o splash visível por um curto momento e desvanece suavemente
@@ -153,8 +153,8 @@ function AppSplashScreen() {
         fading ? "opacity-0" : "opacity-100"
       }`}
       style={{
-        backgroundColor: "#D4AF37",
-        background: "radial-gradient(circle at center, #E5C158 0%, #D4AF37 60%, #B89020 100%)",
+        backgroundColor: splashBgColor,
+        background: `radial-gradient(circle at 50% 45%, rgba(255, 255, 255, 0.18) 0%, rgba(0, 0, 0, 0.28) 100%), ${splashBgColor}`,
       }}
     >
       <div className="relative flex flex-col items-center justify-center px-6 text-center">

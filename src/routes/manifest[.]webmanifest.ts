@@ -14,6 +14,8 @@ export const Route = createFileRoute("/manifest.webmanifest")({
         let iconUrl512 = `/app-icon-512.png?v=${v}`;
         let maskUrl192 = `/app-icon-192-maskable.png?v=${v}`;
         let maskUrl512 = `/app-icon-512-maskable.png?v=${v}`;
+        let pwaBgColor = appearance.splash_bg || "#D4AF37";
+        let pwaThemeColor = appearance.splash_bg || "#D4AF37";
 
         try {
           const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -30,6 +32,18 @@ export const Route = createFileRoute("/manifest.webmanifest")({
             maskUrl192 = `${pwa.file_url}?v=${time}`;
             maskUrl512 = `${pwa.file_url}?v=${time}`;
           }
+
+          const { data: colorRow } = await supabaseAdmin
+            .from("app_settings")
+            .select("value")
+            .eq("key", "branding_colors")
+            .maybeSingle();
+
+          if (colorRow?.value) {
+            const parsed = typeof colorRow.value === "string" ? JSON.parse(colorRow.value) : colorRow.value;
+            if (parsed.pwa_bg_color) pwaBgColor = parsed.pwa_bg_color;
+            if (parsed.pwa_theme_color) pwaThemeColor = parsed.pwa_theme_color;
+          }
         } catch {}
 
         const manifest = {
@@ -42,8 +56,8 @@ export const Route = createFileRoute("/manifest.webmanifest")({
           display: "standalone",
           orientation: "portrait",
           lang: "pt-BR",
-          background_color: "#D4AF37",
-          theme_color: "#D4AF37",
+          background_color: pwaBgColor,
+          theme_color: pwaThemeColor,
           icons: [
             { src: maskUrl192, sizes: "192x192", type: "image/png", purpose: "maskable" },
             { src: maskUrl512, sizes: "512x512", type: "image/png", purpose: "maskable" },
