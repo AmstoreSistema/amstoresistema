@@ -10,22 +10,45 @@ export const Route = createFileRoute("/splash-startup.png")({
       GET: async () => {
         try {
           const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-          const { data } = await supabaseAdmin
-            .from("system_branding")
-            .select("file_url, file_path")
-            .eq("key", "splash")
-            .maybeSingle();
+          let filePath: string | null = null;
+          try {
+            const { data } = await supabaseAdmin
+              .from("system_branding")
+              .select("file_url, file_path")
+              .eq("key", "splash")
+              .maybeSingle();
+            if (data?.file_path) filePath = data.file_path;
+          } catch {}
 
-          if (data?.file_path) {
-            const { data: fileBlob } = await supabaseAdmin.storage.from("branding").download(data.file_path);
-            if (fileBlob) {
-              const buf = await fileBlob.arrayBuffer();
-              return new Response(buf, {
-                headers: {
-                  "Content-Type": fileBlob.type || "image/png",
-                  "Cache-Control": "public, max-age=3600, must-revalidate",
-                },
-              });
+          if (!filePath) {
+            try {
+              const { data: setRow } = await supabaseAdmin
+                .from("app_settings")
+                .select("value")
+                .eq("key", "system_branding")
+                .maybeSingle();
+              if (setRow?.value) {
+                const list = typeof setRow.value === "string" ? JSON.parse(setRow.value) : setRow.value;
+                const found = Array.isArray(list) ? list.find((it: any) => it.key === "splash") : null;
+                if (found?.file_path) filePath = found.file_path;
+              }
+            } catch {}
+          }
+
+          if (filePath) {
+            for (const b of ["branding", "settings", "public"]) {
+              try {
+                const { data: fileBlob } = await supabaseAdmin.storage.from(b).download(filePath);
+                if (fileBlob) {
+                  const buf = await fileBlob.arrayBuffer();
+                  return new Response(buf, {
+                    headers: {
+                      "Content-Type": fileBlob.type || "image/png",
+                      "Cache-Control": "public, max-age=300, must-revalidate",
+                    },
+                  });
+                }
+              } catch {}
             }
           }
         } catch {}
@@ -37,7 +60,7 @@ export const Route = createFileRoute("/splash-startup.png")({
             return new Response(buf, {
               headers: {
                 "Content-Type": "image/png",
-                "Cache-Control": "public, max-age=31536000, immutable",
+                "Cache-Control": "public, max-age=300, must-revalidate",
               },
             });
           }

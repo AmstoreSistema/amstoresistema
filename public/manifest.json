@@ -7,9 +7,12 @@
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#D4AF37",
-  "theme_color": "#D4AF37",
-  "categories": ["business", "shopping"],
+  "background_color": "#382430",
+  "theme_color": "#382430",
+  "categories": [
+    "business",
+    "shopping"
+  ],
   "icons": [
     {
       "src": "/app-icon-192-maskable.png?v=2",

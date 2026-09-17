@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as ManifestDotjsonRouteImport } from './routes/manifest[.]json'
 import { Route as ManifestDotwebmanifestRouteImport } from './routes/manifest[.]webmanifest'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as SorteioRouteImport } from './routes/sorteio'
@@ -43,6 +44,7 @@ import { Route as AuthenticatedStoreReportsRouteImport } from './routes/_authent
 import { Route as AuthenticatedTransactionsRouteImport } from './routes/_authenticated.transactions'
 import { Route as AuthenticatedWhatsappBillingRouteImport } from './routes/_authenticated.whatsapp-billing'
 import { Route as ApiPublicSorteioInfoRouteImport } from './routes/api/public/sorteio-info'
+import { Route as ApiPublicBrandingSplatRouteImport } from './routes/api/public/branding.$'
 import { Route as ApiPublicCatalogImageSplatRouteImport } from './routes/api/public/catalog-image.$'
 
 const IndexRoute = IndexRouteImport.update({
@@ -57,6 +59,11 @@ const AuthenticatedRoute = AuthenticatedRouteImport.update({
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ManifestDotjsonRoute = ManifestDotjsonRouteImport.update({
+  id: '/manifest.json',
+  path: '/manifest.json',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ManifestDotwebmanifestRoute = ManifestDotwebmanifestRouteImport.update({
@@ -221,6 +228,11 @@ const ApiPublicSorteioInfoRoute = ApiPublicSorteioInfoRouteImport.update({
   path: '/api/public/sorteio-info',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicBrandingSplatRoute = ApiPublicBrandingSplatRouteImport.update({
+  id: '/api/public/branding/$',
+  path: '/api/public/branding/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicCatalogImageSplatRoute =
   ApiPublicCatalogImageSplatRouteImport.update({
     id: '/api/public/catalog-image/$',
@@ -231,6 +243,7 @@ const ApiPublicCatalogImageSplatRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/manifest.json': typeof ManifestDotjsonRoute
   '/manifest.webmanifest': typeof ManifestDotwebmanifestRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sorteio': typeof SorteioRoute
@@ -262,11 +275,13 @@ export interface FileRoutesByFullPath {
   '/transactions': typeof AuthenticatedTransactionsRoute
   '/whatsapp-billing': typeof AuthenticatedWhatsappBillingRoute
   '/api/public/sorteio-info': typeof ApiPublicSorteioInfoRoute
+  '/api/public/branding/$': typeof ApiPublicBrandingSplatRoute
   '/api/public/catalog-image/$': typeof ApiPublicCatalogImageSplatRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/manifest.json': typeof ManifestDotjsonRoute
   '/manifest.webmanifest': typeof ManifestDotwebmanifestRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sorteio': typeof SorteioRoute
@@ -298,6 +313,7 @@ export interface FileRoutesByTo {
   '/transactions': typeof AuthenticatedTransactionsRoute
   '/whatsapp-billing': typeof AuthenticatedWhatsappBillingRoute
   '/api/public/sorteio-info': typeof ApiPublicSorteioInfoRoute
+  '/api/public/branding/$': typeof ApiPublicBrandingSplatRoute
   '/api/public/catalog-image/$': typeof ApiPublicCatalogImageSplatRoute
 }
 export interface FileRoutesById {
@@ -305,6 +321,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteWithChildren
   '/auth': typeof AuthRoute
+  '/manifest.json': typeof ManifestDotjsonRoute
   '/manifest.webmanifest': typeof ManifestDotwebmanifestRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sorteio': typeof SorteioRoute
@@ -336,6 +353,7 @@ export interface FileRoutesById {
   '/_authenticated/transactions': typeof AuthenticatedTransactionsRoute
   '/_authenticated/whatsapp-billing': typeof AuthenticatedWhatsappBillingRoute
   '/api/public/sorteio-info': typeof ApiPublicSorteioInfoRoute
+  '/api/public/branding/$': typeof ApiPublicBrandingSplatRoute
   '/api/public/catalog-image/$': typeof ApiPublicCatalogImageSplatRoute
 }
 export interface FileRouteTypes {
@@ -343,6 +361,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/auth'
+    | '/manifest.json'
     | '/manifest.webmanifest'
     | '/reset-password'
     | '/sorteio'
@@ -374,11 +393,13 @@ export interface FileRouteTypes {
     | '/transactions'
     | '/whatsapp-billing'
     | '/api/public/sorteio-info'
+    | '/api/public/branding/$'
     | '/api/public/catalog-image/$'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/auth'
+    | '/manifest.json'
     | '/manifest.webmanifest'
     | '/reset-password'
     | '/sorteio'
@@ -410,12 +431,14 @@ export interface FileRouteTypes {
     | '/transactions'
     | '/whatsapp-billing'
     | '/api/public/sorteio-info'
+    | '/api/public/branding/$'
     | '/api/public/catalog-image/$'
   id:
     | '__root__'
     | '/'
     | '/_authenticated'
     | '/auth'
+    | '/manifest.json'
     | '/manifest.webmanifest'
     | '/reset-password'
     | '/sorteio'
@@ -447,6 +470,7 @@ export interface FileRouteTypes {
     | '/_authenticated/transactions'
     | '/_authenticated/whatsapp-billing'
     | '/api/public/sorteio-info'
+    | '/api/public/branding/$'
     | '/api/public/catalog-image/$'
   fileRoutesById: FileRoutesById
 }
@@ -454,11 +478,13 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
   AuthRoute: typeof AuthRoute
+  ManifestDotjsonRoute: typeof ManifestDotjsonRoute
   ManifestDotwebmanifestRoute: typeof ManifestDotwebmanifestRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   SorteioRoute: typeof SorteioRoute
   SplashStartupDotpngRoute: typeof SplashStartupDotpngRoute
   ApiPublicSorteioInfoRoute: typeof ApiPublicSorteioInfoRoute
+  ApiPublicBrandingSplatRoute: typeof ApiPublicBrandingSplatRoute
   ApiPublicCatalogImageSplatRoute: typeof ApiPublicCatalogImageSplatRoute
 }
 
@@ -483,6 +509,13 @@ declare module '@tanstack/react-router' {
       path: '/auth'
       fullPath: '/auth'
       preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/manifest.json': {
+      id: '/manifest.json'
+      path: '/manifest.json'
+      fullPath: '/manifest.json'
+      preLoaderRoute: typeof ManifestDotjsonRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/manifest.webmanifest': {
@@ -702,6 +735,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicSorteioInfoRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/branding/$': {
+      id: '/api/public/branding/$'
+      path: '/api/public/branding/$'
+      fullPath: '/api/public/branding/$'
+      preLoaderRoute: typeof ApiPublicBrandingSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/catalog-image/$': {
       id: '/api/public/catalog-image/$'
       path: '/api/public/catalog-image/$'
@@ -778,11 +818,13 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRoute: AuthenticatedRouteWithChildren,
   AuthRoute: AuthRoute,
+  ManifestDotjsonRoute: ManifestDotjsonRoute,
   ManifestDotwebmanifestRoute: ManifestDotwebmanifestRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   SorteioRoute: SorteioRoute,
   SplashStartupDotpngRoute: SplashStartupDotpngRoute,
   ApiPublicSorteioInfoRoute: ApiPublicSorteioInfoRoute,
+  ApiPublicBrandingSplatRoute: ApiPublicBrandingSplatRoute,
   ApiPublicCatalogImageSplatRoute: ApiPublicCatalogImageSplatRoute,
 }
 export const routeTree = rootRouteImport

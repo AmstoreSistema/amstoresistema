@@ -88,6 +88,9 @@ export function BrandingProvider({ children }: { children: React.ReactNode }) {
       if (loadedColors) {
         setColors(loadedColors);
         if (typeof document !== "undefined") {
+          const timestamp = Date.now();
+
+          // 1. Atualiza meta name="theme-color"
           let meta = document.querySelector("meta[name='theme-color']") as HTMLMetaElement | null;
           if (!meta) {
             meta = document.createElement("meta");
@@ -95,6 +98,20 @@ export function BrandingProvider({ children }: { children: React.ReactNode }) {
             document.head.appendChild(meta);
           }
           meta.content = loadedColors.pwa_theme_color || loadedColors.pwa_bg_color || "#D4AF37";
+
+          // 2. Atualiza manifest com cache-buster para que o navegador recarregue as cores imediatamente
+          const manifestLink = document.querySelector("link[rel='manifest']") as HTMLLinkElement | null;
+          if (manifestLink) {
+            manifestLink.href = `/manifest.webmanifest?v=${timestamp}`;
+          }
+
+          // 3. Atualiza apple-touch-icon no iOS
+          const appleIcons = document.querySelectorAll("link[rel='apple-touch-icon']");
+          appleIcons.forEach((el) => {
+            const link = el as HTMLLinkElement;
+            const base = link.href.split("?")[0];
+            link.href = `${base}?v=${timestamp}`;
+          });
         }
       }
     } catch (err) {
@@ -111,6 +128,8 @@ export function BrandingProvider({ children }: { children: React.ReactNode }) {
   const saveBrandingColors = useCallback(
     async (newColors: BrandingColors): Promise<boolean> => {
       setColors(newColors);
+      const timestamp = Date.now();
+
       if (typeof document !== "undefined") {
         let meta = document.querySelector("meta[name='theme-color']") as HTMLMetaElement | null;
         if (!meta) {
@@ -119,6 +138,18 @@ export function BrandingProvider({ children }: { children: React.ReactNode }) {
           document.head.appendChild(meta);
         }
         meta.content = newColors.pwa_theme_color || newColors.pwa_bg_color || "#D4AF37";
+
+        const manifestLink = document.querySelector("link[rel='manifest']") as HTMLLinkElement | null;
+        if (manifestLink) {
+          manifestLink.href = `/manifest.webmanifest?v=${timestamp}`;
+        }
+
+        const appleIcons = document.querySelectorAll("link[rel='apple-touch-icon']");
+        appleIcons.forEach((el) => {
+          const link = el as HTMLLinkElement;
+          const base = link.href.split("?")[0];
+          link.href = `${base}?v=${timestamp}`;
+        });
       }
 
       const res = await doUpdateColors({ data: newColors });

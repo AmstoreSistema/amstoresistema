@@ -673,6 +673,14 @@ export const updateBrandingColors = createServerFn({ method: "POST" })
       console.warn("[Branding] Aviso ao sincronizar appearance:", e);
     }
 
+    // 3. Regenera fisicamente os ícones e splash para que Android, iOS e Windows instalem com a nova cor imediatamente
+    try {
+      const { generatePwaAssets } = await import("@/lib/pwa-icons.server");
+      await generatePwaAssets(payload.pwa_bg_color, payload.splash_bg_color);
+    } catch (e) {
+      console.warn("[Branding] Aviso ao regenerar assets do PWA:", e);
+    }
+
     return {
       success: true,
       colors: payload,

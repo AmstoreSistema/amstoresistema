@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { getAppearance, appearanceHash, NO_STORE_HEADERS } from "@/lib/appearance.server";
 
-export const Route = createFileRoute("/manifest.webmanifest")({
+export const Route = createFileRoute("/manifest.json")({
   server: {
     handlers: {
       GET: async () => {
@@ -18,7 +18,6 @@ export const Route = createFileRoute("/manifest.webmanifest")({
         try {
           const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-          // 1. Busca branding_colors em app_settings
           try {
             const { data: colorRow } = await supabaseAdmin
               .from("app_settings")
@@ -33,7 +32,6 @@ export const Route = createFileRoute("/manifest.webmanifest")({
             }
           } catch {}
 
-          // 2. Busca ícone em system_branding
           try {
             const { data } = await supabaseAdmin
               .from("system_branding")
@@ -50,7 +48,6 @@ export const Route = createFileRoute("/manifest.webmanifest")({
             }
           } catch {}
 
-          // 3. Fallback para app_settings caso system_branding não exista
           if (!pwaIconUrl) {
             try {
               const { data: setRow } = await supabaseAdmin
@@ -74,7 +71,7 @@ export const Route = createFileRoute("/manifest.webmanifest")({
             } catch {}
           }
         } catch (e) {
-          console.warn("[Manifest] Erro ao carregar configurações de marca:", e);
+          console.warn("[Manifest.json] Erro ao carregar configurações de marca:", e);
         }
 
         const iconUrl192 = pwaIconUrl

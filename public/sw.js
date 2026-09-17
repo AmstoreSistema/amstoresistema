@@ -1,15 +1,8 @@
-const CACHE_NAME = "amstore-pwa-v2";
+const CACHE_NAME = "amstore-pwa-v3";
 const PRECACHE_ASSETS = [
   "/",
-  "/manifest.json",
-  "/manifest.webmanifest",
-  "/app-icon-192.png",
-  "/app-icon-512.png",
-  "/app-icon-192-maskable.png",
-  "/app-icon-512-maskable.png",
   "/bagshoes-logo-white.png",
   "/bagshoes-logo.png",
-  "/splash-startup.png",
   "/favicon.png"
 ];
 
@@ -40,8 +33,16 @@ self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") return;
 
   const url = new URL(event.request.url);
-  // Ignora requisições de API e Supabase para não cachear dados dinâmicos
-  if (url.origin !== self.location.origin || url.pathname.startsWith("/api") || url.pathname.includes("supabase")) {
+  // Ignora requisições dinâmicas, manifest e ícones do PWA para que as alterações reflitam imediatamente
+  if (
+    url.origin !== self.location.origin ||
+    url.pathname.startsWith("/api") ||
+    url.pathname.includes("supabase") ||
+    url.pathname.includes("manifest") ||
+    url.pathname.includes("splash-startup") ||
+    url.pathname.includes("app-icon") ||
+    url.pathname.includes("apple-touch-icon")
+  ) {
     return;
   }
 
