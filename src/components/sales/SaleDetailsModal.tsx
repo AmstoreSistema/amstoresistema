@@ -37,6 +37,16 @@ import { EditSaleModal } from "./EditSaleModal";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 
+const PAYMENT_METHODS = [
+  "Dinheiro",
+  "Pix",
+  "Cartão de Crédito",
+  "Cartão de Débito",
+  "Transferência",
+  "Boleto",
+  "Outro",
+];
+
 interface SaleDetailsModalProps {
   saleId: string | null;
   isOpen?: boolean;
@@ -395,34 +405,45 @@ export function SaleDetailsModal({
                         </div>
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                           <div className="space-y-1">
-                            <label className="text-[9px] font-bold text-muted-foreground uppercase">Valor</label>
+                            <label className="text-[10px] font-black text-muted-foreground uppercase tracking-wider">Valor a Quitar</label>
                             <Input 
                               type="number" 
                               value={payAmount} 
                               onChange={(e) => setPayAmount(e.target.value)} 
-                              className="h-9 text-sm font-bold rounded-lg border-gold/20"
+                              className="h-10 text-sm font-bold rounded-xl border-gold/30 bg-background"
                             />
                           </div>
                           <div className="space-y-1">
-                            <label className="text-[9px] font-bold text-muted-foreground uppercase">Forma</label>
-                            <Input value={payMethod} onChange={(e) => setPayMethod(e.target.value)} className="h-9 text-sm font-bold rounded-lg" />
+                            <label className="text-[10px] font-black text-muted-foreground uppercase tracking-wider">Forma de Pagamento</label>
+                            <Select value={payMethod} onValueChange={setPayMethod}>
+                              <SelectTrigger className="h-10 text-xs font-bold rounded-xl bg-background border-border/60">
+                                <SelectValue placeholder="Selecione" />
+                              </SelectTrigger>
+                              <SelectContent className="z-[9999]">
+                                {PAYMENT_METHODS.map((m) => (
+                                  <SelectItem key={m} value={m}>{m}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
                           </div>
                           <div className="space-y-1">
-                            <label className="text-[9px] font-bold text-muted-foreground uppercase">Conta</label>
+                            <label className="text-[10px] font-black text-muted-foreground uppercase tracking-wider">Conta de Destino</label>
                             <Select value={payAccountId} onValueChange={setPayAccountId}>
-                              <SelectTrigger className="h-9 text-sm font-bold rounded-lg">
-                                <SelectValue />
+                              <SelectTrigger className="h-10 text-xs font-bold rounded-xl bg-background border-border/60">
+                                <SelectValue placeholder="Selecione a conta" />
                               </SelectTrigger>
-                              <SelectContent>
+                              <SelectContent className="z-[9999]">
                                 {accounts.map((acc: any) => (
-                                  <SelectItem key={acc.id} value={acc.id}>{acc.name}</SelectItem>
+                                  <SelectItem key={acc.id} value={acc.id}>
+                                    {acc.name} - {brl(acc.current_balance ?? acc.balance ?? acc.initial_balance ?? 0)}
+                                  </SelectItem>
                                 ))}
                               </SelectContent>
                             </Select>
                           </div>
                         </div>
                         <Button 
-                          className="w-full mt-3 h-9 bg-gold text-white font-bold rounded-lg"
+                          className="w-full mt-3 h-11 bg-gold hover:bg-gold/90 text-white font-black text-xs uppercase tracking-wider rounded-xl shadow-md"
                           disabled={isPaying}
                           onClick={async () => {
                             setIsPaying(true);
@@ -553,37 +574,48 @@ export function SaleDetailsModal({
                                         <X className="size-3" />
                                       </Button>
                                     </div>
-                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                                       <div className="space-y-1">
-                                        <label className="text-[8px] font-bold uppercase text-muted-foreground">Valor</label>
+                                        <label className="text-[9px] font-black uppercase text-muted-foreground tracking-wider">Valor</label>
                                         <Input 
                                           type="number" 
                                           value={paymentType === 'quitar' ? remaining : payAmount} 
                                           onChange={(e) => setPayAmount(e.target.value)}
                                           disabled={paymentType === 'quitar'}
-                                          className="h-8 text-xs font-bold"
+                                          className="h-9 text-xs font-bold rounded-xl bg-background"
                                         />
                                       </div>
                                       <div className="space-y-1">
-                                        <label className="text-[8px] font-bold uppercase text-muted-foreground">Forma</label>
-                                        <Input value={payMethod} onChange={(e) => setPayMethod(e.target.value)} className="h-8 text-xs font-bold" />
+                                        <label className="text-[9px] font-black uppercase text-muted-foreground tracking-wider">Forma</label>
+                                        <Select value={payMethod} onValueChange={setPayMethod}>
+                                          <SelectTrigger className="h-9 text-xs font-bold rounded-xl bg-background border-border/60">
+                                            <SelectValue placeholder="Selecione" />
+                                          </SelectTrigger>
+                                          <SelectContent className="z-[9999]">
+                                            {PAYMENT_METHODS.map((m) => (
+                                              <SelectItem key={m} value={m}>{m}</SelectItem>
+                                            ))}
+                                          </SelectContent>
+                                        </Select>
                                       </div>
                                       <div className="space-y-1">
-                                        <label className="text-[8px] font-bold uppercase text-muted-foreground">Conta</label>
+                                        <label className="text-[9px] font-black uppercase text-muted-foreground tracking-wider">Conta</label>
                                         <Select value={payAccountId} onValueChange={setPayAccountId}>
-                                          <SelectTrigger className="h-8 text-xs font-bold">
-                                            <SelectValue />
+                                          <SelectTrigger className="h-9 text-xs font-bold rounded-xl bg-background border-border/60">
+                                            <SelectValue placeholder="Selecione a conta" />
                                           </SelectTrigger>
-                                          <SelectContent>
+                                          <SelectContent className="z-[9999]">
                                             {accounts.map((acc: any) => (
-                                              <SelectItem key={acc.id} value={acc.id}>{acc.name}</SelectItem>
+                                              <SelectItem key={acc.id} value={acc.id}>
+                                                {acc.name} - {brl(acc.current_balance ?? acc.balance ?? acc.initial_balance ?? 0)}
+                                              </SelectItem>
                                             ))}
                                           </SelectContent>
                                         </Select>
                                       </div>
                                     </div>
                                     <Button 
-                                      className="w-full mt-2 h-8 text-[10px] font-black uppercase bg-primary text-white"
+                                      className="w-full mt-3 h-10 text-xs font-black uppercase tracking-wider bg-primary hover:bg-primary/90 text-white rounded-xl shadow-sm"
                                       disabled={isPaying}
                                       onClick={() => handleQuickPayment(inst)}
                                     >

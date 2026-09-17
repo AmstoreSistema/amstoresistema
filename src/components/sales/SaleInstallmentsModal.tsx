@@ -35,8 +35,23 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-// Modal de Secretário de Pagamento removido em favor da gestão unificada.
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
+const PAYMENT_METHODS = [
+  "Dinheiro",
+  "Pix",
+  "Cartão de Crédito",
+  "Cartão de Débito",
+  "Transferência",
+  "Boleto",
+  "Outro",
+];
 
 export function SaleInstallmentsModal({ 
   open, 
@@ -60,13 +75,31 @@ export function SaleInstallmentsModal({
 
   const [isEditing, setIsEditing] = React.useState(false);
   const [editList, setEditList] = React.useState<any[]>([]);
-  const [payModal, setPayModal] = React.useState<{open: boolean, inst: any, amount: string}>({
+  const { data: accounts = [] } = useRows<any>("financial_accounts");
+  const [payModal, setPayModal] = React.useState<{
+    open: boolean;
+    inst: any;
+    amount: string;
+    payment_method: string;
+    account_id: string;
+  }>({
     open: false,
     inst: null,
-    amount: ""
+    amount: "",
+    payment_method: "Dinheiro",
+    account_id: "",
   });
-  // const [secretaryOpen, setSecretaryOpen] = React.useState(false); // Removido
 
+  React.useEffect(() => {
+    if (accounts.length > 0 && !payModal.account_id) {
+      const main = accounts.find((a: any) => a.name.toLowerCase().includes('principal') || a.active);
+      if (main) {
+        setPayModal(prev => ({ ...prev, account_id: main.id }));
+      } else {
+        setPayModal(prev => ({ ...prev, account_id: accounts[0].id }));
+      }
+    }
+  }, [accounts, payModal.account_id]);
 
   React.useEffect(() => {
     if (isEditing && installments.length > 0) {
@@ -78,7 +111,7 @@ export function SaleInstallmentsModal({
   }, [isEditing, installments]);
 
   const handlePartialPay = async () => {
-    const { inst, amount } = payModal;
+    const { inst, amount, payment_method, account_id } = payModal;
     if (!inst || !amount || Number(amount) <= 0) return;
 
     try {
@@ -87,12 +120,13 @@ export function SaleInstallmentsModal({
           installment_id: inst.id,
           sale_id: inst.sale_id,
           amount: Number(amount),
-          payment_method: "Dinheiro"
+          payment_method: payment_method || "Dinheiro",
+          account_id: account_id || undefined,
         }
       });
       
       toast.success("Pagamento registrado com sucesso!");
-      setPayModal({ open: false, inst: null, amount: "" });
+      setPayModal(prev => ({ ...prev, open: false, inst: null, amount: "" }));
       void Promise.all([
         qc.invalidateQueries({ queryKey: ["sale_installments"] }),
         qc.invalidateQueries({ queryKey: ["sales"] }),
@@ -325,7 +359,12 @@ export function SaleInstallmentsModal({
                             size="sm" 
                             variant="outline"
                             className="rounded-xl h-8 text-[9px] font-black border-success/30 text-success hover:bg-success/10"
-                            onClick={() => setPayModal({ open: true, inst, amount: String(remaining) })}
+                            onClick={() => setPayModal(prev => ({ 
+                              ...prev, 
+                              open: true, 
+                              inst, 
+                              amount: String(remaining) 
+                            }))}
                           >
                             PAG. PARCIAL
                           </Button>
@@ -333,11 +372,12 @@ export function SaleInstallmentsModal({
                             size="sm" 
                             className="rounded-xl h-8 text-[10px] font-black bg-success hover:bg-success/90"
                             onClick={() => {
-                              setPayModal({ 
+                              setPayModal(prev => ({ 
+                                ...prev, 
                                 open: true, 
                                 inst, 
                                 amount: String(remaining) 
-                              });
+                              }));
                             }}
                           >
                             QUITAR
@@ -365,37 +405,79 @@ export function SaleInstallmentsModal({
         </DialogContent>
       </Dialog>
 
-      <Dialog open={payModal.open} onOpenChange={(o) => !o && setPayModal({open: false, inst: null, amount: ""})}>
-        <DialogContent className="max-w-xs rounded-[2rem] p-6 border-none shadow-2xl">
+      <Dialog open={payModal.open} onOpenChange={(o) => !o && setPayModal(prev => ({ ...prev, open: false, inst: null, amount: "" }))}>
+        <DialogContent className="max-w-md w-[95vw] rounded-[2rem] p-6 border-none shadow-2xl">
           <DialogHeader>
-            <DialogTitle className="font-display font-black text-center">Registrar Pagamento</DialogTitle>
+            <DialogTitle className="font-display font-black text-center text-lg">Registrar Pagamento</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label className="text-xs font-bold uppercase text-muted-foreground">Valor do Pagamento</Label>
+          <div className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-wider">Valor do Pagamento</Label>
               <div className="relative">
-                <Banknote className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-success" />
+                <Banknote className="absolute left-3.5 top-1/2 -translate-y-1/2 size-5 text-success" />
                 <Input 
                   type="number" 
                   value={payModal.amount} 
-                  onChange={e => setPayModal({...payModal, amount: e.target.value})}
-                  className="pl-10 h-12 rounded-2xl text-lg font-black text-success border-success/20 bg-success/5" 
+                  onChange={e => setPayModal(prev => ({ ...prev, amount: e.target.value }))}
+                  className="pl-11 h-12 rounded-2xl text-lg font-black text-success border-success/20 bg-success/5" 
                 />
               </div>
-              <p className="text-[10px] text-center text-muted-foreground">
-                Total da Parcela: <span className="font-bold">{brl(payModal.inst?.remaining_amount ?? payModal.inst?.amount)}</span>
+              <p className="text-[11px] text-muted-foreground pt-0.5">
+                Total da Parcela: <span className="font-bold text-foreground">{brl(payModal.inst?.remaining_amount ?? payModal.inst?.amount)}</span>
               </p>
             </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-wider">Forma de Pagamento</Label>
+              <Select 
+                value={payModal.payment_method} 
+                onValueChange={(val) => setPayModal(prev => ({ ...prev, payment_method: val }))}
+              >
+                <SelectTrigger className="h-11 rounded-2xl bg-muted/30 border-border/60 text-xs font-bold">
+                  <SelectValue placeholder="Selecione a forma" />
+                </SelectTrigger>
+                <SelectContent className="z-[9999]">
+                  {PAYMENT_METHODS.map((m) => (
+                    <SelectItem key={m} value={m}>{m}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-wider">Conta de Destino</Label>
+              <Select 
+                value={payModal.account_id} 
+                onValueChange={(val) => setPayModal(prev => ({ ...prev, account_id: val }))}
+              >
+                <SelectTrigger className="h-11 rounded-2xl bg-muted/30 border-border/60 text-xs font-bold">
+                  <SelectValue placeholder="Selecione a conta" />
+                </SelectTrigger>
+                <SelectContent className="z-[9999]">
+                  {accounts.map((acc: any) => (
+                    <SelectItem key={acc.id} value={acc.id}>
+                      {acc.name} - {brl(acc.current_balance ?? acc.balance ?? acc.initial_balance ?? 0)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             
-            <Button 
-              className="w-full h-12 rounded-2xl bg-success text-white font-black hover:bg-success/90 shadow-lg shadow-success/20"
-              onClick={handlePartialPay}
-            >
-              CONFIRMAR PAGAMENTO
-            </Button>
-            <Button variant="ghost" className="w-full rounded-2xl" onClick={() => setPayModal({open: false, inst: null, amount: ""})}>
-              Cancelar
-            </Button>
+            <div className="pt-2 space-y-2">
+              <Button 
+                className="w-full h-12 rounded-2xl bg-success text-white font-black hover:bg-success/90 shadow-lg shadow-success/20 tracking-wider text-xs uppercase"
+                onClick={handlePartialPay}
+              >
+                CONFIRMAR PAGAMENTO
+              </Button>
+              <Button 
+                variant="ghost" 
+                className="w-full h-10 rounded-2xl text-xs font-bold" 
+                onClick={() => setPayModal(prev => ({ ...prev, open: false, inst: null, amount: "" }))}
+              >
+                Cancelar
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>

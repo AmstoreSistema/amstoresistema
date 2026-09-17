@@ -14,13 +14,13 @@ export type Appearance = {
 };
 
 export const DEFAULT_APPEARANCE: Appearance = {
-  site_name: "AmStore Gestão",
+  site_name: "Amstore Bagshoes",
   site_tagline: "Produção, Estoque e Vendas",
-  site_logo_url: "",
-  favicon_url: "",
-  app_icon_url: "",
-  splash_logo_url: "",
-  splash_bg: "#0A0A0B",
+  site_logo_url: "/bagshoes-logo.png",
+  favicon_url: "/favicon.png",
+  app_icon_url: "/app-icon-512.png",
+  splash_logo_url: "/splash-startup.png",
+  splash_bg: "#D4AF37",
   splash_effect: "pulse",
   block_screenshot: false,
 };

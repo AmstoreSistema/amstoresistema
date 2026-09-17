@@ -1,14 +1,15 @@
 {
-  "name": "AmStore Gestão",
-  "short_name": "AmStore",
-  "description": "Sistema de Gestão de Produção, Estoque e Vendas",
+  "name": "Amstore Bagshoes",
+  "short_name": "Amstore",
+  "description": "Sistema de Gestão Amstore Bagshoes - Produção, Estoque e Vendas",
   "id": "/",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "orientation": "any",
-  "background_color": "#0A0A0B",
+  "orientation": "portrait",
+  "background_color": "#D4AF37",
   "theme_color": "#D4AF37",
+  "categories": ["business", "shopping"],
   "icons": [
     {
       "src": "/app-icon-192-maskable.png",

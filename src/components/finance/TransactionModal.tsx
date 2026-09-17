@@ -477,7 +477,9 @@ export function TransactionModal({
                       </FormControl>
                       <SelectContent className="rounded-xl z-[9999]" position="popper" sideOffset={5}>
                         {accounts.map((a: any) => (
-                          <SelectItem key={a.id} value={a.id}>{a.name} - {brl(a.initial_balance || 0)}</SelectItem>
+                          <SelectItem key={a.id} value={a.id}>
+                            {a.name} - {brl(a.current_balance ?? a.balance ?? a.initial_balance ?? 0)}
+                          </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>

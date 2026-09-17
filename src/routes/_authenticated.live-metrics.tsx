@@ -167,7 +167,7 @@ function LiveMetrics() {
       payMix,
       topProducts,
       itemsToday: itemsToday.reduce((s: number, i: any) => s + Number(i.quantity || 0), 0),
-      cashTotal: accounts.reduce((s: number, a: any) => s + Number(a.balance || 0), 0),
+      cashTotal: accounts.reduce((s: number, a: any) => s + Number(a.current_balance ?? a.balance ?? a.initial_balance ?? 0), 0),
       activeOrders: orders.filter((o: any) => ["pendente", "em_producao"].includes(o.status)).length,
       criticalMaterials: materials.filter((x: any) => Number(x.current_stock) <= Number(x.min_stock)),
       lowProducts: products.filter((p: any) => Number(p.current_stock) <= Number(p.min_stock)).length,

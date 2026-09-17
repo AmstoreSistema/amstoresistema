@@ -73,23 +73,22 @@ function BrandBlock({ storeLogo }: { storeLogo: string | null }) {
         {date}
       </p>
       {storeLogo && !broken ? (
-        <span className="relative mt-2 flex h-10 items-center justify-center bg-sidebar">
+        <span className="relative mt-2 flex h-14 items-center justify-center">
           <img
             src={storeLogo}
             alt="Amstore Bagshoes"
             onError={() => setBroken(true)}
             onLoad={() => setLoaded(true)}
-            className={`h-10 w-auto max-w-[150px] object-contain invert mix-blend-screen transition-opacity duration-300 ${
+            className={`h-14 w-auto max-w-[170px] object-contain transition-opacity duration-300 drop-shadow-sm ${
               loaded ? "opacity-100" : "opacity-0"
             }`}
           />
         </span>
       ) : storeLogo === null ? (
-        <div className="mt-2 h-10" />
+        <div className="mt-2 h-14" />
       ) : (
-        <div className="mt-2 flex h-10 items-center gap-2">
-          <Store className="size-5 text-sidebar-primary" />
-          <span className="font-display text-sm font-bold text-sidebar-foreground">Amstore</span>
+        <div className="mt-2 flex h-14 items-center gap-2">
+          <img src="/bagshoes-logo.png" alt="Amstore Bagshoes" className="h-12 w-auto object-contain" />
         </div>
       )}
       <p className="text-[8px] font-semibold uppercase tracking-[0.28em] text-sidebar-foreground/45">
@@ -232,11 +231,11 @@ export function AppSidebar({
     // Enquanto as configurações carregam, não exibe nenhuma logo (evita "piscar" a imagem padrão)
     if (settingsLoading) return null;
     const setting = settings.find((s: any) => s.key === "store_logo");
-    if (!setting) return logoAsset.url;
+    if (!setting) return "/bagshoes-logo.png";
     try {
-      return JSON.parse(setting.value) || logoAsset.url;
+      return JSON.parse(setting.value) || "/bagshoes-logo.png";
     } catch {
-      return setting.value || logoAsset.url;
+      return setting.value || "/bagshoes-logo.png";
     }
   }, [settings, settingsLoading]);
 
@@ -265,8 +264,8 @@ export function AppSidebar({
             >
               <ChevronRight className="size-5" />
             </Button>
-            <div className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-gold/40 bg-white shadow-lg shadow-gold/10">
-              <img src={symbolAsset.url} alt="Logo" className="size-full object-contain p-1.5" />
+            <div className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-gold/40 bg-card shadow-lg shadow-gold/10">
+              <img src="/app-icon-192.png" alt="Logo" className="size-full object-contain" />
             </div>
           </div>
         ) : (

@@ -909,11 +909,11 @@ function POSModalInner({ open, onOpenChange, initialClient, initialItems }: POSM
                       </div>
                     </SelectTrigger>
                     <SelectContent>
-                       {accounts.map((acc: any) => (
-                         <SelectItem key={acc.id} value={acc.id}>
-                           {acc.name} ({brl(acc.balance)})
-                         </SelectItem>
-                       ))}
+                        {accounts.map((acc: any) => (
+                          <SelectItem key={acc.id} value={acc.id}>
+                            {acc.name} ({brl(acc.current_balance ?? acc.balance ?? acc.initial_balance ?? 0)})
+                          </SelectItem>
+                        ))}
                     </SelectContent>
                  </Select>
                </div>
