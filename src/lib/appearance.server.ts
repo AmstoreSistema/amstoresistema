@@ -83,10 +83,22 @@ function escapeXml(value: string) {
     .replace(/"/g, "&quot;");
 }
 
-/** Converte uma URL (http/https ou data:) em data URI base64 para embutir no SVG. */
+/** Converte uma URL (http/https, local ou data:) em data URI base64 para embutir no SVG. */
 export async function toDataUri(url: string): Promise<string | null> {
   if (!url) return null;
   if (url.startsWith("data:")) return url;
+  if (url.startsWith("/")) {
+    try {
+      const fs = await import("fs");
+      const path = await import("path");
+      const filePath = path.resolve(process.cwd(), "public", url.slice(1));
+      if (fs.existsSync(filePath)) {
+        const buf = fs.readFileSync(filePath);
+        const type = url.endsWith(".png") ? "image/png" : url.endsWith(".svg") ? "image/svg+xml" : "image/jpeg";
+        return `data:${type};base64,${buf.toString("base64")}`;
+      }
+    } catch {}
+  }
   try {
     const res = await fetch(url);
     if (!res.ok) return null;
@@ -105,7 +117,7 @@ export async function buildIconSvg(
   options: { maskable?: boolean } = {},
 ): Promise<string> {
   const size = 512;
-  const bg = /^#[0-9a-fA-F]{3,8}$/.test(appearance.splash_bg) ? appearance.splash_bg : "#0A0A0B";
+  const bg = /^#[0-9a-fA-F]{3,8}$/.test(appearance.splash_bg) ? appearance.splash_bg : "#D4AF37";
   const dataUri = await toDataUri(imageUrl);
   const pad = options.maskable ? Math.round(size * 0.1) : 0;
   const inner = size - pad * 2;
@@ -122,9 +134,9 @@ export async function buildIconSvg(
 export async function buildSplashSvg(appearance: Appearance): Promise<string> {
   const w = 1290;
   const h = 2796;
-  const bg = /^#[0-9a-fA-F]{3,8}$/.test(appearance.splash_bg) ? appearance.splash_bg : "#0A0A0B";
-  const logo = await toDataUri(appearance.splash_logo_url || appearance.app_icon_url || appearance.site_logo_url);
-  const logoSize = 480;
+  const bg = "#D4AF37";
+  const logo = await toDataUri("/bagshoes-logo-white.png");
+  const logoSize = 640;
   const content = logo
     ? `<image x="${(w - logoSize) / 2}" y="${(h - logoSize) / 2}" width="${logoSize}" height="${logoSize}" preserveAspectRatio="xMidYMid meet" href="${escapeXml(logo)}" />`
     : "";

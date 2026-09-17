@@ -39,13 +39,16 @@ function AuthPage() {
     (async () => {
       const { data } = await supabase.from("app_settings").select("value").eq("key", "store_logo").maybeSingle();
       if (!active) return;
-      let url = logoAsset.url;
+      let url = "/bagshoes-logo.png";
       if (data?.value) {
         try {
-          url = JSON.parse(data.value) || logoAsset.url;
+          url = JSON.parse(data.value) || "/bagshoes-logo.png";
         } catch {
-          url = data.value || logoAsset.url;
+          url = data.value || "/bagshoes-logo.png";
         }
+      }
+      if (typeof url === "string" && (url.includes("amstore-symbol") || url.includes("store-logo"))) {
+        url = "/bagshoes-logo.png";
       }
       setStoreLogo(url);
     })();
@@ -93,17 +96,12 @@ function AuthPage() {
         <div className="rounded-2xl border border-neutral-800/80 bg-[#121214] p-8 shadow-2xl">
           {/* Cabeçalho */}
           <div className="flex flex-col items-center text-center mb-6">
-            {storeLogo ? (
-              <img 
-                src={storeLogo} 
-                alt="Amstore" 
-                className="h-12 w-auto object-contain mb-4" 
-              />
-            ) : (
-              <div className="size-10 rounded-xl bg-neutral-800 flex items-center justify-center font-bold text-white mb-4">
-                A
-              </div>
-            )}
+            <img 
+              src={storeLogo || "/bagshoes-logo.png"} 
+              alt="Amstore Bagshoes" 
+              className="h-16 w-auto object-contain mb-4 drop-shadow-md" 
+              onError={(e) => { e.currentTarget.src = "/bagshoes-logo.png"; }}
+            />
 
             <h1 className="text-xl font-semibold text-white tracking-tight">
               {mode === "signin" ? "Acessar Sistema" : "Recuperar Senha"}

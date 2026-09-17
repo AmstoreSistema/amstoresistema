@@ -7,21 +7,21 @@ export const Route = createFileRoute("/manifest.webmanifest")({
       GET: async () => {
         const appearance = await getAppearance();
         const v = appearanceHash(appearance);
-        const name = appearance.site_name || "AmStore Gestão";
-        const shortName = name.length > 12 ? name.split(" ")[0]! : name;
+        const name = appearance.site_name || "Amstore Bagshoes";
+        const shortName = "Amstore";
 
         const manifest = {
           name,
           short_name: shortName,
-          description: appearance.site_tagline || name,
+          description: appearance.site_tagline || "Sistema de Gestão Amstore Bagshoes",
           id: "/",
           scope: "/",
           start_url: `/dashboard?appearance=${v}`,
           display: "standalone",
           orientation: "portrait",
           lang: "pt-BR",
-          background_color: appearance.splash_bg,
-          theme_color: appearance.splash_bg,
+          background_color: "#D4AF37",
+          theme_color: "#D4AF37",
           icons: [
             { src: `/app-icon-192-maskable.png?v=${v}`, sizes: "192x192", type: "image/png", purpose: "maskable" },
             { src: `/app-icon-512-maskable.png?v=${v}`, sizes: "512x512", type: "image/png", purpose: "maskable" },

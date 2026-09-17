@@ -231,12 +231,15 @@ export function AppSidebar({
     // Enquanto as configurações carregam, não exibe nenhuma logo (evita "piscar" a imagem padrão)
     if (settingsLoading) return null;
     const setting = settings.find((s: any) => s.key === "store_logo");
-    if (!setting) return "/bagshoes-logo.png";
+    if (!setting || !setting.value) return "/bagshoes-logo.png";
+    let val = setting.value;
     try {
-      return JSON.parse(setting.value) || "/bagshoes-logo.png";
-    } catch {
-      return setting.value || "/bagshoes-logo.png";
+      val = JSON.parse(setting.value) || "/bagshoes-logo.png";
+    } catch {}
+    if (typeof val === "string" && (val.includes("amstore-symbol") || val.includes("store-logo"))) {
+      return "/bagshoes-logo.png";
     }
+    return val || "/bagshoes-logo.png";
   }, [settings, settingsLoading]);
 
   return (
