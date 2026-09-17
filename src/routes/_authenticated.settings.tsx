@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Settings, User, Bell, Database, Zap, Save, UserPlus, Shield, Power, Download, Upload, Store, Loader2, FileJson, CheckCircle, Trash2, Link2, ShoppingBag, DollarSign, Package, Gift, RefreshCw, Printer } from "lucide-react";
+import { Settings, User, Bell, Database, Zap, Save, UserPlus, Shield, Power, Download, Upload, Store, Loader2, FileJson, CheckCircle, Trash2, Link2, ShoppingBag, DollarSign, Package, Gift, RefreshCw, Printer, Palette } from "lucide-react";
+import { BrandingSettingsTab } from "@/components/branding/BrandingSettingsTab";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { resetSystemData } from "@/lib/system-reset.functions";
 import { PageHeader } from "@/components/page-header";
@@ -21,7 +22,6 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { CheckCircle2, Info, Loader2 as Spinner, ImageIcon, AlertTriangle } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { supabase } from "@/integrations/supabase/client";
-import logoAsset from "@/assets/amstore-symbol.png.asset.json";
 import { ReceiptModal } from "@/components/sales/ReceiptModal";
 
 
@@ -597,9 +597,12 @@ function SettingsPage() {
       />
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 h-auto bg-transparent border-b border-border p-0 rounded-none mb-6 overflow-x-auto">
+        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 h-auto bg-transparent border-b border-border p-0 rounded-none mb-6 overflow-x-auto">
           <TabsTrigger value="geral" className="gap-2 data-[state=active]:border-b-2 data-[state=active]:border-gold rounded-none py-3">
             <Settings className="size-4" /> Geral
+          </TabsTrigger>
+          <TabsTrigger value="branding" className="gap-2 data-[state=active]:border-b-2 data-[state=active]:border-gold rounded-none py-3 text-gold font-bold">
+            <Palette className="size-4 text-gold" /> Identidade Visual
           </TabsTrigger>
           <TabsTrigger value="cupom" className="gap-2 data-[state=active]:border-b-2 data-[state=active]:border-gold rounded-none py-3">
             <Printer className="size-4" /> Cupom Fiscal
@@ -636,7 +639,7 @@ function SettingsPage() {
                         <Spinner className="size-8 animate-spin text-gold" />
                       ) : (
                         <img
-                          src={getSettingValue("store_logo") || logoAsset.url}
+                          src={getSettingValue("store_logo") || "/bagshoes-logo.png"}
                           alt="Logomarca da loja"
                           className="max-h-full max-w-full object-contain p-2"
                         />
@@ -2051,6 +2054,10 @@ function SettingsPage() {
                 </div>
               )}
           </Card>
+        </TabsContent>
+
+        <TabsContent value="branding" className="space-y-6">
+          <BrandingSettingsTab />
         </TabsContent>
       </Tabs>
 

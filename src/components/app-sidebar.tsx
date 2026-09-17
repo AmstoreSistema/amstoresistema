@@ -32,12 +32,11 @@ import {
 } from "lucide-react";
 import * as React from "react";
 import { useRows } from "@/lib/data";
-import logoAsset from "@/assets/amstore-symbol.png.asset.json";
-import symbolAsset from "@/assets/amstore-symbol.png.asset.json";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { clearActivity } from "@/lib/session-timeout";
 import { clearRefreshTokenCookie } from "@/lib/auth-cookie";
+import { useBranding } from "@/contexts/BrandingContext";
 
 function BrandBlock({ storeLogo }: { storeLogo: string | null }) {
   const [now, setNow] = React.useState<Date | null>(null);
@@ -225,22 +224,12 @@ export function AppSidebar({
   React.useEffect(() => {
     if (isMobile) setOpenMobile(false);
   }, [pathname, isMobile, setOpenMobile]);
-  const { data: settings = [], isLoading: settingsLoading } = useRows<any>("app_settings");
+  const { logoPrimary, logoCompact, loadingBranding } = useBranding();
 
   const storeLogo = React.useMemo<string | null>(() => {
-    // Enquanto as configurações carregam, não exibe nenhuma logo (evita "piscar" a imagem padrão)
-    if (settingsLoading) return null;
-    const setting = settings.find((s: any) => s.key === "store_logo");
-    if (!setting || !setting.value) return "/bagshoes-logo.png";
-    let val = setting.value;
-    try {
-      val = JSON.parse(setting.value) || "/bagshoes-logo.png";
-    } catch {}
-    if (typeof val === "string" && (val.includes("amstore-symbol") || val.includes("store-logo"))) {
-      return "/bagshoes-logo.png";
-    }
-    return val || "/bagshoes-logo.png";
-  }, [settings, settingsLoading]);
+    if (loadingBranding) return null;
+    return logoPrimary || "/bagshoes-logo.png";
+  }, [logoPrimary, loadingBranding]);
 
   return (
     <Sidebar collapsible="icon" className="border-sidebar-border scrollbar-hide [&_[data-sidebar=sidebar]]:scrollbar-hide">
@@ -268,7 +257,7 @@ export function AppSidebar({
               <ChevronRight className="size-5" />
             </Button>
             <div className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-gold/40 bg-card shadow-lg shadow-gold/10">
-              <img src="/app-icon-192.png" alt="Logo" className="size-full object-contain" />
+              <img src={logoCompact || "/bagshoes-logo.png"} alt="Logo" className="size-full object-contain" />
             </div>
           </div>
         ) : (

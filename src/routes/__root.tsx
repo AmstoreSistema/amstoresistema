@@ -11,6 +11,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { Toaster } from "@/components/ui/sonner";
 import { InstallPWA } from "@/components/InstallPWA";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { BrandingProvider, useBranding } from "@/contexts/BrandingContext";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
@@ -129,6 +130,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 function AppSplashScreen() {
   const [visible, setVisible] = useState(true);
   const [fading, setFading] = useState(false);
+  const { splash } = useBranding();
 
   useEffect(() => {
     // Mantém o splash visível por um curto momento e desvanece suavemente
@@ -157,7 +159,7 @@ function AppSplashScreen() {
     >
       <div className="relative flex flex-col items-center justify-center px-6 text-center">
         <img
-          src="/bagshoes-logo-white.png"
+          src={splash || "/bagshoes-logo-white.png"}
           alt="Amstore Bagshoes"
           className="w-48 sm:w-64 max-w-[80vw] h-auto object-contain drop-shadow-[0_10px_25px_rgba(0,0,0,0.2)] animate-pulse"
         />
@@ -178,7 +180,6 @@ function RootShell({ children }: { children: ReactNode }) {
         <HeadContent />
       </head>
       <body>
-        <AppSplashScreen />
         <ErrorBoundary>
           {children}
           <InstallPWA />
@@ -217,8 +218,11 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-      <Outlet />
+      <BrandingProvider>
+        <AppSplashScreen />
+        {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
+        <Outlet />
+      </BrandingProvider>
     </QueryClientProvider>
   );
 }

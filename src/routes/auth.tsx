@@ -6,9 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useEffect, useState } from "react";
-import logoAsset from "@/assets/amstore-symbol.png.asset.json";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { useBranding } from "@/contexts/BrandingContext";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({
@@ -32,30 +32,7 @@ function AuthPage() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [storeLogo, setStoreLogo] = useState<string | null>(null);
-
-  useEffect(() => {
-    let active = true;
-    (async () => {
-      const { data } = await supabase.from("app_settings").select("value").eq("key", "store_logo").maybeSingle();
-      if (!active) return;
-      let url = "/bagshoes-logo.png";
-      if (data?.value) {
-        try {
-          url = JSON.parse(data.value) || "/bagshoes-logo.png";
-        } catch {
-          url = data.value || "/bagshoes-logo.png";
-        }
-      }
-      if (typeof url === "string" && (url.includes("amstore-symbol") || url.includes("store-logo"))) {
-        url = "/bagshoes-logo.png";
-      }
-      setStoreLogo(url);
-    })();
-    return () => {
-      active = false;
-    };
-  }, []);
+  const { logoLogin } = useBranding();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -97,7 +74,7 @@ function AuthPage() {
           {/* Cabeçalho */}
           <div className="flex flex-col items-center text-center mb-6">
             <img 
-              src={storeLogo || "/bagshoes-logo.png"} 
+              src={logoLogin || "/bagshoes-logo.png"} 
               alt="Amstore Bagshoes" 
               className="h-16 w-auto object-contain mb-4 drop-shadow-md" 
               onError={(e) => { e.currentTarget.src = "/bagshoes-logo.png"; }}

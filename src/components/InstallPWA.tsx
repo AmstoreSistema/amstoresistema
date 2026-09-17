@@ -3,6 +3,7 @@ import { Download, Share, X, Smartphone, MoreVertical } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { motion, AnimatePresence } from 'framer-motion';
 import { setupPWA } from '@/lib/pwa';
+import { useBranding } from '@/contexts/BrandingContext';
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -16,6 +17,7 @@ export function InstallPWA() {
   const [showInstallModal, setShowInstallModal] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const { pwaIcon } = useBranding();
 
   useEffect(() => {
     void setupPWA();
@@ -123,7 +125,7 @@ export function InstallPWA() {
             <div className="flex items-start gap-4">
               <div className="size-16 flex-shrink-0 overflow-hidden rounded-2xl border-2 border-gold/40 bg-black/40 shadow-lg shadow-gold/10 p-0.5">
                 <img 
-                  src="/app-icon-192.png" 
+                  src={pwaIcon || "/app-icon-192.png"} 
                   alt="Amstore Bagshoes" 
                   className="size-full rounded-[14px] object-cover" 
                 />

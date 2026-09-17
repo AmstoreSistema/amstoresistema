@@ -9,6 +9,28 @@ export const Route = createFileRoute("/splash-startup.png")({
     handlers: {
       GET: async () => {
         try {
+          const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+          const { data } = await supabaseAdmin
+            .from("system_branding")
+            .select("file_url, file_path")
+            .eq("key", "splash")
+            .maybeSingle();
+
+          if (data?.file_path) {
+            const { data: fileBlob } = await supabaseAdmin.storage.from("branding").download(data.file_path);
+            if (fileBlob) {
+              const buf = await fileBlob.arrayBuffer();
+              return new Response(buf, {
+                headers: {
+                  "Content-Type": fileBlob.type || "image/png",
+                  "Cache-Control": "public, max-age=3600, must-revalidate",
+                },
+              });
+            }
+          }
+        } catch {}
+
+        try {
           const p = path.resolve(process.cwd(), "public", "splash-startup.png");
           if (fs.existsSync(p)) {
             const buf = fs.readFileSync(p);
