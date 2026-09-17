@@ -1,9 +1,15 @@
-const CACHE_NAME = "amstore-pwa-v1";
+const CACHE_NAME = "amstore-pwa-v2";
 const PRECACHE_ASSETS = [
   "/",
   "/manifest.json",
+  "/manifest.webmanifest",
   "/app-icon-192.png",
   "/app-icon-512.png",
+  "/app-icon-192-maskable.png",
+  "/app-icon-512-maskable.png",
+  "/bagshoes-logo-white.png",
+  "/bagshoes-logo.png",
+  "/splash-startup.png",
   "/favicon.png"
 ];
 

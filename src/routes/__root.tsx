@@ -7,7 +7,7 @@ import {
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Toaster } from "@/components/ui/sonner";
 import { InstallPWA } from "@/components/InstallPWA";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
@@ -126,6 +126,51 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   errorComponent: ErrorComponent,
 });
 
+function AppSplashScreen() {
+  const [visible, setVisible] = useState(true);
+  const [fading, setFading] = useState(false);
+
+  useEffect(() => {
+    // Mantém o splash visível por um curto momento e desvanece suavemente
+    const timer = setTimeout(() => {
+      setFading(true);
+      const removeTimer = setTimeout(() => {
+        setVisible(false);
+      }, 500);
+      return () => clearTimeout(removeTimer);
+    }, 700);
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  if (!visible) return null;
+
+  return (
+    <div
+      className={`fixed inset-0 z-[99999] flex flex-col items-center justify-center transition-opacity duration-500 ease-out select-none pointer-events-none ${
+        fading ? "opacity-0" : "opacity-100"
+      }`}
+      style={{
+        backgroundColor: "#D4AF37",
+        background: "radial-gradient(circle at center, #E5C158 0%, #D4AF37 60%, #B89020 100%)",
+      }}
+    >
+      <div className="relative flex flex-col items-center justify-center px-6 text-center">
+        <img
+          src="/bagshoes-logo-white.png"
+          alt="Amstore Bagshoes"
+          className="w-48 sm:w-64 max-w-[80vw] h-auto object-contain drop-shadow-[0_10px_25px_rgba(0,0,0,0.2)] animate-pulse"
+        />
+        <div className="mt-8 flex items-center gap-2">
+          <div className="size-2.5 rounded-full bg-white animate-bounce [animation-delay:-0.3s]" />
+          <div className="size-2.5 rounded-full bg-white animate-bounce [animation-delay:-0.15s]" />
+          <div className="size-2.5 rounded-full bg-white animate-bounce" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function RootShell({ children }: { children: ReactNode }) {
   return (
     <html lang="pt-BR">
@@ -133,6 +178,7 @@ function RootShell({ children }: { children: ReactNode }) {
         <HeadContent />
       </head>
       <body>
+        <AppSplashScreen />
         <ErrorBoundary>
           {children}
           <InstallPWA />
