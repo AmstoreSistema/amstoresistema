@@ -68,17 +68,6 @@ interface CartItem {
   skipStockDecrement?: boolean;
 }
 
-interface Condicional {
-  id: string;
-  codigo: string;
-  client_id: string | null;
-  client_name: string | null;
-  status: string;
-  notes: string | null;
-  created_at: string;
-  closed_at: string | null;
-}
-
 interface CondicionalItem {
   id: string;
   condicional_id: string;
@@ -89,6 +78,48 @@ interface CondicionalItem {
   price: number;
   quantity: number;
   status: string; // pendente | confirmado | devolvido
+}
+
+interface Condicional {
+  id: string;
+  codigo: string;
+  client_id: string | null;
+  client_name: string | null;
+  status: string;
+  notes: string | null;
+  created_at: string;
+  closed_at: string | null;
+  condicional_items?: CondicionalItem[];
+}
+
+export function getCondicionalStats(c: Condicional) {
+  const items = c.condicional_items || [];
+  const totalCount = items.length;
+  const totalQtd = items.reduce((s, i) => s + (i.quantity || 1), 0);
+  const pendentes = items.filter(i => i.status === "pendente").length;
+  const confirmados = items.filter(i => i.status === "confirmado").length;
+  const devolvidos = items.filter(i => i.status === "devolvido").length;
+  const totalConfirmadoVal = items
+    .filter(i => i.status === "confirmado")
+    .reduce((s, i) => s + i.price * i.quantity, 0);
+
+  // Considera DEVOLVIDO se status for 'devolvido' ou se todos os itens cadastrados já foram devolvidos
+  const isDevolvido = c.status === "devolvido" || (items.length > 0 && devolvidos === items.length);
+  const isFechado = c.status === "fechado" || c.status === "faturado";
+  const isAberto = !isDevolvido && !isFechado;
+
+  return {
+    items,
+    totalCount,
+    totalQtd,
+    pendentes,
+    confirmados,
+    devolvidos,
+    totalConfirmadoVal,
+    isDevolvido,
+    isFechado,
+    isAberto,
+  };
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -109,7 +140,12 @@ function CondicionaisPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("condicionais" as any)
-        .select("id, codigo, client_id, client_name, status, notes, created_at, closed_at")
+        .select(`
+          id, codigo, client_id, client_name, status, notes, created_at, closed_at,
+          condicional_items (
+            id, condicional_id, stock_id, product_id, product_name, numeracao, price, quantity, status
+          )
+        `)
         .order("created_at", { ascending: false });
       if (error) throw error;
       return (data as any[]) ?? [];
@@ -119,6 +155,7 @@ function CondicionaisPage() {
   // ── Aba / estado global ──
   const [activeTab, setActiveTab] = React.useState("saida");
   const [term, setTerm] = React.useState("");
+  const [filterStatus, setFilterStatus] = React.useState<"todos" | "aberto" | "devolvido" | "fechado">("aberto");
 
   // ── Estado da aba "Nova Saída" ──
   const [client, setClient] = React.useState<any>(null);
@@ -138,18 +175,37 @@ function CondicionaisPage() {
   const [posInitialClient, setPosInitialClient] = React.useState<any>(null);
   const [posInitialItems, setPosInitialItems] = React.useState<CartItem[]>([]);
 
-  // ── Estatísticas ──
-  const abertos = React.useMemo(() => condicionais.filter(c => c.status === "aberto"), [condicionais]);
-  const fechados = React.useMemo(() => condicionais.filter(c => c.status === "fechado"), [condicionais]);
+  // ── Estatísticas e Categorização ──
+  const { abertos, devolvidosList, fechadosList } = React.useMemo(() => {
+    const ab: Condicional[] = [];
+    const dev: Condicional[] = [];
+    const fech: Condicional[] = [];
 
-  // ── Filtro na aba retorno ──
-  const filteredAbertos = React.useMemo(() => {
-    const t = term.toLowerCase();
-    return abertos.filter(c =>
+    for (const c of condicionais) {
+      const stats = getCondicionalStats(c);
+      if (stats.isDevolvido) dev.push(c);
+      else if (stats.isFechado) fech.push(c);
+      else ab.push(c);
+    }
+
+    return { abertos: ab, devolvidosList: dev, fechadosList: fech };
+  }, [condicionais]);
+
+  // ── Filtro na aba de condicionais ──
+  const filteredCondicionais = React.useMemo(() => {
+    const t = term.toLowerCase().trim();
+    let list = condicionais;
+    if (filterStatus === "aberto") list = abertos;
+    else if (filterStatus === "devolvido") list = devolvidosList;
+    else if (filterStatus === "fechado") list = fechadosList;
+
+    if (!t) return list;
+    return list.filter(c =>
       (c.codigo || "").toLowerCase().includes(t) ||
-      (c.client_name || "").toLowerCase().includes(t)
+      (c.client_name || "").toLowerCase().includes(t) ||
+      (c.notes || "").toLowerCase().includes(t)
     );
-  }, [abertos, term]);
+  }, [condicionais, abertos, devolvidosList, fechadosList, filterStatus, term]);
 
   // ── Adicionar item ao carrinho (compatível com ProductSearch) ──
   const handleAddProduct = (stock: any, numeracao: string | null) => {
@@ -368,14 +424,51 @@ function CondicionaisPage() {
         }
       }
 
-      setCondicionalItems(prev => prev.map(i => i.id === item.id ? { ...i, status: "devolvido" } : i));
-      toast.success(`"${item.product_name}" devolvido ao estoque`);
+      const nextItems = condicionalItems.map(i => i.id === item.id ? { ...i, status: "devolvido" } : i);
+      setCondicionalItems(nextItems);
+
+      // Se TODOS os itens agora estão devolvidos, atualiza o condicional para 'devolvido'
+      const allDevolvidos = nextItems.length > 0 && nextItems.every(i => i.status === "devolvido");
+      if (allDevolvidos && activeCondicional) {
+        await supabase
+          .from("condicionais" as any)
+          .update({ status: "devolvido", closed_at: new Date().toISOString() })
+          .eq("id", activeCondicional.id);
+
+        setActiveCondicional(prev => prev ? { ...prev, status: "devolvido", closed_at: new Date().toISOString() } : null);
+        toast.success(`"${item.product_name}" devolvido. Todos os itens foram devolvidos: Condicional marcado como DEVOLVIDO!`);
+      } else {
+        toast.success(`"${item.product_name}" devolvido ao estoque`);
+      }
+
+      await refetchCondicionais();
+      qc.invalidateQueries({ queryKey: ["condicionais"] });
       qc.invalidateQueries({ queryKey: ["stock_products"] });
       qc.invalidateQueries({ queryKey: ["stock_products_with_images"] });
     } catch (e: any) {
       toast.error(e?.message ?? "Erro ao devolver item");
     } finally {
       setProcessingId(null);
+    }
+  };
+
+  // ── Finalizar condicional como DEVOLVIDO ──
+  const handleFinalizarDevolvido = async () => {
+    if (!activeCondicional) return;
+    try {
+      const { error } = await supabase
+        .from("condicionais" as any)
+        .update({ status: "devolvido", closed_at: new Date().toISOString() })
+        .eq("id", activeCondicional.id);
+      if (error) throw error;
+
+      setActiveCondicional(prev => prev ? { ...prev, status: "devolvido", closed_at: new Date().toISOString() } : null);
+      toast.success("Condicional registrado e finalizado como DEVOLVIDO!");
+      await refetchCondicionais();
+      qc.invalidateQueries({ queryKey: ["condicionais"] });
+      setRetornoOpen(false);
+    } catch (e: any) {
+      toast.error(e?.message ?? "Erro ao finalizar devolução");
     }
   };
 
@@ -439,6 +532,11 @@ function CondicionaisPage() {
   const pendentes = condicionalItems.filter(i => i.status === "pendente").length;
   const confirmados = condicionalItems.filter(i => i.status === "confirmado").length;
   const devolvidos = condicionalItems.filter(i => i.status === "devolvido").length;
+  const valorConfirmados = condicionalItems
+    .filter(i => i.status === "confirmado")
+    .reduce((s, i) => s + i.price * i.quantity, 0);
+
+  const activeStats = activeCondicional ? getCondicionalStats(activeCondicional) : null;
 
   // ──────────────────────────────────────────────────────────────────────────
   return (
@@ -458,9 +556,10 @@ function CondicionaisPage() {
       />
 
       {/* Stats */}
-      <div className="grid gap-4 sm:grid-cols-3">
-        <StatCard title="Condicionais Abertos" value={abertos.length} icon={Clock} tone="warning" />
-        <StatCard title="Fechados" value={fechados.length} icon={CheckCircle2} tone="dark" />
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <StatCard title="Em Aberto" value={abertos.length} icon={Clock} tone="warning" />
+        <StatCard title="Devolvidos" value={devolvidosList.length} icon={RotateCcw} tone="dark" />
+        <StatCard title="Vendas Confirmadas" value={fechadosList.length} icon={CheckCircle2} tone="success" />
         <StatCard title="Total de Saídas" value={condicionais.length} icon={PackageCheck} tone="gold" />
       </div>
 
@@ -470,9 +569,9 @@ function CondicionaisPage() {
             <Plus className="size-4 mr-2" />Nova Saída
           </TabsTrigger>
           <TabsTrigger value="retorno" className="rounded-xl px-5 font-semibold data-[state=active]:bg-gradient-gold data-[state=active]:text-primary-foreground data-[state=active]:shadow-gold">
-            <RotateCcw className="size-4 mr-2" />Condicionais Abertos
+            <PackageCheck className="size-4 mr-2" />Condicionais
             {abertos.length > 0 && (
-              <Badge className="ml-2 h-5 min-w-5 rounded-full bg-destructive/80 text-[10px] font-black px-1.5">
+              <Badge className="ml-2 h-5 min-w-5 rounded-full bg-amber-500 text-black text-[10px] font-black px-1.5">
                 {abertos.length}
               </Badge>
             )}
@@ -519,7 +618,7 @@ function CondicionaisPage() {
               </Card>
             </div>
 
-            {/* Coluna direita: carrinho */}
+            {/* Coluna direita: carrinho com scrollbar visível */}
             <div className="lg:col-span-2 space-y-4">
               <Card className="rounded-3xl border-border/50 bg-card overflow-hidden">
                 <CardContent className="p-5 space-y-3">
@@ -527,7 +626,7 @@ function CondicionaisPage() {
                     <ShoppingCart className="size-4 text-gold" />
                     <span className="font-bold text-sm">Itens da Saída</span>
                     {cartItems.length > 0 && (
-                      <Badge className="ml-auto bg-gold/10 text-gold text-xs font-black border-none">
+                      <Badge className="ml-auto bg-gold/15 text-gold text-xs font-black border-none px-2 py-0.5">
                         {cartItems.length} {cartItems.length === 1 ? "item" : "itens"}
                       </Badge>
                     )}
@@ -539,39 +638,37 @@ function CondicionaisPage() {
                       <p className="text-sm">Nenhum item adicionado</p>
                     </div>
                   ) : (
-                    <ScrollArea className="max-h-[340px]">
-                      <div className="space-y-2">
-                        {cartItems.map(item => (
-                          <div
-                            key={item.id}
-                            className="flex items-center gap-3 rounded-2xl bg-muted/30 border border-border/30 p-3"
-                          >
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm font-bold truncate">{item.name}</p>
-                              <div className="flex items-center gap-2 mt-0.5">
-                                {item.numeracao && (
-                                  <Badge className="bg-blue-600/10 text-blue-600 border-none text-[10px] font-black h-4 px-1.5">
-                                    <Hash className="size-2.5 mr-0.5" />Nº {item.numeracao}
-                                  </Badge>
-                                )}
-                                <span className="text-[11px] text-muted-foreground">Qtd: {item.quantity}</span>
-                              </div>
+                    <div className="max-h-[380px] overflow-y-auto pr-2 space-y-2.5 [scrollbar-width:thin] [scrollbar-color:rgba(212,175,55,0.7)_rgba(0,0,0,0.05)] [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-black/5 [&::-webkit-scrollbar-track]:rounded-full [&::-webkit-scrollbar-thumb]:bg-amber-500/70 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-amber-500">
+                      {cartItems.map(item => (
+                        <div
+                          key={item.id}
+                          className="flex items-center gap-3 rounded-2xl bg-muted/30 border border-border/30 p-3 hover:border-gold/30 transition-colors"
+                        >
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-bold truncate">{item.name}</p>
+                            <div className="flex items-center gap-2 mt-0.5">
+                              {item.numeracao && (
+                                <Badge className="bg-blue-600/10 text-blue-600 border-none text-[10px] font-black h-4 px-1.5">
+                                  <Hash className="size-2.5 mr-0.5" />Nº {item.numeracao}
+                                </Badge>
+                              )}
+                              <span className="text-[11px] text-muted-foreground">Qtd: {item.quantity}</span>
                             </div>
-                            <div className="text-right">
-                              <p className="text-sm font-black text-gold">{brl(item.price * item.quantity)}</p>
-                            </div>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="size-7 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-                              onClick={() => setCartItems(prev => prev.filter(i => i.id !== item.id))}
-                            >
-                              <Trash2 className="size-3.5" />
-                            </Button>
                           </div>
-                        ))}
-                      </div>
-                    </ScrollArea>
+                          <div className="text-right">
+                            <p className="text-sm font-black text-gold">{brl(item.price * item.quantity)}</p>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="size-7 text-muted-foreground hover:text-destructive hover:bg-destructive/10 shrink-0"
+                            onClick={() => setCartItems(prev => prev.filter(i => i.id !== item.id))}
+                          >
+                            <Trash2 className="size-3.5" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
                   )}
 
                   {cartItems.length > 0 && (
@@ -606,74 +703,200 @@ function CondicionaisPage() {
           </div>
         </TabsContent>
 
-        {/* ── ABA: Condicionais Abertos ── */}
+        {/* ── ABA: Lista de Condicionais (com filtros e status) ── */}
         <TabsContent value="retorno" className="mt-6">
           <div className="space-y-4">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                placeholder="Buscar por código ou cliente..."
-                className="pl-10 h-11 rounded-2xl bg-card border-border/40"
-                value={term}
-                onChange={e => setTerm(e.target.value)}
-              />
+            {/* Barra de busca e filtros */}
+            <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar por código ou cliente..."
+                  className="pl-10 h-11 rounded-2xl bg-card border-border/40"
+                  value={term}
+                  onChange={e => setTerm(e.target.value)}
+                />
+              </div>
+
+              {/* Filtros rápidos */}
+              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
+                <Button
+                  size="sm"
+                  variant={filterStatus === "aberto" ? "default" : "outline"}
+                  className={`rounded-xl text-xs font-bold h-9 ${
+                    filterStatus === "aberto"
+                      ? "bg-amber-500 hover:bg-amber-600 text-black border-none"
+                      : "border-border/40 text-muted-foreground"
+                  }`}
+                  onClick={() => setFilterStatus("aberto")}
+                >
+                  <Clock className="size-3.5 mr-1" />
+                  Em Aberto ({abertos.length})
+                </Button>
+                <Button
+                  size="sm"
+                  variant={filterStatus === "devolvido" ? "default" : "outline"}
+                  className={`rounded-xl text-xs font-bold h-9 ${
+                    filterStatus === "devolvido"
+                      ? "bg-slate-700 hover:bg-slate-800 text-white border-none"
+                      : "border-border/40 text-muted-foreground"
+                  }`}
+                  onClick={() => setFilterStatus("devolvido")}
+                >
+                  <RotateCcw className="size-3.5 mr-1" />
+                  Devolvidos ({devolvidosList.length})
+                </Button>
+                <Button
+                  size="sm"
+                  variant={filterStatus === "fechado" ? "default" : "outline"}
+                  className={`rounded-xl text-xs font-bold h-9 ${
+                    filterStatus === "fechado"
+                      ? "bg-emerald-600 hover:bg-emerald-700 text-white border-none"
+                      : "border-border/40 text-muted-foreground"
+                  }`}
+                  onClick={() => setFilterStatus("fechado")}
+                >
+                  <CheckCircle2 className="size-3.5 mr-1" />
+                  Vendas ({fechadosList.length})
+                </Button>
+                <Button
+                  size="sm"
+                  variant={filterStatus === "todos" ? "default" : "outline"}
+                  className={`rounded-xl text-xs font-bold h-9 ${
+                    filterStatus === "todos"
+                      ? "bg-card text-foreground border-border"
+                      : "border-border/40 text-muted-foreground"
+                  }`}
+                  onClick={() => setFilterStatus("todos")}
+                >
+                  Todos ({condicionais.length})
+                </Button>
+              </div>
             </div>
 
-            {filteredAbertos.length === 0 ? (
+            {filteredCondicionais.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-20 text-muted-foreground/50 gap-3">
                 <PackageCheck className="size-12" />
-                <p className="font-semibold">Nenhum condicional aberto</p>
-                <p className="text-sm">Registre uma nova saída na aba ao lado</p>
+                <p className="font-semibold">Nenhum condicional encontrado</p>
+                <p className="text-sm">Tente ajustar a busca ou o filtro acima</p>
               </div>
             ) : (
               <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-                {filteredAbertos.map(cond => (
-                  <Card
-                    key={cond.id}
-                    className="rounded-3xl border-border/50 bg-card hover:shadow-xl hover:shadow-gold/5 transition-all cursor-pointer group"
-                    onClick={() => handleOpenRetorno(cond)}
-                  >
-                    <CardContent className="p-5">
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1">
-                            <Badge className="bg-warning/10 text-warning border-none text-[10px] font-black uppercase">
-                              Aberto
-                            </Badge>
-                            <span className="text-xs font-mono text-muted-foreground">{cond.codigo}</span>
+                {filteredCondicionais.map(cond => {
+                  const stats = getCondicionalStats(cond);
+                  return (
+                    <Card
+                      key={cond.id}
+                      className={`rounded-3xl border transition-all cursor-pointer group hover:shadow-xl hover:shadow-gold/5 ${
+                        stats.isDevolvido
+                          ? "border-border/60 bg-muted/20 opacity-90"
+                          : stats.isFechado
+                          ? "border-emerald-500/20 bg-card"
+                          : "border-amber-500/30 bg-card shadow-sm"
+                      }`}
+                      onClick={() => handleOpenRetorno(cond)}
+                    >
+                      <CardContent className="p-5">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+                              {stats.isDevolvido ? (
+                                <Badge className="bg-slate-500/15 text-slate-700 dark:text-slate-300 border-none text-[10px] font-black uppercase">
+                                  <RotateCcw className="size-3 mr-1" />
+                                  DEVOLVIDO
+                                </Badge>
+                              ) : stats.isFechado ? (
+                                <Badge className="bg-emerald-500/15 text-emerald-600 border-none text-[10px] font-black uppercase">
+                                  <CheckCircle2 className="size-3 mr-1" />
+                                  VENDA CONFIRMADA
+                                </Badge>
+                              ) : (
+                                <Badge className="bg-amber-500/15 text-amber-600 dark:text-amber-400 border-none text-[10px] font-black uppercase">
+                                  <Clock className="size-3 mr-1" />
+                                  EM ABERTO
+                                </Badge>
+                              )}
+                              <span className="text-xs font-mono text-muted-foreground">{cond.codigo}</span>
+                            </div>
+
+                            <p className="font-bold text-sm truncate">{cond.client_name || "Consumidor"}</p>
+
+                            <div className="flex items-center gap-2 mt-2 text-xs flex-wrap">
+                              <span className="inline-flex items-center gap-1 text-muted-foreground">
+                                <Calendar className="size-3" />
+                                {dateBR(cond.created_at)}
+                              </span>
+                              <span className="text-muted-foreground">·</span>
+                              <span className="font-semibold text-foreground">
+                                {stats.totalCount > 0 ? `${stats.totalCount} ${stats.totalCount === 1 ? "item" : "itens"}` : "Itens"}
+                              </span>
+                            </div>
+
+                            {/* Breakdown discriminado dos itens */}
+                            <div className="flex items-center gap-1.5 mt-2.5 text-[11px] font-semibold flex-wrap">
+                              {stats.confirmados > 0 && (
+                                <span className="text-emerald-700 dark:text-emerald-300 bg-emerald-500/10 px-2 py-0.5 rounded-lg">
+                                  ✅ {stats.confirmados} vendido{stats.confirmados > 1 ? "s" : ""}
+                                </span>
+                              )}
+                              {stats.devolvidos > 0 && (
+                                <span className="text-slate-700 dark:text-slate-300 bg-slate-500/10 px-2 py-0.5 rounded-lg">
+                                  🔄 {stats.devolvidos} devolvido{stats.devolvidos > 1 ? "s" : ""}
+                                </span>
+                              )}
+                              {stats.pendentes > 0 && (
+                                <span className="text-amber-700 dark:text-amber-300 bg-amber-500/15 px-2 py-0.5 rounded-lg">
+                                  ⏳ {stats.pendentes} pendente{stats.pendentes > 1 ? "s" : ""}
+                                </span>
+                              )}
+                            </div>
                           </div>
-                          <p className="font-bold text-sm truncate">{cond.client_name || "Consumidor"}</p>
-                          <div className="flex items-center gap-1.5 mt-1.5 text-xs text-muted-foreground">
-                            <Calendar className="size-3" />
-                            {dateBR(cond.created_at)}
-                          </div>
+                          <ChevronRight className="size-5 text-muted-foreground/40 group-hover:text-gold transition-colors shrink-0 mt-1" />
                         </div>
-                        <ChevronRight className="size-5 text-muted-foreground/40 group-hover:text-gold transition-colors shrink-0 mt-1" />
-                      </div>
-                      {cond.notes && (
-                        <p className="mt-3 text-xs text-muted-foreground italic line-clamp-1 border-t border-border/30 pt-2">
-                          {cond.notes}
-                        </p>
-                      )}
-                    </CardContent>
-                  </Card>
-                ))}
+
+                        {cond.notes && (
+                          <p className="mt-3 text-xs text-muted-foreground italic line-clamp-1 border-t border-border/30 pt-2">
+                            {cond.notes}
+                          </p>
+                        )}
+                      </CardContent>
+                    </Card>
+                  );
+                })}
               </div>
             )}
           </div>
         </TabsContent>
       </Tabs>
 
-      {/* ─── Modal de Retorno ─── */}
+      {/* ─── Modal de Retorno / Confirmação de Venda ─── */}
       <Dialog open={retornoOpen} onOpenChange={setRetornoOpen}>
-        <DialogContent className="max-w-2xl max-h-[95vh] rounded-3xl p-0 border-none bg-white overflow-hidden [&>button]:hidden">
-          <DialogHeader className="border-b px-6 py-4 sticky top-0 bg-white z-10">
+        <DialogContent className="max-w-2xl max-h-[95vh] rounded-3xl p-0 border-none bg-card overflow-hidden [&>button]:hidden shadow-2xl">
+          <DialogHeader className="border-b px-6 py-4 sticky top-0 bg-card z-10">
             <div className="flex items-center justify-between">
               <div>
-                <DialogTitle className="text-lg font-bold flex items-center gap-2">
-                  <PackageCheck className="size-5 text-gold" />
-                  Condicional {activeCondicional?.codigo}
-                </DialogTitle>
+                <div className="flex items-center gap-2">
+                  <DialogTitle className="text-lg font-bold flex items-center gap-2">
+                    <PackageCheck className="size-5 text-gold" />
+                    Condicional {activeCondicional?.codigo}
+                  </DialogTitle>
+                  {activeStats?.isDevolvido ? (
+                    <Badge className="bg-slate-500/15 text-slate-700 dark:text-slate-300 border-none text-[10px] font-black uppercase">
+                      <RotateCcw className="size-3 mr-1" />
+                      DEVOLVIDO
+                    </Badge>
+                  ) : activeStats?.isFechado ? (
+                    <Badge className="bg-emerald-500/15 text-emerald-600 border-none text-[10px] font-black uppercase">
+                      <CheckCircle2 className="size-3 mr-1" />
+                      VENDA CONFIRMADA
+                    </Badge>
+                  ) : (
+                    <Badge className="bg-amber-500/15 text-amber-600 dark:text-amber-400 border-none text-[10px] font-black uppercase">
+                      <Clock className="size-3 mr-1" />
+                      EM ABERTO
+                    </Badge>
+                  )}
+                </div>
                 <p className="text-sm text-muted-foreground mt-0.5">
                   {activeCondicional?.client_name || "Consumidor"} · {dateBR(activeCondicional?.created_at ?? "")}
                 </p>
@@ -684,7 +907,7 @@ function CondicionaisPage() {
             </div>
           </DialogHeader>
 
-          <ScrollArea className="flex-1 max-h-[60vh]">
+          <ScrollArea className="flex-1 max-h-[55vh]">
             <div className="p-6 space-y-3">
               {loadingItems ? (
                 <div className="flex items-center justify-center py-12">
@@ -693,7 +916,7 @@ function CondicionaisPage() {
               ) : condicionalItems.length === 0 ? (
                 <div className="text-center py-12 text-muted-foreground">
                   <AlertCircle className="size-10 mx-auto mb-2 opacity-40" />
-                  <p>Nenhum item encontrado</p>
+                  <p>Nenhum item encontrado neste condicional</p>
                 </div>
               ) : (
                 condicionalItems.map(item => (
@@ -701,9 +924,9 @@ function CondicionaisPage() {
                     key={item.id}
                     className={`flex items-center gap-4 rounded-2xl border p-4 transition-all ${
                       item.status === "confirmado"
-                        ? "border-success/30 bg-success/5"
+                        ? "border-emerald-500/30 bg-emerald-500/5"
                         : item.status === "devolvido"
-                        ? "border-border/30 bg-muted/20 opacity-60"
+                        ? "border-border/30 bg-muted/20 opacity-70"
                         : "border-border/50 bg-card"
                     }`}
                   >
@@ -720,26 +943,28 @@ function CondicionaisPage() {
                       </div>
                     </div>
 
-                    {/* Badge de status */}
+                    {/* Status do item */}
                     <div className="shrink-0">
                       {item.status === "confirmado" && (
-                        <Badge className="bg-success/10 text-success border-none font-black text-[10px] uppercase">
-                          <CheckCircle2 className="size-3 mr-1" />Confirmado
+                        <Badge className="bg-emerald-500/15 text-emerald-600 border-none font-black text-[10px] uppercase">
+                          <CheckCircle2 className="size-3 mr-1" />
+                          Vendido / Confirmado
                         </Badge>
                       )}
                       {item.status === "devolvido" && (
-                        <Badge className="bg-muted text-muted-foreground border-none font-black text-[10px] uppercase">
-                          <RotateCcw className="size-3 mr-1" />Devolvido
+                        <Badge className="bg-slate-500/15 text-slate-600 dark:text-slate-300 border-none font-black text-[10px] uppercase">
+                          <RotateCcw className="size-3 mr-1" />
+                          Devolvido
                         </Badge>
                       )}
                     </div>
 
-                    {/* Botões de ação (só para pendentes) */}
+                    {/* Botões de ação (apenas se item estiver pendente) */}
                     {item.status === "pendente" && (
                       <div className="flex gap-2 shrink-0">
                         <Button
                           size="sm"
-                          className="h-8 gap-1.5 rounded-xl bg-success hover:bg-success/90 text-white font-bold text-xs"
+                          className="h-8 gap-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-sm"
                           disabled={processingId === item.id}
                           onClick={() => handleConfirmar(item)}
                         >
@@ -748,12 +973,12 @@ function CondicionaisPage() {
                           ) : (
                             <CheckCircle2 className="size-3.5" />
                           )}
-                          Confirmar
+                          Vendido
                         </Button>
                         <Button
                           size="sm"
                           variant="outline"
-                          className="h-8 gap-1.5 rounded-xl font-bold text-xs text-warning border-warning/40 hover:bg-warning/10"
+                          className="h-8 gap-1.5 rounded-xl font-bold text-xs text-amber-600 border-amber-500/40 hover:bg-amber-500/10"
                           disabled={processingId === item.id}
                           onClick={() => handleDevolver(item)}
                         >
@@ -772,25 +997,66 @@ function CondicionaisPage() {
             </div>
           </ScrollArea>
 
-          {/* Resumo + Botão Faturar */}
+          {/* Resumo discriminado + Botões de Confirmação */}
           {!loadingItems && condicionalItems.length > 0 && (
-            <div className="border-t bg-muted/30 px-6 py-4 space-y-3">
-              <div className="flex items-center justify-between text-sm">
-                <div className="flex gap-4 text-muted-foreground">
-                  <span>🟡 Pendentes: <strong className="text-foreground">{pendentes}</strong></span>
-                  <span>✅ Confirmados: <strong className="text-success">{confirmados}</strong></span>
-                  <span>🔄 Devolvidos: <strong className="text-foreground">{devolvidos}</strong></span>
+            <div className="border-t bg-muted/20 px-6 py-4 space-y-4">
+              {/* Card com o resumo discriminado: Vendidos vs Devolvidos vs Pendentes */}
+              <div className="grid grid-cols-3 gap-2 rounded-2xl bg-card border border-border/40 p-3 text-center shadow-sm">
+                <div className="space-y-0.5">
+                  <span className="text-[10px] uppercase font-bold text-muted-foreground">Itens Vendidos</span>
+                  <p className="text-base font-black text-emerald-600">
+                    {confirmados} {confirmados === 1 ? "item" : "itens"}
+                  </p>
+                  {confirmados > 0 && (
+                    <p className="text-[11px] font-bold text-gold">{brl(valorConfirmados)}</p>
+                  )}
+                </div>
+
+                <div className="space-y-0.5 border-x border-border/40 px-2">
+                  <span className="text-[10px] uppercase font-bold text-muted-foreground">Itens Devolvidos</span>
+                  <p className="text-base font-black text-slate-600 dark:text-slate-300">
+                    {devolvidos} {devolvidos === 1 ? "item" : "itens"}
+                  </p>
+                  <p className="text-[11px] text-muted-foreground">Ao estoque</p>
+                </div>
+
+                <div className="space-y-0.5">
+                  <span className="text-[10px] uppercase font-bold text-muted-foreground">Pendentes</span>
+                  <p className="text-base font-black text-amber-500">
+                    {pendentes} {pendentes === 1 ? "item" : "itens"}
+                  </p>
+                  <p className="text-[11px] text-muted-foreground">Em avaliação</p>
                 </div>
               </div>
-              {confirmados > 0 && (
-                <Button
-                  className="w-full h-12 rounded-2xl gap-2 bg-gradient-gold border-none shadow-gold font-bold text-primary-foreground"
-                  onClick={handleFaturar}
-                >
-                  <ShoppingCart className="size-5" />
-                  Faturar {confirmados} {confirmados === 1 ? "Item Confirmado" : "Itens Confirmados"} no PDV
-                </Button>
-              )}
+
+              {/* Botões de Ação */}
+              <div className="space-y-2">
+                {confirmados > 0 && (
+                  <Button
+                    className="w-full h-12 rounded-2xl gap-2 bg-gradient-gold border-none shadow-gold font-bold text-primary-foreground text-sm"
+                    onClick={handleFaturar}
+                  >
+                    <ShoppingCart className="size-5" />
+                    Confirmar Venda ({confirmados} {confirmados === 1 ? "item vendido" : "itens vendidos"}{devolvidos > 0 ? ` · ${devolvidos} devolvido${devolvidos > 1 ? "s" : ""}` : ""})
+                  </Button>
+                )}
+
+                {confirmados === 0 && devolvidos > 0 && pendentes === 0 && !activeStats?.isDevolvido && (
+                  <Button
+                    className="w-full h-12 rounded-2xl gap-2 bg-slate-700 hover:bg-slate-800 text-white font-bold text-sm shadow-md"
+                    onClick={handleFinalizarDevolvido}
+                  >
+                    <RotateCcw className="size-5" />
+                    Finalizar como Condicional DEVOLVIDO ({devolvidos} {devolvidos === 1 ? "item" : "itens"})
+                  </Button>
+                )}
+
+                {activeStats?.isDevolvido && (
+                  <div className="text-center py-2 px-4 rounded-xl bg-slate-500/10 text-slate-700 dark:text-slate-300 font-bold text-xs">
+                    Condicional finalizado: todos os {devolvidos} itens foram devolvidos ao estoque.
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </DialogContent>
@@ -806,3 +1072,4 @@ function CondicionaisPage() {
     </div>
   );
 }
+
