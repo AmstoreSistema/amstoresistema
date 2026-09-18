@@ -745,7 +745,11 @@ export function BrandingSettingsTab() {
                       </div>
                     ) : item?.file_url ? (
                       <img
-                        src={item.file_url}
+                        src={
+                          !item?.file_path && (key === "pwa_icon" || key === "app_icon")
+                            ? `/api/public/pwa-icon?variant=512&color=${localPwaBg.replace("#", "")}`
+                            : item.file_url
+                        }
                         alt={item.name}
                         className="max-h-full max-w-full object-contain drop-shadow-md transition-transform group-hover/box:scale-105"
                       />

@@ -106,11 +106,13 @@ export function BrandingProvider({ children }: { children: React.ReactNode }) {
           }
 
           // 3. Atualiza apple-touch-icon no iOS
+          const cleanBg = (loadedColors.pwa_bg_color || "#D4AF37").replace("#", "").toUpperCase();
           const appleIcons = document.querySelectorAll("link[rel='apple-touch-icon']");
           appleIcons.forEach((el) => {
             const link = el as HTMLLinkElement;
-            const base = link.href.split("?")[0];
-            link.href = `${base}?v=${timestamp}`;
+            const is512 = link.sizes?.value?.includes("512");
+            const variant = is512 ? "512-maskable" : "apple-touch";
+            link.href = `/api/public/pwa-icon?variant=${variant}&color=${cleanBg}&v=${timestamp}`;
           });
         }
       }
@@ -144,11 +146,13 @@ export function BrandingProvider({ children }: { children: React.ReactNode }) {
           manifestLink.href = `/manifest.webmanifest?v=${timestamp}`;
         }
 
+        const cleanBg = (newColors.pwa_bg_color || "#D4AF37").replace("#", "").toUpperCase();
         const appleIcons = document.querySelectorAll("link[rel='apple-touch-icon']");
         appleIcons.forEach((el) => {
           const link = el as HTMLLinkElement;
-          const base = link.href.split("?")[0];
-          link.href = `${base}?v=${timestamp}`;
+          const is512 = link.sizes?.value?.includes("512");
+          const variant = is512 ? "512-maskable" : "apple-touch";
+          link.href = `/api/public/pwa-icon?variant=${variant}&color=${cleanBg}&v=${timestamp}`;
         });
       }
 

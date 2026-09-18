@@ -16,76 +16,94 @@ export const Route = createFileRoute("/manifest.json")({
         let pwaTime: number | string = v;
 
         try {
-          const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-
+          let client: any = null;
           try {
-            const { data: colorRow } = await supabaseAdmin
-              .from("app_settings")
-              .select("value")
-              .eq("key", "branding_colors")
-              .maybeSingle();
-
-            if (colorRow?.value) {
-              const parsed = typeof colorRow.value === "string" ? JSON.parse(colorRow.value) : colorRow.value;
-              if (parsed.pwa_bg_color) pwaBgColor = parsed.pwa_bg_color;
-              if (parsed.pwa_theme_color) pwaThemeColor = parsed.pwa_theme_color;
-            }
+            const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+            client = supabaseAdmin;
           } catch {}
 
-          try {
-            const { data } = await supabaseAdmin
-              .from("system_branding")
-              .select("key, file_url, updated_at")
-              .in("key", ["pwa_icon", "app_icon"]);
-
-            const pwa =
-              data?.find((d: any) => d.key === "pwa_icon" && d.file_url) ||
-              data?.find((d: any) => d.key === "app_icon" && d.file_url);
-
-            if (pwa?.file_url) {
-              pwaIconUrl = pwa.file_url;
-              if (pwa.updated_at) pwaTime = new Date(pwa.updated_at).getTime();
+          if (!client) {
+            const { createClient } = await import("@supabase/supabase-js");
+            const supabaseUrl = process.env["SUPABASE_URL"] || process.env["VITE_SUPABASE_URL"];
+            const supabaseKey = process.env["SUPABASE_PUBLISHABLE_KEY"] || process.env["VITE_SUPABASE_PUBLISHABLE_KEY"];
+            if (supabaseUrl && supabaseKey) {
+              client = createClient(supabaseUrl, supabaseKey);
             }
-          } catch {}
+          }
 
-          if (!pwaIconUrl) {
+          if (client) {
             try {
-              const { data: setRow } = await supabaseAdmin
+              const { data: colorRow } = await client
                 .from("app_settings")
                 .select("value")
-                .eq("key", "system_branding")
+                .eq("key", "branding_colors")
                 .maybeSingle();
 
-              if (setRow?.value) {
-                const list = typeof setRow.value === "string" ? JSON.parse(setRow.value) : setRow.value;
-                if (Array.isArray(list)) {
-                  const found =
-                    list.find((it: any) => it.key === "pwa_icon" && it.file_url) ||
-                    list.find((it: any) => it.key === "app_icon" && it.file_url);
-                  if (found?.file_url) {
-                    pwaIconUrl = found.file_url;
-                    if (found.updated_at) pwaTime = new Date(found.updated_at).getTime();
-                  }
-                }
+              if (colorRow?.value) {
+                const parsed = typeof colorRow.value === "string" ? JSON.parse(colorRow.value) : colorRow.value;
+                if (parsed.pwa_bg_color) pwaBgColor = parsed.pwa_bg_color;
+                if (parsed.pwa_theme_color) pwaThemeColor = parsed.pwa_theme_color;
               }
             } catch {}
+
+            try {
+              const { data } = await client
+                .from("system_branding")
+                .select("key, file_url, updated_at")
+                .in("key", ["pwa_icon", "app_icon"]);
+
+              const pwa =
+                data?.find((d: any) => d.key === "pwa_icon" && d.file_url) ||
+                data?.find((d: any) => d.key === "app_icon" && d.file_url);
+
+              if (pwa?.file_url) {
+                pwaIconUrl = pwa.file_url;
+                if (pwa.updated_at) pwaTime = new Date(pwa.updated_at).getTime();
+              }
+            } catch {}
+
+            if (!pwaIconUrl) {
+              try {
+                const { data: setRow } = await client
+                  .from("app_settings")
+                  .select("value")
+                  .eq("key", "system_branding")
+                  .maybeSingle();
+
+                if (setRow?.value) {
+                  const list = typeof setRow.value === "string" ? JSON.parse(setRow.value) : setRow.value;
+                  if (Array.isArray(list)) {
+                    const found =
+                      list.find((it: any) => it.key === "pwa_icon" && it.file_url) ||
+                      list.find((it: any) => it.key === "app_icon" && it.file_url);
+                    if (found?.file_url) {
+                      pwaIconUrl = found.file_url;
+                      if (found.updated_at) pwaTime = new Date(found.updated_at).getTime();
+                    }
+                  }
+                }
+              } catch {}
+            }
           }
         } catch (e) {
           console.warn("[Manifest.json] Erro ao carregar configurações de marca:", e);
         }
 
+        const cleanBg = (pwaBgColor || "#D4AF37").replace("#", "").toUpperCase();
+        const iconKey = `${pwaTime}_${cleanBg}`;
+
         const iconUrl192 = pwaIconUrl
           ? `${pwaIconUrl}${pwaIconUrl.includes("?") ? "&" : "?"}v=${pwaTime}`
-          : `/app-icon-192.png?v=${pwaTime}`;
+          : `/api/public/pwa-icon?variant=192&color=${cleanBg}&v=${iconKey}`;
         const iconUrl512 = pwaIconUrl
           ? `${pwaIconUrl}${pwaIconUrl.includes("?") ? "&" : "?"}v=${pwaTime}`
-          : `/app-icon-512.png?v=${pwaTime}`;
+          : `/api/public/pwa-icon?variant=512&color=${cleanBg}&v=${iconKey}`;
         const maskUrl192 = pwaIconUrl
           ? `${pwaIconUrl}${pwaIconUrl.includes("?") ? "&" : "?"}v=${pwaTime}`
-          : `/app-icon-192-maskable.png?v=${pwaTime}`;
+          : `/api/public/pwa-icon?variant=192-maskable&color=${cleanBg}&v=${iconKey}`;
         const maskUrl512 = pwaIconUrl
           ? `${pwaIconUrl}${pwaIconUrl.includes("?") ? "&" : "?"}v=${pwaTime}`
-          : `/app-icon-512-maskable.png?v=${pwaTime}`;
+          : `/api/public/pwa-icon?variant=512-maskable&color=${cleanBg}&v=${iconKey}`;
 
         const manifest = {
           name,

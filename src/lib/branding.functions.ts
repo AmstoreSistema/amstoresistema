@@ -84,7 +84,7 @@ export const BRANDING_DEFAULTS: Record<string, Omit<BrandingItem, "updated_at">>
     name: "Ícone do Sistema",
     description: "Ícone utilizado na interface e em locais onde o sistema precisar representar a aplicação.",
     file_path: null,
-    file_url: "/app-icon-512.png",
+    file_url: "/api/public/pwa-icon?variant=512",
     mime_type: "image/png",
     file_size: null,
     width: null,
@@ -96,7 +96,7 @@ export const BRANDING_DEFAULTS: Record<string, Omit<BrandingItem, "updated_at">>
     name: "Ícone de Instalação PWA",
     description: "Ícone para instalação do aplicativo no celular ou computador (192x192 / 512x512).",
     file_path: null,
-    file_url: "/app-icon-512.png",
+    file_url: "/api/public/pwa-icon?variant=512",
     mime_type: "image/png",
     file_size: null,
     width: null,
@@ -664,6 +664,7 @@ export const updateBrandingColors = createServerFn({ method: "POST" })
         appObj = typeof curApp.value === "string" ? JSON.parse(curApp.value) : curApp.value;
       }
       appObj.splash_bg = payload.splash_bg_color;
+      appObj.app_icon_url = "/api/public/pwa-icon?variant=512";
       await supabaseAdmin.from("app_settings").upsert({
         key: "appearance",
         value: JSON.stringify(appObj),

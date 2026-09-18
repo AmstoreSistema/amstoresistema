@@ -1,6 +1,7 @@
 import fs from "fs";
 import zlib from "zlib";
 import path from "path";
+import { WHITE_LOGO_BASE64 } from "./white-logo-asset";
 
 // CRC32 implementation
 const CRC_TABLE = (() => {
@@ -59,8 +60,19 @@ function encodePng(width: number, height: number, rgbaBuffer: Buffer): Buffer {
   ]);
 }
 
-function decodePng(filePath: string): { width: number; height: number; data: Buffer } {
-  const buf = fs.readFileSync(filePath);
+function decodePng(filePathOrBuf?: string | Buffer): { width: number; height: number; data: Buffer } {
+  let buf: Buffer;
+  if (Buffer.isBuffer(filePathOrBuf)) {
+    buf = filePathOrBuf;
+  } else if (typeof filePathOrBuf === "string" && fs.existsSync(filePathOrBuf)) {
+    try {
+      buf = fs.readFileSync(filePathOrBuf);
+    } catch {
+      buf = Buffer.from(WHITE_LOGO_BASE64, "base64");
+    }
+  } else {
+    buf = Buffer.from(WHITE_LOGO_BASE64, "base64");
+  }
   let pos = 8;
   let width = 0;
   let height = 0;
@@ -216,7 +228,9 @@ export function getPwaIconBuffer(
   variant: "192" | "512" | "192-maskable" | "512-maskable" | "apple-touch",
   pwaBgHex: string
 ): Buffer {
-  const cacheKey = `${variant}:${pwaBgHex.toUpperCase()}`;
+  let hex = (pwaBgHex || "#D4AF37").trim();
+  if (!hex.startsWith("#")) hex = `#${hex}`;
+  const cacheKey = `${variant}:${hex.toUpperCase()}`;
   const cached = iconBufferCache.get(cacheKey);
   if (cached && Date.now() - cached.timestamp < 300_000) {
     return cached.buffer;
@@ -224,7 +238,7 @@ export function getPwaIconBuffer(
 
   const publicDir = path.resolve(process.cwd(), "public");
   const whiteLogoPath = path.resolve(publicDir, "bagshoes-logo-white.png");
-  const pwaRgb = hexToRgb(pwaBgHex);
+  const pwaRgb = hexToRgb(hex);
   const whiteLogoSrc = decodePng(whiteLogoPath);
 
   let buf: Buffer;
@@ -246,7 +260,8 @@ export function getPwaIconBuffer(
   return buf;
 }
 
-export async function getServerPwaColors(): Promise<{ pwaBgHex: string; splashBgHex: string }> {
+export async function getServerPwaColors(): Promise<{ pwaBgHex: string; splashBgHex: string; pwaThemeHex: string }> {
+  // 1. Tenta via supabaseAdmin
   try {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: colorRow } = await supabaseAdmin
@@ -257,13 +272,81 @@ export async function getServerPwaColors(): Promise<{ pwaBgHex: string; splashBg
 
     if (colorRow?.value) {
       const parsed = typeof colorRow.value === "string" ? JSON.parse(colorRow.value) : colorRow.value;
-      return {
-        pwaBgHex: parsed.pwa_bg_color || "#D4AF37",
-        splashBgHex: parsed.splash_bg_color || "#D4AF37",
-      };
+      if (parsed.pwa_bg_color || parsed.splash_bg_color) {
+        return {
+          pwaBgHex: parsed.pwa_bg_color || parsed.splash_bg_color || "#D4AF37",
+          splashBgHex: parsed.splash_bg_color || parsed.pwa_bg_color || "#D4AF37",
+          pwaThemeHex: parsed.pwa_theme_color || parsed.pwa_bg_color || "#D4AF37",
+        };
+      }
+    }
+
+    // 1b. Fallback para appearance via supabaseAdmin
+    const { data: appRow } = await supabaseAdmin
+      .from("app_settings")
+      .select("value")
+      .eq("key", "appearance")
+      .maybeSingle();
+
+    if (appRow?.value) {
+      const parsed = typeof appRow.value === "string" ? JSON.parse(appRow.value) : appRow.value;
+      if (parsed.splash_bg) {
+        return {
+          pwaBgHex: parsed.splash_bg,
+          splashBgHex: parsed.splash_bg,
+          pwaThemeHex: parsed.splash_bg,
+        };
+      }
     }
   } catch {}
-  return { pwaBgHex: "#D4AF37", splashBgHex: "#D4AF37" };
+
+  // 2. Fallback via createClient público (para ambientes locais ou sem service role)
+  try {
+    const { createClient } = await import("@supabase/supabase-js");
+    const supabaseUrl = process.env["SUPABASE_URL"] || process.env["VITE_SUPABASE_URL"];
+    const supabaseKey = process.env["SUPABASE_PUBLISHABLE_KEY"] || process.env["VITE_SUPABASE_PUBLISHABLE_KEY"];
+    if (supabaseUrl && supabaseKey) {
+      const client = createClient(supabaseUrl, supabaseKey, {
+        auth: { storage: undefined, persistSession: false, autoRefreshToken: false },
+      });
+
+      const { data: colorRow } = await client
+        .from("app_settings")
+        .select("value")
+        .eq("key", "branding_colors")
+        .maybeSingle();
+
+      if (colorRow?.value) {
+        const parsed = typeof colorRow.value === "string" ? JSON.parse(colorRow.value) : colorRow.value;
+        if (parsed.pwa_bg_color || parsed.splash_bg_color) {
+          return {
+            pwaBgHex: parsed.pwa_bg_color || parsed.splash_bg_color || "#D4AF37",
+            splashBgHex: parsed.splash_bg_color || parsed.pwa_bg_color || "#D4AF37",
+            pwaThemeHex: parsed.pwa_theme_color || parsed.pwa_bg_color || "#D4AF37",
+          };
+        }
+      }
+
+      const { data: appRow } = await client
+        .from("app_settings")
+        .select("value")
+        .eq("key", "appearance")
+        .maybeSingle();
+
+      if (appRow?.value) {
+        const parsed = typeof appRow.value === "string" ? JSON.parse(appRow.value) : appRow.value;
+        if (parsed.splash_bg) {
+          return {
+            pwaBgHex: parsed.splash_bg,
+            splashBgHex: parsed.splash_bg,
+            pwaThemeHex: parsed.splash_bg,
+          };
+        }
+      }
+    }
+  } catch {}
+
+  return { pwaBgHex: "#D4AF37", splashBgHex: "#D4AF37", pwaThemeHex: "#D4AF37" };
 }
 
 /**
