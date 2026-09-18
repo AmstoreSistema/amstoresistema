@@ -245,148 +245,39 @@ const splashBufferCache = new Map<string, { buffer: Buffer; timestamp: number }>
 
 export function getPwaIconBuffer(
   variant: "192" | "512" | "192-maskable" | "512-maskable" | "apple-touch",
-  pwaBgHex: string
+  _pwaBgHex?: string
 ): Buffer {
-  let hex = (pwaBgHex || "#D4AF37").trim();
-  if (!hex.startsWith("#")) hex = `#${hex}`;
-  const cacheKey = `${variant}:${hex.toUpperCase()}`;
-  const cached = iconBufferCache.get(cacheKey);
-  if (cached && Date.now() - cached.timestamp < 300_000) {
-    return cached.buffer;
-  }
-
   const publicDir = path.resolve(process.cwd(), "public");
-  const whiteLogoPath = path.resolve(publicDir, "bagshoes-logo-white.png");
-  const pwaRgb = hexToRgb(hex);
-  const whiteLogoSrc = decodePng(whiteLogoPath);
-
-  let buf: Buffer;
-  if (variant === "512" || variant === "512-maskable") {
-    // 512x512 maskable: safe zone é 80% do diâmetro (~409px). 340x340 preserva proporção exata sem esticar
-    const mask512Data = scaleAndCenterLogo(whiteLogoSrc, 512, 512, 340, 340, pwaRgb);
-    buf = encodePng(512, 512, mask512Data);
-  } else if (variant === "192" || variant === "192-maskable") {
-    // 192x192 maskable: zona proporcional de 128x128
-    const mask192Data = scaleAndCenterLogo(whiteLogoSrc, 192, 192, 128, 128, pwaRgb);
-    buf = encodePng(192, 192, mask192Data);
-  } else {
-    // Apple touch icon 192x192: 140x140
-    const appleData = scaleAndCenterLogo(whiteLogoSrc, 192, 192, 140, 140, pwaRgb);
-    buf = encodePng(192, 192, appleData);
+  const fileName =
+    variant === "512" || variant === "512-maskable"
+      ? "app-icon-512.png"
+      : variant === "apple-touch"
+      ? "apple-touch-icon.png"
+      : "app-icon-192.png";
+  const filePath = path.resolve(publicDir, fileName);
+  if (fs.existsSync(filePath)) {
+    return fs.readFileSync(filePath);
   }
 
-  iconBufferCache.set(cacheKey, { buffer: buf, timestamp: Date.now() });
-  return buf;
+  // Fallback se arquivo não existir
+  const fallbackPath = path.resolve(publicDir, "app-icon-192.png");
+  if (fs.existsSync(fallbackPath)) {
+    return fs.readFileSync(fallbackPath);
+  }
+  return Buffer.alloc(0);
 }
 
-export function getSplashStartupBuffer(splashBgHex: string): Buffer {
-  let hex = (splashBgHex || "#D4AF37").trim();
-  if (!hex.startsWith("#")) hex = `#${hex}`;
-  const cacheKey = hex.toUpperCase();
-  const cached = splashBufferCache.get(cacheKey);
-  if (cached && Date.now() - cached.timestamp < 300_000) {
-    return cached.buffer;
-  }
-
+export function getSplashStartupBuffer(_splashBgHex?: string): Buffer {
   const publicDir = path.resolve(process.cwd(), "public");
-  const whiteLogoPath = path.resolve(publicDir, "bagshoes-logo-white.png");
-  const splashRgb = hexToRgb(hex);
-  const whiteLogoSrc = decodePng(whiteLogoPath);
-
-  // Canvas vertical 1080x1920: logo nítida de 520px máx proporcional, centralizada com elevação suave
-  const splashData = scaleAndCenterLogo(whiteLogoSrc, 1080, 1920, 520, 400, splashRgb, -60);
-  const buf = encodePng(1080, 1920, splashData);
-  splashBufferCache.set(cacheKey, { buffer: buf, timestamp: Date.now() });
-  return buf;
+  const splashPath = path.resolve(publicDir, "splash-startup.png");
+  if (fs.existsSync(splashPath)) {
+    return fs.readFileSync(splashPath);
+  }
+  return Buffer.alloc(0);
 }
 
 export async function getServerPwaColors(): Promise<{ pwaBgHex: string; splashBgHex: string; pwaThemeHex: string }> {
-  // 1. Tenta via supabaseAdmin
-  try {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: colorRow } = await supabaseAdmin
-      .from("app_settings")
-      .select("value")
-      .eq("key", "branding_colors")
-      .maybeSingle();
-
-    if (colorRow?.value) {
-      const parsed = typeof colorRow.value === "string" ? JSON.parse(colorRow.value) : colorRow.value;
-      if (parsed.pwa_bg_color || parsed.splash_bg_color) {
-        return {
-          pwaBgHex: parsed.pwa_bg_color || parsed.splash_bg_color || "#D4AF37",
-          splashBgHex: parsed.splash_bg_color || parsed.pwa_bg_color || "#D4AF37",
-          pwaThemeHex: parsed.pwa_theme_color || parsed.pwa_bg_color || "#D4AF37",
-        };
-      }
-    }
-
-    // 1b. Fallback para appearance via supabaseAdmin (ignora se for o preto legado não configurado #0A0A0C)
-    const { data: appRow } = await supabaseAdmin
-      .from("app_settings")
-      .select("value")
-      .eq("key", "appearance")
-      .maybeSingle();
-
-    if (appRow?.value) {
-      const parsed = typeof appRow.value === "string" ? JSON.parse(appRow.value) : appRow.value;
-      if (parsed.splash_bg && parsed.splash_bg.toUpperCase() !== "#0A0A0C") {
-        return {
-          pwaBgHex: parsed.splash_bg,
-          splashBgHex: parsed.splash_bg,
-          pwaThemeHex: parsed.splash_bg,
-        };
-      }
-    }
-  } catch {}
-
-  // 2. Fallback via createClient público (para ambientes locais ou sem service role)
-  try {
-    const { createClient } = await import("@supabase/supabase-js");
-    const supabaseUrl = process.env["SUPABASE_URL"] || process.env["VITE_SUPABASE_URL"];
-    const supabaseKey = process.env["SUPABASE_PUBLISHABLE_KEY"] || process.env["VITE_SUPABASE_PUBLISHABLE_KEY"];
-    if (supabaseUrl && supabaseKey) {
-      const client = createClient(supabaseUrl, supabaseKey, {
-        auth: { storage: undefined, persistSession: false, autoRefreshToken: false },
-      });
-
-      const { data: colorRow } = await client
-        .from("app_settings")
-        .select("value")
-        .eq("key", "branding_colors")
-        .maybeSingle();
-
-      if (colorRow?.value) {
-        const parsed = typeof colorRow.value === "string" ? JSON.parse(colorRow.value) : colorRow.value;
-        if (parsed.pwa_bg_color || parsed.splash_bg_color) {
-          return {
-            pwaBgHex: parsed.pwa_bg_color || parsed.splash_bg_color || "#D4AF37",
-            splashBgHex: parsed.splash_bg_color || parsed.pwa_bg_color || "#D4AF37",
-            pwaThemeHex: parsed.pwa_theme_color || parsed.pwa_bg_color || "#D4AF37",
-          };
-        }
-      }
-
-      const { data: appRow } = await client
-        .from("app_settings")
-        .select("value")
-        .eq("key", "appearance")
-        .maybeSingle();
-
-      if (appRow?.value) {
-        const parsed = typeof appRow.value === "string" ? JSON.parse(appRow.value) : appRow.value;
-        if (parsed.splash_bg && parsed.splash_bg.toUpperCase() !== "#0A0A0C") {
-          return {
-            pwaBgHex: parsed.splash_bg,
-            splashBgHex: parsed.splash_bg,
-            pwaThemeHex: parsed.splash_bg,
-          };
-        }
-      }
-    }
-  } catch {}
-
-  return { pwaBgHex: "#D4AF37", splashBgHex: "#D4AF37", pwaThemeHex: "#D4AF37" };
+  return { pwaBgHex: "#000000", splashBgHex: "#000000", pwaThemeHex: "#000000" };
 }
 
 /**

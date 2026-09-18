@@ -170,21 +170,17 @@ export function BrandingPreviewModal({ open, onOpenChange }: BrandingPreviewModa
                 Simulação: Splash de Inicialização
               </span>
               <div
-                className="w-[280px] h-[480px] rounded-3xl shadow-2xl flex flex-col items-center justify-center p-6 text-center relative overflow-hidden border border-white/20 transition-all duration-300"
-                style={{
-                  backgroundColor: branding.splashBgColor,
-                  background: `radial-gradient(circle at 50% 45%, rgba(255, 255, 255, 0.18) 0%, rgba(0, 0, 0, 0.28) 100%), ${branding.splashBgColor}`,
-                }}
+                className="w-[280px] h-[480px] rounded-3xl shadow-2xl flex flex-col items-center justify-center p-6 text-center relative overflow-hidden border border-border/40 transition-all duration-300 bg-black"
               >
                 <img
-                  src={branding.splash && !branding.splash.includes("splash-startup") ? branding.splash : "/bagshoes-logo-white.png"}
+                  src={branding.splash && !branding.splash.includes("splash-startup") ? branding.splash : "/splash-logo.png"}
                   alt="Splash Logo"
-                  className="max-h-28 w-auto max-w-[200px] object-contain drop-shadow-[0_8px_20px_rgba(0,0,0,0.25)] animate-pulse"
+                  className="max-h-56 w-auto max-w-[220px] object-contain drop-shadow-[0_8px_20px_rgba(0,0,0,0.8)]"
                 />
                 <div className="mt-8 flex items-center gap-2">
-                  <div className="size-2.5 rounded-full bg-white animate-bounce [animation-delay:-0.3s]" />
-                  <div className="size-2.5 rounded-full bg-white animate-bounce [animation-delay:-0.15s]" />
-                  <div className="size-2.5 rounded-full bg-white animate-bounce" />
+                  <div className="size-2.5 rounded-full bg-gold animate-bounce [animation-delay:-0.3s]" />
+                  <div className="size-2.5 rounded-full bg-gold animate-bounce [animation-delay:-0.15s]" />
+                  <div className="size-2.5 rounded-full bg-gold animate-bounce" />
                 </div>
               </div>
             </div>
@@ -198,14 +194,9 @@ export function BrandingPreviewModal({ open, onOpenChange }: BrandingPreviewModa
               </span>
               <div className="rounded-xl border border-border/80 bg-neutral-900 shadow-xl overflow-hidden max-w-xl">
                 <div className="flex items-center gap-2 px-3 py-2 bg-neutral-950 border-b border-neutral-800">
-                  <div className="flex gap-1.5">
-                    <div className="size-3 rounded-full bg-red-500/80" />
-                    <div className="size-3 rounded-full bg-amber-500/80" />
-                    <div className="size-3 rounded-full bg-green-500/80" />
-                  </div>
-                  <div className="flex items-center gap-2 px-3 py-1 bg-neutral-800 rounded-t-lg text-neutral-200 text-xs font-medium max-w-[260px] truncate border-t border-x border-neutral-700">
+                  <div className="flex items-center gap-2 px-3 py-1 rounded-t-lg bg-neutral-900 border-t border-x border-neutral-800 text-xs text-neutral-200">
                     <img
-                      src={branding.favicon}
+                      src={branding.favicon || "/favicon.png"}
                       alt="Favicon"
                       className="size-4 object-contain rounded shrink-0"
                     />
@@ -229,13 +220,12 @@ export function BrandingPreviewModal({ open, onOpenChange }: BrandingPreviewModa
                 {/* Ícone na Tela Inicial do Celular */}
                 <div className="p-4 rounded-2xl border border-border bg-black/40 flex items-center gap-4">
                   <div
-                    className="size-16 rounded-2xl p-2.5 flex items-center justify-center shadow-lg shrink-0 border border-white/20 transition-all duration-300"
-                    style={{ backgroundColor: branding.pwaBgColor }}
+                    className="size-16 rounded-2xl overflow-hidden shadow-lg shrink-0 border border-gold/40 bg-black flex items-center justify-center transition-all duration-300"
                   >
                     <img
-                      src={branding.pwaIcon && !branding.pwaIcon.includes("app-icon-") ? branding.pwaIcon : "/bagshoes-logo-white.png"}
+                      src={branding.pwaIcon && !branding.pwaIcon.includes("app-icon-") ? branding.pwaIcon : "/app-icon-192.png"}
                       alt="Ícone PWA"
-                      className="size-full object-contain drop-shadow"
+                      className="size-full object-cover"
                     />
                   </div>
                   <div>
@@ -248,13 +238,12 @@ export function BrandingPreviewModal({ open, onOpenChange }: BrandingPreviewModa
                 <div className="relative overflow-hidden rounded-2xl border border-gold/40 bg-card p-4 shadow-xl">
                   <div className="flex items-center gap-3">
                     <div
-                      className="size-12 rounded-xl p-2 flex items-center justify-center shrink-0 border border-white/20 transition-all duration-300"
-                      style={{ backgroundColor: branding.pwaBgColor }}
+                      className="size-12 rounded-xl overflow-hidden shrink-0 border border-gold/40 bg-black flex items-center justify-center transition-all duration-300"
                     >
                       <img
-                        src={branding.pwaIcon && !branding.pwaIcon.includes("app-icon-") ? branding.pwaIcon : "/bagshoes-logo-white.png"}
+                        src={branding.pwaIcon && !branding.pwaIcon.includes("app-icon-") ? branding.pwaIcon : "/app-icon-192.png"}
                         alt="App"
-                        className="size-full object-contain"
+                        className="size-full object-cover"
                       />
                     </div>
                     <div className="flex-1 min-w-0">

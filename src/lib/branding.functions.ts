@@ -25,9 +25,9 @@ export interface BrandingColors {
 }
 
 export const BRANDING_COLORS_DEFAULT: BrandingColors = {
-  splash_bg_color: "#D4AF37",
-  pwa_bg_color: "#D4AF37",
-  pwa_theme_color: "#D4AF37",
+  splash_bg_color: "#000000",
+  pwa_bg_color: "#000000",
+  pwa_theme_color: "#000000",
 };
 
 export const BRANDING_DEFAULTS: Record<string, Omit<BrandingItem, "updated_at">> = {
@@ -70,9 +70,9 @@ export const BRANDING_DEFAULTS: Record<string, Omit<BrandingItem, "updated_at">>
   splash: {
     key: "splash",
     name: "Logomarca do Splash Screen",
-    description: "Exibida sobre o fundo dourado durante a inicialização do aplicativo.",
+    description: "Exibida sobre o fundo preto durante a inicialização do aplicativo.",
     file_path: null,
-    file_url: "/bagshoes-logo-white.png",
+    file_url: "/splash-logo.png",
     mime_type: "image/png",
     file_size: null,
     width: null,
@@ -84,7 +84,7 @@ export const BRANDING_DEFAULTS: Record<string, Omit<BrandingItem, "updated_at">>
     name: "Ícone do Sistema",
     description: "Ícone utilizado na interface e em locais onde o sistema precisar representar a aplicação.",
     file_path: null,
-    file_url: "/api/public/pwa-icon?variant=512",
+    file_url: "/app-icon-512.png",
     mime_type: "image/png",
     file_size: null,
     width: null,
@@ -96,7 +96,7 @@ export const BRANDING_DEFAULTS: Record<string, Omit<BrandingItem, "updated_at">>
     name: "Ícone de Instalação PWA",
     description: "Ícone para instalação do aplicativo no celular ou computador (192x192 / 512x512).",
     file_path: null,
-    file_url: "/api/public/pwa-icon?variant=512",
+    file_url: "/app-icon-512.png",
     mime_type: "image/png",
     file_size: null,
     width: null,
@@ -118,9 +118,9 @@ export const BRANDING_DEFAULTS: Record<string, Omit<BrandingItem, "updated_at">>
   loading: {
     key: "loading",
     name: "Imagem de Carregamento",
-    description: "Imagem opcional exibida durante carregamentos importantes e transições.",
+    description: "Imagem exibida durante carregamentos importantes e transições sobre fundo escuro.",
     file_path: null,
-    file_url: "/bagshoes-logo-white.png",
+    file_url: "/splash-logo.png",
     mime_type: "image/png",
     file_size: null,
     width: null,

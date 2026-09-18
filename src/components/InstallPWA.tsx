@@ -123,14 +123,11 @@ export function InstallPWA() {
             </Button>
 
             <div className="flex items-start gap-4">
-              <div
-                className="size-16 flex-shrink-0 overflow-hidden rounded-2xl border-2 border-white/20 shadow-lg shadow-black/20 p-2 flex items-center justify-center transition-colors duration-300"
-                style={{ backgroundColor: pwaBgColor || "#D4AF37" }}
-              >
+              <div className="size-16 flex-shrink-0 overflow-hidden rounded-2xl border border-gold/40 shadow-lg shadow-black/30 bg-black flex items-center justify-center">
                 <img 
-                  src={pwaIcon && !pwaIcon.includes("app-icon-") ? pwaIcon : "/bagshoes-logo-white.png"} 
+                  src={pwaIcon && !pwaIcon.includes("app-icon-") ? pwaIcon : "/app-icon-192.png"} 
                   alt="Amstore Bagshoes" 
-                  className="size-full object-contain drop-shadow" 
+                  className="size-full object-cover" 
                 />
               </div>
 

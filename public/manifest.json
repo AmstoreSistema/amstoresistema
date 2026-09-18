@@ -7,33 +7,33 @@
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#D4AF37",
-  "theme_color": "#D4AF37",
+  "background_color": "#000000",
+  "theme_color": "#000000",
   "categories": [
     "business",
     "shopping"
   ],
   "icons": [
     {
-      "src": "/api/public/pwa-icon?variant=192-maskable&color=D4AF37&v=pwa",
+      "src": "/app-icon-192-maskable.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "maskable"
     },
     {
-      "src": "/api/public/pwa-icon?variant=512-maskable&color=D4AF37&v=pwa",
+      "src": "/app-icon-512-maskable.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
     },
     {
-      "src": "/api/public/pwa-icon?variant=192&color=D4AF37&v=pwa",
+      "src": "/app-icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/api/public/pwa-icon?variant=512&color=D4AF37&v=pwa",
+      "src": "/app-icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
