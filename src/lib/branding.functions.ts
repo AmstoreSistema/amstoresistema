@@ -173,7 +173,7 @@ export const getBrandingSettings = createServerFn({ method: "GET" }).handler(asy
   let items: BrandingItem[] = [];
 
   try {
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await (supabaseAdmin as any)
       .from("system_branding")
       .select("*")
       .order("created_at", { ascending: true });
@@ -352,7 +352,7 @@ export const uploadBrandingImage = createServerFn({ method: "POST" })
     // Obtém o registro atual para limpar arquivo anterior posteriormente
     let previousFilePath: string | null = null;
     try {
-      const { data: current } = await supabaseAdmin
+      const { data: current } = await (supabaseAdmin as any)
         .from("system_branding")
         .select("file_path")
         .eq("key", data.key)
@@ -388,7 +388,7 @@ export const uploadBrandingImage = createServerFn({ method: "POST" })
     // Tenta gravar em system_branding
     let savedInTable = false;
     try {
-      const { error: dbError } = await supabaseAdmin
+      const { error: dbError } = await (supabaseAdmin as any)
         .from("system_branding")
         .upsert(
           {
@@ -472,7 +472,7 @@ export const removeBrandingImage = createServerFn({ method: "POST" })
     // Localiza caminho atual
     let currentPath: string | null = null;
     try {
-      const { data: current } = await supabaseAdmin
+      const { data: current } = await (supabaseAdmin as any)
         .from("system_branding")
         .select("file_path")
         .eq("key", data.key)
@@ -519,7 +519,7 @@ export const removeBrandingImage = createServerFn({ method: "POST" })
 
     // Atualiza tabela
     try {
-      await supabaseAdmin.from("system_branding").upsert(
+      await (supabaseAdmin as any).from("system_branding").upsert(
         {
           key: resetRecord.key,
           name: resetRecord.name,

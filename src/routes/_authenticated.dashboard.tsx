@@ -214,11 +214,15 @@ function Dashboard() {
 
   const getDaysOverdue = (dateStr: string | null): number => {
     if (!dateStr) return 0;
-    const cleanDateStr = String(dateStr).split("T")[0].trim();
+    const cleanDateStr = (String(dateStr).split("T")[0] || "").trim();
     const parts = cleanDateStr.split("-").map(Number);
     if (parts.length !== 3 || parts.some(isNaN)) return 0;
 
-    const [year, month, day] = parts;
+    const year = parts[0];
+    const month = parts[1];
+    const day = parts[2];
+    if (year === undefined || month === undefined || day === undefined) return 0;
+
     const dueDate = new Date(year, month - 1, day, 0, 0, 0, 0);
 
     const now = new Date();
@@ -289,7 +293,7 @@ function Dashboard() {
           if (iDueIso && iDueIso < todayIso) {
             isSaleOverdue = true;
             saleOverdueAmount += instRem;
-            if (!earliestOverdueDate || iDueIso < String(earliestOverdueDate).split("T")[0]) {
+            if (!earliestOverdueDate || iDueIso < (String(earliestOverdueDate).split("T")[0] || "")) {
               earliestOverdueDate = i.due_date;
             }
           }
@@ -321,7 +325,7 @@ function Dashboard() {
         current.overdueDue += saleOverdueAmount;
         if (
           !current.overdueDate ||
-          (earliestOverdueDate && String(earliestOverdueDate).split("T")[0] < String(current.overdueDate).split("T")[0])
+          (earliestOverdueDate && (String(earliestOverdueDate).split("T")[0] || "") < (String(current.overdueDate).split("T")[0] || ""))
         ) {
           current.overdueDate = earliestOverdueDate;
         }
@@ -372,8 +376,8 @@ function Dashboard() {
       return;
     }
     const dateFormatted = fiado.overdueDate ? (() => {
-      const parts = String(fiado.overdueDate).split("T")[0].split("-");
-      if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`;
+      const parts = (String(fiado.overdueDate).split("T")[0] || "").split("-");
+      if (parts.length === 3 && parts[0] && parts[1] && parts[2]) return `${parts[2]}/${parts[1]}/${parts[0]}`;
       return new Date(fiado.overdueDate).toLocaleDateString("pt-BR");
     })() : "";
     const msg = `Olá ${fiado.clientName}, tudo bem? Aqui é da Amstore. Notamos uma pendência no valor de ${brl(fiado.overdueDue)}${dateFormatted ? ` com vencimento em ${dateFormatted}` : ""}. Podemos combinar a melhor forma de acerto? Se preferir via Pix, podemos te enviar a chave. Ficamos no aguardo e à disposição!`;

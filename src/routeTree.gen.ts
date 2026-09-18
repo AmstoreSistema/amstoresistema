@@ -43,6 +43,7 @@ import { Route as AuthenticatedStoreRouteImport } from './routes/_authenticated.
 import { Route as AuthenticatedStoreReportsRouteImport } from './routes/_authenticated.store-reports'
 import { Route as AuthenticatedTransactionsRouteImport } from './routes/_authenticated.transactions'
 import { Route as AuthenticatedWhatsappBillingRouteImport } from './routes/_authenticated.whatsapp-billing'
+import { Route as ApiPublicPwaIconRouteImport } from './routes/api/public/pwa-icon'
 import { Route as ApiPublicSorteioInfoRouteImport } from './routes/api/public/sorteio-info'
 import { Route as ApiPublicBrandingSplatRouteImport } from './routes/api/public/branding.$'
 import { Route as ApiPublicCatalogImageSplatRouteImport } from './routes/api/public/catalog-image.$'
@@ -223,6 +224,11 @@ const AuthenticatedWhatsappBillingRoute =
     path: '/whatsapp-billing',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
+const ApiPublicPwaIconRoute = ApiPublicPwaIconRouteImport.update({
+  id: '/api/public/pwa-icon',
+  path: '/api/public/pwa-icon',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicSorteioInfoRoute = ApiPublicSorteioInfoRouteImport.update({
   id: '/api/public/sorteio-info',
   path: '/api/public/sorteio-info',
@@ -274,6 +280,7 @@ export interface FileRoutesByFullPath {
   '/store-reports': typeof AuthenticatedStoreReportsRoute
   '/transactions': typeof AuthenticatedTransactionsRoute
   '/whatsapp-billing': typeof AuthenticatedWhatsappBillingRoute
+  '/api/public/pwa-icon': typeof ApiPublicPwaIconRoute
   '/api/public/sorteio-info': typeof ApiPublicSorteioInfoRoute
   '/api/public/branding/$': typeof ApiPublicBrandingSplatRoute
   '/api/public/catalog-image/$': typeof ApiPublicCatalogImageSplatRoute
@@ -312,6 +319,7 @@ export interface FileRoutesByTo {
   '/store-reports': typeof AuthenticatedStoreReportsRoute
   '/transactions': typeof AuthenticatedTransactionsRoute
   '/whatsapp-billing': typeof AuthenticatedWhatsappBillingRoute
+  '/api/public/pwa-icon': typeof ApiPublicPwaIconRoute
   '/api/public/sorteio-info': typeof ApiPublicSorteioInfoRoute
   '/api/public/branding/$': typeof ApiPublicBrandingSplatRoute
   '/api/public/catalog-image/$': typeof ApiPublicCatalogImageSplatRoute
@@ -352,6 +360,7 @@ export interface FileRoutesById {
   '/_authenticated/store-reports': typeof AuthenticatedStoreReportsRoute
   '/_authenticated/transactions': typeof AuthenticatedTransactionsRoute
   '/_authenticated/whatsapp-billing': typeof AuthenticatedWhatsappBillingRoute
+  '/api/public/pwa-icon': typeof ApiPublicPwaIconRoute
   '/api/public/sorteio-info': typeof ApiPublicSorteioInfoRoute
   '/api/public/branding/$': typeof ApiPublicBrandingSplatRoute
   '/api/public/catalog-image/$': typeof ApiPublicCatalogImageSplatRoute
@@ -392,6 +401,7 @@ export interface FileRouteTypes {
     | '/store-reports'
     | '/transactions'
     | '/whatsapp-billing'
+    | '/api/public/pwa-icon'
     | '/api/public/sorteio-info'
     | '/api/public/branding/$'
     | '/api/public/catalog-image/$'
@@ -430,6 +440,7 @@ export interface FileRouteTypes {
     | '/store-reports'
     | '/transactions'
     | '/whatsapp-billing'
+    | '/api/public/pwa-icon'
     | '/api/public/sorteio-info'
     | '/api/public/branding/$'
     | '/api/public/catalog-image/$'
@@ -469,6 +480,7 @@ export interface FileRouteTypes {
     | '/_authenticated/store-reports'
     | '/_authenticated/transactions'
     | '/_authenticated/whatsapp-billing'
+    | '/api/public/pwa-icon'
     | '/api/public/sorteio-info'
     | '/api/public/branding/$'
     | '/api/public/catalog-image/$'
@@ -483,6 +495,7 @@ export interface RootRouteChildren {
   ResetPasswordRoute: typeof ResetPasswordRoute
   SorteioRoute: typeof SorteioRoute
   SplashStartupDotpngRoute: typeof SplashStartupDotpngRoute
+  ApiPublicPwaIconRoute: typeof ApiPublicPwaIconRoute
   ApiPublicSorteioInfoRoute: typeof ApiPublicSorteioInfoRoute
   ApiPublicBrandingSplatRoute: typeof ApiPublicBrandingSplatRoute
   ApiPublicCatalogImageSplatRoute: typeof ApiPublicCatalogImageSplatRoute
@@ -728,6 +741,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedWhatsappBillingRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/api/public/pwa-icon': {
+      id: '/api/public/pwa-icon'
+      path: '/api/public/pwa-icon'
+      fullPath: '/api/public/pwa-icon'
+      preLoaderRoute: typeof ApiPublicPwaIconRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/sorteio-info': {
       id: '/api/public/sorteio-info'
       path: '/api/public/sorteio-info'
@@ -823,6 +843,7 @@ const rootRouteChildren: RootRouteChildren = {
   ResetPasswordRoute: ResetPasswordRoute,
   SorteioRoute: SorteioRoute,
   SplashStartupDotpngRoute: SplashStartupDotpngRoute,
+  ApiPublicPwaIconRoute: ApiPublicPwaIconRoute,
   ApiPublicSorteioInfoRoute: ApiPublicSorteioInfoRoute,
   ApiPublicBrandingSplatRoute: ApiPublicBrandingSplatRoute,
   ApiPublicCatalogImageSplatRoute: ApiPublicCatalogImageSplatRoute,

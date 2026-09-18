@@ -97,7 +97,7 @@ export function useSaveRow(table: string, label: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, values }: { id?: string | undefined; values: Record<string, any> }) => {
-      let itemName = values.name || values.nome || values.title || values.description || values.produto_nome || "";
+      let itemName = values["name"] || values["nome"] || values["title"] || values["description"] || values["produto_nome"] || "";
 
       if (id) {
         // Se values não contiver o nome (ex.: alterou apenas telefone ou endereço), busca o nome do registro atual

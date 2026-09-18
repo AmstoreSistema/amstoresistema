@@ -113,6 +113,8 @@ const COLOR_PRESETS = [
 export function BrandingSettingsTab() {
   const {
     branding,
+    splash,
+    pwaIcon,
     splashBgColor,
     pwaBgColor,
     pwaThemeColor,
@@ -491,7 +493,7 @@ export function BrandingSettingsTab() {
                   }}
                 >
                   <img
-                    src={branding.splash || "/bagshoes-logo-white.png"}
+                    src={splash || "/bagshoes-logo-white.png"}
                     alt="Splash Preview"
                     className="max-h-12 max-w-[70px] object-contain drop-shadow animate-pulse"
                   />
@@ -662,7 +664,7 @@ export function BrandingSettingsTab() {
                       style={{ backgroundColor: localPwaBg }}
                     >
                       <img
-                        src={branding.pwaIcon && !branding.pwaIcon.includes("app-icon-") ? branding.pwaIcon : "/bagshoes-logo-white.png"}
+                        src={pwaIcon && !pwaIcon.includes("app-icon-") ? pwaIcon : "/bagshoes-logo-white.png"}
                         alt="PWA Icon Preview"
                         className="size-full object-contain drop-shadow"
                       />
@@ -765,11 +767,11 @@ export function BrandingSettingsTab() {
                   <div className="space-y-1 text-[11px] text-muted-foreground bg-muted/30 p-2.5 rounded-xl border border-border/40">
                     <div className="flex justify-between">
                       <span className="font-semibold text-foreground/80">Recomendado:</span>
-                      <span>{meta.recommendedSize}</span>
+                      <span>{meta?.recommendedSize || "-"}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="font-semibold text-foreground/80">Formatos:</span>
-                      <span>{meta.recommendedFormat}</span>
+                      <span>{meta?.recommendedFormat || "-"}</span>
                     </div>
                     {item?.file_size && (
                       <div className="flex justify-between text-muted-foreground/80 pt-1 border-t border-border/30">
@@ -784,7 +786,9 @@ export function BrandingSettingsTab() {
                 <div className="space-y-3 pt-2">
                   <input
                     type="file"
-                    ref={(el) => (fileInputRefs.current[key] = el)}
+                    ref={(el) => {
+                      fileInputRefs.current[key] = el;
+                    }}
                     accept="image/png,image/jpeg,image/webp,image/svg+xml,image/x-icon"
                     className="hidden"
                     onChange={(e) => {

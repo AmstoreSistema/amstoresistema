@@ -12,7 +12,7 @@ export const Route = createFileRoute("/splash-startup.png")({
           const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
           let filePath: string | null = null;
           try {
-            const { data } = await supabaseAdmin
+            const { data } = await (supabaseAdmin as any)
               .from("system_branding")
               .select("file_url, file_path")
               .eq("key", "splash")

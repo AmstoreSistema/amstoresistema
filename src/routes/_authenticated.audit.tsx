@@ -158,49 +158,49 @@ export interface AuditLookupContext {
 
 interface AuditItemDetails {
   resumo: string;
-  targetName?: string;
+  targetName?: string | undefined;
   json: any | null;
   text: string | null;
   isVenda: boolean;
   isCliente: boolean;
   isProduto: boolean;
   venda?: {
-    codigo?: string;
-    cliente?: string;
-    total?: number;
-    forma_pagamento?: string;
-    desconto?: number;
+    codigo?: string | undefined;
+    cliente?: string | undefined;
+    total?: number | undefined;
+    forma_pagamento?: string | undefined;
+    desconto?: number | undefined;
     itens?: Array<{
       produto: string;
       quantidade: number;
       preco_unitario: number;
-      numeracao?: string | null;
-      desconto?: number;
+      numeracao?: string | null | undefined;
+      desconto?: number | undefined;
       subtotal: number;
-    }>;
-  };
+    }> | undefined;
+  } | undefined;
   clientInfo?: {
     id: string;
     name: string;
-    phone?: string;
-    document?: string;
-    email?: string;
-    client_type?: string;
-    city?: string;
-    state?: string;
-    address?: string;
-    notes?: string;
-  };
+    phone?: string | undefined;
+    document?: string | undefined;
+    email?: string | undefined;
+    client_type?: string | undefined;
+    city?: string | undefined;
+    state?: string | undefined;
+    address?: string | undefined;
+    notes?: string | undefined;
+  } | undefined;
   productInfo?: {
     id: string;
     name: string;
-    sku?: string;
-    category?: string;
-    retail_price?: number;
-    cost_price?: number;
-    wholesale_price?: number;
-  };
-  dadosGerais?: Record<string, any>;
+    sku?: string | undefined;
+    category?: string | undefined;
+    retail_price?: number | undefined;
+    cost_price?: number | undefined;
+    wholesale_price?: number | undefined;
+  } | undefined;
+  dadosGerais?: Record<string, any> | undefined;
 }
 
 function parseAuditDetails(

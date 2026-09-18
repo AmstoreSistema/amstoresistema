@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { getPwaIconBuffer, getServerPwaColors } from "@/lib/pwa-icons.server";
 
-export const Route = createFileRoute("/api/public/pwa-icon" as any)({
+export const Route = createFileRoute('/api/public/pwa-icon')({
   server: {
     handlers: {
       GET: async ({ request }) => {
