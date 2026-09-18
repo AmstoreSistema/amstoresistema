@@ -13,7 +13,7 @@ import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
 import { AppSidebar } from "@/components/app-sidebar";
-import { clearActivity, isSessionExpired, touchActivity } from "@/lib/session-timeout";
+import { clearActivity, touchActivity } from "@/lib/session-timeout";
 import { clearRefreshTokenCookie, getRefreshTokenCookie, saveRefreshTokenCookie } from "@/lib/auth-cookie";
 import { cn } from "@/lib/utils";
 
@@ -37,27 +37,20 @@ export const Route = createFileRoute("/_authenticated")({
       // Fallback: usar o refresh token salvo em cookie persistente para restaurar a sessão.
       const rt = getRefreshTokenCookie();
       if (rt) {
-        const { data } = await supabase.auth.refreshSession({ refresh_token: rt });
-        session = data.session;
-        if (session) {
-          // Atualiza o cookie com o novo refresh token emitido
-          saveRefreshTokenCookie(session.refresh_token);
-        }
+        try {
+          const { data } = await supabase.auth.refreshSession({ refresh_token: rt });
+          session = data.session;
+          if (session?.refresh_token) {
+            // Atualiza o cookie com o novo refresh token emitido
+            saveRefreshTokenCookie(session.refresh_token);
+          }
+        } catch {}
       }
     }
 
     if (!session) {
       // Nenhuma forma de restaurar a sessão → redireciona sem signOut
-      // (não chamar signOut() aqui: não há sessão ativa para invalidar)
       clearRefreshTokenCookie();
-      throw redirect({ to: "/auth" });
-    }
-
-    // Verifica inatividade de 8h (timer baseado em atividade do usuário)
-    if (isSessionExpired()) {
-      clearActivity();
-      clearRefreshTokenCookie();
-      await supabase.auth.signOut();
       throw redirect({ to: "/auth" });
     }
 
@@ -143,25 +136,16 @@ function AuthenticatedLayout() {
     };
     events.forEach((e) => window.addEventListener(e, onActivity));
 
-    const interval = window.setInterval(async () => {
-      if (isSessionExpired()) {
-        clearActivity();
-        clearRefreshTokenCookie();
-        await supabase.auth.signOut();
-        window.location.href = "/auth";
-      }
-    }, 60_000);
-
-    // Atualiza o cookie sempre que o Supabase renova o token automaticamente
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'TOKEN_REFRESHED' && session) {
+    // Atualiza o cookie de persistência sempre que houver um token válido
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.refresh_token) {
+        touchActivity();
         saveRefreshTokenCookie(session.refresh_token);
       }
     });
 
     return () => {
       events.forEach((e) => window.removeEventListener(e, onActivity));
-      window.clearInterval(interval);
       subscription.unsubscribe();
     };
   }, []);

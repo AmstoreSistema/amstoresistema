@@ -8,7 +8,7 @@
  */
 
 const COOKIE_KEY = 'amstore_rt';
-const MAX_AGE_SECONDS = 8 * 24 * 60 * 60; // 8 dias
+const MAX_AGE_SECONDS = 30 * 24 * 60 * 60; // 30 dias
 
 export function saveRefreshTokenCookie(refreshToken: string): void {
   if (typeof document === 'undefined') return;

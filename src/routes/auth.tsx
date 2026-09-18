@@ -1,7 +1,7 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { touchActivity } from "@/lib/session-timeout";
-import { saveRefreshTokenCookie } from "@/lib/auth-cookie";
+import { getRefreshTokenCookie, saveRefreshTokenCookie } from "@/lib/auth-cookie";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,6 +11,28 @@ import { toast } from "sonner";
 import { useBranding } from "@/contexts/BrandingContext";
 
 export const Route = createFileRoute("/auth")({
+  ssr: false,
+  beforeLoad: async () => {
+    let { data: { session } } = await supabase.auth.getSession();
+
+    if (!session) {
+      const rt = getRefreshTokenCookie();
+      if (rt) {
+        try {
+          const { data } = await supabase.auth.refreshSession({ refresh_token: rt });
+          session = data.session;
+          if (session?.refresh_token) {
+            saveRefreshTokenCookie(session.refresh_token);
+          }
+        } catch {}
+      }
+    }
+
+    if (session) {
+      touchActivity();
+      throw redirect({ to: "/dashboard" });
+    }
+  },
   head: () => ({
     meta: [
       { title: "Entrar | Amstore Gestão" },
@@ -33,6 +55,28 @@ function AuthPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const { logoLogin } = useBranding();
+
+  // Se já estiver logado, redireciona imediatamente ao dashboard
+  useEffect(() => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (session) {
+        touchActivity();
+        window.location.replace("/dashboard");
+        return;
+      }
+      const rt = getRefreshTokenCookie();
+      if (rt) {
+        try {
+          const { data } = await supabase.auth.refreshSession({ refresh_token: rt });
+          if (data.session) {
+            touchActivity();
+            saveRefreshTokenCookie(data.session.refresh_token);
+            window.location.replace("/dashboard");
+          }
+        } catch {}
+      }
+    });
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

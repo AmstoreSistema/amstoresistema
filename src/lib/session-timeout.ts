@@ -1,10 +1,10 @@
 /**
- * Sessão com validade de 8 horas de inatividade:
- * o usuário permanece logado enquanto usar o sistema e só precisa entrar
- * novamente se ficar mais de 8h sem acessar.
+ * Sessão com validade de 30 dias:
+ * o usuário permanece logado enquanto usar o sistema e não é desconectado
+ * ao fechar o navegador ou ao final do expediente.
  */
 const KEY = "amstore:last_activity";
-export const SESSION_MAX_IDLE_MS = 8 * 60 * 60 * 1000;
+export const SESSION_MAX_IDLE_MS = 30 * 24 * 60 * 60 * 1000; // 30 dias
 
 export function touchActivity() {
   if (typeof window === "undefined") return;
