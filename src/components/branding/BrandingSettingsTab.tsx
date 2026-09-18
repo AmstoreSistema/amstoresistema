@@ -658,11 +658,11 @@ export function BrandingSettingsTab() {
                   {/* Mini Ícone */}
                   <div className="flex flex-col items-center my-auto">
                     <div
-                      className="size-11 rounded-xl p-1 flex items-center justify-center shadow-md border border-white/20 transition-all duration-300"
+                      className="size-11 rounded-xl p-1.5 flex items-center justify-center shadow-md border border-white/20 transition-all duration-300"
                       style={{ backgroundColor: localPwaBg }}
                     >
                       <img
-                        src={branding.pwaIcon || "/app-icon-512.png"}
+                        src={branding.pwaIcon && !branding.pwaIcon.includes("app-icon-") ? branding.pwaIcon : "/bagshoes-logo-white.png"}
                         alt="PWA Icon Preview"
                         className="size-full object-contain drop-shadow"
                       />

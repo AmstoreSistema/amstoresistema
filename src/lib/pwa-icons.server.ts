@@ -210,6 +210,62 @@ export function hexToRgb(hex: string): [number, number, number] {
   return [(num >> 16) & 255, (num >> 8) & 255, num & 255];
 }
 
+const iconBufferCache = new Map<string, { buffer: Buffer; timestamp: number }>();
+
+export function getPwaIconBuffer(
+  variant: "192" | "512" | "192-maskable" | "512-maskable" | "apple-touch",
+  pwaBgHex: string
+): Buffer {
+  const cacheKey = `${variant}:${pwaBgHex.toUpperCase()}`;
+  const cached = iconBufferCache.get(cacheKey);
+  if (cached && Date.now() - cached.timestamp < 300_000) {
+    return cached.buffer;
+  }
+
+  const publicDir = path.resolve(process.cwd(), "public");
+  const whiteLogoPath = path.resolve(publicDir, "bagshoes-logo-white.png");
+  const pwaRgb = hexToRgb(pwaBgHex);
+  const whiteLogoSrc = decodePng(whiteLogoPath);
+
+  let buf: Buffer;
+  if (variant === "512" || variant === "512-maskable") {
+    const logoMask512 = scaleRgba(whiteLogoSrc, 330, 330);
+    const mask512Data = compositeLogo(512, 512, logoMask512, pwaRgb, 91, 91);
+    buf = encodePng(512, 512, mask512Data);
+  } else if (variant === "192" || variant === "192-maskable") {
+    const logoMask192 = scaleRgba(whiteLogoSrc, 124, 124);
+    const mask192Data = compositeLogo(192, 192, logoMask192, pwaRgb, 34, 34);
+    buf = encodePng(192, 192, mask192Data);
+  } else {
+    const appleLogo = scaleRgba(whiteLogoSrc, 140, 140);
+    const appleData = compositeLogo(192, 192, appleLogo, pwaRgb, 26, 26);
+    buf = encodePng(192, 192, appleData);
+  }
+
+  iconBufferCache.set(cacheKey, { buffer: buf, timestamp: Date.now() });
+  return buf;
+}
+
+export async function getServerPwaColors(): Promise<{ pwaBgHex: string; splashBgHex: string }> {
+  try {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: colorRow } = await supabaseAdmin
+      .from("app_settings")
+      .select("value")
+      .eq("key", "branding_colors")
+      .maybeSingle();
+
+    if (colorRow?.value) {
+      const parsed = typeof colorRow.value === "string" ? JSON.parse(colorRow.value) : colorRow.value;
+      return {
+        pwaBgHex: parsed.pwa_bg_color || "#D4AF37",
+        splashBgHex: parsed.splash_bg_color || "#D4AF37",
+      };
+    }
+  } catch {}
+  return { pwaBgHex: "#D4AF37", splashBgHex: "#D4AF37" };
+}
+
 /**
  * Regenera todos os ícones de PWA e a tela de Splash física com as cores customizadas configuradas.
  */
@@ -223,27 +279,24 @@ export async function generatePwaAssets(pwaBgHex: string, splashBgHex: string): 
       return;
     }
 
-    const pwaRgb = hexToRgb(pwaBgHex);
     const splashRgb = hexToRgb(splashBgHex);
-
     const whiteLogoSrc = decodePng(whiteLogoPath);
 
-    // 1. app-icon-512-maskable.png (512x512, fundo da cor PWA, logo branca no centro de segurança 330x330)
-    const logoMask512 = scaleRgba(whiteLogoSrc, 330, 330);
-    const mask512Data = compositeLogo(512, 512, logoMask512, pwaRgb, 91, 91);
-    fs.writeFileSync(path.resolve(publicDir, "app-icon-512-maskable.png"), encodePng(512, 512, mask512Data));
+    // 1. app-icon-512.png e app-icon-512-maskable.png (512x512, fundo da cor PWA)
+    const icon512Buf = getPwaIconBuffer("512", pwaBgHex);
+    fs.writeFileSync(path.resolve(publicDir, "app-icon-512.png"), icon512Buf);
+    fs.writeFileSync(path.resolve(publicDir, "app-icon-512-maskable.png"), icon512Buf);
 
-    // 2. app-icon-192-maskable.png (192x192, fundo da cor PWA, logo branca no centro de segurança 124x124)
-    const logoMask192 = scaleRgba(whiteLogoSrc, 124, 124);
-    const mask192Data = compositeLogo(192, 192, logoMask192, pwaRgb, 34, 34);
-    fs.writeFileSync(path.resolve(publicDir, "app-icon-192-maskable.png"), encodePng(192, 192, mask192Data));
+    // 2. app-icon-192.png e app-icon-192-maskable.png (192x192, fundo da cor PWA)
+    const icon192Buf = getPwaIconBuffer("192", pwaBgHex);
+    fs.writeFileSync(path.resolve(publicDir, "app-icon-192.png"), icon192Buf);
+    fs.writeFileSync(path.resolve(publicDir, "app-icon-192-maskable.png"), icon192Buf);
 
-    // 3. apple-touch-icon.png (192x192, fundo da cor PWA, logo branca 140x140)
-    const appleLogo = scaleRgba(whiteLogoSrc, 140, 140);
-    const appleData = compositeLogo(192, 192, appleLogo, pwaRgb, 26, 26);
-    fs.writeFileSync(path.resolve(publicDir, "apple-touch-icon.png"), encodePng(192, 192, appleData));
+    // 3. apple-touch-icon.png (192x192, fundo da cor PWA)
+    const appleBuf = getPwaIconBuffer("apple-touch", pwaBgHex);
+    fs.writeFileSync(path.resolve(publicDir, "apple-touch-icon.png"), appleBuf);
 
-    // 4. splash-startup.png (1080x1920, fundo da cor Splash, logo branca 460x460 centralizada)
+    // 4. splash-startup.png e splash-startup.jpg (1080x1920, fundo da cor Splash, logo branca centralizada)
     const splashLogo = scaleRgba(whiteLogoSrc, 460, 460);
     const splashData = compositeLogo(
       1080,

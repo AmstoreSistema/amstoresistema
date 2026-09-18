@@ -229,11 +229,11 @@ export function BrandingPreviewModal({ open, onOpenChange }: BrandingPreviewModa
                 {/* Ícone na Tela Inicial do Celular */}
                 <div className="p-4 rounded-2xl border border-border bg-black/40 flex items-center gap-4">
                   <div
-                    className="size-16 rounded-2xl p-2 flex items-center justify-center shadow-lg shrink-0 border border-white/20 transition-all duration-300"
+                    className="size-16 rounded-2xl p-2.5 flex items-center justify-center shadow-lg shrink-0 border border-white/20 transition-all duration-300"
                     style={{ backgroundColor: branding.pwaBgColor }}
                   >
                     <img
-                      src={branding.pwaIcon}
+                      src={branding.pwaIcon && !branding.pwaIcon.includes("app-icon-") ? branding.pwaIcon : "/bagshoes-logo-white.png"}
                       alt="Ícone PWA"
                       className="size-full object-contain drop-shadow"
                     />
@@ -248,11 +248,11 @@ export function BrandingPreviewModal({ open, onOpenChange }: BrandingPreviewModa
                 <div className="relative overflow-hidden rounded-2xl border border-gold/40 bg-card p-4 shadow-xl">
                   <div className="flex items-center gap-3">
                     <div
-                      className="size-12 rounded-xl p-1.5 flex items-center justify-center shrink-0 border border-white/20 transition-all duration-300"
+                      className="size-12 rounded-xl p-2 flex items-center justify-center shrink-0 border border-white/20 transition-all duration-300"
                       style={{ backgroundColor: branding.pwaBgColor }}
                     >
                       <img
-                        src={branding.pwaIcon}
+                        src={branding.pwaIcon && !branding.pwaIcon.includes("app-icon-") ? branding.pwaIcon : "/bagshoes-logo-white.png"}
                         alt="App"
                         className="size-full object-contain"
                       />
