@@ -493,9 +493,9 @@ export function BrandingSettingsTab() {
                   }}
                 >
                   <img
-                    src={splash || "/bagshoes-logo-white.png"}
+                    src={splash && !splash.includes("splash-startup") ? splash : "/bagshoes-logo-white.png"}
                     alt="Splash Preview"
-                    className="max-h-12 max-w-[70px] object-contain drop-shadow animate-pulse"
+                    className="max-h-12 w-auto max-w-[80px] object-contain drop-shadow animate-pulse"
                   />
                   <div className="mt-3 flex items-center gap-1">
                     <div className="size-1 rounded-full bg-white animate-bounce [animation-delay:-0.3s]" />

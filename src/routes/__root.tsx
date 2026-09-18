@@ -136,7 +136,6 @@ function RootShell({ children }: { children: ReactNode }) {
       <body>
         <ErrorBoundary>
           {children}
-          <InstallPWA />
           <Toaster position="top-right" richColors />
           <Scripts />
         </ErrorBoundary>
@@ -173,6 +172,7 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <BrandingProvider>
+        <InstallPWA />
         {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
         <Outlet />
       </BrandingProvider>

@@ -208,6 +208,24 @@ function compositeLogo(
   return canvas;
 }
 
+function scaleAndCenterLogo(
+  src: { width: number; height: number; data: Buffer },
+  canvasW: number,
+  canvasH: number,
+  maxLogoW: number,
+  maxLogoH: number,
+  bgRgb: [number, number, number],
+  offsetYShift = 0
+): Buffer {
+  const scale = Math.min(maxLogoW / src.width, maxLogoH / src.height);
+  const targetW = Math.max(1, Math.round(src.width * scale));
+  const targetH = Math.max(1, Math.round(src.height * scale));
+  const scaled = scaleRgba(src, targetW, targetH);
+  const offsetX = Math.round((canvasW - targetW) / 2);
+  const offsetY = Math.round((canvasH - targetH) / 2) + offsetYShift;
+  return compositeLogo(canvasW, canvasH, scaled, bgRgb, offsetX, offsetY);
+}
+
 export function hexToRgb(hex: string): [number, number, number] {
   let clean = hex.replace("#", "").trim();
   if (clean.length === 3) {
@@ -223,6 +241,7 @@ export function hexToRgb(hex: string): [number, number, number] {
 }
 
 const iconBufferCache = new Map<string, { buffer: Buffer; timestamp: number }>();
+const splashBufferCache = new Map<string, { buffer: Buffer; timestamp: number }>();
 
 export function getPwaIconBuffer(
   variant: "192" | "512" | "192-maskable" | "512-maskable" | "apple-touch",
@@ -243,20 +262,41 @@ export function getPwaIconBuffer(
 
   let buf: Buffer;
   if (variant === "512" || variant === "512-maskable") {
-    const logoMask512 = scaleRgba(whiteLogoSrc, 330, 330);
-    const mask512Data = compositeLogo(512, 512, logoMask512, pwaRgb, 91, 91);
+    // 512x512 maskable: safe zone é 80% do diâmetro (~409px). 340x340 preserva proporção exata sem esticar
+    const mask512Data = scaleAndCenterLogo(whiteLogoSrc, 512, 512, 340, 340, pwaRgb);
     buf = encodePng(512, 512, mask512Data);
   } else if (variant === "192" || variant === "192-maskable") {
-    const logoMask192 = scaleRgba(whiteLogoSrc, 124, 124);
-    const mask192Data = compositeLogo(192, 192, logoMask192, pwaRgb, 34, 34);
+    // 192x192 maskable: zona proporcional de 128x128
+    const mask192Data = scaleAndCenterLogo(whiteLogoSrc, 192, 192, 128, 128, pwaRgb);
     buf = encodePng(192, 192, mask192Data);
   } else {
-    const appleLogo = scaleRgba(whiteLogoSrc, 140, 140);
-    const appleData = compositeLogo(192, 192, appleLogo, pwaRgb, 26, 26);
+    // Apple touch icon 192x192: 140x140
+    const appleData = scaleAndCenterLogo(whiteLogoSrc, 192, 192, 140, 140, pwaRgb);
     buf = encodePng(192, 192, appleData);
   }
 
   iconBufferCache.set(cacheKey, { buffer: buf, timestamp: Date.now() });
+  return buf;
+}
+
+export function getSplashStartupBuffer(splashBgHex: string): Buffer {
+  let hex = (splashBgHex || "#D4AF37").trim();
+  if (!hex.startsWith("#")) hex = `#${hex}`;
+  const cacheKey = hex.toUpperCase();
+  const cached = splashBufferCache.get(cacheKey);
+  if (cached && Date.now() - cached.timestamp < 300_000) {
+    return cached.buffer;
+  }
+
+  const publicDir = path.resolve(process.cwd(), "public");
+  const whiteLogoPath = path.resolve(publicDir, "bagshoes-logo-white.png");
+  const splashRgb = hexToRgb(hex);
+  const whiteLogoSrc = decodePng(whiteLogoPath);
+
+  // Canvas vertical 1080x1920: logo nítida de 520px máx proporcional, centralizada com elevação suave
+  const splashData = scaleAndCenterLogo(whiteLogoSrc, 1080, 1920, 520, 400, splashRgb, -60);
+  const buf = encodePng(1080, 1920, splashData);
+  splashBufferCache.set(cacheKey, { buffer: buf, timestamp: Date.now() });
   return buf;
 }
 
@@ -281,7 +321,7 @@ export async function getServerPwaColors(): Promise<{ pwaBgHex: string; splashBg
       }
     }
 
-    // 1b. Fallback para appearance via supabaseAdmin
+    // 1b. Fallback para appearance via supabaseAdmin (ignora se for o preto legado não configurado #0A0A0C)
     const { data: appRow } = await supabaseAdmin
       .from("app_settings")
       .select("value")
@@ -290,7 +330,7 @@ export async function getServerPwaColors(): Promise<{ pwaBgHex: string; splashBg
 
     if (appRow?.value) {
       const parsed = typeof appRow.value === "string" ? JSON.parse(appRow.value) : appRow.value;
-      if (parsed.splash_bg) {
+      if (parsed.splash_bg && parsed.splash_bg.toUpperCase() !== "#0A0A0C") {
         return {
           pwaBgHex: parsed.splash_bg,
           splashBgHex: parsed.splash_bg,
@@ -335,7 +375,7 @@ export async function getServerPwaColors(): Promise<{ pwaBgHex: string; splashBg
 
       if (appRow?.value) {
         const parsed = typeof appRow.value === "string" ? JSON.parse(appRow.value) : appRow.value;
-        if (parsed.splash_bg) {
+        if (parsed.splash_bg && parsed.splash_bg.toUpperCase() !== "#0A0A0C") {
           return {
             pwaBgHex: parsed.splash_bg,
             splashBgHex: parsed.splash_bg,
@@ -350,7 +390,8 @@ export async function getServerPwaColors(): Promise<{ pwaBgHex: string; splashBg
 }
 
 /**
- * Regenera todos os ícones de PWA e a tela de Splash física com as cores customizadas configuradas.
+ * Regenera todos os ícones de PWA e a tela de Splash física com as cores customizadas configuradas,
+ * sem distorção e preservando a proporção de aspecto perfeita.
  */
 export async function generatePwaAssets(pwaBgHex: string, splashBgHex: string): Promise<void> {
   try {
@@ -361,9 +402,6 @@ export async function generatePwaAssets(pwaBgHex: string, splashBgHex: string): 
       console.warn("[PWA Assets] Arquivo bagshoes-logo-white.png não encontrado em", whiteLogoPath);
       return;
     }
-
-    const splashRgb = hexToRgb(splashBgHex);
-    const whiteLogoSrc = decodePng(whiteLogoPath);
 
     // 1. app-icon-512.png e app-icon-512-maskable.png (512x512, fundo da cor PWA)
     const icon512Buf = getPwaIconBuffer("512", pwaBgHex);
@@ -379,34 +417,37 @@ export async function generatePwaAssets(pwaBgHex: string, splashBgHex: string): 
     const appleBuf = getPwaIconBuffer("apple-touch", pwaBgHex);
     fs.writeFileSync(path.resolve(publicDir, "apple-touch-icon.png"), appleBuf);
 
-    // 4. splash-startup.png e splash-startup.jpg (1080x1920, fundo da cor Splash, logo branca centralizada)
-    const splashLogo = scaleRgba(whiteLogoSrc, 460, 460);
-    const splashData = compositeLogo(
-      1080,
-      1920,
-      splashLogo,
-      splashRgb,
-      Math.round((1080 - 460) / 2),
-      Math.round((1920 - 460) / 2)
-    );
-    const splashPng = encodePng(1080, 1920, splashData);
+    // 4. splash-startup.png e splash-startup.jpg (1080x1920, fundo da cor Splash, logo branca centralizada e sem distorção)
+    const splashPng = getSplashStartupBuffer(splashBgHex);
     fs.writeFileSync(path.resolve(publicDir, "splash-startup.png"), splashPng);
     fs.writeFileSync(path.resolve(publicDir, "splash-startup.jpg"), splashPng);
 
-    // 5. Atualiza public/manifest.json para sincronizar arquivo estático caso algum navegador leia direto
+    // 5. Atualiza public/manifest.json para sincronizar arquivo estático com as cores reais
     try {
       const manifestPath = path.resolve(publicDir, "manifest.json");
       if (fs.existsSync(manifestPath)) {
         const manifestContent = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+        const cleanBg = (pwaBgHex || "#D4AF37").replace("#", "").toUpperCase();
         manifestContent.background_color = pwaBgHex;
         manifestContent.theme_color = pwaBgHex;
+        if (Array.isArray(manifestContent.icons)) {
+          manifestContent.icons = manifestContent.icons.map((ic: any) => {
+            if (typeof ic.src === "string" && ic.src.includes("/api/public/pwa-icon")) {
+              const urlObj = new URL(ic.src, "https://amstore.local");
+              urlObj.searchParams.set("color", cleanBg);
+              urlObj.searchParams.set("v", "pwa");
+              return { ...ic, src: `${urlObj.pathname}?${urlObj.searchParams.toString()}` };
+            }
+            return ic;
+          });
+        }
         fs.writeFileSync(manifestPath, JSON.stringify(manifestContent, null, 2), "utf8");
       }
     } catch (e) {
       console.warn("[PWA Assets] Erro ao atualizar public/manifest.json:", e);
     }
 
-    console.log(`[PWA Assets] Todos os ícones e splash regenerados com sucesso! PWA: ${pwaBgHex}, Splash: ${splashBgHex}`);
+    console.log(`[PWA Assets] Todos os ícones e splash regenerados com proporção perfeita! PWA: ${pwaBgHex}, Splash: ${splashBgHex}`);
   } catch (err) {
     console.error("[PWA Assets] Erro ao gerar assets do PWA:", err);
   }

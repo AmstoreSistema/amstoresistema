@@ -577,47 +577,18 @@ export const removeBrandingImage = createServerFn({ method: "POST" })
  * Recupera as cores customizadas do Splash Screen e da instalação PWA.
  */
 export const getBrandingColors = createServerFn({ method: "GET" }).handler(async (): Promise<BrandingColors> => {
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-
   try {
-    const { data } = await supabaseAdmin
-      .from("app_settings")
-      .select("value")
-      .eq("key", "branding_colors")
-      .maybeSingle();
-
-    if (data?.value) {
-      const parsed = typeof data.value === "string" ? JSON.parse(data.value) : data.value;
-      return {
-        splash_bg_color: parsed.splash_bg_color || BRANDING_COLORS_DEFAULT.splash_bg_color,
-        pwa_bg_color: parsed.pwa_bg_color || BRANDING_COLORS_DEFAULT.pwa_bg_color,
-        pwa_theme_color: parsed.pwa_theme_color || BRANDING_COLORS_DEFAULT.pwa_theme_color,
-      };
-    }
+    const { getServerPwaColors } = await import("@/lib/pwa-icons.server");
+    const colors = await getServerPwaColors();
+    return {
+      splash_bg_color: colors.splashBgHex,
+      pwa_bg_color: colors.pwaBgHex,
+      pwa_theme_color: colors.pwaThemeHex,
+    };
   } catch (e) {
-    console.warn("[Branding] Aviso ao ler branding_colors de app_settings:", e);
+    console.warn("[Branding] Aviso ao ler cores de PWA:", e);
+    return BRANDING_COLORS_DEFAULT;
   }
-
-  // Fallback para appearance caso branding_colors ainda não exista
-  try {
-    const { data: appRow } = await supabaseAdmin
-      .from("app_settings")
-      .select("value")
-      .eq("key", "appearance")
-      .maybeSingle();
-    if (appRow?.value) {
-      const parsed = typeof appRow.value === "string" ? JSON.parse(appRow.value) : appRow.value;
-      if (parsed?.splash_bg) {
-        return {
-          splash_bg_color: parsed.splash_bg,
-          pwa_bg_color: parsed.splash_bg,
-          pwa_theme_color: parsed.splash_bg,
-        };
-      }
-    }
-  } catch {}
-
-  return BRANDING_COLORS_DEFAULT;
 });
 
 /**

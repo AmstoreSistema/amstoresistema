@@ -177,9 +177,9 @@ export function BrandingPreviewModal({ open, onOpenChange }: BrandingPreviewModa
                 }}
               >
                 <img
-                  src={branding.splash}
+                  src={branding.splash && !branding.splash.includes("splash-startup") ? branding.splash : "/bagshoes-logo-white.png"}
                   alt="Splash Logo"
-                  className="max-h-28 max-w-[200px] object-contain drop-shadow-[0_8px_20px_rgba(0,0,0,0.25)] animate-pulse"
+                  className="max-h-28 w-auto max-w-[200px] object-contain drop-shadow-[0_8px_20px_rgba(0,0,0,0.25)] animate-pulse"
                 />
                 <div className="mt-8 flex items-center gap-2">
                   <div className="size-2.5 rounded-full bg-white animate-bounce [animation-delay:-0.3s]" />
