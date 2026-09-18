@@ -45,6 +45,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { ReportLayout } from "@/components/report-layout";
+import { AvailableSizesReport } from "@/components/reports/AvailableSizesReport";
 import { getAppSettings } from "@/lib/settings.functions";
 import { useServerFn } from "@tanstack/react-start";
 import { printReport } from "@/lib/print-report";
@@ -100,7 +101,7 @@ const REPORTS: { id: ReportId; label: string; icon: any; grouping?: boolean; noF
   { id: "sales-general", label: "Vendas Geral", icon: FileText },
   { id: "pending", label: "Fiados/Pendentes", icon: FileText },
   { id: "sandal-sizes", label: "Numerações Sandálias", icon: Footprints },
-  { id: "sizes-available", label: "Numerações Disponíveis", icon: Boxes },
+  { id: "sizes-available", label: "Numerações Disponíveis", icon: Boxes, noFilter: true },
   { id: "sales-full", label: "Vendas Completo (Itens)", icon: Users },
   { id: "by-seller", label: "Por Vendedor", icon: User },
   { id: "by-category", label: "Por Categoria", icon: Tag },
@@ -1473,64 +1474,74 @@ function StoreReportsPage() {
       {/* Relatório Renderizado */}
       {generated && (
         <div id="store-report-results-section" className="space-y-4 animate-in slide-in-from-bottom-4 duration-500">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-1 sm:px-2 print:hidden">
-            <div className="flex items-center gap-2.5 flex-wrap min-w-0">
-              <h2 className="font-display text-base sm:text-lg font-black text-foreground truncate">
-                Visualização: {selected === "transactions"
-                  ? (txTypeFilter === "receita"
-                      ? "Receitas (Vendas)"
-                      : txTypeFilter === "despesa"
-                      ? "Despesas (Saídas)"
-                      : "Transações Financeiras")
-                  : current.label}
-              </h2>
-              <Badge variant="outline" className="font-bold border-border/60 shrink-0 text-[10px]">
-                {result.rows.length} registros
-              </Badge>
-            </div>
-            <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 w-full sm:w-auto">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleExport}
-                className="h-10 rounded-xl font-bold border-border/60 hover:bg-muted/50 gap-2 text-xs"
-              >
-                <FileDown className="size-4 text-amber-500 shrink-0" />
-                <span>EXPORTAR CSV</span>
-              </Button>
-              <Button
-                variant="default"
-                size="sm"
-                onClick={() => printReport("printable-report", selected === "transactions" ? "landscape" : "portrait")}
-                className="h-10 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-black gap-2 text-xs shadow-sm"
-              >
-                <Printer className="size-4 shrink-0" />
-                <span>IMPRIMIR A4</span>
-              </Button>
-            </div>
-          </div>
+          {selected === "sizes-available" ? (
+            <AvailableSizesReport
+              stock={stock}
+              products={products}
+              storeInfo={storeInfo}
+            />
+          ) : (
+            <>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-1 sm:px-2 print:hidden">
+                <div className="flex items-center gap-2.5 flex-wrap min-w-0">
+                  <h2 className="font-display text-base sm:text-lg font-black text-foreground truncate">
+                    Visualização: {selected === "transactions"
+                      ? (txTypeFilter === "receita"
+                          ? "Receitas (Vendas)"
+                          : txTypeFilter === "despesa"
+                          ? "Despesas (Saídas)"
+                          : "Transações Financeiras")
+                      : current.label}
+                  </h2>
+                  <Badge variant="outline" className="font-bold border-border/60 shrink-0 text-[10px]">
+                    {result.rows.length} registros
+                  </Badge>
+                </div>
+                <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 w-full sm:w-auto">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleExport}
+                    className="h-10 rounded-xl font-bold border-border/60 hover:bg-muted/50 gap-2 text-xs"
+                  >
+                    <FileDown className="size-4 text-amber-500 shrink-0" />
+                    <span>EXPORTAR CSV</span>
+                  </Button>
+                  <Button
+                    variant="default"
+                    size="sm"
+                    onClick={() => printReport("printable-report", selected === "transactions" ? "landscape" : "portrait")}
+                    className="h-10 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-black gap-2 text-xs shadow-sm"
+                  >
+                    <Printer className="size-4 shrink-0" />
+                    <span>IMPRIMIR A4</span>
+                  </Button>
+                </div>
+              </div>
 
-          <ReportLayout 
-            id="printable-report"
-            title={selected === "transactions"
-              ? (txTypeFilter === "receita"
-                  ? "Relatório de Receitas (Vendas)"
-                  : txTypeFilter === "despesa"
-                  ? "Relatório de Despesas (Saídas)"
-                  : "Relatório de Transações Financeiras")
-              : current.label}
-            startDate={current.noFilter ? undefined : range.start}
-            endDate={current.noFilter ? undefined : range.end}
-            storeInfo={storeInfo}
-            columns={result.columns}
-            rows={result.rows}
-            summaryCards={result.summaryCards}
-            summaryPosition="top"
-            orientation={selected === "transactions" ? "landscape" : undefined}
-            showTableTotals={selected !== "transactions"}
-            onPrint={() => printReport("printable-report", selected === "transactions" ? "landscape" : "portrait")}
-            onExportCsv={handleExport}
-          />
+              <ReportLayout 
+                id="printable-report"
+                title={selected === "transactions"
+                  ? (txTypeFilter === "receita"
+                      ? "Relatório de Receitas (Vendas)"
+                      : txTypeFilter === "despesa"
+                      ? "Relatório de Despesas (Saídas)"
+                      : "Relatório de Transações Financeiras")
+                  : current.label}
+                startDate={current.noFilter ? undefined : range.start}
+                endDate={current.noFilter ? undefined : range.end}
+                storeInfo={storeInfo}
+                columns={result.columns}
+                rows={result.rows}
+                summaryCards={result.summaryCards}
+                summaryPosition="top"
+                orientation={selected === "transactions" ? "landscape" : undefined}
+                showTableTotals={selected !== "transactions"}
+                onPrint={() => printReport("printable-report", selected === "transactions" ? "landscape" : "portrait")}
+                onExportCsv={handleExport}
+              />
+            </>
+          )}
         </div>
       )}
     </div>
