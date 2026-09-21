@@ -611,3 +611,186 @@ export function exportTransactionsToCSV(
 
   return `\uFEFF${headerLine}\n${rowLines}`;
 }
+
+export interface ClientResolutionContext {
+  clients?: any[];
+  clientMap?: Map<string, any>;
+  clientByNameMap?: Map<string, any>;
+  sales?: any[];
+  saleMap?: Map<string, any>;
+  transactions?: any[];
+  txBySaleIdMap?: Map<string, any>;
+  txBySaleCodeMap?: Map<string, any>;
+}
+
+export interface ResolvedClientInfo {
+  name: string;
+  phone: string;
+  isConsumidor: boolean;
+}
+
+/**
+ * Constrói mapa indexado de transações pelo código da venda extraído de descrições e formatos conhecidos.
+ */
+export function buildTxBySaleCodeMap(transactions: any[]): Map<string, any> {
+  const map = new Map<string, any>();
+  transactions.forEach((tx: any) => {
+    if (tx.description && typeof tx.description === "string") {
+      // 1. Matches de marcadores de venda/código
+      const matches = [
+        ...tx.description.matchAll(/(?:#|•\s*|(?:Venda\s+#?)|(?:Venda\s+))([A-Za-z0-9_-]+)/gi)
+      ];
+      matches.forEach(m => {
+        if (m[1]) {
+          const code = m[1].toUpperCase().trim();
+          if (!map.has(code)) map.set(code, tx);
+        }
+      });
+      // 2. Matches de formato padrão V[0-9]{6,}[A-Za-z0-9]* (ex: V040826110856JC, V220826105653JS)
+      const vCodes = [...tx.description.matchAll(/\b(V\d{6,}[A-Za-z0-9]*)\b/gi)];
+      vCodes.forEach(vc => {
+        if (vc[1]) {
+          const code = vc[1].toUpperCase().trim();
+          if (!map.has(code)) map.set(code, tx);
+        }
+      });
+    }
+  });
+  return map;
+}
+
+/**
+ * Constrói mapa de clientes indexado pelo nome normalizado em caixa baixa para buscas rápidas de telefone/contato.
+ */
+export function buildClientByNameMap(clients: any[]): Map<string, any> {
+  const map = new Map<string, any>();
+  clients.forEach((c: any) => {
+    if (c?.name && isValidClientName(c.name)) {
+      map.set(c.name.trim().toLowerCase(), c);
+    }
+  });
+  return map;
+}
+
+/**
+ * Resolução profunda e unificada de informações do cliente (Nome e Telefone)
+ * para vendas, parcelas e relatórios em geral, evitando que clientes apareçam
+ * genericamente como "Consumidor" ou "Consumidor Final".
+ */
+export function resolveSaleClientInfo(
+  saleOrId: any,
+  context: ClientResolutionContext,
+  saleCodeFallback?: string,
+  fallbackClientId?: string
+): ResolvedClientInfo {
+  let resolvedName = "";
+  let resolvedPhone = "";
+
+  // 1. Obter o objeto de venda (direto ou do saleMap/sales)
+  let sale = typeof saleOrId === "object" && saleOrId !== null ? saleOrId : null;
+  // Se o objeto for uma parcela que tem o join row.sales
+  if (sale?.sales) {
+    sale = Array.isArray(sale.sales) ? sale.sales[0] : sale.sales;
+  }
+  const saleId = (typeof saleOrId === "string" ? saleOrId : sale?.id || sale?.sale_id) || null;
+
+  if (!sale && saleId) {
+    sale = context.saleMap?.get(saleId) || (context.sales ? context.sales.find((s: any) => s.id === saleId) : null);
+  }
+
+  const effectiveCode = (sale?.sale_code || saleCodeFallback || "").toUpperCase().trim();
+  if (!sale && effectiveCode && context.sales) {
+    sale = context.sales.find((s: any) => (s.sale_code || "").toUpperCase() === effectiveCode);
+  }
+
+  // 2. Verificar cliente direto no objeto da venda (join clients)
+  const directClient = sale ? (Array.isArray(sale.clients) ? sale.clients[0] : sale.clients) : null;
+  if (directClient?.name && isValidClientName(directClient.name)) {
+    resolvedName = directClient.name.trim();
+    resolvedPhone = directClient.phone || "";
+  }
+
+  // 3. Verificar client_id da venda no clientMap ou clients array
+  const effectiveClientId = sale?.client_id || fallbackClientId;
+  if (!resolvedName && effectiveClientId) {
+    const c = context.clientMap?.get(effectiveClientId) || (context.clients ? context.clients.find((cl: any) => cl.id === effectiveClientId) : null);
+    if (c?.name && isValidClientName(c.name)) {
+      resolvedName = c.name.trim();
+      resolvedPhone = c.phone || "";
+    }
+  }
+
+  // 4. Verificar client_name explícito na venda (se existir)
+  if (!resolvedName && sale?.client_name && isValidClientName(sale.client_name)) {
+    resolvedName = sale.client_name.trim();
+  }
+
+  // 5. Verificar transação vinculada por sale_id ou por sale_code
+  let linkedTx = saleId ? context.txBySaleIdMap?.get(saleId) : null;
+  if (!linkedTx && effectiveCode && context.txBySaleCodeMap) {
+    linkedTx = context.txBySaleCodeMap.get(effectiveCode);
+  }
+  if (!linkedTx && saleId && context.transactions) {
+    linkedTx = context.transactions.find((t: any) => t.sale_id === saleId);
+  }
+  if (!linkedTx && effectiveCode && context.transactions) {
+    linkedTx = context.transactions.find((t: any) => t.description && t.description.toUpperCase().includes(effectiveCode));
+  }
+
+  if (linkedTx) {
+    const txClient = Array.isArray(linkedTx.clients) ? linkedTx.clients[0] : linkedTx.clients;
+    if (!resolvedName && txClient?.name && isValidClientName(txClient.name)) {
+      resolvedName = txClient.name.trim();
+      if (!resolvedPhone) resolvedPhone = txClient.phone || "";
+    }
+    if (!resolvedName && linkedTx.client_id) {
+      const tc = context.clientMap?.get(linkedTx.client_id) || (context.clients ? context.clients.find((cl: any) => cl.id === linkedTx.client_id) : null);
+      if (tc?.name && isValidClientName(tc.name)) {
+        resolvedName = tc.name.trim();
+        if (!resolvedPhone) resolvedPhone = tc.phone || "";
+      }
+    }
+    if (!resolvedName && linkedTx.client_name && isValidClientName(linkedTx.client_name)) {
+      resolvedName = linkedTx.client_name.trim();
+    }
+    if (!resolvedName && linkedTx.description) {
+      const fromDesc = extractClientFromDescription(linkedTx.description);
+      if (fromDesc) {
+        resolvedName = fromDesc;
+      }
+    }
+    if (!resolvedPhone && txClient?.phone) {
+      resolvedPhone = txClient.phone;
+    }
+  }
+
+  // 6. Verificar notas da venda (sale.notes) se ainda não encontrou
+  if (!resolvedName && sale?.notes) {
+    const fromNotes = extractClientFromDescription(sale.notes);
+    if (fromNotes) resolvedName = fromNotes;
+  }
+
+  // 7. Se encontramos o nome mas ainda não temos o telefone, busca no cadastro de clientes
+  if (resolvedName && (!resolvedPhone || resolvedPhone === "—")) {
+    const lowerName = resolvedName.toLowerCase();
+    const matched = context.clientByNameMap?.get(lowerName) || 
+      (context.clients ? context.clients.find((c: any) => c.name && c.name.trim().toLowerCase() === lowerName) : null) ||
+      (context.clients ? context.clients.find((c: any) => c.name && c.name.length >= 4 && (c.name.toLowerCase().includes(lowerName) || lowerName.includes(c.name.toLowerCase()))) : null);
+    if (matched?.phone) {
+      resolvedPhone = matched.phone;
+    }
+  }
+
+  // 8. Se ainda não tem telefone e temos o cliente direto da venda
+  if (!resolvedPhone && directClient?.phone) {
+    resolvedPhone = directClient.phone;
+  }
+
+  const isConsumidor = !resolvedName;
+  return {
+    name: resolvedName || "Consumidor Final",
+    phone: resolvedPhone || "—",
+    isConsumidor,
+  };
+}
+

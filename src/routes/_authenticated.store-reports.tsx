@@ -25,6 +25,9 @@ import {
   exportTransactionsToCSV,
   isValidClientName,
   extractClientFromDescription,
+  resolveSaleClientInfo,
+  buildTxBySaleCodeMap,
+  buildClientByNameMap,
 } from "@/lib/transaction-report.helpers";
 
 import { Button } from "@/components/ui/button";
@@ -225,8 +228,8 @@ function StoreReportsPage() {
   const isNoFilter = current?.noFilter ?? false;
 
   const { data: sales = [], isLoading: l1 } = useRows<any>("sales", {
-    select: "*, clients(name)",
-    dateRange: !isNoFilter && (range.start || range.end) ? {
+    select: "*, clients(name, phone)",
+    dateRange: !isNoFilter && selected !== "pending" && (range.start || range.end) ? {
       column: "created_at",
       gte: range.start ? `${range.start}T00:00:00` : undefined,
       lte: range.end ? `${range.end}T23:59:59` : undefined,
@@ -262,9 +265,12 @@ function StoreReportsPage() {
 
   const { data: products = [] } = useRows<any>("products", { limit: 3000 });
   const { data: clients = [] } = useRows<any>("clients", { limit: 3000 });
-  const { data: installments = [] } = useRows<any>("sale_installments", { limit: 5000 });
+  const { data: installments = [] } = useRows<any>("sale_installments", { 
+    select: "*, sales(id, sale_code, client_id, installments_count, notes, clients(id, name, phone))",
+    limit: 5000 
+  });
   const { data: transactions = [] } = useRows<any>("transactions", {
-    select: "*, financial_accounts(name), clients(name), suppliers(name), sales(id, sale_code, client_id, clients(name))",
+    select: "*, financial_accounts(name), clients(name, phone), suppliers(name), sales(id, sale_code, client_id, notes, clients(name, phone))",
     dateRange: !isNoFilter && (range.start || range.end) ? {
       column: "created_at",
       gte: range.start ? `${range.start}T00:00:00` : undefined,
@@ -291,6 +297,7 @@ function StoreReportsPage() {
 
   const productMap = useMemo(() => new Map(products.map((p: any) => [p.id, p])), [products]);
   const clientMap = useMemo(() => new Map(clients.map((c: any) => [c.id, c])), [clients]);
+  const clientByNameMap = useMemo(() => buildClientByNameMap(clients), [clients]);
   const saleMap = useMemo(() => new Map(sales.map((s: any) => [s.id, s])), [sales]);
   const profileMap = useMemo(() => new Map(profiles.map((pr: any) => [pr.id, pr])), [profiles]);
 
@@ -302,19 +309,18 @@ function StoreReportsPage() {
     return map;
   }, [transactions]);
 
-  const txBySaleCodeMap = useMemo(() => {
-    const map = new Map<string, any>();
-    transactions.forEach((tx: any) => {
-      if (tx.description) {
-        const m = tx.description.match(/(?:#|•\s*)([A-Za-z0-9_-]+)/);
-        if (m && m[1]) {
-          const code = m[1].toUpperCase();
-          if (!map.has(code)) map.set(code, tx);
-        }
-      }
-    });
-    return map;
-  }, [transactions]);
+  const txBySaleCodeMap = useMemo(() => buildTxBySaleCodeMap(transactions), [transactions]);
+
+  const clientResolutionContext = useMemo(() => ({
+    clients,
+    clientMap,
+    clientByNameMap,
+    sales,
+    saleMap,
+    transactions,
+    txBySaleIdMap,
+    txBySaleCodeMap,
+  }), [clients, clientMap, clientByNameMap, sales, saleMap, transactions, txBySaleIdMap, txBySaleCodeMap]);
 
   const productName = (id?: string | null) => productMap.get(id)?.name ?? "—";
   const productCategory = (id?: string | null) => productMap.get(id)?.category ?? "Sem categoria";
@@ -325,32 +331,11 @@ function StoreReportsPage() {
     return prof?.display_name || prof?.email || "Balcão Loja";
   };
 
-  const resolveSaleClient = (sale: any) => {
-    if (!sale) return "Consumidor final";
-    const directClient = Array.isArray(sale.clients) ? sale.clients[0] : sale.clients;
-    if (directClient?.name && isValidClientName(directClient.name)) return directClient.name.trim();
-    if (sale.client_id && clientMap.has(sale.client_id)) {
-      const c = clientMap.get(sale.client_id);
-      if (c?.name && isValidClientName(c.name)) return c.name.trim();
-    }
-    if (sale.client_name && isValidClientName(sale.client_name)) return sale.client_name.trim();
-
-    const linkedTx = txBySaleIdMap.get(sale.id) || (sale.sale_code ? txBySaleCodeMap.get(sale.sale_code.toUpperCase()) : null);
-    if (linkedTx) {
-      const txClient = Array.isArray(linkedTx.clients) ? linkedTx.clients[0] : linkedTx.clients;
-      if (txClient?.name && isValidClientName(txClient.name)) return txClient.name.trim();
-      if (linkedTx.client_id && clientMap.has(linkedTx.client_id)) {
-        const tc = clientMap.get(linkedTx.client_id);
-        if (tc?.name && isValidClientName(tc.name)) return tc.name.trim();
-      }
-      if (linkedTx.client_name && isValidClientName(linkedTx.client_name)) return linkedTx.client_name.trim();
-      if (linkedTx.description) {
-        const fromDesc = extractClientFromDescription(linkedTx.description);
-        if (fromDesc) return fromDesc;
-      }
-    }
-    return "Consumidor final";
+  const resolveSaleClientDetails = (saleOrId: any, saleCodeFallback?: string, fallbackClientId?: string) => {
+    return resolveSaleClientInfo(saleOrId, clientResolutionContext, saleCodeFallback, fallbackClientId);
   };
+
+  const resolveSaleClient = (sale: any) => resolveSaleClientDetails(sale).name;
 
   const result = useMemo<Result>(() => {
     const todayIso = toISODate(new Date());
@@ -466,17 +451,21 @@ function StoreReportsPage() {
       }
 
       case "clients": {
-        const map = new Map<string, { id: string; count: number; total: number; last: string }>();
+        const map = new Map<string, { id: string; phone: string; count: number; total: number; last: string }>();
         let sumTotalGasto = 0;
 
         validSales.forEach((s: any) => {
-          const k = clientName(s.client_id);
-          const acc = map.get(k) ?? { id: s.client_id, count: 0, total: 0, last: s.created_at };
+          const clientDetails = resolveSaleClientDetails(s);
+          const k = clientDetails.name;
+          const acc = map.get(k) ?? { id: s.client_id, phone: clientDetails.phone, count: 0, total: 0, last: s.created_at };
           const val = Number(s.total_amount ?? 0);
           acc.count += 1;
           acc.total += val;
           sumTotalGasto += val;
           if (new Date(s.created_at) > new Date(acc.last)) acc.last = s.created_at;
+          if ((!acc.phone || acc.phone === "—") && clientDetails.phone && clientDetails.phone !== "—") {
+            acc.phone = clientDetails.phone;
+          }
           map.set(k, acc);
         });
 
@@ -484,7 +473,7 @@ function StoreReportsPage() {
           .sort((a, b) => b[1].total - a[1].total)
           .map(([client, v]) => ({
             client,
-            phone: clientPhone(v.id),
+            phone: v.phone && v.phone !== "—" ? v.phone : clientPhone(v.id),
             count: v.count,
             total: brl(v.total),
             ticket: brl(v.count ? v.total / v.count : 0),
@@ -623,43 +612,125 @@ function StoreReportsPage() {
         let sum = 0;
         let sumPecas = 0;
 
-        const rows = itemsOfValidSales.map((i: any) => {
-          const sale = validSales.find((s: any) => s.id === i.sale_id);
-          const t = itemTotal(i);
-          const q = Number(i.quantity ?? 1);
-          sum += t;
-          sumPecas += q;
-          return {
-            code: sale?.sale_code ?? sale?.id?.slice(0, 8) ?? "—",
-            date: dateTimeBR(sale?.created_at),
-            client: resolveSaleClient(sale),
-            product: productName(i.product_id),
-            size: i.numeracao ?? "—",
-            qty: num(q, 0),
-            unit: brl(i.unit_price),
-            discount: i.discount > 0 ? brl(i.discount) : "—",
-            total: brl(t),
-            seller: sellerName(sale?.seller_id),
-          };
+        // Agrupar itens por venda
+        const itemsBySale = new Map<string, any[]>();
+        itemsOfValidSales.forEach((i: any) => {
+          const sid = i.sale_id;
+          if (!sid) return;
+          const list = itemsBySale.get(sid) || [];
+          list.push(i);
+          itemsBySale.set(sid, list);
         });
 
+        // Iterar sobre cada venda válida para gerar uma única linha consolidada por venda
+        const rows = validSales
+          .filter((s: any) => itemsBySale.has(s.id) || Number(s.total_amount ?? 0) > 0)
+          .map((sale: any) => {
+            const saleItemsList = itemsBySale.get(sale.id) || [];
+            let saleTotalPecas = 0;
+            let saleTotalAmount = 0;
+
+            const itemsDetailed = saleItemsList.map((i: any) => {
+              const q = Number(i.quantity ?? 1);
+              const t = itemTotal(i);
+              saleTotalPecas += q;
+              saleTotalAmount += t;
+              return {
+                name: productName(i.product_id),
+                size: i.numeracao && i.numeracao !== "—" ? i.numeracao : null,
+                qty: q,
+                unit_price: Number(i.unit_price ?? 0),
+                discount: Number(i.discount ?? 0),
+                total: t,
+              };
+            });
+
+            // Se a venda não tiver itens discriminados em sale_items, usar total_amount da venda
+            if (saleItemsList.length === 0) {
+              saleTotalAmount = Number(sale.total_amount ?? 0);
+              saleTotalPecas = 1;
+            }
+
+            sum += saleTotalAmount;
+            sumPecas += saleTotalPecas;
+
+            // Texto limpo e organizado para a exportação CSV
+            const rawProductsText = itemsDetailed.length > 0
+              ? itemsDetailed
+                  .map(
+                    (it: any, idx: number) =>
+                      `#${idx + 1} ${it.name}${it.size ? ` (Tam: ${it.size})` : ""} - ${it.qty}un x ${brl(it.unit_price)}${it.discount > 0 ? ` [Desc: ${brl(it.discount)}]` : ""} = ${brl(it.total)}`
+                  )
+                  .join(" | ")
+              : "Venda registrada";
+
+            // Visualização elaborada, explicativa e empilhada de todos os produtos na mesma linha
+            const productsElement = (
+              <div className="flex flex-col gap-1.5 py-1 text-left min-w-[280px]">
+                {itemsDetailed.length > 0 ? (
+                  itemsDetailed.map((it: any, idx: number) => (
+                    <div
+                      key={idx}
+                      className="flex flex-col sm:flex-row sm:items-center justify-between gap-x-3 gap-y-0.5 border-b border-slate-100 last:border-0 pb-1.5 last:pb-0 text-xs"
+                    >
+                      <div className="flex items-center gap-1.5 min-w-0 flex-wrap">
+                        <span className="inline-flex items-center justify-center size-4 rounded-full bg-slate-100 text-[10px] font-extrabold text-slate-700 shrink-0">
+                          {idx + 1}
+                        </span>
+                        <span className="font-bold text-slate-900 tracking-tight">
+                          {it.name}
+                        </span>
+                        {it.size && (
+                          <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-amber-50 text-[10px] font-bold text-amber-800 border border-amber-200/60 shrink-0">
+                            Tam {it.size}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-1 text-[11px] text-slate-600 font-medium whitespace-nowrap shrink-0 pl-5 sm:pl-0">
+                        <span>{it.qty} un × {brl(it.unit_price)}</span>
+                        {it.discount > 0 && (
+                          <span className="text-rose-600 text-[10px] font-semibold">
+                            (-{brl(it.discount)})
+                          </span>
+                        )}
+                        <span className="font-extrabold text-slate-900 ml-1">
+                          = {brl(it.total)}
+                        </span>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <span className="text-xs text-muted-foreground italic">Venda registrada sem itens discriminados</span>
+                )}
+              </div>
+            );
+
+            return {
+              code: sale.sale_code ?? sale.id?.slice(0, 8) ?? "—",
+              date: dateTimeBR(sale.created_at),
+              client: resolveSaleClient(sale),
+              products: productsElement,
+              _rawProductsText: rawProductsText,
+              items_count: `${saleTotalPecas} ${saleTotalPecas === 1 ? "item" : "itens"}`,
+              total: brl(saleTotalAmount),
+              seller: sellerName(sale.seller_id),
+            };
+          });
+
         summaryCards.push(
-          { label: "Total Faturado", value: brl(sum), helper: "Itens comercializados" },
-          { label: "Peças Vendidas", value: num(sumPecas, 0), helper: "Volume de itens" },
-          { label: "Média por Item", value: brl(sumPecas > 0 ? sum / sumPecas : 0), helper: "Valor médio do produto" }
+          { label: "Total Faturado", value: brl(sum), helper: `${rows.length} vendas analisadas` },
+          { label: "Peças Vendidas", value: num(sumPecas, 0), helper: "Volume total de itens" },
+          { label: "Ticket Médio", value: brl(rows.length > 0 ? sum / rows.length : 0), helper: "Média por pedido" }
         );
 
         return {
           columns: [
             { key: "code", label: "Venda" },
-            { key: "date", label: "Data" },
+            { key: "date", label: "Data/Hora" },
             { key: "client", label: "Cliente" },
-            { key: "product", label: "Produto" },
-            { key: "size", label: "Num." },
-            { key: "qty", label: "Qtd", align: "right" },
-            { key: "unit", label: "Unitário", align: "right" },
-            { key: "discount", label: "Desconto", align: "right" },
-            { key: "total", label: "Total", align: "right" },
+            { key: "products", label: "Itens / Produtos da Venda" },
+            { key: "items_count", label: "Qtd Peças", align: "center" },
+            { key: "total", label: "Total Venda", align: "right" },
             { key: "seller", label: "Vendedor" },
           ],
           rows,
@@ -677,8 +748,9 @@ function StoreReportsPage() {
         let countAtrasado = 0;
 
         const rows = pend.map((i: any) => {
-          const sale = sales.find((s: any) => s.id === i.sale_id);
-          const client = clientMap.get(sale?.client_id);
+          const sale = (i.sales ? (Array.isArray(i.sales) ? i.sales[0] : i.sales) : null) || sales.find((s: any) => s.id === i.sale_id);
+          const saleCode = sale?.sale_code || i.sale_code;
+          const clientDetails = resolveSaleClientDetails(sale || i.sale_id, saleCode, sale?.client_id);
           const dueIso = toISODate(i.due_date);
           const overdue = dueIso < todayIso;
           const rem = Number(i.remaining_amount ?? i.amount - (i.paid_amount ?? 0));
@@ -695,15 +767,15 @@ function StoreReportsPage() {
             diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
           }
 
-          const rawPhone = (client?.phone || "").replace(/\D/g, "");
+          const rawPhone = (clientDetails.phone || "").replace(/\D/g, "");
           const phoneFormatted = rawPhone.length >= 10 ? (rawPhone.startsWith("55") ? rawPhone : `55${rawPhone}`) : "";
           const msg = encodeURIComponent(
-            `Olá, ${client?.name || "Cliente"}! Tudo bem? Passando para lembrar da parcela ${i.installment_number || 1}/${sale?.installments_count || 1} com vencimento em ${dateBR(i.due_date)} no valor de ${brl(rem)}. Caso já tenha pago, por favor desconsidere.`
+            `Olá, ${clientDetails.isConsumidor ? "Cliente" : clientDetails.name}! Tudo bem? Passando para lembrar da parcela ${i.installment_number || 1}/${sale?.installments_count || 1} com vencimento em ${dateBR(i.due_date)} no valor de ${brl(rem)}. Caso já tenha pago, por favor desconsidere.`
           );
 
           return {
-            client: client?.name ?? "Consumidor",
-            phone: client?.phone ?? "—",
+            client: clientDetails.name,
+            phone: clientDetails.phone || "—",
             installment: `${i.installment_number}/${sale?.installments_count ?? "—"}`,
             due: dateBR(i.due_date),
             overdue_days: overdue ? `+${diffDays} dias` : "A vencer",
@@ -993,7 +1065,7 @@ function StoreReportsPage() {
           rows: cancelled.map((s: any) => ({
             code: s.sale_code ?? s.id?.slice(0, 8),
             date: dateTimeBR(s.created_at),
-            client: clientName(s.client_id),
+            client: resolveSaleClient(s),
             method: (s.payment_method ?? "—").toUpperCase(),
             notes: s.notes ?? "Cancelamento registrado",
             total: brl(s.total_amount),
@@ -1005,20 +1077,15 @@ function StoreReportsPage() {
       case "stock-general": {
         let totalPecas = 0;
         let totalCusto = 0;
-        let totalVenda = 0;
-        let criticos = 0;
 
         const rows = stock.map((s: any) => {
           const p = productMap.get(s.produto_id || s.product_id);
           const qty = Number(s.quantidade_disponivel ?? p?.current_stock ?? 0);
-          const min = Number(p?.min_stock ?? 0);
           const cost = Number(s.preco_custo ?? p?.cost_price ?? 0);
           const price = Number(s.preco_venda ?? p?.sale_price ?? p?.price_retail ?? 0);
 
           totalPecas += qty;
           totalCusto += qty * cost;
-          totalVenda += qty * price;
-          if (qty <= min && min > 0) criticos++;
 
           return {
             sku: p?.sku ?? "—",
@@ -1028,17 +1095,13 @@ function StoreReportsPage() {
             cost: brl(cost),
             price: brl(price),
             total_cost: brl(qty * cost),
-            total_sale: brl(qty * price),
-            min: num(min, 0),
-            status: qty <= 0 ? "ESGOTADO" : qty <= min ? "ABAIXO DO MÍNIMO" : "NORMAL",
+            status: qty <= 0 ? "ESGOTADO" : "NORMAL",
           };
         });
 
         summaryCards.push(
           { label: "Total de Peças", value: num(totalPecas, 0), helper: "Estoque físico disponível" },
-          { label: "Patrimônio a Custo", value: brl(totalCusto), helper: "Valor imobilizado" },
-          { label: "Potencial de Venda", value: brl(totalVenda), helper: "Receita estimada" },
-          { label: "Itens Críticos", value: num(criticos, 0), helper: "Abaixo do estoque mínimo" }
+          { label: "Patrimônio a Custo", value: brl(totalCusto), helper: "Valor imobilizado" }
         );
 
         return {
@@ -1049,8 +1112,6 @@ function StoreReportsPage() {
             { key: "cost", label: "Custo Unit.", align: "right" },
             { key: "price", label: "Venda Unit.", align: "right" },
             { key: "total_cost", label: "Total Custo", align: "right" },
-            { key: "total_sale", label: "Total Venda", align: "right" },
-            { key: "min", label: "Mínimo", align: "right" },
           ],
           rows,
           summaryCards,
@@ -1144,8 +1205,44 @@ function StoreReportsPage() {
       }
 
       case "suppliers-general": {
+        const supMap = new Map<string, any>();
+        suppliers.forEach((s: any) => {
+          if (!s.name) return;
+          supMap.set(s.name.trim().toLowerCase(), {
+            name: s.name,
+            document: s.document ?? "—",
+            contact: s.contact ?? "—",
+            phone: s.phone ?? s.phone_secondary ?? "—",
+            email: s.email ?? "—",
+            category: s.category ?? "Geral",
+            location: s.city && s.state ? `${s.city}/${s.state}` : s.city ?? "—",
+            status: s.active !== false ? "ATIVO" : "INATIVO",
+          });
+        });
+
+        materials.forEach((m: any) => {
+          if (!m.supplier) return;
+          const key = m.supplier.trim().toLowerCase();
+          if (!supMap.has(key)) {
+            supMap.set(key, {
+              name: m.supplier.trim(),
+              document: "—",
+              contact: "—",
+              phone: "—",
+              email: "—",
+              category: m.type ?? m.category ?? "Insumos",
+              location: "—",
+              status: "ATIVO",
+            });
+          }
+        });
+
+        const rows = [...supMap.values()].sort((a, b) =>
+          (a.name || "").localeCompare(b.name || "", "pt-BR", { sensitivity: "base" })
+        );
+
         summaryCards.push(
-          { label: "Fornecedores", value: num(suppliers.length, 0), helper: "Parceiros cadastrados" }
+          { label: "Fornecedores", value: num(rows.length, 0), helper: "Parceiros cadastrados" }
         );
 
         return {
@@ -1158,16 +1255,7 @@ function StoreReportsPage() {
             { key: "category", label: "Ramo de Atuação" },
             { key: "location", label: "Cidade / UF" },
           ],
-          rows: suppliers.map((s: any) => ({
-            name: s.name ?? "—",
-            document: s.document ?? "—",
-            contact: s.contact ?? "—",
-            phone: s.phone ?? s.phone_secondary ?? "—",
-            email: s.email ?? "—",
-            category: s.category ?? "Geral",
-            location: s.city && s.state ? `${s.city}/${s.state}` : s.city ?? "—",
-            status: s.active !== false ? "ATIVO" : "INATIVO",
-          })),
+          rows,
           summaryCards,
         };
       }
@@ -1271,7 +1359,10 @@ function StoreReportsPage() {
     const exportCols = result.columns.filter((c) => c.key !== "action" && c.className !== "print:hidden");
     const head = exportCols.map((c) => `"${c.label}"`).join(";");
 
-    const getCleanString = (val: any) => {
+    const getCleanString = (val: any, row?: any, colKey?: string) => {
+      if (colKey === "products" && row?._rawProductsText) {
+        return row._rawProductsText;
+      }
       if (val === null || val === undefined) return "";
       if (typeof val === "string" || typeof val === "number") return String(val);
       if (React.isValidElement(val)) {
@@ -1287,7 +1378,7 @@ function StoreReportsPage() {
     };
 
     const body = result.rows
-      .map((r) => exportCols.map((c) => `"${getCleanString(r[c.key])}"`).join(";"))
+      .map((r) => exportCols.map((c) => `"${getCleanString(r[c.key], r, c.key)}"`).join(";"))
       .join("\n");
 
     const blob = new Blob([`\uFEFF${head}\n${body}`], {

@@ -44,6 +44,9 @@ import {
   exportTransactionsToCSV,
   isValidClientName,
   extractClientFromDescription,
+  resolveSaleClientInfo,
+  buildTxBySaleCodeMap,
+  buildClientByNameMap,
 } from "@/lib/transaction-report.helpers";
 import { printReport } from "@/lib/print-report";
 
@@ -80,18 +83,20 @@ const REPORT_CONFIG: Record<ReportType, ReportConfig> = {
     table: "sales", 
     url: "/sales", 
     dateColumn: "created_at",
-    select: "*, clients(name)"
+    select: "*, clients(name, phone)"
   },
   installments: { 
     table: "sale_installments", 
     url: "/credit", 
-    dateColumn: "due_date" 
+    dateColumn: "due_date",
+    select: "*, sales(id, sale_code, client_id, installments_count, notes, clients(id, name, phone))"
   },
   whatsapp: { 
     table: "sale_installments", 
     url: "/whatsapp-billing", 
     dateColumn: "due_date",
-    filters: [{ column: "status", value: "pending" }]
+    filters: [{ column: "status", value: "pending" }],
+    select: "*, sales(id, sale_code, client_id, installments_count, notes, clients(id, name, phone))"
   },
   stock: { 
     table: "products", 
@@ -114,7 +119,8 @@ const REPORT_CONFIG: Record<ReportType, ReportConfig> = {
   clients: { 
     table: "clients", 
     url: "/clients", 
-    dateColumn: "created_at",
+    dateColumn: "name",
+    select: "id, name, document_cpf, phone, city, state, cashback_balance, created_at",
     noFilter: true
   },
   materials: { 
@@ -132,7 +138,8 @@ const REPORT_CONFIG: Record<ReportType, ReportConfig> = {
   suppliers: { 
     table: "suppliers", 
     url: "/purchase-board", 
-    dateColumn: "created_at",
+    dateColumn: "name",
+    select: "*",
     noFilter: true
   },
   purchases: { 
@@ -201,6 +208,7 @@ function ReportsPage() {
   const isNoFilter = config.noFilter ?? false;
   
   // Consultas principais com filtro de data no banco para velocidade máxima
+  const isAlphabeticalType = selectedType === "clients" || selectedType === "suppliers";
   const { data: reportData = [], isLoading: isMainLoading } = useRows(config.table, {
     select: config.select,
     filters: config.filters,
@@ -209,19 +217,24 @@ function ReportsPage() {
       gte: dateRange.start ? `${dateRange.start}T00:00:00` : undefined,
       lte: dateRange.end ? `${dateRange.end}T23:59:59.999` : undefined,
     } : undefined,
-    order: { column: config.dateColumn, ascending: false },
+    order: isAlphabeticalType
+      ? { column: "name", ascending: true }
+      : { column: config.dateColumn, ascending: false },
     limit: 5000
   });
 
-  const { data: allClients = [] } = useRows<any>("clients", { select: "id, name, phone, cashback_balance, total_spent", limit: 3000 });
-  const { data: allSales = [] } = useRows<any>("sales", { select: "id, sale_code, client_id, installments_count, clients(name)", limit: 5000 });
-  const { data: allTransactions = [] } = useRows<any>("transactions", { select: "id, sale_id, client_id, description, client_name, amount, type, created_at, clients(name)", limit: 5000 });
+  const { data: allClients = [] } = useRows<any>("clients", { select: "id, name, phone, cashback_balance, document_cpf, created_at", limit: 3000 });
+  const { data: allSales = [] } = useRows<any>("sales", { select: "id, sale_code, client_id, installments_count, total_amount, status, created_at, notes, clients(id, name, phone)", limit: 5000 });
+  const { data: allTransactions = [] } = useRows<any>("transactions", { select: "id, sale_id, client_id, description, client_name, amount, type, created_at, clients(id, name, phone)", limit: 5000 });
   const { data: allSaleItems = [] } = useRows<any>("sale_items", { select: "sale_id, quantity", limit: 5000 });
   const { data: allProducts = [] } = useRows<any>("products", { select: "id, name, category, cost_price, sale_price, wholesale_price, current_stock", limit: 3000 });
-  const { data: allSuppliers = [] } = useRows<any>("suppliers", { select: "id, name", limit: 2000 });
+  const { data: allSuppliers = [] } = useRows<any>("suppliers", { select: "*", limit: 2000 });
+  const { data: allPurchases = [] } = useRows<any>("purchases", { select: "id, supplier_id, supplier_name, total_amount, status, created_at", limit: 3000 });
+  const { data: allMaterials = [] } = useRows<any>("materials", { select: "id, name, supplier, category, type, cost_price, current_stock", limit: 3000 });
   const { data: allAccounts = [] } = useRows<any>("financial_accounts", { select: "id, name", limit: 200 });
 
   const clientMap = useMemo(() => new Map(allClients.map((c: any) => [c.id, c])), [allClients]);
+  const clientByNameMap = useMemo(() => buildClientByNameMap(allClients), [allClients]);
   const saleMap = useMemo(() => new Map(allSales.map((s: any) => [s.id, s])), [allSales]);
   const productMap = useMemo(() => new Map(allProducts.map((p: any) => [p.id, p])), [allProducts]);
   const supplierMap = useMemo(() => new Map(allSuppliers.map((sup: any) => [sup.id, sup])), [allSuppliers]);
@@ -238,19 +251,18 @@ function ReportsPage() {
     return map;
   }, [allTransactions]);
 
-  const txBySaleCodeMap = useMemo(() => {
-    const map = new Map<string, any>();
-    allTransactions.forEach((tx: any) => {
-      if (tx.description) {
-        const m = tx.description.match(/(?:#|•\s*)([A-Za-z0-9_-]+)/);
-        if (m && m[1]) {
-          const code = m[1].toUpperCase();
-          if (!map.has(code)) map.set(code, tx);
-        }
-      }
-    });
-    return map;
-  }, [allTransactions]);
+  const txBySaleCodeMap = useMemo(() => buildTxBySaleCodeMap(allTransactions), [allTransactions]);
+
+  const clientResolutionContext = useMemo(() => ({
+    clients: allClients,
+    clientMap,
+    clientByNameMap,
+    sales: allSales,
+    saleMap,
+    transactions: allTransactions,
+    txBySaleIdMap,
+    txBySaleCodeMap,
+  }), [allClients, clientMap, clientByNameMap, allSales, saleMap, allTransactions, txBySaleIdMap, txBySaleCodeMap]);
 
   // Contagem de itens por venda
   const saleItemsCountMap = useMemo(() => {
@@ -263,8 +275,152 @@ function ReportsPage() {
     return map;
   }, [allSaleItems]);
 
+  // Estatísticas agregadas de vendas por cliente (compras e total gasto)
+  const clientSalesStats = useMemo(() => {
+    const byId = new Map<string, { count: number; total: number }>();
+    const byName = new Map<string, { count: number; total: number }>();
+
+    allSales.forEach((s: any) => {
+      const st = String(s.status || "").toLowerCase();
+      if (st === "cancelled" || st === "cancelada" || st === "estornado") return;
+      const amount = Number(s.total_amount ?? 0);
+
+      if (s.client_id) {
+        const cur = byId.get(s.client_id) || { count: 0, total: 0 };
+        cur.count += 1;
+        cur.total += amount;
+        byId.set(s.client_id, cur);
+      }
+
+      const clientInfo = resolveSaleClientInfo(s, clientResolutionContext);
+      if (clientInfo?.name && clientInfo.name !== "Consumidor Final" && clientInfo.name !== "—") {
+        const norm = clientInfo.name.trim().toLowerCase();
+        const cur = byName.get(norm) || { count: 0, total: 0 };
+        cur.count += 1;
+        cur.total += amount;
+        byName.set(norm, cur);
+      }
+    });
+
+    return { byId, byName };
+  }, [allSales, clientResolutionContext]);
+
+  // Estatísticas agregadas de fornecedores (compras realizadas, valor total e insumos fornecidos)
+  const supplierStats = useMemo(() => {
+    const statsMap = new Map<string, { purchasesCount: number; totalPurchases: number; materialsCount: number }>();
+
+    allPurchases.forEach((p: any) => {
+      const supKey = p.supplier_id || (p.supplier_name ? p.supplier_name.trim().toLowerCase() : null);
+      if (!supKey) return;
+      const cur = statsMap.get(supKey) || { purchasesCount: 0, totalPurchases: 0, materialsCount: 0 };
+      cur.purchasesCount += 1;
+      cur.totalPurchases += Number(p.total_amount ?? 0);
+      statsMap.set(supKey, cur);
+
+      if (p.supplier_name) {
+        const nameKey = p.supplier_name.trim().toLowerCase();
+        if (nameKey !== supKey) {
+          const nameCur = statsMap.get(nameKey) || { purchasesCount: 0, totalPurchases: 0, materialsCount: 0 };
+          nameCur.purchasesCount += 1;
+          nameCur.totalPurchases += Number(p.total_amount ?? 0);
+          statsMap.set(nameKey, nameCur);
+        }
+      }
+    });
+
+    allMaterials.forEach((m: any) => {
+      if (!m.supplier) return;
+      const key = m.supplier.trim().toLowerCase();
+      const cur = statsMap.get(key) || { purchasesCount: 0, totalPurchases: 0, materialsCount: 0 };
+      cur.materialsCount += 1;
+      statsMap.set(key, cur);
+    });
+
+    return statsMap;
+  }, [allPurchases, allMaterials]);
+
+  // Lista consolidada de fornecedores (garante dados preenchidos mesmo se tabela suppliers estiver vazia ou com nulls)
+  const consolidatedSuppliers = useMemo(() => {
+    const map = new Map<string, any>();
+
+    // 1. Tabela suppliers (ou reportData se selecionado)
+    const baseSuppliers = selectedType === "suppliers" && reportData.length > 0 ? reportData : allSuppliers;
+    baseSuppliers.forEach((s: any) => {
+      if (!s.name) return;
+      map.set(s.name.trim().toLowerCase(), {
+        ...s,
+        id: s.id,
+        name: s.name,
+        document: s.document || "—",
+        category: s.category || s.type || "Geral",
+        contact: s.contact || "—",
+        phone: s.phone || s.phone_secondary || "—",
+        email: s.email || "—",
+        location: s.city && s.state ? `${s.city}/${s.state}` : s.city || "—",
+        active: s.active !== false,
+      });
+    });
+
+    // 2. Fornecedores com histórico de compras
+    allPurchases.forEach((p: any) => {
+      const name = p.supplier_name?.trim();
+      if (!name) return;
+      const key = name.toLowerCase();
+      if (!map.has(key)) {
+        map.set(key, {
+          id: p.supplier_id || `sup-${key}`,
+          name: name,
+          document: "—",
+          category: "Insumos / Matéria-Prima",
+          contact: "—",
+          phone: "—",
+          email: "—",
+          location: "—",
+          active: true,
+        });
+      }
+    });
+
+    // 3. Fornecedores vinculados a materiais cadastrados
+    allMaterials.forEach((m: any) => {
+      const name = m.supplier?.trim();
+      if (!name) return;
+      const key = name.toLowerCase();
+      if (!map.has(key)) {
+        map.set(key, {
+          id: `sup-${key}`,
+          name: name,
+          document: "—",
+          category: m.type || m.category || "Insumos",
+          contact: "—",
+          phone: "—",
+          email: "—",
+          location: "—",
+          active: true,
+        });
+      }
+    });
+
+    return [...map.values()].sort((a, b) =>
+      (a.name || "").localeCompare(b.name || "", "pt-BR", { sensitivity: "base" })
+    );
+  }, [selectedType, reportData, allSuppliers, allPurchases, allMaterials]);
+
   const filteredData = useMemo(() => {
     let list = reportData;
+
+    // Se fornecedores selecionado, usar lista consolidada e enriquecida
+    if (selectedType === "suppliers") {
+      return consolidatedSuppliers;
+    }
+
+    // Se clientes selecionado, garantir ordem alfabética estrita A-Z
+    if (selectedType === "clients") {
+      return [...list].sort((a: any, b: any) =>
+        (a.name || "").localeCompare(b.name || "", "pt-BR", { sensitivity: "base" })
+      );
+    }
+
     if (!config.noFilter && (dateRange.start || dateRange.end)) {
       list = list.filter((row: any) => {
         const raw = row[config.dateColumn] || row.created_at || row.due_date;
@@ -305,7 +461,7 @@ function ReportsPage() {
     }
 
     return list;
-  }, [reportData, dateRange, config, selectedType, generalTypeFilter, generalStatusFilter]);
+  }, [reportData, selectedType, consolidatedSuppliers, config, dateRange, generalTypeFilter, generalStatusFilter]);
 
   const reportResult = useMemo(() => {
     const columns: { key: string; label: string; align?: "right" | "left" | "center"; className?: string }[] = [];
@@ -404,10 +560,17 @@ function ReportsPage() {
         let clientesCount = new Set<string>();
 
         filteredData.forEach((row: any) => {
-          const s = saleMap.get(row.sale_id);
+          const s = saleMap.get(row.sale_id) || (row.sales ? (Array.isArray(row.sales) ? row.sales[0] : row.sales) : null);
           const rem = Number(row.remaining_amount ?? (row.amount - (row.paid_amount ?? 0)));
           totalCobrar += rem;
-          if (s?.client_id) clientesCount.add(s.client_id);
+          const clientInfo = resolveSaleClientInfo(s || row.sale_id, clientResolutionContext, s?.sale_code, s?.client_id);
+          if (clientInfo.name && !clientInfo.isConsumidor) {
+            clientesCount.add(clientInfo.name.toLowerCase());
+          } else if (s?.client_id) {
+            clientesCount.add(s.client_id);
+          } else if (s?.id || row.sale_id) {
+            clientesCount.add(s?.id || row.sale_id);
+          }
         });
 
         summaryCards.push(
@@ -425,33 +588,23 @@ function ReportsPage() {
           { key: "qty", label: "Estoque", align: "right" },
           { key: "cost", label: "Custo Unit.", align: "right" },
           { key: "price", label: "Venda Unit.", align: "right" },
-          { key: "total_cost", label: "Patrimônio Custo", align: "right" },
-          { key: "total_sale", label: "Potencial Venda", align: "right" },
-          { key: "min", label: "Mínimo", align: "right" }
+          { key: "total_cost", label: "Patrimônio Custo", align: "right" }
         );
 
         let totalPecas = 0;
         let totalValorCusto = 0;
-        let totalValorVenda = 0;
-        let totalAbaixoMinimo = 0;
 
         filteredData.forEach((row: any) => {
           const q = Number(row.current_stock ?? row.quantidade_disponivel ?? 0);
           const cost = Number(row.cost_price ?? 0);
-          const price = Number(row.sale_price ?? row.price_retail ?? 0);
-          const min = Number(row.min_stock ?? 0);
 
           totalPecas += q;
           totalValorCusto += q * cost;
-          totalValorVenda += q * price;
-          if (q <= min && min > 0) totalAbaixoMinimo++;
         });
 
         summaryCards.push(
           { label: "Peças em Estoque", value: num(totalPecas, 0), helper: "Total físico disponível" },
-          { label: "Capital Estocado (Custo)", value: brl(totalValorCusto), helper: "Custo de aquisição/fabricação" },
-          { label: "Potencial de Venda", value: brl(totalValorVenda), helper: "Receita bruta projetada" },
-          { label: "Abaixo do Mínimo", value: num(totalAbaixoMinimo, 0), helper: "Itens que requerem reposição" }
+          { label: "Capital Estocado (Custo)", value: brl(totalValorCusto), helper: "Custo de aquisição/fabricação" }
         );
         break;
       }
@@ -536,15 +689,20 @@ function ReportsPage() {
 
         let totalCashback = 0;
         let totalVendidoClientes = 0;
+        let totalComprasCount = 0;
 
         filteredData.forEach((c: any) => {
           totalCashback += Number(c.cashback_balance ?? 0);
-          totalVendidoClientes += Number(c.total_spent ?? 0);
+          const stats = clientSalesStats.byId.get(c.id) || 
+            (c.name ? clientSalesStats.byName.get(c.name.trim().toLowerCase()) : null);
+          totalVendidoClientes += stats?.total ?? 0;
+          totalComprasCount += stats?.count ?? 0;
         });
 
         summaryCards.push(
-          { label: "Clientes Cadastrados", value: num(filteredData.length, 0), helper: "Base total de clientes" },
-          { label: "Cashback em Aberto", value: brl(totalCashback), helper: "Créditos concedidos" }
+          { label: "Clientes Cadastrados", value: num(filteredData.length, 0), helper: "Base total em ordem alfabética" },
+          { label: "Total Comprado", value: brl(totalVendidoClientes), helper: `${num(totalComprasCount, 0)} compras registradas` },
+          { label: "Cashback em Aberto", value: brl(totalCashback), helper: "Créditos acumulados disponíveis" }
         );
         break;
       }
@@ -611,16 +769,29 @@ function ReportsPage() {
       case "suppliers": {
         columns.push(
           { key: "name", label: "Fornecedor" },
-          { key: "document", label: "CNPJ / CPF" },
-          { key: "category", label: "Ramo de Atuação" },
+          { key: "category", label: "Ramo / Categoria" },
+          { key: "materials_count", label: "Insumos Fornecidos", align: "right" },
+          { key: "purchases_count", label: "Compras Realizadas", align: "right" },
+          { key: "total_purchases", label: "Total Comprado", align: "right" },
           { key: "contact", label: "Contato" },
           { key: "phone", label: "Telefone / WhatsApp" },
-          { key: "email", label: "E-mail" },
           { key: "location", label: "Cidade / UF" }
         );
 
+        let totalGastoFornecedores = 0;
+        let totalComprasCount = 0;
+
+        filteredData.forEach((s: any) => {
+          const stats = supplierStats.get(s.id) || 
+            (s.name ? supplierStats.get(s.name.trim().toLowerCase()) : null);
+          totalGastoFornecedores += stats?.totalPurchases ?? 0;
+          totalComprasCount += stats?.purchasesCount ?? 0;
+        });
+
         summaryCards.push(
-          { label: "Fornecedores Cadastrados", value: num(filteredData.length, 0), helper: "Parceiros comerciais" }
+          { label: "Fornecedores Cadastrados", value: num(filteredData.length, 0), helper: "Parceiros comerciais" },
+          { label: "Total Comprado", value: brl(totalGastoFornecedores), helper: `${num(totalComprasCount, 0)} compras realizadas` },
+          { label: "Média por Parceiro", value: brl(filteredData.length > 0 ? totalGastoFornecedores / filteredData.length : 0), helper: "Média negociada" }
         );
         break;
       }
@@ -673,47 +844,13 @@ function ReportsPage() {
 
       switch (selectedType) {
         case "sales": {
-          const c = clientMap.get(row.client_id);
           const isCancelled = ["cancelled", "cancelada", "estornado"].includes(String(row.status || "").toLowerCase());
           const disc = Number(row.discount_amount ?? row.discount ?? 0);
           data.code = row.sale_code || row.id?.slice(0, 8) || "—";
           data.date = dateTimeBR(row.created_at);
 
-          // Resolução robusta e profunda do cliente (igual à exibição abaixo do código em transações)
-          let resolvedClient = "";
-          const directClient = Array.isArray(row.clients) ? row.clients[0] : row.clients;
-          if (directClient?.name && isValidClientName(directClient.name)) {
-            resolvedClient = directClient.name.trim();
-          } else if (c?.name && isValidClientName(c.name)) {
-            resolvedClient = c.name.trim();
-          } else if (row.client_name && isValidClientName(row.client_name)) {
-            resolvedClient = row.client_name.trim();
-          }
-
-          // Se ainda não encontrou, busca na transação vinculada a esta venda (onde o cliente aparece abaixo do código)
-          if (!resolvedClient) {
-            const linkedTx = txBySaleIdMap.get(row.id) || (row.sale_code ? txBySaleCodeMap.get(row.sale_code.toUpperCase()) : null);
-            if (linkedTx) {
-              const txClient = Array.isArray(linkedTx.clients) ? linkedTx.clients[0] : linkedTx.clients;
-              if (txClient?.name && isValidClientName(txClient.name)) {
-                resolvedClient = txClient.name.trim();
-              } else if (linkedTx.client_id && clientMap.has(linkedTx.client_id)) {
-                const tc = clientMap.get(linkedTx.client_id);
-                if (tc?.name && isValidClientName(tc.name)) {
-                  resolvedClient = tc.name.trim();
-                }
-              } else if (linkedTx.client_name && isValidClientName(linkedTx.client_name)) {
-                resolvedClient = linkedTx.client_name.trim();
-              } else if (linkedTx.description) {
-                const fromDesc = extractClientFromDescription(linkedTx.description);
-                if (fromDesc) {
-                  resolvedClient = fromDesc;
-                }
-              }
-            }
-          }
-
-          data.client = resolvedClient || "Consumidor Final";
+          const clientInfo = resolveSaleClientInfo(row, clientResolutionContext, row.sale_code, row.client_id);
+          data.client = clientInfo.name;
           data.type = row.is_debt ? "Fiado / Parcela" : "Venda Direta";
           data.method = (row.payment_method || "—").toUpperCase();
           data.items_count = num(saleItemsCountMap.get(row.id) ?? 1, 0);
@@ -724,8 +861,9 @@ function ReportsPage() {
         }
 
         case "installments": {
-          const s = saleMap.get(row.sale_id);
-          const c = s ? clientMap.get(s.client_id) : null;
+          const s = saleMap.get(row.sale_id) || (row.sales ? (Array.isArray(row.sales) ? row.sales[0] : row.sales) : null);
+          const saleCode = s?.sale_code || row.sale_code;
+          const clientInfo = resolveSaleClientInfo(s || row.sale_id, clientResolutionContext, saleCode, s?.client_id);
           const amt = Number(row.amount ?? 0);
           const rem = Number(row.remaining_amount ?? (amt - (row.paid_amount ?? 0)));
           const isPaid = row.status === "paid" || rem <= 0.009;
@@ -738,9 +876,9 @@ function ReportsPage() {
             diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
           }
 
-          data.code = s?.sale_code || row.sale_id?.slice(0, 8) || "—";
-          data.client = c?.name || "Consumidor";
-          data.phone = c?.phone || "—";
+          data.code = saleCode || row.sale_id?.slice(0, 8) || "—";
+          data.client = clientInfo.name;
+          data.phone = clientInfo.phone || "—";
           data.installment = `${row.installment_number || 1}/${s?.installments_count || "—"}`;
           data.due = dateBR(row.due_date);
           data.overdue_days = isPaid 
@@ -755,8 +893,9 @@ function ReportsPage() {
         }
 
         case "whatsapp": {
-          const s = saleMap.get(row.sale_id);
-          const c = s ? clientMap.get(s.client_id) : null;
+          const s = saleMap.get(row.sale_id) || (row.sales ? (Array.isArray(row.sales) ? row.sales[0] : row.sales) : null);
+          const saleCode = s?.sale_code || row.sale_code;
+          const clientInfo = resolveSaleClientInfo(s || row.sale_id, clientResolutionContext, saleCode, s?.client_id);
           const amt = Number(row.amount ?? 0);
           const rem = Number(row.remaining_amount ?? (amt - (row.paid_amount ?? 0)));
           const dueIso = toISODate(row.due_date);
@@ -768,14 +907,14 @@ function ReportsPage() {
             diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
           }
 
-          const rawPhone = (c?.phone || "").replace(/\D/g, "");
+          const rawPhone = (clientInfo.phone || "").replace(/\D/g, "");
           const phoneFormatted = rawPhone.length >= 10 ? (rawPhone.startsWith("55") ? rawPhone : `55${rawPhone}`) : "";
           const msg = encodeURIComponent(
-            `Olá, ${c?.name || "Cliente"}! Tudo bem? Passando para lembrar da parcela ${row.installment_number || 1}/${s?.installments_count || 1} com vencimento em ${dateBR(row.due_date)} no valor de ${brl(rem)}. Caso já tenha efetuado o pagamento, por favor desconsidere.`
+            `Olá, ${clientInfo.isConsumidor ? "Cliente" : clientInfo.name}! Tudo bem? Passando para lembrar da parcela ${row.installment_number || 1}/${s?.installments_count || 1} com vencimento em ${dateBR(row.due_date)} no valor de ${brl(rem)}. Caso já tenha efetuado o pagamento, por favor desconsidere.`
           );
 
-          data.client = c?.name || "Consumidor";
-          data.phone = c?.phone || "—";
+          data.client = clientInfo.name;
+          data.phone = clientInfo.phone || "—";
           data.installment = `${row.installment_number || 1}/${s?.installments_count || "—"}`;
           data.due = dateBR(row.due_date);
           data.overdue_days = isOverdue ? `${diffDays} dias` : "Hoje / A vencer";
@@ -800,8 +939,6 @@ function ReportsPage() {
           const q = Number(row.current_stock ?? row.quantidade_disponivel ?? 0);
           const cost = Number(row.cost_price ?? 0);
           const price = Number(row.sale_price ?? row.price_retail ?? 0);
-          const min = Number(row.min_stock ?? 0);
-          const isCritical = q <= min && min > 0;
           const isZero = q <= 0;
 
           data.sku = row.sku || "—";
@@ -811,9 +948,7 @@ function ReportsPage() {
           data.cost = brl(cost);
           data.price = brl(price);
           data.total_cost = brl(q * cost);
-          data.total_sale = brl(q * price);
-          data.min = num(min, 0);
-          data.status = isZero ? "ESGOTADO" : isCritical ? "ESTOQUE CRÍTICO" : "NORMAL";
+          data.status = isZero ? "ESGOTADO" : "NORMAL";
           break;
         }
 
@@ -845,13 +980,18 @@ function ReportsPage() {
         }
 
         case "clients": {
+          const stats = clientSalesStats.byId.get(row.id) || 
+            (row.name ? clientSalesStats.byName.get(row.name.trim().toLowerCase()) : null);
+          const purchases = stats?.count ?? 0;
+          const totalSpent = stats?.total ?? 0;
+
           data.name = row.name || "—";
-          data.document = row.document || "—";
+          data.document = row.document_cpf || row.document || "—";
           data.phone = row.phone || "—";
           data.city = row.city && row.state ? `${row.city}/${row.state}` : row.city || "—";
-          data.purchases_count = num(row.purchases_count ?? 0, 0);
-          data.total_spent = brl(row.total_spent ?? 0);
-          data.cashback = brl(row.cashback_balance ?? 0);
+          data.purchases_count = num(purchases, 0);
+          data.total_spent = brl(totalSpent);
+          data.cashback = brl(Number(row.cashback_balance ?? 0));
           data.date = dateBR(row.created_at);
           break;
         }
@@ -892,13 +1032,18 @@ function ReportsPage() {
         }
 
         case "suppliers": {
+          const stats = supplierStats.get(row.id) || 
+            (row.name ? supplierStats.get(row.name.trim().toLowerCase()) : null);
           data.name = row.name || "—";
           data.document = row.document || "—";
           data.category = row.category || row.type || "Geral";
+          data.materials_count = num(stats?.materialsCount ?? 0, 0);
+          data.purchases_count = num(stats?.purchasesCount ?? 0, 0);
+          data.total_purchases = brl(stats?.totalPurchases ?? 0);
           data.contact = row.contact || "—";
           data.phone = row.phone || row.phone_secondary || "—";
           data.email = row.email || "—";
-          data.location = row.city && row.state ? `${row.city}/${row.state}` : row.city || "—";
+          data.location = row.location || (row.city && row.state ? `${row.city}/${row.state}` : row.city || "—");
           data.status = row.active !== false ? "ATIVO" : "INATIVO";
           break;
         }

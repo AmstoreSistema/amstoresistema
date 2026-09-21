@@ -119,7 +119,7 @@ function TransactionsPage() {
   const { data: accounts = [] } = useRows("financial_accounts", { filters: [{ column: "active", value: true }] });
   const { data: clients = [] } = useRows("clients");
   const { data: suppliers = [] } = useRows("suppliers");
-  const { data: sales = [] } = useRows<any>("sales", { select: "id, sale_code, client_id, clients(name)", limit: 5000 });
+  const { data: sales = [] } = useRows<any>("sales", { select: "id, sale_code, client_id, notes, clients(name, phone)", limit: 5000 });
 
   // Cálculo de limites .range(from, to) baseado na página atual
   const from = (page - 1) * PAGE_SIZE;

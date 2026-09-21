@@ -687,7 +687,14 @@ function SalesPage() {
 
                   const remaining = Math.max(0, total - paid);
                   const saleCodeDisplay = sale.sale_code || sale.id.slice(0, 8).toUpperCase();
-                  const clientName = (sale.clients as any)?.name || clientById.get(sale.client_id || "")?.name || "Consumidor Final";
+                  const clientFromJoin = (sale.clients as any)?.name;
+                  const clientFromMap = clientById.get(sale.client_id || "")?.name;
+                  const clientName = (clientFromJoin && clientFromJoin.trim().toLowerCase() !== "consumidor final" ? clientFromJoin : null) || 
+                                     (clientFromMap && clientFromMap.trim().toLowerCase() !== "consumidor final" ? clientFromMap : null) || 
+                                     sale.client_name || 
+                                     clientFromJoin || 
+                                     clientFromMap || 
+                                     "Consumidor Final";
 
                   return (
                     <Card key={sale.id} className="group overflow-hidden rounded-2xl sm:rounded-3xl border-border/40 bg-card hover:bg-muted/10 transition-all shadow-sm hover:shadow-md">

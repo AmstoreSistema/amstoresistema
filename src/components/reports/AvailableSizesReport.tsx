@@ -243,11 +243,11 @@ export function AvailableSizesReport({ stock, products, storeInfo }: AvailableSi
         .map((s) => ({ raw: s, val: parseFloat(s) }))
         .filter((s) => !isNaN(s.val));
 
-      if (numericSizes.length > 0) {
+      if (numericSizes.length > 0 && numericSizes[0]) {
         numericSizes.sort((a, b) => b.val - a.val);
-        maiorNumStr = `Nº ${numericSizes[0].raw}`;
+        maiorNumStr = `Nº ${numericSizes[0]?.raw ?? ""}`;
       } else {
-        maiorNumStr = distinctSizes[distinctSizes.length - 1];
+        maiorNumStr = distinctSizes[distinctSizes.length - 1] ?? "—";
       }
     }
 
