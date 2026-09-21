@@ -343,9 +343,11 @@ div:has(> a[href*="lovable.app"]) {
   #printable-report *,
   #printable-transactions-report,
   #printable-transactions-report *,
+  #available-sizes-printable-area,
+  #available-sizes-printable-area *,
   .print-only,
   .print-only * {
-    visibility: visible;
+    visibility: visible !important;
   }
 
   /* Anula qualquer altura ou margem phantom nos containers pais */

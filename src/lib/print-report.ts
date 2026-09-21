@@ -86,6 +86,18 @@ export function printReport(
       print-color-adjust: exact !important;
     }
 
+    /* Reset de visibilidade: anula qualquer regra que tenha tornado body * invisível */
+    body,
+    body *,
+    .report-container,
+    .report-container *,
+    .print-only,
+    .print-only *,
+    #${elementId},
+    #${elementId} * {
+      visibility: visible !important;
+    }
+
     /* Container do relatório ocupa 100% da folha */
     .report-container,
     #${elementId} {
@@ -97,18 +109,29 @@ export function printReport(
       box-shadow: none !important;
       border-radius: 0 !important;
       background: #ffffff !important;
+      overflow: visible !important;
     }
 
-    /* Ocultar a barra de ações (botões de imprimir/exportar) dentro do popup */
-    .print\\:hidden {
+    /* Ocultar elementos print:hidden dentro do popup */
+    .print\\:hidden,
+    .print\\:hidden * {
       display: none !important;
+      visibility: hidden !important;
     }
 
     /* Cabeçalho e resumo nunca quebram no meio */
     .report-header,
-    .report-summary {
+    .report-summary,
+    .section-header {
       break-inside: avoid !important;
       page-break-inside: avoid !important;
+    }
+
+    .size-section {
+      overflow: visible !important;
+      page-break-inside: auto !important;
+      break-inside: auto !important;
+      margin-bottom: 14px !important;
     }
 
     /* Tabela ocupa toda a largura disponível */
@@ -128,14 +151,15 @@ export function printReport(
       display: table-footer-group !important;
     }
 
-    tbody tr {
+    tbody tr,
+    tfoot tr {
       break-inside: avoid !important;
       page-break-inside: avoid !important;
     }
 
     th,
     td {
-      padding: 3px 5px !important;
+      padding: 4px 6px !important;
       font-size: 8.5pt !important;
       word-break: normal !important;
     }
@@ -158,14 +182,16 @@ export function printReport(
     .text-red-600 { color: #dc2626 !important; }
     .bg-slate-100 { background-color: #f1f5f9 !important; }
     .bg-slate-50 { background-color: #f8fafc !important; }
+    .bg-slate-200 { background-color: #e2e8f0 !important; }
 
     /* Indicador de rolagem mobile — esconder na impressão */
     .sm\\:hidden {
       display: none !important;
     }
 
-    /* overflow-x: hidden na impressão para não criar cortes */
-    .overflow-x-auto {
+    /* overflow visível na impressão para não cortar conteúdo */
+    .overflow-x-auto,
+    .overflow-hidden {
       overflow: visible !important;
     }
   </style>
@@ -173,15 +199,21 @@ export function printReport(
 <body>
   ${reportHtml}
   <script>
-    // Aguarda imagens e fontes carregarem antes de imprimir
-    window.addEventListener('load', function () {
+    function triggerPrint() {
       setTimeout(function () {
+        window.focus();
         window.print();
-        // Fecha a janela após a caixa de impressão ser fechada
-        window.addEventListener('afterprint', function () {
-          window.close();
-        });
       }, 350);
+    }
+    if (document.readyState === 'complete') {
+      triggerPrint();
+    } else {
+      window.addEventListener('load', triggerPrint);
+    }
+    window.addEventListener('afterprint', function () {
+      setTimeout(function () {
+        window.close();
+      }, 300);
     });
   </script>
 </body>
