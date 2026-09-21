@@ -77,7 +77,7 @@ const getExtendDateBR = (date: Date) => {
   return `${day} de ${month} de ${year}`;
 };
 
-export function AvailableSizesReport({ stock, products }: AvailableSizesReportProps) {
+export function AvailableSizesReport({ stock, products, storeInfo }: AvailableSizesReportProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedSizes, setSelectedSizes] = useState<string[]>([]);
 
@@ -384,15 +384,49 @@ export function AvailableSizesReport({ stock, products }: AvailableSizesReportPr
         id="available-sizes-printable-area"
         className="report-container print-only bg-white text-slate-900 font-sans p-6 sm:p-8 rounded-2xl border border-slate-200 shadow-sm print:p-0 print:border-none print:shadow-none print:rounded-none"
       >
-        {/* CABEÇALHO */}
-        <div className="report-header text-center space-y-1.5 mb-5 pb-3">
-          <h1 className="text-xl sm:text-2xl font-black tracking-tight text-slate-900 uppercase">
+        {/* CABEÇALHO COM LOGOMARCA PADRÃO */}
+        <div className="report-header text-center flex flex-col items-center justify-center mb-6 sm:mb-8 pb-2">
+          {/* 1. Logomarca e Informações da Loja */}
+          <div className="flex flex-col items-center justify-center mb-1">
+            <img
+              src={storeInfo?.logo || "/bagshoes-logo.png"}
+              alt={storeInfo?.name || "AMSTORE BAGSHOES"}
+              className="max-h-16 sm:max-h-20 max-w-[220px] sm:max-w-[260px] object-contain print:max-h-16 transition-all mb-2"
+              onError={(e) => {
+                (e.currentTarget as HTMLImageElement).src = "/bagshoes-logo.png";
+              }}
+            />
+
+            {/* Endereço / Contatos com Bullet Âmbar */}
+            <div className="mt-1 flex flex-wrap items-center justify-center gap-x-2 text-[11px] sm:text-xs font-medium text-slate-500">
+              <span className="text-amber-500 font-bold">•</span>
+              <span>{storeInfo?.address || "Rua Medeiros Neto, 12-A - Centro"}</span>
+              {storeInfo?.cnpj && (
+                <>
+                  <span className="text-slate-300">•</span>
+                  <span>CNPJ: {storeInfo.cnpj}</span>
+                </>
+              )}
+              {storeInfo?.contact && (
+                <>
+                  <span className="text-slate-300">•</span>
+                  <span>{storeInfo.contact}</span>
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* Linha de destaque dourada padrão */}
+          <div className="w-12 h-1 bg-amber-400 rounded-full mx-auto my-3 print:my-2" />
+
+          {/* 2. Nome do Relatório */}
+          <h1 className="text-xl sm:text-2xl font-black tracking-tight text-slate-900 uppercase font-display">
             Relatório de Numerações Disponíveis
           </h1>
-          <p className="text-xs sm:text-sm font-medium text-slate-600">
+          <p className="text-xs sm:text-sm font-medium text-slate-600 mt-1">
             Estoque de Sandálias • {currentDateExtensive}
           </p>
-          <hr className="mt-3 border-t border-slate-300 w-full" />
+          <hr className="mt-4 border-t border-slate-300 w-full" />
         </div>
 
         {/* CARD DE RESUMO (4 indicadores) */}

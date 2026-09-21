@@ -323,27 +323,14 @@ export function ReportLayout({
       <div className="report-header mb-6 sm:mb-8 flex flex-col items-center justify-center text-center px-1">
         {/* 1. Logomarca e Informações da Loja */}
         <div className="flex flex-col items-center justify-center mb-1">
-          {storeInfo?.logo ? (
-            <img
-              src={storeInfo.logo}
-              alt={storeName}
-              className="max-h-16 sm:max-h-20 max-w-[200px] sm:max-w-[240px] object-contain print:max-h-16 transition-all"
-            />
-          ) : (
-            <div className="flex items-center gap-2.5 sm:gap-3">
-              <div className="flex size-10 sm:size-11 items-center justify-center rounded-xl bg-slate-900 text-amber-400 shadow-md border border-slate-800 print:bg-slate-900 print:text-amber-400">
-                <Store className="size-5 sm:size-5.5" />
-              </div>
-              <div className="text-left">
-                <span className="block font-display text-base sm:text-xl font-black tracking-wide text-slate-900 uppercase">
-                  {storeName || "AMSTORE BAGSHOES"}
-                </span>
-                <span className="block text-[8.5px] sm:text-[9.5px] font-bold tracking-[0.25em] text-slate-400 uppercase -mt-0.5">
-                  Sistema de Gestão
-                </span>
-              </div>
-            </div>
-          )}
+          <img
+            src={storeInfo?.logo || "/bagshoes-logo.png"}
+            alt={storeName || "AMSTORE BAGSHOES"}
+            className="max-h-16 sm:max-h-20 max-w-[220px] sm:max-w-[260px] object-contain print:max-h-16 transition-all mb-2"
+            onError={(e) => {
+              (e.currentTarget as HTMLImageElement).src = "/bagshoes-logo.png";
+            }}
+          />
 
           {/* Endereço / Contatos com Bullet Âmbar */}
           <div className="mt-2 flex flex-wrap items-center justify-center gap-x-2 text-[11px] sm:text-xs font-medium text-slate-500">
