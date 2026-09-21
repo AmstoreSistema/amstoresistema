@@ -324,11 +324,11 @@ export function ReportLayout({
         {/* 1. Logomarca e Informações da Loja */}
         <div className="flex flex-col items-center justify-center mb-1">
           <img
-            src={storeInfo?.logo || "/bagshoes-logo.png"}
+            src="/amstore-logo.png"
             alt={storeName || "AMSTORE BAGSHOES"}
             className="max-h-16 sm:max-h-20 max-w-[220px] sm:max-w-[260px] object-contain print:max-h-16 transition-all mb-2"
             onError={(e) => {
-              (e.currentTarget as HTMLImageElement).src = "/bagshoes-logo.png";
+              (e.currentTarget as HTMLImageElement).src = "/amstore-logo.png";
             }}
           />
 
