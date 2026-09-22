@@ -25,6 +25,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 
 import { useServerFn } from "@tanstack/react-start";
 import { syncCurrentAdminProfile } from "@/lib/settings.functions";
+import { initPushNotificationsAfterLogin } from "@/lib/push-notifications";
 
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
@@ -111,6 +112,9 @@ function AuthenticatedLayout() {
           const roleMap: Record<string, string> = { admin: "Administrador", moderator: "Moderador", user: "Vendedor" };
           setRole(roleMap[finalRole] || "Vendedor");
         }
+
+        // Inicializa as notificações push vinculando o token do dispositivo ao usuário logado
+        initPushNotificationsAfterLogin(user.id);
       }
     });
   }, []);

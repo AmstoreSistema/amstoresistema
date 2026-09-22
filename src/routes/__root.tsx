@@ -12,6 +12,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { InstallPWA } from "@/components/InstallPWA";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { BrandingProvider } from "@/contexts/BrandingContext";
+import { initPushNotifications } from "@/lib/push-notifications";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
@@ -168,6 +169,10 @@ function RootComponent() {
     const observer = new MutationObserver(removeLovableElements);
     observer.observe(document.documentElement, { childList: true, subtree: true });
     return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    initPushNotifications();
   }, []);
 
   return (

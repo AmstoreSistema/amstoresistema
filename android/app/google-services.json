@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "491755725629",
+    "project_id": "amstore-bagshoes",
+    "storage_bucket": "amstore-bagshoes.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:491755725629:android:aea5718e110f7821481b54",
+        "android_client_info": {
+          "package_name": "com.amstore.bagshoes"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD0uwVpSraLyms4iY6t4L15WP4q36tM9ZI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
