@@ -203,17 +203,38 @@ function SalesPage() {
         .order("created_at", { ascending: false });
 
       if (term.toLowerCase() === "pending") {
-        // Busca os IDs de vendas no fiado que realmente possuem saldo devedor em aberto
-        const { data: openDebtSales } = await supabase
-          .from("sales")
-          .select("id, total_amount, paid_amount, status")
-          .or("is_debt.eq.true,payment_method.eq.Fiado")
-          .not("status", "in", '("cancelled","cancelada","estornado")');
+        // Busca os IDs de vendas no fiado com saldo devedor em aberto
+        // Usa MESMA lógica padronizada das telas store.tsx e credit.tsx
+        const [openDebtRes, openClientsRes, openInstallsRes] = await Promise.all([
+          supabase
+            .from("sales")
+            .select("id, client_id, total_amount, paid_amount, status")
+            .eq("is_debt", true)
+            .limit(2500),
+          supabase.from("clients").select("id").limit(2500),
+          supabase
+            .from("sale_installments")
+            .select("id, sale_id, amount, paid_amount, status")
+            .not("status", "in", '("paga","paid","quitada","cancelada")')
+            .limit(2500),
+        ]);
 
-        const activeOpenIds = (openDebtSales || [])
+        const openClientIds = new Set((openClientsRes.data || []).map((c: any) => c.id));
+        const openInstsBySale = new Map<string, any[]>();
+        (openInstallsRes.data || []).forEach((i: any) => {
+          const l = openInstsBySale.get(i.sale_id) || [];
+          l.push(i);
+          openInstsBySale.set(i.sale_id, l);
+        });
+
+        const SETTLED = ["paid", "pago", "quitado", "quitada", "liquidado", "liquidada", "cancelado", "cancelled"];
+
+        const activeOpenIds = (openDebtRes.data || [])
           .filter((s: any) => {
-            const status = String(s.status || "").toLowerCase();
-            if (["paid", "pago", "completed", "finalizado", "quitado"].includes(status)) return false;
+            if (!s.client_id) return false;
+            if (!openClientIds.has(s.client_id)) return false;
+            const status = String(s.status || "").toLowerCase().trim();
+            if (SETTLED.includes(status)) return false;
             return (Number(s.total_amount || 0) - Number(s.paid_amount || 0)) > 0.009;
           })
           .map((s: any) => s.id);
@@ -223,6 +244,7 @@ function SalesPage() {
         } else {
           q = q.eq("id", "00000000-0000-0000-0000-000000000000");
         }
+
       } else if (term.trim()) {
         const cleanTerm = term.trim();
         const matchingClientIds = (clients as any[])
@@ -309,26 +331,67 @@ function SalesPage() {
         .gte("created_at", `${today}T00:00:00`)
         .not("status", "in", '("cancelled","cancelada","estornado")');
 
-      // 2. Fiados em Aberto (apenas vendas a prazo/fiado ativas com saldo devedor pendente)
-      const { data: debtSales } = await supabase
-        .from("sales")
-        .select("id, total_amount, paid_amount, status, is_debt, payment_method")
-        .or("is_debt.eq.true,payment_method.eq.Fiado")
-        .not("status", "in", '("cancelled","cancelada","estornado")');
+      // 2. Fiados em Aberto — lógica IDÊNTICA ao Painel da Loja (store.tsx) e Gestão de Fiados (credit.tsx)
+      // a) Busca apenas vendas com is_debt = true (limit 2500, mesmo padrão)
+      const [debtRes, clientsRes, installsRes] = await Promise.all([
+        supabase
+          .from("sales")
+          .select("id, client_id, total_amount, paid_amount, status, is_debt")
+          .eq("is_debt", true)
+          .limit(2500),
+        supabase
+          .from("clients")
+          .select("id")
+          .limit(2500),
+        supabase
+          .from("sale_installments")
+          .select("id, sale_id, amount, paid_amount, status")
+          .not("status", "in", '("paga","paid","quitada","cancelada")')
+          .limit(2500),
+      ]);
 
-      const openFiados = (debtSales || []).filter((s: any) => {
-        const status = String(s.status || "").toLowerCase();
-        if (["paid", "pago", "completed", "finalizado", "quitado"].includes(status)) return false;
-        const total = Number(s.total_amount || 0);
-        const paid = Number(s.paid_amount || 0);
-        return (total - paid) > 0.009;
+      const debtSales = debtRes.data || [];
+      const activeClientIds = new Set((clientsRes.data || []).map((c: any) => c.id));
+
+      // Mapa: sale_id → parcelas pendentes
+      const installmentsBySale = new Map<string, any[]>();
+      (installsRes.data || []).forEach((inst: any) => {
+        const list = installmentsBySale.get(inst.sale_id) || [];
+        list.push(inst);
+        installmentsBySale.set(inst.sale_id, list);
       });
 
-      const pendingFiadoCount = openFiados.length;
-      const pendingFiadoAmount = openFiados.reduce(
-        (sum: number, s: any) => sum + Math.max(0, Number(s.total_amount || 0) - Number(s.paid_amount || 0)),
-        0
-      );
+      const SETTLED_STATUSES = ["paid", "pago", "quitado", "quitada", "liquidado", "liquidada", "cancelado", "cancelled"];
+
+      let pendingFiadoCount = 0;
+      let pendingFiadoAmount = 0;
+
+      for (const s of debtSales) {
+        // Descartar vendas sem cliente
+        if (!s.client_id) continue;
+
+        // Descartar vendas cujo cliente foi excluído da tabela clients
+        if (!activeClientIds.has(s.client_id)) continue;
+
+        // Descartar vendas com status de quitação/cancelamento
+        const status = String(s.status || "").toLowerCase().trim();
+        if (SETTLED_STATUSES.includes(status)) continue;
+
+        // Descartar vendas com saldo devedor real zero
+        const remaining = Number(s.total_amount || 0) - Number(s.paid_amount || 0);
+        if (remaining <= 0.009) continue;
+
+        // Cruzar com sale_installments: vendas com parcelas todas quitadas são descartadas.
+        // A query de installsRes já filtrou apenas as NÃO quitadas.
+        // Se a sale_id aparece no mapa → tem parcelas pendentes → conta.
+        // Se não aparece → sem parcelas (venda simples) → conta normalmente.
+        // Esse comportamento é idêntico ao store.tsx e credit.tsx.
+        const pendingInsts = installmentsBySale.get(s.id) || [];
+
+        pendingFiadoCount++;
+        pendingFiadoAmount += remaining;
+
+      }
 
       // 3. Contagem de Vendas no período ativo
       let countQuery = supabase.from("sales").select("id", { count: "exact", head: true });
@@ -359,6 +422,7 @@ function SalesPage() {
     },
     staleTime: 10_000,
   });
+
 
   const stats = statsData || { 
     countToday: 0, 
