@@ -4,10 +4,11 @@ import { createFileRoute } from "@tanstack/react-router";
 export const Route = createFileRoute("/api/public/branding/$")({
   server: {
     handlers: {
-      GET: async ({ params }) => {
-        const path = (params as any)._splat as string | undefined;
+      GET: async ({ request, params }) => {
+        const url = new URL(request.url);
+        const path = (params as any)?._splat || (params as any)?._ || (params as any)?.['*'];
 
-        if (path === "audit-balances") {
+        if (url.pathname.includes("audit") || url.searchParams.has("audit") || path === "audit-balances") {
           const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
           // 1. Busca todas as contas financeiras
