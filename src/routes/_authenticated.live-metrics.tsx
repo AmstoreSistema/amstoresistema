@@ -68,7 +68,18 @@ function LiveMetrics() {
   const { data: sales = [] } = useRows<any>("sales", { order: { column: "created_at", ascending: false }, limit: 400 });
   const { data: saleItems = [] } = useRows<any>("sale_items", { limit: 2000 });
   const { data: payments = [] } = useRows<any>("sale_payments", { limit: 500 });
-  const { data: installments = [] } = useRows<any>("sale_installments", { limit: 1000 });
+  const { data: allDebtSales = [] } = useRows<any>("sales", {
+    select: "id, client_id, total_amount, paid_amount, status, is_debt",
+    filters: [{ column: "is_debt", value: true }],
+    limit: 2500,
+  });
+  const { data: installments = [] } = useRows<any>("sale_installments", {
+    select: "id, sale_id, amount, paid_amount, due_date, status",
+    filters: [
+      { column: "status", value: ["paga", "paid", "quitada", "cancelada"], operator: "neq" },
+    ],
+    limit: 2500,
+  });
   const { data: transactions = [] } = useRows<any>("transactions", {
     order: { column: "created_at", ascending: false },
     limit: 2500,
@@ -80,7 +91,7 @@ function LiveMetrics() {
   });
   const { data: materials = [] } = useRows<any>("materials");
   const { data: products = [] } = useRows<any>("products");
-  const { data: clients = [] } = useRows<any>("clients");
+  const { data: clients = [] } = useRows<any>("clients", { limit: 2500 });
 
   useEffect(() => {
     const channel = supabase.channel("live-metrics");
@@ -108,6 +119,8 @@ function LiveMetrics() {
     }, 30000);
     return () => clearInterval(t);
   }, [qc]);
+
+  const clientById = useMemo(() => new Map(clients.map((c: any) => [c.id, c])), [clients]);
 
   const m = useMemo(() => {
     const { startTimestamp, endTimestamp } = getSaoPauloTodayBoundaries();
@@ -144,16 +157,61 @@ function LiveMetrics() {
         return tTime >= startTimestamp && tTime <= endTimestamp;
       })
       .reduce((sum: number, t: any) => sum + Math.abs(Number(t.amount || 0)), 0);
-    const openInstallments = installments.filter(
-      (i: any) => !["paid", "pago"].includes(String(i.status || "").toLowerCase()),
+    const installmentsBySale = new Map<string, any[]>();
+    installments.forEach((inst: any) => {
+      const list = installmentsBySale.get(inst.sale_id) || [];
+      list.push(inst);
+      installmentsBySale.set(inst.sale_id, list);
+    });
+
+    const SETTLED_STATUSES = [
+      "paid",
+      "pago",
+      "quitado",
+      "quitada",
+      "liquidado",
+      "liquidada",
+      "completed",
+      "finalizado",
+      "cancelado",
+      "cancelled",
+    ];
+
+    const openDebt = allDebtSales.reduce((acc: number, s: any) => {
+      // 1. Descartar vendas onde client_id for null
+      if (!s.client_id) return acc;
+
+      // 2. Descartar vendas onde o cliente vinculado não existir mais na tabela clients
+      if (!clientById.has(s.client_id)) return acc;
+
+      // 3. Descartar vendas cujo status seja quitado ou cancelado
+      const status = String(s.status || "").toLowerCase().trim();
+      if (SETTLED_STATUSES.includes(status)) return acc;
+
+      // Saldo devedor real da venda individual: ignora fiados já quitados (valor zerado)
+      const remaining = Number(s.total_amount || 0) - Number(s.paid_amount || 0);
+      if (remaining <= 0.009) return acc;
+
+      // 4. Cruzar com a tabela sale_installments: se a venda tiver parcelas e todas estiverem quitadas, descartar a venda
+      const saleInstallments = installmentsBySale.get(s.id) || [];
+      const pendingSaleInsts = saleInstallments.filter(
+        (i: any) =>
+          !["paid", "pago", "quitado", "quitada", "liquidada", "cancelada"].includes(
+            String(i.status || "").toLowerCase().trim()
+          ) && Number(i.amount || 0) - Number(i.paid_amount || 0) > 0.009
+      );
+
+      if (saleInstallments.length > 0 && pendingSaleInsts.length === 0) return acc;
+
+      return acc + remaining;
+    }, 0);
+
+    const overdue = installments.filter(
+      (i: any) =>
+        !["paga", "paid", "quitada", "cancelada"].includes(String(i.status || "").toLowerCase()) &&
+        i.due_date &&
+        new Date(i.due_date).getTime() < startTimestamp
     );
-    const openDebt = openInstallments.reduce(
-      (sum: number, i: any) => sum + (Number(i.amount || 0) - Number(i.paid_amount || 0)),
-      0,
-    );
-    const today0 = new Date();
-    today0.setHours(0, 0, 0, 0);
-    const overdue = openInstallments.filter((i: any) => i.due_date && new Date(i.due_date) < today0);
 
     const byHour = Array.from({ length: 24 }, (_, h) => ({
       h,
@@ -199,11 +257,10 @@ function LiveMetrics() {
       cashbackTotal: clients.reduce((s: number, c: any) => s + Number(c.cashback_balance || 0), 0),
       newClientsToday: clients.filter((c: any) => isToday(c.created_at)).length,
     };
-  }, [sales, saleItems, payments, installments, transactions, accounts, orders, materials, products, clients]);
+  }, [sales, saleItems, payments, installments, allDebtSales, clientById, transactions, accounts, orders, materials, products, clients]);
 
   const maxHour = Math.max(1, ...m.byHour.map((b) => b.total));
   const payTotal = Object.values(m.payMix).reduce((a, b) => a + b, 0) || 1;
-  const clientById = useMemo(() => new Map(clients.map((c: any) => [c.id, c])), [clients]);
 
   return (
     <div className="space-y-6">
