@@ -21,7 +21,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { useRows } from "@/lib/data";
-import { brl, dateTimeBR, num, isTodaySaoPaulo } from "@/lib/format";
+import { brl, dateTimeBR, num, isTodaySaoPaulo, getSaoPauloTodayBoundaries } from "@/lib/format";
 
 export const Route = createFileRoute("/_authenticated/live-metrics")({
   head: () => ({
@@ -71,7 +71,7 @@ function LiveMetrics() {
   const { data: installments = [] } = useRows<any>("sale_installments", { limit: 1000 });
   const { data: transactions = [] } = useRows<any>("transactions", {
     order: { column: "created_at", ascending: false },
-    limit: 400,
+    limit: 2500,
   });
   const { data: accounts = [] } = useRows<any>("financial_accounts");
   const { data: orders = [] } = useRows<any>("production_orders", {
@@ -110,14 +110,40 @@ function LiveMetrics() {
   }, [qc]);
 
   const m = useMemo(() => {
-    const salesToday = sales.filter((s: any) => isToday(s.created_at));
+    const { startTimestamp, endTimestamp } = getSaoPauloTodayBoundaries();
+
+    const salesToday = sales.filter((s: any) => {
+      if (!s.created_at) return false;
+      const t = new Date(s.created_at).getTime();
+      return t >= startTimestamp && t <= endTimestamp;
+    });
     const revenueToday = salesToday.reduce((sum: number, s: any) => sum + Number(s.total_amount || 0), 0);
-    const receivedToday = payments
-      .filter((p: any) => isToday(p.created_at || p.paid_at))
-      .reduce((sum: number, p: any) => sum + Number(p.amount || 0), 0);
-    const expensesToday = transactions
-      .filter((t: any) => t.type === "despesa" && isToday(t.created_at))
+
+    // Soma de todas as entradas pagas do dia em transactions (vendas à vista no PDV, fiados quitados e receitas)
+    const receivedToday = transactions
+      .filter((t: any) => {
+        const type = String(t.type || "").toLowerCase().trim();
+        const status = String(t.status || "").toLowerCase().trim();
+        const isIncome = ["income", "entrada"].includes(type);
+        const isPaid = ["paid", "pago"].includes(status);
+        if (!isIncome || !isPaid || !t.created_at) return false;
+        const tTime = new Date(t.created_at).getTime();
+        return tTime >= startTimestamp && tTime <= endTimestamp;
+      })
       .reduce((sum: number, t: any) => sum + Number(t.amount || 0), 0);
+
+    // Soma de todas as saídas/despesas pagas do dia em transactions
+    const expensesToday = transactions
+      .filter((t: any) => {
+        const type = String(t.type || "").toLowerCase().trim();
+        const status = String(t.status || "").toLowerCase().trim();
+        const isExpense = ["expense", "saida", "despesa"].includes(type);
+        const isPaid = ["paid", "pago"].includes(status);
+        if (!isExpense || !isPaid || !t.created_at) return false;
+        const tTime = new Date(t.created_at).getTime();
+        return tTime >= startTimestamp && tTime <= endTimestamp;
+      })
+      .reduce((sum: number, t: any) => sum + Math.abs(Number(t.amount || 0)), 0);
     const openInstallments = installments.filter(
       (i: any) => !["paid", "pago"].includes(String(i.status || "").toLowerCase()),
     );
