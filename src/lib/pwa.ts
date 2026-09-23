@@ -1,9 +1,34 @@
-/**
- * Gerenciador de PWA e Notificações Push para Amstore Bagshoes
- */
+import { Capacitor } from "@capacitor/core";
 
 export async function setupPWA() {
-  if (typeof window === "undefined" || !("serviceWorker" in navigator)) return;
+  if (typeof window === "undefined") return;
+
+  // 1. No Capacitor nativo, desativa Service Worker para evitar cache antigo/stale do WebView
+  if (Capacitor.isNativePlatform()) {
+    console.log("[PWA] Ambiente nativo Capacitor detectado. Desativando Service Worker e limpando caches.");
+    if ("serviceWorker" in navigator) {
+      try {
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        for (const registration of registrations) {
+          await registration.unregister();
+          console.log("[PWA] Service Worker legado desregistrado com sucesso no Capacitor.");
+        }
+        if ("caches" in window) {
+          const keys = await caches.keys();
+          for (const key of keys) {
+            await caches.delete(key);
+            console.log("[PWA] Cache antigo apagado:", key);
+          }
+        }
+      } catch (err) {
+        console.warn("[PWA] Erro ao desregistrar Service Worker legado no Capacitor:", err);
+      }
+    }
+    return;
+  }
+
+  // 2. No navegador/PWA comum, registra normalmente
+  if (!("serviceWorker" in navigator)) return;
 
   try {
     const reg = await navigator.serviceWorker.register("/sw.js", { scope: "/" });

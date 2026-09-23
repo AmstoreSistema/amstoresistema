@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { motion, AnimatePresence } from 'framer-motion';
 import { setupPWA } from '@/lib/pwa';
 import { useBranding } from '@/contexts/BrandingContext';
+import { Capacitor } from '@capacitor/core';
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -21,6 +22,9 @@ export function InstallPWA() {
 
   useEffect(() => {
     void setupPWA();
+
+    // Se estiver rodando dentro do aplicativo nativo (Capacitor), não exibe prompt de instalação
+    if (Capacitor.isNativePlatform()) return;
 
     const isStandalone =
       window.matchMedia('(display-mode: standalone)').matches ||
