@@ -64,14 +64,16 @@ function CreditPage() {
   const { data: sales = [], isLoading: salesLoading } = useRows<Sale>("sales", {
     select: "id, client_id, total_amount, paid_amount, status, is_debt, created_at, sale_code",
     filters: [{ column: "is_debt", value: true }],
+    limit: 2500,
   });
   const { data: clients = [] } = useRows<Client>("clients", {
     select: "id, name, phone",
+    limit: 2500,
   });
   const { data: installments = [] } = useRows<Installment>("sale_installments" as any, {
     select: "id, sale_id, amount, paid_amount, due_date, status",
     filters: [{ column: "status", value: ["paga", "paid", "quitada", "cancelada"], operator: "neq" }],
-    limit: 2000,
+    limit: 2500,
   });
 
   const [term, setTerm] = useState("");

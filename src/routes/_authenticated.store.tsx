@@ -91,24 +91,26 @@ function StorePanel() {
   });
 
   const { data: products = [] } = useRows<any>("products", { select: "id, name" });
-  const { data: clients = [] } = useRows<any>("clients", { select: "id, name, cashback_balance" });
+  const { data: clients = [] } = useRows<any>("clients", { select: "id, name, cashback_balance", limit: 2500 });
   const { data: accounts = [] } = useRows<any>("financial_accounts");
 
   // Consulta de fiados ativos para refletir a carteira de cobrança total em aberto (independente de data)
   const { data: allDebtSales = [] } = useRows<any>("sales", {
-    select: "id, total_amount, paid_amount, status, is_debt",
+    select: "id, client_id, total_amount, paid_amount, status, is_debt",
     filters: [{ column: "is_debt", value: true }],
     limit: 2500,
   });
   
   // Parcelas ativas e não quitadas para cálculo de fiados vencidos
   const { data: installments = [] } = useRows<any>("sale_installments", {
-    select: "id, sale_id, due_date, status",
+    select: "id, sale_id, amount, paid_amount, due_date, status",
     filters: [
       { column: "status", value: ["paga", "paid", "quitada", "cancelada"], operator: "neq" }
     ],
-    limit: 1000,
+    limit: 2500,
   });
+
+  const clientById = useMemo(() => new Map(clients.map((c: any) => [c.id, c])), [clients]);
 
   const activeSales = useMemo(
     () => sales.filter((s: any) => (s.status ?? "concluida") !== "cancelada"),
@@ -138,17 +140,45 @@ function StorePanel() {
   );
   const ticket = salesPeriod.length ? revenuePeriod / salesPeriod.length : 0;
 
-  const openCredit = useMemo(
-    () =>
-      allDebtSales
-        .filter((s: any) => (s.status ?? "concluida") !== "cancelada")
-        .reduce(
-          (a: number, s: any) =>
-            a + Math.max(0, Number(s.total_amount ?? 0) - Number(s.paid_amount ?? 0)),
-          0,
-        ),
-    [allDebtSales],
-  );
+  // Cálculo padronizado com a tela de fiados (/credit)
+  const openCredit = useMemo(() => {
+    const installmentsBySale = new Map<string, any[]>();
+    installments.forEach((inst: any) => {
+      const list = installmentsBySale.get(inst.sale_id) || [];
+      list.push(inst);
+      installmentsBySale.set(inst.sale_id, list);
+    });
+
+    return allDebtSales.reduce((acc: number, s: any) => {
+      // 1. Descartar vendas onde client_id for null
+      if (!s.client_id) return acc;
+
+      // 2. Descartar vendas onde o cliente vinculado não existir mais na tabela clients
+      if (!clientById.has(s.client_id)) return acc;
+
+      // 3. Descartar vendas cujo status seja 'paid', 'pago', 'quitado' ou 'liquidado' (não apenas 'cancelada')
+      const status = String(s.status || "").toLowerCase().trim();
+      if (["paid", "pago", "quitado", "quitada", "liquidado", "liquidada", "cancelado", "cancelled"].includes(status)) {
+        return acc;
+      }
+
+      // Saldo devedor real da venda individual: ignora fiados já quitados (valor zerado)
+      const remaining = Number(s.total_amount || 0) - Number(s.paid_amount || 0);
+      if (remaining <= 0.009) return acc;
+
+      // 4. Cruzar com a tabela sale_installments: se a venda tiver parcelas e todas estiverem quitadas, descartar a venda
+      const saleInstallments = installmentsBySale.get(s.id) || [];
+      const pendingSaleInsts = saleInstallments.filter(
+        (i: any) =>
+          !["paid", "pago", "quitado", "quitada", "liquidada", "cancelada"].includes(String(i.status || "").toLowerCase().trim()) &&
+          (Number(i.amount || 0) - Number(i.paid_amount || 0)) > 0.009
+      );
+
+      if (saleInstallments.length > 0 && pendingSaleInsts.length === 0) return acc;
+
+      return acc + remaining;
+    }, 0);
+  }, [allDebtSales, installments, clientById]);
 
   const overdueCount = useMemo(
     () =>
