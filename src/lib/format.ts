@@ -88,3 +88,65 @@ export const formatSaleDateISO = (saleDateString?: string | null): string => {
 };
 
 export const onlyDigits = (v: string) => (v || "").replace(/\D/g, "");
+
+/**
+ * Data como "YYYY-MM-DD" no FUSO DE BRASÍLIA / SÃO PAULO (America/Sao_Paulo).
+ * Independe do fuso do dispositivo do usuário ou do servidor UTC.
+ */
+export const getSaoPauloDateStr = (date: Date = new Date()): string => {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Sao_Paulo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(date);
+};
+
+/**
+ * Data de hoje como "YYYY-MM-DD" no fuso oficial de Brasília.
+ */
+export const getLocalDateStr = (): string => getSaoPauloDateStr();
+
+/**
+ * Retorna os limites de "hoje" (ou data base) no fuso de São Paulo / Brasília
+ * convertidos para timestamps e strings ISO UTC exatas para queries em colunas timestamptz (created_at).
+ *
+ * Exemplo em São Paulo (UTC-3):
+ *   dateStr        = "2026-09-23"
+ *   startISO       = "2026-09-23T03:00:00.000Z"  (00:00:00 em Brasília)
+ *   endISO         = "2026-09-24T02:59:59.999Z"  (23h59m59s em Brasília)
+ *   startTimestamp = 1790132400000
+ *   endTimestamp   = 1790218799999
+ */
+export const getSaoPauloTodayBoundaries = (baseDate: Date = new Date()) => {
+  const dateStr = getSaoPauloDateStr(baseDate);
+  const startISO = new Date(`${dateStr}T00:00:00.000-03:00`).toISOString();
+  const endISO = new Date(`${dateStr}T23:59:59.999-03:00`).toISOString();
+  return {
+    dateStr,
+    startISO,
+    endISO,
+    startTimestamp: new Date(startISO).getTime(),
+    endTimestamp: new Date(endISO).getTime(),
+  };
+};
+
+/**
+ * Alias compatível com código existente.
+ */
+export const getLocalTodayBoundaries = getSaoPauloTodayBoundaries;
+
+/**
+ * Retorna true se a data informada (string ISO UTC ou Date) pertence ao dia de hoje
+ * no fuso horário oficial de Brasília / São Paulo.
+ */
+export const isTodaySaoPaulo = (
+  dateInput: string | Date | null | undefined,
+  baseTodayStr?: string
+): boolean => {
+  if (!dateInput) return false;
+  const targetDateStr = baseTodayStr || getSaoPauloDateStr();
+  const d = typeof dateInput === "string" ? new Date(dateInput) : dateInput;
+  if (isNaN(d.getTime())) return false;
+  return getSaoPauloDateStr(d) === targetDateStr;
+};

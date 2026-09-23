@@ -21,7 +21,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { useRows } from "@/lib/data";
-import { brl, dateTimeBR, num } from "@/lib/format";
+import { brl, dateTimeBR, num, isTodaySaoPaulo } from "@/lib/format";
 
 export const Route = createFileRoute("/_authenticated/live-metrics")({
   head: () => ({
@@ -57,8 +57,7 @@ const WATCHED = [
   "cashback_entries",
 ];
 
-const isToday = (v: string | null | undefined) =>
-  !!v && new Date(v).toDateString() === new Date().toDateString();
+const isToday = (v: string | null | undefined) => isTodaySaoPaulo(v);
 
 function LiveMetrics() {
   const qc = useQueryClient();

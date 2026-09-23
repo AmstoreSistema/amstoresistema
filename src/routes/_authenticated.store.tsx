@@ -23,7 +23,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { useRows } from "@/lib/data";
-import { brl, dateTimeBR, num } from "@/lib/format";
+import { brl, dateTimeBR, num, getSaoPauloTodayBoundaries } from "@/lib/format";
 import { BirthdayAlertCard } from "@/components/BirthdayAlertCard";
 
 export const Route = createFileRoute("/_authenticated/store")({
@@ -52,8 +52,11 @@ type Period = 7 | 30 | 90;
 function StorePanel() {
   const [period, setPeriod] = useState<Period>(30);
 
-  const now = new Date();
-  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  // Limites exatos de hoje e início do período no fuso oficial de Brasília (America/Sao_Paulo)
+  const { startTimestamp: startOfToday, endTimestamp: endOfToday } = useMemo(
+    () => getSaoPauloTodayBoundaries(),
+    []
+  );
   const periodStart = startOfToday - (period - 1) * 86400000;
   const periodStartIso = useMemo(() => new Date(periodStart).toISOString(), [periodStart]);
 
@@ -113,16 +116,24 @@ function StorePanel() {
   const clientById = useMemo(() => new Map(clients.map((c: any) => [c.id, c])), [clients]);
 
   const activeSales = useMemo(
-    () => sales.filter((s: any) => (s.status ?? "concluida") !== "cancelada"),
+    () =>
+      sales.filter(
+        (s: any) =>
+          (s.status ?? "concluida") !== "cancelada" &&
+          s.status !== "cancelled" &&
+          s.status !== "estornado",
+      ),
     [sales],
   );
 
   const salesToday = useMemo(
     () =>
-      activeSales.filter(
-        (s: any) => s.created_at && new Date(s.created_at).getTime() >= startOfToday,
-      ),
-    [activeSales, startOfToday],
+      activeSales.filter((s: any) => {
+        if (!s.created_at) return false;
+        const t = new Date(s.created_at).getTime();
+        return t >= startOfToday && t <= endOfToday;
+      }),
+    [activeSales, startOfToday, endOfToday],
   );
 
   const salesPeriod = useMemo(

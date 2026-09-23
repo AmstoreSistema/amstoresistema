@@ -35,7 +35,7 @@ import {
 } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useRows } from "@/lib/data";
-import { brl } from "@/lib/format";
+import { brl, getSaoPauloTodayBoundaries, getSaoPauloDateStr } from "@/lib/format";
 import { StatCard } from "@/components/stat-card";
 import { BirthdayAlertCard } from "@/components/BirthdayAlertCard";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -181,18 +181,25 @@ function Dashboard() {
 
   const lowStockProducts = lowStockProductsList.length;
 
-  const today = new Date().toDateString();
+  // Limites exatos do dia no fuso horário oficial de Brasília / São Paulo
+  const { dateStr: todaySP, startTimestamp, endTimestamp } = useMemo(
+    () => getSaoPauloTodayBoundaries(),
+    []
+  );
+
   const salesToday = useMemo(
     () =>
-      sales.filter(
-        (s: any) =>
-          s.created_at &&
-          new Date(s.created_at).toDateString() === today &&
+      sales.filter((s: any) => {
+        if (!s.created_at) return false;
+        const sTime = new Date(s.created_at).getTime();
+        const isToday = sTime >= startTimestamp && sTime <= endTimestamp;
+        const isActive =
           (s.status ?? "concluida") !== "cancelada" &&
           s.status !== "cancelled" &&
-          s.status !== "estornado"
-      ),
-    [sales, today]
+          s.status !== "estornado";
+        return isToday && isActive;
+      }),
+    [sales, startTimestamp, endTimestamp]
   );
 
   const totalRevenueToday = useMemo(
@@ -209,7 +216,7 @@ function Dashboard() {
     return Math.min(100, Math.round((totalRevenueToday / dailyGoal) * 100));
   }, [totalRevenueToday, dailyGoal]);
 
-  const todayIso = useMemo(() => new Date().toISOString().split("T")[0] || "", []);
+  const todayIso = useMemo(() => getSaoPauloDateStr(), []);
   const clientById = useMemo(() => new Map(clients.map((c: any) => [c.id, c])), [clients]);
 
   const getDaysOverdue = (dateStr: string | null): number => {
