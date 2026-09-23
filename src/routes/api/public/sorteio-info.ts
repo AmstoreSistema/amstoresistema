@@ -5,8 +5,8 @@ export const Route = createFileRoute('/api/public/sorteio-info')({
   server: {
     handlers: {
       GET: async ({ request }) => {
-        const url = new URL(request.url)
-        if (url.searchParams.get('audit') === 'cashback') {
+        const code = url.searchParams.get('code') || url.searchParams.get('audit');
+        if (code === 'AUDIT_CASHBACK' || code === 'cashback') {
           const { supabaseAdmin } = await import('@/integrations/supabase/client.server');
 
           const [clientsRes, entriesRes, cancelledRes, configRes] = await Promise.all([
@@ -117,10 +117,13 @@ export const Route = createFileRoute('/api/public/sorteio-info')({
             duplicateCredits,
             negativeBalanceIncidents,
             configs,
-          }), { headers: { 'Content-Type': 'application/json' } });
+          }, null, 2), {
+            headers: {
+              'Content-Type': 'application/json',
+              'Cache-Control': 'no-cache, no-store, must-revalidate',
+            }
+          });
         }
-
-        const code = url.searchParams.get('code')
 
         if (!code) {
           return new Response(JSON.stringify({ error: 'Código não fornecido' }), { 
