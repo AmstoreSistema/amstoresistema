@@ -84,13 +84,15 @@ function LiveMetrics() {
     order: { column: "created_at", ascending: false },
     limit: 2500,
   });
-  const { data: accounts = [] } = useRows<any>("financial_accounts");
+  const { data: accounts = [] } = useRows<any>("financial_accounts", {
+    filters: [{ column: "active", value: true }],
+  });
   const { data: orders = [] } = useRows<any>("production_orders", {
     order: { column: "created_at", ascending: false },
-    limit: 200,
+    limit: 2500,
   });
-  const { data: materials = [] } = useRows<any>("materials");
-  const { data: products = [] } = useRows<any>("products");
+  const { data: materials = [] } = useRows<any>("materials", { limit: 2500 });
+  const { data: products = [] } = useRows<any>("products", { limit: 2500 });
   const { data: clients = [] } = useRows<any>("clients", { limit: 2500 });
 
   useEffect(() => {
@@ -251,7 +253,7 @@ function LiveMetrics() {
       topProducts,
       itemsToday: itemsToday.reduce((s: number, i: any) => s + Number(i.quantity || 0), 0),
       cashTotal: accounts.reduce((s: number, a: any) => s + Number(a.current_balance ?? a.balance ?? a.initial_balance ?? 0), 0),
-      activeOrders: orders.filter((o: any) => ["pendente", "em_producao"].includes(o.status)).length,
+      activeOrders: orders.filter((o: any) => ["pending", "ongoing"].includes(o.status)).length,
       criticalMaterials: materials.filter((x: any) => Number(x.current_stock) <= Number(x.min_stock)),
       lowProducts: products.filter((p: any) => Number(p.current_stock) <= Number(p.min_stock)).length,
       cashbackTotal: clients.reduce((s: number, c: any) => s + Number(c.cashback_balance || 0), 0),
@@ -279,15 +281,16 @@ function LiveMetrics() {
         }
       />
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <StatCard title="Vendas hoje" value={m.salesToday.length} sub={`${num(m.itemsToday, 0)} itens vendidos`} icon={ShoppingCart} tone="gold" to="/sales" />
         <StatCard title="Faturamento hoje" value={brl(m.revenueToday)} sub={`Ticket médio ${brl(m.ticket)}`} icon={TrendingUp} tone="success" to="/reports" />
         <StatCard title="Recebido hoje" value={brl(m.receivedToday)} sub={`Despesas ${brl(m.expensesToday)}`} icon={CreditCard} tone="info" to="/transactions" />
-        <StatCard title="Saldo em caixa" value={brl(m.cashTotal)} sub={`${accounts.length} conta(s)`} icon={Wallet} tone="dark" to="/accounts" />
+        <StatCard title="Saldo em caixa" value={brl(m.cashTotal)} sub={`${accounts.length} conta(s) ativa(s)`} icon={Wallet} tone="dark" to="/accounts" />
         <StatCard title="Fiado em aberto" value={brl(m.openDebt)} sub={`${m.overdue.length} parcela(s) vencida(s)`} icon={HandCoins} tone={m.overdue.length ? "destructive" : "warning"} to="/credit" />
-        <StatCard title="Ordens ativas" value={m.activeOrders} sub={`${orders.length} ordens no total`} icon={Factory} tone="dark" to="/production" />
-        <StatCard title="Alertas de estoque" value={m.criticalMaterials.length + m.lowProducts} sub={`${m.criticalMaterials.length} materiais · ${m.lowProducts} produtos`} icon={AlertTriangle} tone={m.criticalMaterials.length + m.lowProducts ? "destructive" : "success"} to="/stock" />
         <StatCard title="Cashback acumulado" value={brl(m.cashbackTotal)} sub={`${clients.length} clientes · ${m.newClientsToday} novos hoje`} icon={Coins} tone="gold" to="/cashback" />
+        <StatCard title="Ordens ativas" value={m.activeOrders} sub={`${orders.length} ordens no total`} icon={Factory} tone="dark" to="/production" />
+        <StatCard title="Produtos estoque baixo" value={m.lowProducts} sub={m.lowProducts > 0 ? `${m.lowProducts} produto(s) no mín.` : "Estoque regular"} icon={Package} tone={m.lowProducts ? "destructive" : "success"} to="/stock" />
+        <StatCard title="Materiais críticos" value={m.criticalMaterials.length} sub={m.criticalMaterials.length > 0 ? `${m.criticalMaterials.length} material(is) no mín.` : "Suprimentos em dia"} icon={AlertTriangle} tone={m.criticalMaterials.length ? "destructive" : "success"} to="/materials" />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-3">
