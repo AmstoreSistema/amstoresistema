@@ -137,24 +137,30 @@ function AccountsPage() {
     
     if (editingAccount) {
       try {
-        // 1. Atualiza dados cadastrais
+        const prevBal = Number(editingAccount.current_balance ?? 0);
+
+        // 1. Atualiza apenas dados cadastrais (nome, tipo, cor, banco, etc.)
+        // NÃO inclui current_balance aqui — o saldo será ajustado via transação auditável
         await save.mutateAsync({
           id: editingAccount.id,
-          values: {
-            ...rest,
-            current_balance: newBal,
-          },
+          values: rest,
         });
 
-        // 2. Garante a atualização definitiva do saldo no banco
-        await updateBalanceFn({
+        // 2. Cria uma transação de ajuste auditável e atualiza o saldo
+        // Se newBal === prevBal, o server fn detecta diff=0 e não cria transação
+        const result = await updateBalanceFn({
           data: {
             id: editingAccount.id,
             current_balance: newBal,
+            previous_balance: prevBal,
           },
         });
 
-        toast.success(`Conta "${values.name}" e saldo atualizados com sucesso!`);
+        const adjustedMsg = (result as any)?.adjusted
+          ? ` Ajuste de R$ ${Math.abs((result as any).diff).toFixed(2).replace('.', ',')} registrado no histórico.`
+          : '';
+
+        toast.success(`Conta "${values.name}" atualizada com sucesso!${adjustedMsg}`);
         setOpen(false);
         setEditingAccount(null);
         form.reset();
@@ -167,6 +173,7 @@ function AccountsPage() {
       } catch (err: any) {
         toast.error("Erro ao salvar conta: " + (err.message || err));
       }
+
     } else {
       const payload = {
         ...rest,

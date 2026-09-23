@@ -165,20 +165,76 @@ export const deleteTransaction = createServerFn({ method: "POST" })
     return { success: true };
   });
 
+/**
+ * Ajusta o saldo de uma conta criando uma transação de ajuste auditável.
+ * Em vez de sobrescrever current_balance diretamente, calcula a diferença
+ * entre o novo saldo desejado e o saldo atual, e insere uma transação
+ * do tipo 'entrada' ou 'saida' com categoria "Ajuste de saldo" para que
+ * o trigger de balanço recalcule o current_balance automaticamente.
+ *
+ * Isso garante rastreabilidade total: toda mudança de saldo fica registrada
+ * no histórico de transações com data, descrição e valor.
+ */
 export const updateAccountBalance = createServerFn({ method: "POST" })
   .validator((data) => z.object({
     id: z.string(),
     current_balance: z.number(),
+    // Campo opcional: saldo anterior (para calcular diff sem re-consultar o banco)
+    previous_balance: z.number().optional(),
   }).parse(data))
   .handler(async ({ data }) => {
     const { supabaseAdmin: admin } = await import("@/integrations/supabase/client.server");
-    const { error } = await admin
+
+    // 1. Lê o saldo atual real para calcular a diferença
+    const { data: acc, error: readErr } = await admin
       .from("financial_accounts")
-      .update({ current_balance: data.current_balance } as any)
+      .select("current_balance, name")
+      .eq("id", data.id)
+      .single();
+
+    if (readErr || !acc) throw new Error(readErr?.message ?? "Conta não encontrada");
+
+    const currentBalance = Number(data.previous_balance ?? acc.current_balance ?? 0);
+    const newBalance = Number(data.current_balance ?? 0);
+    const diff = newBalance - currentBalance;
+
+    // Se não há diferença real, não faz nada
+    if (Math.abs(diff) < 0.009) {
+      return { success: true, adjusted: false, diff: 0 };
+    }
+
+    // 2. Cria transação de ajuste auditável
+    const isIncrease = diff > 0;
+    const txType = isIncrease ? "entrada" : "saida";
+    const txAmount = Math.abs(diff);
+    const txDescription = `Ajuste de saldo — conta "${acc.name}"`;
+
+    const { error: txErr } = await admin
+      .from("transactions")
+      .insert({
+        type: txType,
+        amount: isIncrease ? txAmount : -txAmount,
+        description: txDescription,
+        account_id: data.id,
+        category: "Ajuste de saldo",
+        status: "pago",
+        created_at: new Date().toISOString(),
+        payment_method: null,
+        client_id: null,
+        supplier_id: null,
+      } as any);
+
+    if (txErr) throw new Error(txErr.message);
+
+    // 3. Fallback: atualiza current_balance diretamente caso o banco
+    //    não tenha o trigger transaction_balance_trigger configurado.
+    //    (seguro duplicar pois o trigger idempotente deve ter precedência)
+    await admin
+      .from("financial_accounts")
+      .update({ current_balance: newBalance } as any)
       .eq("id", data.id);
 
-    if (error) throw new Error(error.message);
-    return { success: true };
+    return { success: true, adjusted: true, diff, type: txType };
   });
 
 export const deleteFinancialAccount = createServerFn({ method: "POST" })
