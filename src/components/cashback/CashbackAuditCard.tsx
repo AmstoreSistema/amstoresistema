@@ -1,5 +1,7 @@
 import React from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { getCashbackAudit } from "@/lib/cashback-cleanup.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -19,9 +21,37 @@ import {
 } from "lucide-react";
 
 export function CashbackAuditCard() {
+  const fetchAudit = useServerFn(getCashbackAudit);
+
   const { data, isLoading, refetch, isFetching } = useQuery({
     queryKey: ["cashback-system-audit"],
     queryFn: async () => {
+      try {
+        const sRes = await fetchAudit();
+        if (sRes && (sRes as any).success) {
+          const res = sRes as any;
+          return {
+            total_clients: res.total_clients,
+            clients_with_balance: res.clients_with_balance,
+            total_circulating_balance: res.total_circulating_balance,
+            total_entries: res.total_entries,
+            reconciliation_divergences: res.reconciliation_divergences || [],
+            entries_on_cancelled_sales: res.cancelled_sales_with_cashback || [],
+            orphan_entries: res.orphan_entries || [],
+            duplicate_credits: res.duplicate_credits || [],
+            negative_balance_incidents: res.negative_balance_incidents || [],
+            configs: res.configs || [],
+            is_consistent:
+              (res.reconciliation_divergences?.length || 0) === 0 &&
+              (res.cancelled_sales_with_cashback?.length || 0) === 0 &&
+              (res.orphan_entries?.length || 0) === 0 &&
+              (res.duplicate_credits?.length || 0) === 0 &&
+              (res.negative_balance_incidents?.length || 0) === 0,
+          };
+        }
+      } catch (err) {
+        console.warn("fetchAudit fallback to direct query:", err);
+      }
       // 1. Clientes
       const { data: clients = [], error: clientsErr } = await supabase
         .from("clients")
