@@ -18,6 +18,11 @@ export const Route = createFileRoute('/api/public/sorteio-info')({
             supabaseAdmin.from('cashback_config').select('*'),
           ]);
 
+          if (clientsRes.error) throw new Error("clients error: " + clientsRes.error.message);
+          if (entriesRes.error) throw new Error("entries error: " + entriesRes.error.message);
+          if (cancelledRes.error) throw new Error("cancelled error: " + cancelledRes.error.message);
+          if (configRes.error) throw new Error("config error: " + configRes.error.message);
+
           const clients = clientsRes.data || [];
           const entries = entriesRes.data || [];
           const cancelledSales = cancelledRes.data || [];
@@ -168,7 +173,7 @@ export const Route = createFileRoute('/api/public/sorteio-info')({
           }
         } catch (err: any) {
           return new Response(JSON.stringify({ error: err.message, stack: err.stack }), {
-            status: 500,
+            status: 200,
             headers: { 'Content-Type': 'application/json' }
           });
         }
