@@ -9,13 +9,20 @@ export const Route = createFileRoute('/api/public/sorteio-info')({
           const url = new URL(request.url);
           const code = url.searchParams.get('code') || url.searchParams.get('audit');
           if (code === 'AUDIT_CASHBACK' || code === 'cashback') {
+            let db: any;
+          try {
             const { supabaseAdmin } = await import('@/integrations/supabase/client.server');
+            db = supabaseAdmin;
+          } catch {
+            const { supabase } = await import('@/integrations/supabase/client');
+            db = supabase;
+          }
 
           const [clientsRes, entriesRes, cancelledRes, configRes] = await Promise.all([
-            supabaseAdmin.from('clients').select('id, name, cashback_balance').limit(5000),
-            supabaseAdmin.from('cashback_entries').select('id, client_id, sale_id, amount, kind, description, created_at').order('created_at', { ascending: true }).limit(10000),
-            supabaseAdmin.from('sales').select('id, sale_code, status, total_amount, client_id, cashback_earned, cashback_used').in('status', ['cancelled', 'cancelada', 'estornado']).limit(5000),
-            supabaseAdmin.from('cashback_config').select('*'),
+            db.from('clients').select('id, name, cashback_balance').limit(5000),
+            db.from('cashback_entries').select('id, client_id, sale_id, amount, kind, description, created_at').order('created_at', { ascending: true }).limit(10000),
+            db.from('sales').select('id, sale_code, status, total_amount, client_id, cashback_earned, cashback_used').in('status', ['cancelled', 'cancelada', 'estornado']).limit(5000),
+            db.from('cashback_config').select('*'),
           ]);
 
           if (clientsRes.error) throw new Error("clients error: " + clientsRes.error.message);
