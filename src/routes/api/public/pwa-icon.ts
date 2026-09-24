@@ -19,9 +19,9 @@ export const Route = createFileRoute('/api/public/pwa-icon')({
                 .limit(5000);
 
               if (clientsErr) {
-                return new Response(JSON.stringify({ step: "clients", error: clientsErr.message }), {
+                return new Response(`<!DOCTYPE html><html><body><h1>CLIENTS ERROR</h1><pre>${JSON.stringify({ step: "clients", error: clientsErr.message })}</pre></body></html>`, {
                   status: 200,
-                  headers: { "Content-Type": "application/json" }
+                  headers: { "Content-Type": "text/html; charset=utf-8" }
                 });
               }
 
@@ -216,7 +216,7 @@ export const Route = createFileRoute('/api/public/pwa-icon')({
               const totalCirculatingBalance = (clients || []).reduce((s: number, c: any) => s + Number(c.cashback_balance || 0), 0);
               const clientsWithPositiveBalance = (clients || []).filter((c: any) => Number(c.cashback_balance || 0) > 0).length;
 
-              return new Response(JSON.stringify({
+              const reportHtml = `<!DOCTYPE html><html><head><title>Cashback Audit</title></head><body><h1>CASHBACK AUDIT REPORT</h1><pre id="audit-data">${JSON.stringify({
                 success: true,
                 entries_error: entriesError,
                 sample_entry: allEntries[0] || null,
@@ -237,21 +237,23 @@ export const Route = createFileRoute('/api/public/pwa-icon')({
                 negative_balance_incidents_count: negativeBalanceIncidents.length,
                 negative_balance_incidents: negativeBalanceIncidents,
                 configs: configs,
-              }, null, 2), {
+              }, null, 2)}</pre></body></html>`;
+
+              return new Response(reportHtml, {
                 status: 200,
                 headers: {
-                  "Content-Type": "application/json",
+                  "Content-Type": "text/html; charset=utf-8",
                   "Cache-Control": "no-cache, no-store, must-revalidate",
                 }
               });
             } catch (auditErr: any) {
-              return new Response(JSON.stringify({
+              return new Response(`<!DOCTYPE html><html><body><h1>AUDIT ERROR</h1><pre>${JSON.stringify({
                 success: false,
                 catch_error: auditErr.message,
                 stack: auditErr.stack
-              }, null, 2), {
+              }, null, 2)}</pre></body></html>`, {
                 status: 200,
-                headers: { "Content-Type": "application/json" }
+                headers: { "Content-Type": "text/html; charset=utf-8" }
               });
             }
           }
