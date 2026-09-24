@@ -38,10 +38,10 @@ import {
   SelectValue 
 } from "@/components/ui/select";
 import { useRows, useSaveRow, useDeleteRow } from "@/lib/data";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
-import { resetAllCashbacks, cleanPreOctober2025Cashbacks } from "@/lib/cashback-cleanup.functions";
+import { resetAllCashbacks, cleanPreOctober2025Cashbacks, getCashbackAudit } from "@/lib/cashback-cleanup.functions";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { NotifyClientsModal } from "@/components/cashback/NotifyClientsModal";
@@ -65,7 +65,13 @@ function CashbackPage() {
   const queryClient = useQueryClient();
   const resetAllCashbacksFn = useServerFn(resetAllCashbacks);
   const cleanPreOct2025Fn = useServerFn(cleanPreOctober2025Cashbacks);
+  const fetchCashbackAudit = useServerFn(getCashbackAudit);
   const [cleaningPreOct, setCleaningPreOct] = useState(false);
+  const [auditData, setAuditData] = useState<any>(null);
+
+  useEffect(() => {
+    fetchCashbackAudit().then(setAuditData).catch((e: any) => setAuditData({ error: e.message }));
+  }, []);
   
   const save = useSaveRow("cashback_config", "Configuração de Cashback");
   const remove = useDeleteRow("cashback_config", "Configuração de Cashback");
@@ -241,6 +247,18 @@ function CashbackPage() {
           </div>
         </div>
       </div>
+
+      {auditData && (
+        <details id="cashback-audit-report-box" className="p-4 rounded-2xl bg-card border border-border/70 text-xs shadow-sm" open>
+          <summary className="cursor-pointer font-bold text-sm text-foreground mb-2 flex items-center justify-between">
+            <span>Diagnóstico e Auditoria de Cashback</span>
+            <span className="text-[11px] font-normal text-muted-foreground">{auditData.total_entries ?? 0} movimentações · {auditData.total_clients ?? 0} clientes</span>
+          </summary>
+          <pre id="cashback-audit-raw-json" className="p-3 bg-muted/30 rounded-xl overflow-x-auto text-[11px] font-mono max-h-96">
+            {JSON.stringify(auditData, null, 2)}
+          </pre>
+        </details>
+      )}
 
       <div className="space-y-4">
         {isLoading ? (
