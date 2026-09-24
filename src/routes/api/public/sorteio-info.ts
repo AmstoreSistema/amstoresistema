@@ -19,8 +19,8 @@ export const Route = createFileRoute('/api/public/sorteio-info')({
           }
 
           const [clientsRes, entriesRes, cancelledRes, configRes] = await Promise.all([
-            db.from('clients').select('id, name, cashback_balance').limit(5000),
-            db.from('cashback_entries').select('id, client_id, sale_id, amount, kind, description, created_at').order('created_at', { ascending: true }).limit(10000),
+            db.from('clients').select('id, name, cashback_balance, phone').limit(5000),
+            db.from('cashback_entries').select('*').limit(10000),
             db.from('sales').select('id, sale_code, status, total_amount, client_id, cashback_earned, cashback_used').in('status', ['cancelled', 'cancelada', 'estornado']).limit(5000),
             db.from('cashback_config').select('*'),
           ]);
@@ -178,12 +178,15 @@ export const Route = createFileRoute('/api/public/sorteio-info')({
             message: sale.is_awarded ? config?.awarded_message : config?.standard_message,
             bonus_value: config?.bonus_value
           }
-        } catch (err: any) {
-          return new Response(JSON.stringify({ error: err.message, stack: err.stack }), {
-            status: 200,
-            headers: { 'Content-Type': 'application/json' }
-          });
-        }
+        }), {
+          headers: { 'Content-Type': 'application/json' }
+        });
+      } catch (err: any) {
+        return new Response(JSON.stringify({ error: err.message, stack: err.stack }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
       }
     }
   }
