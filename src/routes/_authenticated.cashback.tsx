@@ -45,6 +45,7 @@ import { resetAllCashbacks, cleanPreOctober2025Cashbacks } from "@/lib/cashback-
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { NotifyClientsModal } from "@/components/cashback/NotifyClientsModal";
+import { CashbackAuditCard } from "@/components/cashback/CashbackAuditCard";
 
 export const Route = createFileRoute("/_authenticated/cashback")({
   head: () => ({
@@ -240,6 +241,8 @@ function CashbackPage() {
           </div>
         </div>
       </div>
+
+      <CashbackAuditCard />
 
       <div className="space-y-4">
         {isLoading ? (
