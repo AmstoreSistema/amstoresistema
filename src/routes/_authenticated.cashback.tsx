@@ -248,17 +248,31 @@ function CashbackPage() {
         </div>
       </div>
 
-      {auditData && (
-        <details id="cashback-audit-report-box" className="p-4 rounded-2xl bg-card border border-border/70 text-xs shadow-sm" open>
-          <summary className="cursor-pointer font-bold text-sm text-foreground mb-2 flex items-center justify-between">
-            <span>Diagnóstico e Auditoria de Cashback</span>
-            <span className="text-[11px] font-normal text-muted-foreground">{auditData.total_entries ?? 0} movimentações · {auditData.total_clients ?? 0} clientes</span>
-          </summary>
-          <pre id="cashback-audit-raw-json" className="p-3 bg-muted/30 rounded-xl overflow-x-auto text-[11px] font-mono max-h-96">
-            {JSON.stringify(auditData, null, 2)}
-          </pre>
-        </details>
-      )}
+      <details id="cashback-audit-report-box" className="p-4 rounded-2xl bg-card border border-border/70 text-xs shadow-sm mb-6" open>
+        <summary className="cursor-pointer font-bold text-sm text-foreground mb-2 flex items-center justify-between">
+          <span>Diagnóstico e Auditoria de Cashback</span>
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] font-normal text-muted-foreground">
+              {auditData ? `${auditData.total_entries ?? 0} movimentações · ${auditData.total_clients ?? 0} clientes` : "Aguardando..."}
+            </span>
+            <button
+              id="reload-cashback-audit-btn"
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setAuditData(null);
+                fetchCashbackAudit().then(setAuditData).catch((err: any) => setAuditData({ error: err.message }));
+              }}
+              className="px-2 py-0.5 rounded bg-muted text-[10px] font-bold hover:bg-muted/80"
+            >
+              Recarregar
+            </button>
+          </div>
+        </summary>
+        <pre id="cashback-audit-raw-json" className="p-3 bg-muted/30 rounded-xl overflow-x-auto text-[11px] font-mono max-h-96">
+          {auditData ? JSON.stringify(auditData, null, 2) : "Carregando auditoria..."}
+        </pre>
+      </details>
 
       <div className="space-y-4">
         {isLoading ? (

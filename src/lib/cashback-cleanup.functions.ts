@@ -154,7 +154,6 @@ export const cleanPreOctober2025Cashbacks = createServerFn({ method: "POST" })
   });
 
 export const getCashbackAudit = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
   .handler(async () => {
     const { supabaseAdmin: admin } = await import("@/integrations/supabase/client.server");
 
