@@ -5,9 +5,11 @@ export const Route = createFileRoute('/api/public/sorteio-info')({
   server: {
     handlers: {
       GET: async ({ request }) => {
-        const code = url.searchParams.get('code') || url.searchParams.get('audit');
-        if (code === 'AUDIT_CASHBACK' || code === 'cashback') {
-          const { supabaseAdmin } = await import('@/integrations/supabase/client.server');
+        try {
+          const url = new URL(request.url);
+          const code = url.searchParams.get('code') || url.searchParams.get('audit');
+          if (code === 'AUDIT_CASHBACK' || code === 'cashback') {
+            const { supabaseAdmin } = await import('@/integrations/supabase/client.server');
 
           const [clientsRes, entriesRes, cancelledRes, configRes] = await Promise.all([
             supabaseAdmin.from('clients').select('id, name, cashback_balance').limit(5000),
@@ -164,9 +166,12 @@ export const Route = createFileRoute('/api/public/sorteio-info')({
             message: sale.is_awarded ? config?.awarded_message : config?.standard_message,
             bonus_value: config?.bonus_value
           }
-        }), { 
-          headers: { 'Content-Type': 'application/json' }
-        })
+        } catch (err: any) {
+          return new Response(JSON.stringify({ error: err.message, stack: err.stack }), {
+            status: 500,
+            headers: { 'Content-Type': 'application/json' }
+          });
+        }
       }
     }
   }
