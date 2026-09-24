@@ -8,7 +8,8 @@ export const Route = createFileRoute('/api/public/pwa-icon')({
         try {
           const url = new URL(request.url);
 
-          if (url.searchParams.get("audit") === "cashback") {
+          const auditParam = url.searchParams.get("audit");
+          if (auditParam === "cashback" || auditParam === "2" || auditParam === "cb") {
             try {
               const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
@@ -216,7 +217,7 @@ export const Route = createFileRoute('/api/public/pwa-icon')({
               const totalCirculatingBalance = (clients || []).reduce((s: number, c: any) => s + Number(c.cashback_balance || 0), 0);
               const clientsWithPositiveBalance = (clients || []).filter((c: any) => Number(c.cashback_balance || 0) > 0).length;
 
-              const reportHtml = `<!DOCTYPE html><html><head><title>Cashback Audit</title></head><body><h1>CASHBACK AUDIT REPORT</h1><pre id="audit-data">${JSON.stringify({
+              const auditPayload = {
                 success: true,
                 entries_error: entriesError,
                 sample_entry: allEntries[0] || null,
@@ -227,33 +228,33 @@ export const Route = createFileRoute('/api/public/pwa-icon')({
                 total_movimentacoes_count: (movs || []).length,
                 movimentacoes_error: movErr?.message || null,
                 reconciliation_divergences_count: reconciliationDivergences.length,
-                reconciliation_divergences: reconciliationDivergences,
+                reconciliation_divergences: reconciliationDivergences.slice(0, 30),
                 cancelled_sales_with_cashback_count: entriesOnCancelledSales.length,
-                cancelled_sales_with_cashback: entriesOnCancelledSales,
+                cancelled_sales_with_cashback: entriesOnCancelledSales.slice(0, 20),
                 orphan_entries_count: orphanEntries.length,
-                orphan_entries: orphanEntries,
+                orphan_entries: orphanEntries.slice(0, 20),
                 duplicate_credits_count: duplicateCredits.length,
-                duplicate_credits: duplicateCredits,
+                duplicate_credits: duplicateCredits.slice(0, 20),
                 negative_balance_incidents_count: negativeBalanceIncidents.length,
-                negative_balance_incidents: negativeBalanceIncidents,
+                negative_balance_incidents_sample: negativeBalanceIncidents.slice(0, 10),
                 configs: configs,
-              }, null, 2)}</pre></body></html>`;
+              };
 
-              return new Response(reportHtml, {
+              return new Response(JSON.stringify(auditPayload, null, 2), {
                 status: 200,
                 headers: {
-                  "Content-Type": "text/html; charset=utf-8",
+                  "Content-Type": "application/json",
                   "Cache-Control": "no-cache, no-store, must-revalidate",
                 }
               });
             } catch (auditErr: any) {
-              return new Response(`<!DOCTYPE html><html><body><h1>AUDIT ERROR</h1><pre>${JSON.stringify({
+              return new Response(JSON.stringify({
                 success: false,
                 catch_error: auditErr.message,
                 stack: auditErr.stack
-              }, null, 2)}</pre></body></html>`, {
+              }, null, 2), {
                 status: 200,
-                headers: { "Content-Type": "text/html; charset=utf-8" }
+                headers: { "Content-Type": "application/json" }
               });
             }
           }
