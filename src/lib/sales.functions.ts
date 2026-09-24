@@ -602,7 +602,8 @@ export const getSaleDetails = createServerFn({ method: "GET" })
         ...rawSale,
         paid_amount: finalPaidAmount,
         status: finalStatus,
-        is_debt: finalIsDebt
+        is_debt: finalIsDebt,
+        client_name: (rawSale as any).clients?.name || null,
       },
       items: itemsResult.data || [],
       payments,
