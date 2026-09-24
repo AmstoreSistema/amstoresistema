@@ -71,6 +71,7 @@ function CashbackPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingConfig, setEditingConfig] = useState<any>(null);
   const [notifyModalOpen, setNotifyModalOpen] = useState(false);
+  const [cleaningPreOct, setCleaningPreOct] = useState(false);
   
   // Form state
   const [categoryId, setCategoryId] = useState("");
