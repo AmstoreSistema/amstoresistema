@@ -16,6 +16,7 @@ import {
   Ruler,
   AlertTriangle,
   Eye,
+  Info,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
@@ -184,13 +185,13 @@ function LabelsPage() {
       const pdf = new jsPDF(
         "p",
         "mm",
-        isA4 ? "a4" : [layout.pageWidthMm, layout.pageHeightMm]
+        [layout.pageWidthMm, layout.pageHeightMm]
       );
 
       for (let pageIdx = 0; pageIdx < layout.pages.length; pageIdx++) {
         if (pageIdx > 0) {
           pdf.addPage(
-            isA4 ? "a4" : [layout.pageWidthMm, layout.pageHeightMm],
+            [layout.pageWidthMm, layout.pageHeightMm],
             "p"
           );
         }
@@ -311,15 +312,22 @@ function LabelsPage() {
     const pdf = new jsPDF(
       "p",
       "mm",
-      isA4 ? "a4" : [layout.pageWidthMm, layout.pageHeightMm]
+      [layout.pageWidthMm, layout.pageHeightMm]
     );
 
     if (isA4) {
       const a4 = settings.a4;
+      const paperLabel =
+        a4.paperType === "letter"
+          ? "Carta / Letter"
+          : a4.paperType === "a4"
+          ? "A4"
+          : "Personalizado";
+
       pdf.setFont("helvetica", "bold");
       pdf.setFontSize(8);
       pdf.text(
-        `FOLHA DE TESTE E CALIBRAÇÃO — ${a4.presetName} (A4)`,
+        `FOLHA DE TESTE E CALIBRAÇÃO — ${a4.presetName} (${paperLabel} ${a4.paperWidth}×${a4.paperHeight}mm)`,
         10,
         7
       );
@@ -331,11 +339,11 @@ function LabelsPage() {
         10.5
       );
 
-      // Top Ruler (0 to 210mm)
+      // Top Ruler (0 to a4.paperWidth mm)
       pdf.setDrawColor(0);
       pdf.setLineWidth(0.2);
-      pdf.line(0, 12, 210, 12);
-      for (let mm = 0; mm <= 210; mm += 10) {
+      pdf.line(0, 12, a4.paperWidth, 12);
+      for (let mm = 0; mm <= a4.paperWidth; mm += 10) {
         const tickH = mm % 50 === 0 ? 3 : mm % 20 === 0 ? 2 : 1;
         pdf.line(mm, 12 - tickH, mm, 12);
         if (mm % 20 === 0) {
@@ -344,9 +352,9 @@ function LabelsPage() {
         }
       }
 
-      // Left Ruler (0 to 297mm)
-      pdf.line(5, 0, 5, 297);
-      for (let mm = 0; mm <= 297; mm += 10) {
+      // Left Ruler (0 to a4.paperHeight mm)
+      pdf.line(5, 0, 5, a4.paperHeight);
+      for (let mm = 0; mm <= a4.paperHeight; mm += 10) {
         const tickW = mm % 50 === 0 ? 3 : mm % 20 === 0 ? 2 : 1;
         pdf.line(5 - tickW, mm, 5, mm);
         if (mm % 20 === 0) {
@@ -407,7 +415,16 @@ function LabelsPage() {
     toast.success("PDF de teste gerado!");
   };
 
-  const handlePrint = (isTest: boolean = false) => {
+  const [printNoticeOpen, setPrintNoticeOpen] = useState(false);
+  const [pendingPrintIsTest, setPendingPrintIsTest] = useState(false);
+
+  const handlePrintRequest = (isTest: boolean = false) => {
+    setPendingPrintIsTest(isTest);
+    setPrintNoticeOpen(true);
+  };
+
+  const executePrint = (isTest: boolean) => {
+    setPrintNoticeOpen(false);
     if (isTest) {
       setTestSheetMode(true);
       setTimeout(() => {
@@ -448,14 +465,14 @@ function LabelsPage() {
             position: absolute !important;
             left: 0 !important;
             top: 0 !important;
-            width: 210mm !important;
+            width: ${settings.a4.paperWidth}mm !important;
             margin: 0 !important;
             padding: 0 !important;
             background: white !important;
           }
           .print-page {
-            width: 210mm !important;
-            height: 297mm !important;
+            width: ${settings.a4.paperWidth}mm !important;
+            height: ${settings.a4.paperHeight}mm !important;
             overflow: hidden !important;
             box-sizing: border-box !important;
             page-break-after: always !important;
@@ -465,7 +482,7 @@ function LabelsPage() {
             page-break-after: avoid !important;
           }
           @page {
-            size: A4 portrait;
+            size: ${settings.a4.paperWidth}mm ${settings.a4.paperHeight}mm;
             margin: 0;
           }
         }
@@ -508,7 +525,7 @@ function LabelsPage() {
         }
       `;
     }
-  }, [isA4, settings.thermal]);
+  }, [isA4, settings.a4.paperWidth, settings.a4.paperHeight, settings.thermal]);
 
   return (
     <div className="space-y-6">
@@ -518,7 +535,7 @@ function LabelsPage() {
           title="Gerador de Etiquetas"
           description={
             isA4
-              ? `${settings.a4.presetName} — ${settings.a4.columns}×${settings.a4.rows} (${labelsPerSheet} etiquetas/folha)`
+              ? `${settings.a4.presetName} — ${settings.a4.columns}×${settings.a4.rows} (${labelsPerSheet} etiquetas/folha) [${settings.a4.paperType === "letter" ? "Carta" : settings.a4.paperType === "a4" ? "A4" : "Personalizado"}]`
               : `Térmica ${settings.thermal.paperWidth}mm — ${settings.thermal.columns === 2 ? "2 colunas" : "1 coluna"} — ${settings.thermal.labelHeight > 0 ? settings.thermal.labelHeight + "mm" : "Contínua"}`
           }
           icon={Tags}
@@ -534,7 +551,7 @@ function LabelsPage() {
                     value="a4"
                     className="text-[10px] font-bold gap-1 px-2.5 h-6"
                   >
-                    <Grid3X3 className="size-3" /> A4
+                    <Grid3X3 className="size-3" /> Folha (A4 / Carta)
                   </TabsTrigger>
                   <TabsTrigger
                     value="thermal"
@@ -571,7 +588,7 @@ function LabelsPage() {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-56">
                   <DropdownMenuItem
-                    onClick={() => handlePrint(true)}
+                    onClick={() => handlePrintRequest(true)}
                     className="font-bold cursor-pointer"
                   >
                     <Printer className="size-4 mr-2 text-blue-600" />
@@ -615,7 +632,7 @@ function LabelsPage() {
                 <FileDown className="size-4 mr-2" /> PDF
               </Button>
 
-              <Button onClick={() => handlePrint(false)} variant="secondary">
+              <Button onClick={() => handlePrintRequest(false)} variant="secondary">
                 <Printer className="size-4 mr-2" /> Imprimir
               </Button>
             </div>
@@ -656,7 +673,7 @@ function LabelsPage() {
               <Button
                 size="sm"
                 className="h-7 text-xs bg-blue-600 text-white hover:bg-blue-700"
-                onClick={() => handlePrint(true)}
+                onClick={() => handlePrintRequest(true)}
               >
                 <Printer className="size-3 mr-1" /> Imprimir Teste
               </Button>
@@ -673,7 +690,7 @@ function LabelsPage() {
         )}
 
         {/* ─── Stats Cards ─── */}
-        <div className="grid grid-cols-3 gap-4 mb-6 mt-4">
+        <div className="grid grid-cols-3 gap-4 mb-4 mt-4">
           <Card>
             <CardContent className="pt-6 text-center">
               <p className="text-[10px] font-black uppercase tracking-wider text-muted-foreground mb-1">
@@ -704,6 +721,37 @@ function LabelsPage() {
               <p className="text-2xl font-bold">{remaining}</p>
             </CardContent>
           </Card>
+        </div>
+
+        {/* ─── Printer Driver Hint Banner ─── */}
+        <div className="bg-primary/5 border border-primary/20 rounded-xl p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs mb-6">
+          <div className="flex items-center gap-2 flex-wrap">
+            <Info className="size-4 text-primary shrink-0" />
+            <span>
+              <strong>Driver de impressão:</strong> Papel a selecionar:{" "}
+              <Badge variant="outline" className="font-bold border-primary/40 text-primary">
+                {isA4
+                  ? settings.a4.paperType === "letter"
+                    ? "Carta / Letter (215,9 × 279,4 mm)"
+                    : settings.a4.paperType === "a4"
+                    ? "A4 (210 × 297 mm)"
+                    : `Personalizado (${settings.a4.paperWidth}×${settings.a4.paperHeight} mm)`
+                  : `Bobina ${settings.thermal.paperWidth}mm`}
+              </Badge>
+              {" • "}
+              Escala: <strong>100% (Tamanho Real)</strong>
+              {" • "}
+              Margens: <strong>Nenhuma</strong>
+            </span>
+          </div>
+          <Button
+            size="sm"
+            variant="ghost"
+            className="h-6 text-[11px] text-muted-foreground hover:text-foreground self-start sm:self-auto shrink-0"
+            onClick={() => handlePrintRequest(testSheetMode)}
+          >
+            Instruções do Driver
+          </Button>
         </div>
       </div>
 
@@ -763,7 +811,7 @@ function LabelsPage() {
                 <A4SheetPreview
                   profile={settings.a4}
                   labels={labels}
-                  containerWidth={210 * 3.7795275591}
+                  containerWidth={settings.a4.paperWidth * 3.7795275591}
                   isPrint
                   isTestSheet={testSheetMode}
                 />
@@ -924,6 +972,91 @@ function LabelsPage() {
         </DialogContent>
       </Dialog>
 
+      {/* ─── Pre-Print Driver Advice Modal ─── */}
+      <Dialog open={printNoticeOpen} onOpenChange={setPrintNoticeOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-base">
+              <Printer className="size-5 text-gold" />
+              Configuração do Driver de Impressão
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4 text-xs">
+            <p className="text-muted-foreground leading-relaxed">
+              Para que as etiquetas saiam perfeitamente alinhadas nos adesivos da folha, configure os seguintes parâmetros na janela de impressão do seu navegador/sistema:
+            </p>
+
+            <div className="bg-muted/50 rounded-xl p-3.5 space-y-3 border border-border/50">
+              <div className="space-y-1">
+                <span className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">
+                  1. Tamanho do Papel a Selecionar no Driver
+                </span>
+                <div className="flex items-center gap-2 pt-0.5">
+                  <Badge className="bg-gold text-black font-bold text-xs hover:bg-gold/90">
+                    {isA4
+                      ? settings.a4.paperType === "letter"
+                        ? "Carta / Letter (215,9 × 279,4 mm / 8,5 × 11 pol)"
+                        : settings.a4.paperType === "a4"
+                        ? "A4 (210 × 297 mm)"
+                        : `Personalizado (${settings.a4.paperWidth} × ${settings.a4.paperHeight} mm)`
+                      : `Bobina ${settings.thermal.paperWidth} mm`}
+                  </Badge>
+                </div>
+                <p className="text-[10px] text-muted-foreground pt-0.5">
+                  {isA4 && settings.a4.paperType === "letter"
+                    ? "Certifique-se de que a impressora está em 'Carta' ou 'Letter', não em 'A4', para não deslocar as margens."
+                    : isA4 && settings.a4.paperType === "a4"
+                    ? "Certifique-se de que a impressora está em 'A4', não em 'Carta'."
+                    : "Configure a largura e altura exatas nas propriedades do driver."}
+                </p>
+              </div>
+
+              <div className="space-y-1">
+                <span className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">
+                  2. Escala de Impressão
+                </span>
+                <p className="font-bold text-foreground">
+                  100% (Tamanho Real / Padrão)
+                </p>
+                <p className="text-[10px] text-muted-foreground">
+                  ⚠️ Nunca selecione "Ajustar à página" ou "Ajustar à área de impressão", pois isso altera os milímetros exatos das etiquetas.
+                </p>
+              </div>
+
+              <div className="space-y-1">
+                <span className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">
+                  3. Margens
+                </span>
+                <p className="font-bold text-foreground">
+                  Nenhuma (Zero / Mínimas)
+                </p>
+                <p className="text-[10px] text-muted-foreground">
+                  O sistema já calculou as margens exatas em milímetros no layout.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter className="flex-col sm:flex-row gap-2 pt-2">
+            <Button
+              variant="outline"
+              onClick={() => setPrintNoticeOpen(false)}
+              className="text-xs"
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={() => executePrint(pendingPrintIsTest)}
+              className="bg-gradient-gold border-none shadow-gold font-bold text-xs"
+            >
+              <Printer className="size-3.5 mr-1.5" />
+              {pendingPrintIsTest ? "Imprimir Folha de Teste" : "Imprimir Etiquetas"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* ─── Settings Panel ─── */}
       <LabelSettingsPanel
         open={settingsOpen}
@@ -939,7 +1072,7 @@ function LabelsPage() {
         saveCustomPreset={saveCustomPreset}
         deleteCustomPreset={deleteCustomPreset}
         resetToDefaults={resetToDefaults}
-        onOpenTestSheet={() => handlePrint(true)}
+        onOpenTestSheet={() => handlePrintRequest(true)}
       />
 
       {/* ─── Dynamic Millimetric Print CSS ─── */}
