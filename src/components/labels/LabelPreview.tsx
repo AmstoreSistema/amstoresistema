@@ -426,7 +426,7 @@ export function A4SheetPreview({
             >
               <span>FOLHA DE TESTE E CALIBRAÇÃO — {profile.presetName}</span>
               <span className="font-mono text-gray-600 font-normal ml-2">
-                OffsetX: {profile.offsetX}mm | OffsetY: {profile.offsetY}mm | Grade: {profile.columns}×{profile.rows} ({profile.labelWidth}×{profile.labelHeight}mm)
+                Papel: {profile.paperType === "letter" ? "Carta (Letter)" : profile.paperType === "a4" ? "A4" : "Personalizado"} ({profile.paperWidth}×{profile.paperHeight}mm) | OffsetX: {profile.offsetX}mm | OffsetY: {profile.offsetY}mm | Grade: {profile.columns}×{profile.rows} ({profile.labelWidth}×{profile.labelHeight}mm)
               </span>
             </div>
           )}

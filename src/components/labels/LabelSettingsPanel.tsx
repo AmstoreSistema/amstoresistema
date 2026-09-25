@@ -51,8 +51,9 @@ import type {
   LabelFieldConfig,
   PrinterProfile,
   ValidationResult,
+  PaperType,
 } from "@/hooks/use-label-settings";
-import { A4_PRESETS, THERMAL_HEIGHT_OPTIONS } from "@/hooks/use-label-settings";
+import { A4_PRESETS, THERMAL_HEIGHT_OPTIONS, PAPER_DIMENSIONS } from "@/hooks/use-label-settings";
 
 // ─── Numeric Input with mm unit ──────────────────────────────────────
 function MmInput({
@@ -239,7 +240,7 @@ export function LabelSettingsPanel({
                 >
                   <TabsList className="w-full grid grid-cols-2 h-9">
                     <TabsTrigger value="a4" className="text-xs font-bold gap-1.5">
-                      <Grid3X3 className="size-3" /> Folha A4
+                      <Grid3X3 className="size-3" /> Folha (A4 / Carta)
                     </TabsTrigger>
                     <TabsTrigger value="thermal" className="text-xs font-bold gap-1.5">
                       <Layers className="size-3" /> Térmica 80mm
@@ -248,7 +249,7 @@ export function LabelSettingsPanel({
                 </Tabs>
               </div>
 
-              {/* ── A4 Settings ── */}
+              {/* ── Sheet Settings (A4 / Letter / Custom) ── */}
               {isA4 && (
                 <div className="space-y-5">
                   {/* Preset selector */}
@@ -268,7 +269,7 @@ export function LabelSettingsPanel({
                           {Object.entries(allPresets).map(([id, p]) => (
                             <SelectItem key={id} value={id}>
                               <div className="flex items-center gap-2">
-                                {p.presetName}
+                                <span>{p.presetName}</span>
                                 {id.startsWith("custom-") && (
                                   <Badge variant="outline" className="text-[8px] h-4">
                                     Meu
@@ -298,12 +299,66 @@ export function LabelSettingsPanel({
                         className="h-6 text-[10px] text-destructive hover:text-destructive"
                         onClick={() => {
                           deleteCustomPreset(a4.presetId);
-                          applyPreset("pimaco-6080");
+                          applyPreset("colacril-cc280");
                           toast.success("Preset excluído");
                         }}
                       >
                         <Trash2 className="size-3 mr-1" /> Excluir Preset
                       </Button>
+                    )}
+                  </div>
+
+                  {/* Preset Notes banner if present */}
+                  {a4.presetNotes && (
+                    <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-2.5 text-[11px] text-amber-700 dark:text-amber-300 flex items-start gap-2">
+                      <span className="font-bold text-xs shrink-0 mt-0.5">ℹ</span>
+                      <p className="leading-snug">{a4.presetNotes}</p>
+                    </div>
+                  )}
+
+                  {/* Paper Size Selector (A4, Carta/Letter, Personalizado) */}
+                  <div className="space-y-2">
+                    <Label className="text-[10px] font-black uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                      <Ruler className="size-3" /> Tamanho do Papel
+                    </Label>
+                    <Select
+                      value={a4.paperType || (a4.paperWidth === 215.9 ? "letter" : "a4")}
+                      onValueChange={(v: PaperType) => {
+                        updateA4({
+                          paperType: v,
+                          presetId: v === "custom" ? "custom" : a4.presetId,
+                          presetName: v === "custom" ? "Personalizado" : a4.presetName,
+                        });
+                      }}
+                    >
+                      <SelectTrigger className="h-8 text-xs font-bold">
+                        <SelectValue placeholder="Selecione o papel..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="letter">Carta / Letter (215,9 × 279,4 mm)</SelectItem>
+                        <SelectItem value="a4">A4 (210 × 297 mm)</SelectItem>
+                        <SelectItem value="custom">Personalizado</SelectItem>
+                      </SelectContent>
+                    </Select>
+
+                    {/* Custom Paper Dimensions */}
+                    {a4.paperType === "custom" && (
+                      <div className="grid grid-cols-2 gap-3 pt-1">
+                        <MmInput
+                          label="Largura da Folha"
+                          value={a4.paperWidth}
+                          onChange={(v) => updateA4({ paperWidth: v, paperType: "custom" })}
+                          min={100}
+                          max={400}
+                        />
+                        <MmInput
+                          label="Altura da Folha"
+                          value={a4.paperHeight}
+                          onChange={(v) => updateA4({ paperHeight: v, paperType: "custom" })}
+                          min={100}
+                          max={600}
+                        />
+                      </div>
                     )}
                   </div>
 
