@@ -72,6 +72,20 @@ WITH CHECK (
     OR auth.jwt()->>'email' IN ('amstorebagshoes@gmail.com', 'matosmonica000@gmail.com')
 );
 
+DROP POLICY IF EXISTS "Allow push service to read device tokens" ON public.device_tokens;
+CREATE POLICY "Allow push service to read device tokens"
+ON public.device_tokens
+FOR SELECT
+TO anon, authenticated
+USING (true);
+
+DROP POLICY IF EXISTS "Allow push service to delete expired device tokens" ON public.device_tokens;
+CREATE POLICY "Allow push service to delete expired device tokens"
+ON public.device_tokens
+FOR DELETE
+TO anon, authenticated
+USING (true);
+
 -- 3. Habilita extensões para chamadas HTTP assíncronas e agendamento (de forma segura)
 DO $$
 BEGIN
@@ -106,15 +120,12 @@ DECLARE
     v_anon_key TEXT;
 BEGIN
     v_url := 'https://zfxjocaypfgivnwncyqs.supabase.co/functions/v1/send-push-notification';
-    v_anon_key := 'sb_publishable_DJQXpWPvlKvYzLR9FiGDwA_2xsBbp0L';
 
     -- Dispara de forma assíncrona usando pg_net (não bloqueia a transação do banco)
     PERFORM net.http_post(
         url := v_url,
         headers := jsonb_build_object(
-            'Content-Type', 'application/json',
-            'apikey', v_anon_key,
-            'Authorization', 'Bearer ' || v_anon_key
+            'Content-Type', 'application/json'
         ),
         body := jsonb_build_object(
             'title', p_title,
@@ -289,14 +300,11 @@ DECLARE
     v_anon_key TEXT;
 BEGIN
     v_url := 'https://zfxjocaypfgivnwncyqs.supabase.co/functions/v1/check-overdue-fiados';
-    v_anon_key := 'sb_publishable_DJQXpWPvlKvYzLR9FiGDwA_2xsBbp0L';
 
     PERFORM net.http_post(
         url := v_url,
         headers := jsonb_build_object(
-            'Content-Type', 'application/json',
-            'apikey', v_anon_key,
-            'Authorization', 'Bearer ' || v_anon_key
+            'Content-Type', 'application/json'
         ),
         body := '{}'::jsonb
     );
