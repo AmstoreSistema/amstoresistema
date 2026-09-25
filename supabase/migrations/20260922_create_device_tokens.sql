@@ -17,6 +17,32 @@ CREATE INDEX IF NOT EXISTS idx_device_tokens_token ON public.device_tokens(token
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.device_tokens TO authenticated;
 GRANT ALL ON public.device_tokens TO service_role;
 
+-- Helper function to ensure has_role exists safely
+CREATE OR REPLACE FUNCTION public.has_role(_user_id UUID, _role TEXT)
+RETURNS BOOLEAN
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+    IF _role = 'admin' AND (
+        auth.jwt()->>'email' IN ('amstorebagshoes@gmail.com', 'matosmonica000@gmail.com')
+        OR auth.jwt()->'app_metadata'->>'role' = 'admin'
+        OR auth.jwt()->'user_metadata'->>'role' = 'admin'
+    ) THEN
+        RETURN TRUE;
+    END IF;
+
+    BEGIN
+        RETURN EXISTS (
+            SELECT 1 FROM public.user_roles 
+            WHERE user_id = _user_id AND role::text = _role
+        );
+    EXCEPTION WHEN OTHERS THEN
+        RETURN FALSE;
+    END;
+END;
+$$;
+
 -- Row Level Security
 ALTER TABLE public.device_tokens ENABLE ROW LEVEL SECURITY;
 
