@@ -186,6 +186,16 @@ Deno.serve(async (req) => {
     let failedCount = 0;
     const tokensToDelete: string[] = [];
 
+    // Garante que todos os valores no mapa 'data' sejam strings (exigência estrita da API FCM v1)
+    const sanitizedData: Record<string, string> = {};
+    if (payload.data && typeof payload.data === "object") {
+      for (const [k, v] of Object.entries(payload.data)) {
+        if (v !== undefined && v !== null) {
+          sanitizedData[k] = typeof v === "string" ? v : String(v);
+        }
+      }
+    }
+
     // Envia para cada token registrado
     const sendPromises = devices.map(async (device) => {
       const messageBody = {
@@ -195,7 +205,7 @@ Deno.serve(async (req) => {
             title: payload.title,
             body: payload.body,
           },
-          data: payload.data || {},
+          data: sanitizedData,
           android: {
             priority: "high",
             notification: {

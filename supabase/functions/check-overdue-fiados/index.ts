@@ -15,7 +15,13 @@ Deno.serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const today = new Date().toISOString().split("T")[0];
+    // Data no fuso horário padronizado do sistema: Brasília (America/Sao_Paulo)
+    const today = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "America/Sao_Paulo",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(new Date());
 
     // Busca parcelas de fiado vencidas com status pendente
     const { data: overdueList, error } = await supabase
@@ -30,7 +36,7 @@ Deno.serve(async (req) => {
 
     const count = overdueList?.length || 0;
     if (count === 0) {
-      console.log("[check-overdue-fiados] Nenhum fiado vencido hoje.");
+      console.log(`[check-overdue-fiados] Nenhum fiado vencido hoje (${today}).`);
       return new Response(
         JSON.stringify({ success: true, count: 0, message: "Nenhum fiado vencido hoje." }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -38,7 +44,7 @@ Deno.serve(async (req) => {
     }
 
     // Calcula valor total pendente
-    const totalPending = (overdueList || []).reduce((acc, curr) => {
+    const totalPending = (overdueList || []).reduce((acc: number, curr: any) => {
       const remaining = Number(curr.amount || 0) - Number(curr.paid_amount || 0);
       return acc + (remaining > 0 ? remaining : 0);
     }, 0);
@@ -50,8 +56,8 @@ Deno.serve(async (req) => {
 
     const title = "⚠️ Fiados Vencidos";
     const body = `${count} ${
-      count === 1 ? "parcela de fiado vencida" : "parcelas de fiado vencidas"
-    } com valor pendente de ${formattedTotal}. Toque para gerenciar.`;
+      count === 1 ? "fiado vencido hoje" : "fiados vencidos hoje"
+    }, totalizando ${formattedTotal}. Toque para gerenciar.`;
 
     // Dispara a Edge Function genérica de push
     const pushEndpoint = `${supabaseUrl}/functions/v1/send-push-notification`;

@@ -255,8 +255,12 @@ EXCEPTION WHEN OTHERS THEN
 END;
 $$;
 
--- 7. Trigger: Estoque Baixo (tabela stock_products)
-CREATE OR REPLACE FUNCTION public.trg_fn_notify_low_stock()
+-- 7. Triggers: Estoque Baixo (tabelas products e materials)
+-- Dispara apenas quando current_stock transiciona para menor que min_stock
+-- (e não estivesse já abaixo do mínimo antes, para não notificar repetidamente)
+
+-- 7.1 Trigger para Produtos Acabados (products)
+CREATE OR REPLACE FUNCTION public.trg_fn_notify_product_low_stock()
 RETURNS TRIGGER
 LANGUAGE plpgsql
 SECURITY DEFINER
@@ -264,33 +268,31 @@ AS $$
 DECLARE
     v_title TEXT := 'Estoque baixo';
     v_body TEXT;
-    v_qtd INT;
+    v_current NUMERIC;
+    v_min NUMERIC;
+    v_old_current NUMERIC;
 BEGIN
-    v_qtd := COALESCE(NEW.quantidade_disponivel, 0);
+    v_current := COALESCE(NEW.current_stock, 0);
+    v_min := COALESCE(NEW.min_stock, 0);
+    v_old_current := COALESCE(OLD.current_stock, v_min);
 
-    IF v_qtd < 2 AND (OLD.quantidade_disponivel >= 2 OR OLD.quantidade_disponivel IS NULL) THEN
-        v_body := 'O produto ' || NEW.produto_nome;
-        
-        IF NEW.categoria IS NOT NULL AND NEW.categoria <> '' THEN
-            v_body := v_body || ' (' || NEW.categoria || ')';
-        END IF;
-
-        IF v_qtd <= 0 THEN
-            v_body := v_body || ' zerou no estoque!';
-        ELSIF v_qtd = 1 THEN
-            v_body := v_body || ' está com apenas 1 unidade disponível!';
+    -- Dispara apenas se o novo estoque estiver abaixo do mínimo E o anterior estava no mínimo ou acima
+    IF v_current < v_min AND v_old_current >= v_min THEN
+        IF v_current <= 0 THEN
+            v_body := 'O produto "' || COALESCE(NEW.name, 'Sem nome') || '" ZEROU no estoque (mínimo: ' || v_min || ').';
         ELSE
-            v_body := v_body || ' atingiu estoque crítico (' || v_qtd || ' restantes).';
+            v_body := 'O produto "' || COALESCE(NEW.name, 'Sem nome') || '" está com estoque baixo: ' || v_current || ' restante(s) (mínimo: ' || v_min || ').';
         END IF;
 
         PERFORM public.notify_push_notification(
             v_title,
             v_body,
             jsonb_build_object(
-                'type', 'low_stock',
-                'stock_id', NEW.id,
-                'produto_id', NEW.produto_id,
-                'quantidade', v_qtd,
+                'type', 'low_stock_product',
+                'product_id', NEW.id::text,
+                'name', COALESCE(NEW.name, ''),
+                'current_stock', v_current::text,
+                'min_stock', v_min::text,
                 'url', '/stock'
             )
         );
@@ -298,13 +300,73 @@ BEGIN
 
     RETURN NEW;
 EXCEPTION WHEN OTHERS THEN
-    RAISE WARNING '[trg_fn_notify_low_stock] Erro ao disparar notificação de estoque: %', SQLERRM;
+    RAISE WARNING '[trg_fn_notify_product_low_stock] Erro ao disparar notificação de estoque: %', SQLERRM;
     RETURN NEW;
 END;
 $$;
 
-DROP TRIGGER IF EXISTS trg_notify_low_stock ON public.stock_products;
-CREATE TRIGGER trg_notify_low_stock
-AFTER UPDATE OF quantidade_disponivel ON public.stock_products
+DROP TRIGGER IF EXISTS trg_notify_product_low_stock ON public.products;
+CREATE TRIGGER trg_notify_product_low_stock
+AFTER UPDATE OF current_stock ON public.products
 FOR EACH ROW
-EXECUTE FUNCTION public.trg_fn_notify_low_stock();
+EXECUTE FUNCTION public.trg_fn_notify_product_low_stock();
+
+
+-- 7.2 Trigger para Matérias-Primas / Insumos (materials)
+CREATE OR REPLACE FUNCTION public.trg_fn_notify_material_low_stock()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+    v_title TEXT := 'Estoque baixo';
+    v_body TEXT;
+    v_current NUMERIC;
+    v_min NUMERIC;
+    v_old_current NUMERIC;
+    v_unit TEXT;
+BEGIN
+    v_current := COALESCE(NEW.current_stock, 0);
+    v_min := COALESCE(NEW.min_stock, 0);
+    v_old_current := COALESCE(OLD.current_stock, v_min);
+    v_unit := COALESCE(NEW.unit, 'un');
+
+    -- Dispara apenas se o novo estoque estiver abaixo do mínimo E o anterior estava no mínimo ou acima
+    IF v_current < v_min AND v_old_current >= v_min THEN
+        IF v_current <= 0 THEN
+            v_body := 'O material "' || COALESCE(NEW.name, 'Sem nome') || '" ZEROU no estoque (mínimo: ' || v_min || ' ' || v_unit || ').';
+        ELSE
+            v_body := 'O material "' || COALESCE(NEW.name, 'Sem nome') || '" está com estoque baixo: ' || v_current || ' ' || v_unit || ' restante(s) (mínimo: ' || v_min || ' ' || v_unit || ').';
+        END IF;
+
+        PERFORM public.notify_push_notification(
+            v_title,
+            v_body,
+            jsonb_build_object(
+                'type', 'low_stock_material',
+                'material_id', NEW.id::text,
+                'name', COALESCE(NEW.name, ''),
+                'current_stock', v_current::text,
+                'min_stock', v_min::text,
+                'unit', v_unit,
+                'url', '/materials'
+            )
+        );
+    END IF;
+
+    RETURN NEW;
+EXCEPTION WHEN OTHERS THEN
+    RAISE WARNING '[trg_fn_notify_material_low_stock] Erro ao disparar notificação de estoque: %', SQLERRM;
+    RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_notify_material_low_stock ON public.materials;
+CREATE TRIGGER trg_notify_material_low_stock
+AFTER UPDATE OF current_stock ON public.materials
+FOR EACH ROW
+EXECUTE FUNCTION public.trg_fn_notify_material_low_stock();
+
+-- Remove trigger e função antigos se existiam
+DROP TRIGGER IF EXISTS trg_notify_low_stock ON public.stock_products;
+DROP FUNCTION IF EXISTS public.trg_fn_notify_low_stock();

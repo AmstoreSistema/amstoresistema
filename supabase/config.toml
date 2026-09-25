@@ -1,1 +1,7 @@
 project_id = "ebooolaabwsuwmqhcqkv"
+
+[functions.send-push-notification]
+verify_jwt = false
+
+[functions.check-overdue-fiados]
+verify_jwt = false
