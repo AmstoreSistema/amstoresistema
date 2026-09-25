@@ -11,9 +11,9 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
-    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const supabaseUrl = Deno.env.get("TARGET_SUPABASE_URL") || "https://ebooolaabwsuwmqhcqkv.supabase.co";
+    const supabaseKey = Deno.env.get("TARGET_SUPABASE_KEY") || "sb_publishable_DJQXpWPvlKvYzLR9FiGDwA_2xsBbp0L";
+    const supabase = createClient(supabaseUrl, supabaseKey);
 
     // Data no fuso horário padronizado do sistema: Brasília (America/Sao_Paulo)
     const today = new Intl.DateTimeFormat("en-CA", {
@@ -60,12 +60,11 @@ Deno.serve(async (req) => {
     }, totalizando ${formattedTotal}. Toque para gerenciar.`;
 
     // Dispara a Edge Function genérica de push
-    const pushEndpoint = `${supabaseUrl}/functions/v1/send-push-notification`;
+    const pushEndpoint = Deno.env.get("PUSH_ENDPOINT") || "https://zfxjocaypfgivnwncyqs.supabase.co/functions/v1/send-push-notification";
     const pushRes = await fetch(pushEndpoint, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${supabaseServiceKey}`,
       },
       body: JSON.stringify({
         title,

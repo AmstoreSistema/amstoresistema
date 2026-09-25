@@ -156,10 +156,10 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Inicializa Supabase Client com Service Role para acessar device_tokens com segurança
-    const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
-    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    // Inicializa Supabase Client apontando para o banco de dados principal (ebooolaabwsuwmqhcqkv)
+    const supabaseUrl = Deno.env.get("TARGET_SUPABASE_URL") || "https://ebooolaabwsuwmqhcqkv.supabase.co";
+    const supabaseKey = Deno.env.get("TARGET_SUPABASE_KEY") || "sb_publishable_DJQXpWPvlKvYzLR9FiGDwA_2xsBbp0L";
+    const supabase = createClient(supabaseUrl, supabaseKey);
 
     // Busca todos os tokens cadastrados
     const { data: devices, error: dbError } = await supabase

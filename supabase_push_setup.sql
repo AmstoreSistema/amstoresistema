@@ -105,7 +105,7 @@ DECLARE
     v_url TEXT;
     v_anon_key TEXT;
 BEGIN
-    v_url := 'https://ebooolaabwsuwmqhcqkv.supabase.co/functions/v1/send-push-notification';
+    v_url := 'https://zfxjocaypfgivnwncyqs.supabase.co/functions/v1/send-push-notification';
     v_anon_key := 'sb_publishable_DJQXpWPvlKvYzLR9FiGDwA_2xsBbp0L';
 
     -- Dispara de forma assíncrona usando pg_net (não bloqueia a transação do banco)
@@ -288,7 +288,7 @@ DECLARE
     v_url TEXT;
     v_anon_key TEXT;
 BEGIN
-    v_url := 'https://ebooolaabwsuwmqhcqkv.supabase.co/functions/v1/check-overdue-fiados';
+    v_url := 'https://zfxjocaypfgivnwncyqs.supabase.co/functions/v1/check-overdue-fiados';
     v_anon_key := 'sb_publishable_DJQXpWPvlKvYzLR9FiGDwA_2xsBbp0L';
 
     PERFORM net.http_post(
