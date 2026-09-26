@@ -594,15 +594,27 @@ function StockPage() {
         description="Produtos acabados prontos para venda"
         icon={Warehouse}
         actions={
-          <div className="flex gap-2">
-             <Button variant="outline" className="gap-2">
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+             <Button variant="outline" className="hidden sm:inline-flex gap-2">
                 <History className="size-4" /> Histórico
              </Button>
-             <Button onClick={() => setAddDirectOpen(true)} className="gap-2 bg-success hover:bg-success/90 border-none shadow-lg shadow-success/20 font-bold text-white">
-                <Plus className="size-4" /> Adicionar Produto Direto
+             <Button
+                onClick={() => setAddDirectOpen(true)}
+                title="Adicionar Produto Direto"
+                className="flex-1 sm:flex-none gap-1.5 sm:gap-2 bg-success hover:bg-success/90 border-none shadow-lg shadow-success/20 font-bold text-white px-2.5 sm:px-4 text-xs sm:text-sm h-9 sm:h-10"
+             >
+                <Plus className="size-4 shrink-0" />
+                <span className="hidden sm:inline">Adicionar Produto Direto</span>
+                <span className="sm:hidden truncate">Produto</span>
              </Button>
-             <Button onClick={() => window.location.href = "/production"} className="gap-2 bg-gradient-gold border-none shadow-gold font-bold">
-                <Plus className="size-4" /> Nova Produção
+             <Button
+                onClick={() => window.location.href = "/production"}
+                title="Nova Produção"
+                className="flex-1 sm:flex-none gap-1.5 sm:gap-2 bg-gradient-gold border-none shadow-gold font-bold px-2.5 sm:px-4 text-xs sm:text-sm h-9 sm:h-10"
+             >
+                <Plus className="size-4 shrink-0" />
+                <span className="hidden sm:inline">Nova Produção</span>
+                <span className="sm:hidden truncate">Produção</span>
              </Button>
           </div>
         }
