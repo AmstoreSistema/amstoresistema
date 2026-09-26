@@ -412,10 +412,17 @@ function computeSingleLabelFields(
   // 2. Product Name
   if (content.productName.show) {
     const rawName = label.produto_nome || "Produto";
+    const userFontSize = content.productName.fontSize || 7;
+    // Eleva dinamicamente a fonte do nome do produto para destaque e excelente legibilidade física
+    // Se o valor configurado for o legado anterior (<= 7pt), calcula uma base proporcional generosa (10.5pt a 12pt)
+    const baseTargetFont = userFontSize <= 7
+      ? Math.max(10.5, Math.min(12, heightMm * 0.36))
+      : userFontSize;
+
     const { fittedText, finalFontSizePt } = fitAndTruncateText(
       rawName,
-      content.productName.fontSize || 7,
-      minFont,
+      baseTargetFont,
+      Math.max(minFont, 5.5),
       maxW,
       content.autoShrink,
       content.productName.bold,

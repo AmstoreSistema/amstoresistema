@@ -371,7 +371,7 @@ export function validateThermalDimensions(thermal: ThermalProfile): ValidationRe
 
 // ─── Defaults ─────────────────────────────────────────────────────────
 const DEFAULT_CONTENT: LabelContentSettings = {
-  productName: { show: true, fontSize: 7, bold: true },
+  productName: { show: true, fontSize: 10.5, bold: true },
   reference: { show: true, fontSize: 6, bold: false },
   price: { show: true, fontSize: 9, bold: true },
   barcode: { show: true, fontSize: 8, bold: false },

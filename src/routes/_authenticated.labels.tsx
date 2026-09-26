@@ -1066,19 +1066,19 @@ function LabelsPage() {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4 overflow-y-auto flex-1 pr-1">
+          <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
             {!selectedProduct ? (
-              <div className="space-y-2">
-                <div className="relative">
+              <div className="flex-1 min-h-0 flex flex-col space-y-3 pt-1">
+                <div className="relative shrink-0">
                   <Search className="absolute left-3 top-2.5 size-4 text-muted-foreground" />
                   <Input
                     placeholder="Buscar produto por nome, código ou categoria..."
-                    className="pl-9"
+                    className="pl-9 h-10"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                   />
                 </div>
-                <div className="max-h-[380px] overflow-y-auto space-y-1.5 pt-1">
+                <div className="flex-1 overflow-y-auto space-y-1.5 pr-1 min-h-[220px] max-h-[55vh]">
                   {products
                     .filter((p: any) => {
                       const term = searchTerm.toLowerCase();
@@ -1130,7 +1130,7 @@ function LabelsPage() {
                 </div>
               </div>
             ) : (
-              <div className="space-y-4">
+              <div className="space-y-4 overflow-y-auto flex-1 pr-1 max-h-[75vh]">
                 {/* Produto Selecionado Banner (estilo PDV) */}
                 <div className="p-3.5 rounded-xl bg-muted/40 border border-border/60 flex items-center justify-between gap-3">
                   <div className="min-w-0 flex-1">
@@ -1228,7 +1228,7 @@ function LabelsPage() {
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 max-h-[280px] overflow-y-auto pr-1">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pr-1">
                       {Object.entries(selectedProductStockInfo.numeracoes).map(([size, rawStockQty]: [string, any]) => {
                         const stockQty = Number(rawStockQty) || 0;
                         const currentVal = quantities[size] || 0;

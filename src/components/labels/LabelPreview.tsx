@@ -71,7 +71,7 @@ export function UnifiedLabelCell({
           <span
             style={{
               fontSize: `${computed.productName.fontSizePt * scale * 0.352778}px`,
-              fontWeight: computed.productName.isBold ? 700 : 400,
+              fontWeight: computed.productName.isBold ? 800 : 500,
               fontFamily: computed.productName.fontFamily,
               lineHeight: 1.15,
               maxWidth: "100%",
