@@ -7,10 +7,23 @@ const FIXED_ADMINS = ["amstorebagshoes@gmail.com", "matosmonica000@gmail.com"];
 
 export const getAppSettings = createServerFn({ method: "GET" })
   .handler(async () => {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data, error } = await supabaseAdmin.from("app_settings").select("*");
-    if (error) throw error;
-    return data || [];
+    try {
+      if (process.env['SUPABASE_SERVICE_ROLE_KEY']) {
+        const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+        const { data, error } = await supabaseAdmin.from("app_settings").select("*");
+        if (!error && data) return data;
+      }
+      const { supabase } = await import("@/integrations/supabase/client");
+      const { data, error } = await supabase.from("app_settings").select("*");
+      if (error) {
+        console.warn("[getAppSettings] Falha ao carregar app_settings:", error.message);
+        return [];
+      }
+      return data || [];
+    } catch (err) {
+      console.warn("[getAppSettings] Erro ao recuperar configurações:", err);
+      return [];
+    }
   });
 
 export const updateAppSetting = createServerFn({ method: "POST" })
@@ -198,34 +211,65 @@ export const createNewUser = createServerFn({ method: "POST" })
 export const syncCurrentAdminProfile = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const userId = context.userId;
     const userEmail = (context.claims?.email || (context.claims?.user_metadata as Record<string, any>)?.[ "email" ] || "").toLowerCase();
 
     const isFixedAdmin = FIXED_ADMINS.includes(userEmail);
 
-    if (isFixedAdmin) {
-      // 1. Garante o papel de admin para o usuário conectado
-      await supabaseAdmin
-        .from("user_roles")
-        .upsert({ user_id: userId, role: "admin" }, { onConflict: "user_id,role" });
-    }
-
-    // 2. Busca o perfil gravado no user_profiles (rápido, indexado por chave primária)
-    const { data: profile } = await supabaseAdmin
-      .from("user_profiles")
-      .select("display_name, email, active")
-      .eq("id", userId)
-      .maybeSingle();
-
     const metaName = (context.claims?.user_metadata as Record<string, any>)?.[ "display_name" ] || (context.claims as any)?.["display_name"];
-    const displayName = (profile?.display_name || metaName || "").trim();
+    let displayName = (metaName || "").trim();
 
-    // 3. Se houver nome nos metadados ou no perfil, assegura que ambos estejam preenchidos
-    if (displayName && (!profile || !profile.display_name)) {
-      await supabaseAdmin
-        .from("user_profiles")
-        .upsert({ id: userId, email: userEmail, display_name: displayName, active: true }, { onConflict: "id" });
+    try {
+      if (process.env['SUPABASE_SERVICE_ROLE_KEY']) {
+        const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+        if (isFixedAdmin) {
+          // 1. Garante o papel de admin para o usuário conectado
+          await supabaseAdmin
+            .from("user_roles")
+            .upsert({ user_id: userId, role: "admin" }, { onConflict: "user_id,role" });
+        }
+
+        // 2. Busca o perfil gravado no user_profiles
+        const { data: profile } = await supabaseAdmin
+          .from("user_profiles")
+          .select("display_name, email, active")
+          .eq("id", userId)
+          .maybeSingle();
+
+        if (profile?.display_name) {
+          displayName = profile.display_name.trim();
+        }
+
+        // 3. Se houver nome nos metadados ou no perfil, assegura que ambos estejam preenchidos
+        if (displayName && (!profile || !profile.display_name)) {
+          await supabaseAdmin
+            .from("user_profiles")
+            .upsert({ id: userId, email: userEmail, display_name: displayName, active: true }, { onConflict: "id" });
+        }
+      } else {
+        // Fallback resiliente: caso SUPABASE_SERVICE_ROLE_KEY não esteja configurada no ambiente Lovable,
+        // utiliza o client autenticado do usuário vindo do middleware (context.supabase)
+        console.warn("[syncCurrentAdminProfile] SUPABASE_SERVICE_ROLE_KEY ausente. Usando context.supabase.");
+
+        const { data: profile } = await context.supabase
+          .from("user_profiles")
+          .select("display_name, email, active")
+          .eq("id", userId)
+          .maybeSingle();
+
+        if (profile?.display_name) {
+          displayName = profile.display_name.trim();
+        }
+
+        if (displayName && (!profile || !profile.display_name)) {
+          await context.supabase
+            .from("user_profiles")
+            .upsert({ id: userId, email: userEmail, display_name: displayName, active: true }, { onConflict: "id" });
+        }
+      }
+    } catch (err: any) {
+      console.warn("[syncCurrentAdminProfile] Aviso não fatal durante sincronização de perfil:", err?.message || err);
     }
 
     return {

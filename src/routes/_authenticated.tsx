@@ -94,7 +94,8 @@ function AuthenticatedLayout() {
             const metaName = (user.user_metadata as any)?.display_name as string | undefined;
             setName((metaName || "").trim());
           }
-          if (syncRes?.isAdmin) {
+          const isFixedAdmin = user.email === 'amstorebagshoes@gmail.com' || user.email === 'matosmonica000@gmail.com';
+          if (syncRes?.isAdmin || isFixedAdmin) {
             setRole("Administrador");
           }
         } catch {
