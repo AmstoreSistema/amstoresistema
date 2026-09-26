@@ -41,3 +41,7 @@ android/app/src/main/assets/public/
 *-firebase-adminsdk-*.json
 *service-account*.json
 *serviceAccount*.json
+
+# Scratch and temporary scripts
+scratch/
+

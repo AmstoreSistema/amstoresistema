@@ -30,7 +30,7 @@ export function generateHighResBarcode(
 
     JsBarcode(canvas, value, {
       format: "CODE128",
-      width: Math.max(2, Math.floor(targetW / 120)),
+      width: Math.min(2, Math.max(1, Math.floor(targetW / 200))),
       height: Math.round(targetH * (showText ? 0.72 : 0.95)),
       displayValue: showText,
       fontSize: Math.round(targetH * 0.22),
@@ -196,7 +196,7 @@ export interface ComputeLayoutOptions {
   a4: A4Profile;
   thermal: ThermalProfile;
   labels: any[];
-  isTestSheet?: boolean;
+  isTestSheet?: boolean | undefined;
 }
 
 export function computeCompleteLabelLayout(options: ComputeLayoutOptions): ComputedSheetLayout {
@@ -470,7 +470,8 @@ function computeSingleLabelFields(
   // 4. Barcode / QR Code
   if (content.barcode.show && label.codigo_barras) {
     const barHeightMm = Math.min(Math.max(heightMm * 0.32, 7), 13);
-    const barWidthMm = Math.min(maxW, label.tipo_codigo === "QR" ? barHeightMm : maxW);
+    const maxBarcodeW = maxW * 0.75;
+    const barWidthMm = Math.min(maxBarcodeW, label.tipo_codigo === "QR" ? barHeightMm : maxBarcodeW);
     const barX = align === "center" ? (widthMm - barWidthMm) / 2 : paddingMm;
 
     result.barcode = {

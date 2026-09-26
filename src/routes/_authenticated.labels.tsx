@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useRef } from "react";
+import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import {
   Tags,
@@ -17,10 +17,16 @@ import {
   AlertTriangle,
   Eye,
   Info,
+  Hash,
+  Minus,
+  RotateCcw,
+  Sparkles,
+  Package,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { jsPDF } from "jspdf";
+import { brl } from "@/lib/format";
 
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
@@ -31,6 +37,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
 import {
@@ -70,6 +77,32 @@ function LabelsPage() {
   const { data: products = [] } = useRows<any>("products", {
     order: { column: "name", ascending: true },
   });
+  const { data: stockProducts = [] } = useRows<any>("stock_products");
+
+  const productMap = useMemo(() => new Map<string, any>(products.map((p: any) => [p.id, p])), [products]);
+
+  const stockByProductId = useMemo(() => {
+    const map = new Map<string, any>();
+    for (const s of stockProducts) {
+      if (s.produto_id) {
+        map.set(s.produto_id, s);
+      }
+      if (s.produto_nome) {
+        map.set(`name:${s.produto_nome.trim().toLowerCase()}`, s);
+      }
+    }
+    return map;
+  }, [stockProducts]);
+
+  const enrichedLabels = useMemo(() => {
+    return labels.map((l: any) => {
+      const prod = l.produto_id ? productMap.get(l.produto_id) : null;
+      return {
+        ...l,
+        preco: l.preco ?? prod?.sale_price ?? null,
+      };
+    });
+  }, [labels, productMap]);
 
   const {
     settings,
@@ -87,6 +120,8 @@ function LabelsPage() {
   } = useLabelSettings();
 
   const [addModalOpen, setAddModalOpen] = useState(false);
+  const [confirmCleanOpen, setConfirmCleanOpen] = useState(false);
+  const [cleaningAndAdding, setCleaningAndAdding] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [testSheetMode, setTestSheetMode] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
@@ -94,6 +129,132 @@ function LabelsPage() {
   const [quantities, setQuantities] = useState<Record<string, number>>({});
   const [type, setType] = useState<"CODE128" | "QR">("CODE128");
   const [exporting, setExporting] = useState(false);
+
+  // Helper para identificar numerações do produto no estoque detalhado (stock_products)
+  const getProductStockData = useCallback(
+    (prod: any) => {
+      if (!prod) {
+        return { hasSizes: false, numeracoes: {} as Record<string, number>, stockQty: 0, stockRecord: null };
+      }
+      const stock =
+        stockByProductId.get(prod.id) ||
+        stockByProductId.get(`name:${prod.name?.trim().toLowerCase()}`) ||
+        null;
+
+      let nums: Record<string, any> = {};
+      if (stock?.numeracoes) {
+        if (typeof stock.numeracoes === "object") {
+          nums = { ...stock.numeracoes };
+        } else if (typeof stock.numeracoes === "string") {
+          try {
+            nums = JSON.parse(stock.numeracoes);
+          } catch {}
+        }
+      }
+
+      const isSandalia = prod.category === "Sandálias";
+      const hasRegisteredSizes = Object.keys(nums).length > 0;
+
+      // Grade padrão caso o produto seja calçado mas ainda não tenha tamanhos cadastrados
+      if (isSandalia && !hasRegisteredSizes) {
+        nums = { "33": 0, "34": 0, "35": 0, "36": 0, "37": 0, "38": 0, "39": 0, "40": 0 };
+      }
+
+      const hasSizes = isSandalia || hasRegisteredSizes;
+      const stockQty = Number(prod.current_stock ?? stock?.quantidade_disponivel ?? 0);
+
+      return { hasSizes, numeracoes: nums as Record<string, number>, stockQty, stockRecord: stock };
+    },
+    [stockByProductId]
+  );
+
+  const handleSelectProduct = (prod: any) => {
+    setSelectedProduct(prod);
+    const { hasSizes, numeracoes: nums, stockQty } = getProductStockData(prod);
+
+    if (hasSizes) {
+      // Pré-preenche sugestivamente com a quantidade disponível em estoque de cada numeração
+      const initial: Record<string, number> = {};
+      Object.entries(nums).forEach(([size, qty]) => {
+        const n = Number(qty) || 0;
+        initial[size] = n > 0 ? n : 0;
+      });
+      setQuantities(initial);
+    } else {
+      // Para produtos sem numeração (bolsas, carteiras), pré-preenche com o estoque disponível ou 1
+      setQuantities({ total: stockQty > 0 ? stockQty : 1 });
+    }
+  };
+
+  const handleFillStockQuantities = () => {
+    if (!selectedProduct) return;
+    const { numeracoes: nums } = getProductStockData(selectedProduct);
+    const updated: Record<string, number> = {};
+    Object.entries(nums).forEach(([size, qty]) => {
+      const n = Number(qty) || 0;
+      updated[size] = n > 0 ? n : 0;
+    });
+    setQuantities(updated);
+  };
+
+  const handleSetOneOfEach = () => {
+    if (!selectedProduct) return;
+    const { numeracoes: nums } = getProductStockData(selectedProduct);
+    const updated: Record<string, number> = {};
+    Object.keys(nums).forEach((size) => {
+      updated[size] = 1;
+    });
+    setQuantities(updated);
+  };
+
+  const handleZeroAll = () => {
+    if (!selectedProduct) return;
+    const { numeracoes: nums } = getProductStockData(selectedProduct);
+    const updated: Record<string, number> = {};
+    Object.keys(nums).forEach((size) => {
+      updated[size] = 0;
+    });
+    setQuantities(updated);
+  };
+
+  const totalLabelsToGenerate = useMemo(() => {
+    if (!selectedProduct) return 0;
+    const { hasSizes } = getProductStockData(selectedProduct);
+    if (hasSizes) {
+      return Object.entries(quantities)
+        .filter(([k]) => k !== "total")
+        .reduce((acc, [_, qty]) => acc + (Math.max(0, Number(qty)) || 0), 0);
+    }
+    return Math.max(0, Number(quantities["total"]) || 0);
+  }, [selectedProduct, quantities, getProductStockData]);
+
+  const handleOpenAddModal = () => {
+    if (labels.length > 0) {
+      setConfirmCleanOpen(true);
+    } else {
+      setAddModalOpen(true);
+    }
+  };
+
+  const handleCleanAndAdd = async () => {
+    setCleaningAndAdding(true);
+    try {
+      await clearLabels();
+      qc.invalidateQueries({ queryKey: ["etiqueta_gerada"] });
+      toast.success("Grade anterior limpa");
+      setConfirmCleanOpen(false);
+      setAddModalOpen(true);
+    } catch (err: any) {
+      toast.error("Erro ao limpar etiquetas: " + (err.message || err));
+    } finally {
+      setCleaningAndAdding(false);
+    }
+  };
+
+  const handleKeepAndAdd = () => {
+    setConfirmCleanOpen(false);
+    setAddModalOpen(true);
+  };
 
   const previewContainerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(800);
@@ -114,31 +275,36 @@ function LabelsPage() {
   const handleGenerate = async () => {
     if (!selectedProduct) return;
 
-    const isSandalia = selectedProduct?.category === "Sandálias";
+    const { hasSizes } = getProductStockData(selectedProduct);
+    const baseSku = (selectedProduct.sku || `PROD-${selectedProduct.id.slice(0, 8)}`).trim();
 
     let prodItems: any[];
-    if (isSandalia) {
+    if (hasSizes) {
       prodItems = Object.entries(quantities)
-        .filter(([_, qty]) => qty > 0)
-        .map(([size, qty]) => ({
-          id: selectedProduct.id,
-          name: selectedProduct.name,
-          sku: selectedProduct.sku,
-          numeracao: size,
-          quantity: qty,
-          tipo_codigo: type,
-        }));
+        .filter(([k, qty]) => k !== "total" && Number(qty) > 0)
+        .map(([size, qty]) => {
+          // CÓDIGO DE BARRAS ÚNICO POR TAMANHO: {sku}-{numeracao} (ex: "PROD1234-36")
+          const sizeSku = baseSku.endsWith(`-${size}`) ? baseSku : `${baseSku}-${size}`;
+          return {
+            id: selectedProduct.id,
+            name: selectedProduct.name,
+            sku: sizeSku,
+            numeracao: size,
+            quantity: Number(qty),
+            tipo_codigo: type,
+          };
+        });
     } else {
-      const totalQty = quantities["total"] || 0;
+      const totalQty = Number(quantities["total"]) || 0;
       if (totalQty <= 0) {
-        toast.error("Informe a quantidade");
+        toast.error("Informe a quantidade de etiquetas");
         return;
       }
       prodItems = [
         {
           id: selectedProduct.id,
           name: selectedProduct.name,
-          sku: selectedProduct.sku,
+          sku: baseSku,
           numeracao: undefined,
           quantity: totalQty,
           tipo_codigo: type,
@@ -147,7 +313,7 @@ function LabelsPage() {
     }
 
     if (prodItems.length === 0) {
-      toast.error("Selecione quantidades");
+      toast.error("Informe a quantidade para pelo menos uma numeração");
       return;
     }
 
@@ -178,7 +344,7 @@ function LabelsPage() {
         profileType: settings.activeProfile,
         a4: settings.a4,
         thermal: settings.thermal,
-        labels,
+        labels: enrichedLabels,
         isTestSheet: false,
       });
 
@@ -197,6 +363,7 @@ function LabelsPage() {
         }
 
         const page = layout.pages[pageIdx];
+        if (!page) continue;
 
         for (const labelLayout of page.labels) {
           if (!labelLayout.label || labelLayout.label.id?.startsWith("empty-")) {
@@ -527,6 +694,10 @@ function LabelsPage() {
     }
   }, [isA4, settings.a4.paperWidth, settings.a4.paperHeight, settings.thermal]);
 
+  const selectedProductStockInfo = useMemo(() => {
+    return getProductStockData(selectedProduct);
+  }, [selectedProduct, getProductStockData]);
+
   return (
     <div className="space-y-6">
       {/* ─── Header (hidden on print) ─── */}
@@ -563,7 +734,7 @@ function LabelsPage() {
               </Tabs>
 
               <Button
-                onClick={() => setAddModalOpen(true)}
+                onClick={handleOpenAddModal}
                 className="bg-gradient-gold border-none shadow-gold font-bold"
               >
                 <Plus className="size-4 mr-2" /> Adicionar
@@ -771,7 +942,7 @@ function LabelsPage() {
             </p>
             <div className="flex gap-2">
               <Button
-                onClick={() => setAddModalOpen(true)}
+                onClick={handleOpenAddModal}
                 className="bg-gradient-gold border-none shadow-gold font-bold"
               >
                 <Plus className="size-4 mr-2" /> Adicionar Etiquetas
@@ -791,14 +962,14 @@ function LabelsPage() {
               {isA4 ? (
                 <A4SheetPreview
                   profile={settings.a4}
-                  labels={labels}
+                  labels={enrichedLabels}
                   containerWidth={containerWidth}
                   isTestSheet={testSheetMode}
                 />
               ) : (
                 <ThermalStripPreview
                   profile={settings.thermal}
-                  labels={labels}
+                  labels={enrichedLabels}
                   containerWidth={containerWidth}
                   isTestSheet={testSheetMode}
                 />
@@ -810,7 +981,7 @@ function LabelsPage() {
               {isA4 ? (
                 <A4SheetPreview
                   profile={settings.a4}
-                  labels={labels}
+                  labels={enrichedLabels}
                   containerWidth={settings.a4.paperWidth * 3.7795275591}
                   isPrint
                   isTestSheet={testSheetMode}
@@ -818,7 +989,7 @@ function LabelsPage() {
               ) : (
                 <ThermalStripPreview
                   profile={settings.thermal}
-                  labels={labels}
+                  labels={enrichedLabels}
                   containerWidth={settings.thermal.paperWidth * 3.7795275591}
                   isPrint
                   isTestSheet={testSheetMode}
@@ -828,6 +999,50 @@ function LabelsPage() {
           </>
         )}
       </div>
+
+      {/* ─── Confirm Clean Existing Labels Dialog ─── */}
+      <Dialog open={confirmCleanOpen} onOpenChange={setConfirmCleanOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-base">
+              <Tags className="size-5 text-gold" />
+              Etiquetas Existentes na Grade
+            </DialogTitle>
+            <DialogDescription className="pt-2 text-xs sm:text-sm text-muted-foreground leading-relaxed">
+              Você já possui <strong className="text-foreground">{labels.length}</strong> etiqueta{labels.length > 1 ? "s" : ""} na grade atual.
+              <br /><br />
+              Deseja limpar as etiquetas atuais antes de adicionar novas, ou adicionar junto às existentes?
+            </DialogDescription>
+          </DialogHeader>
+
+          <DialogFooter className="flex-col sm:flex-row gap-2 pt-3">
+            <Button
+              variant="outline"
+              onClick={() => setConfirmCleanOpen(false)}
+              disabled={cleaningAndAdding}
+              className="w-full sm:w-auto"
+            >
+              Cancelar
+            </Button>
+            <Button
+              variant="secondary"
+              onClick={handleKeepAndAdd}
+              disabled={cleaningAndAdding}
+              className="w-full sm:w-auto"
+            >
+              Adicionar às Existentes
+            </Button>
+            <Button
+              onClick={handleCleanAndAdd}
+              disabled={cleaningAndAdding}
+              className="w-full sm:w-auto bg-destructive text-destructive-foreground hover:bg-destructive/90 font-bold"
+            >
+              <Trash2 className="size-4 mr-1.5" />
+              Limpar e Adicionar Novas
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* ─── Add Labels Modal ─── */}
       <Dialog
@@ -840,72 +1055,133 @@ function LabelsPage() {
           }
         }}
       >
-        <DialogContent className="max-w-xl">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
           <DialogHeader>
-            <DialogTitle>Adicionar Etiquetas</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              <Package className="size-5 text-gold" />
+              Adicionar Etiquetas de Produto
+            </DialogTitle>
+            <DialogDescription className="text-xs">
+              Selecione o produto e defina as quantidades de etiquetas por tamanho ou total.
+            </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
+
+          <div className="space-y-4 overflow-y-auto flex-1 pr-1">
             {!selectedProduct ? (
               <div className="space-y-2">
                 <div className="relative">
                   <Search className="absolute left-3 top-2.5 size-4 text-muted-foreground" />
                   <Input
-                    placeholder="Buscar produto..."
+                    placeholder="Buscar produto por nome, código ou categoria..."
                     className="pl-9"
+                    value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                   />
                 </div>
-                <div className="max-h-60 overflow-y-auto mt-2">
+                <div className="max-h-[380px] overflow-y-auto space-y-1.5 pt-1">
                   {products
-                    .filter((p: any) =>
-                      p.name
-                        .toLowerCase()
-                        .includes(searchTerm.toLowerCase())
-                    )
-                    .map((p: any) => (
-                      <div
-                        key={p.id}
-                        className="p-2 border rounded cursor-pointer hover:bg-slate-100 mb-1 flex justify-between"
-                        onClick={() => setSelectedProduct(p)}
-                      >
-                        <span>{p.name}</span>
-                        <Badge variant="outline" className="text-[10px]">
-                          {p.category}
-                        </Badge>
-                      </div>
-                    ))}
+                    .filter((p: any) => {
+                      const term = searchTerm.toLowerCase();
+                      const matchName = (p.name || "").toLowerCase().includes(term);
+                      const matchSku = (p.sku || "").toLowerCase().includes(term);
+                      const matchCat = (p.category || "").toLowerCase().includes(term);
+                      return matchName || matchSku || matchCat;
+                    })
+                    .map((p: any) => {
+                      const stockInfo = getProductStockData(p);
+                      return (
+                        <div
+                          key={p.id}
+                          className="p-3 border rounded-xl cursor-pointer hover:border-primary/60 hover:bg-primary/5 transition-all flex items-center justify-between gap-3 bg-card"
+                          onClick={() => handleSelectProduct(p)}
+                        >
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2">
+                              <span className="font-bold text-sm truncate">{p.name}</span>
+                              <Badge variant="outline" className="text-[10px] shrink-0 font-medium">
+                                {p.category || "Geral"}
+                              </Badge>
+                            </div>
+                            <div className="flex items-center gap-3 text-xs text-muted-foreground mt-0.5">
+                              <span className="font-mono text-[11px] opacity-80">
+                                {p.sku ? `SKU: ${p.sku}` : "Sem SKU"}
+                              </span>
+                              {p.sale_price ? (
+                                <span className="font-bold text-primary">{brl(p.sale_price)}</span>
+                              ) : null}
+                            </div>
+                          </div>
+
+                          <div className="text-right shrink-0">
+                            {stockInfo.hasSizes ? (
+                              <Badge variant="secondary" className="text-[10px] font-bold gap-1 bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20">
+                                <Hash className="size-3" />
+                                {Object.keys(stockInfo.numeracoes).length} tamanhos
+                              </Badge>
+                            ) : (
+                              <Badge variant="outline" className="text-[10px] font-semibold">
+                                {stockInfo.stockQty} em estoque
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
                 </div>
               </div>
             ) : (
               <div className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <p className="font-bold">{selectedProduct.name}</p>
+                {/* Produto Selecionado Banner (estilo PDV) */}
+                <div className="p-3.5 rounded-xl bg-muted/40 border border-border/60 flex items-center justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-black text-sm text-foreground truncate">
+                        {selectedProduct.name}
+                      </span>
+                      <Badge variant="outline" className="text-[10px] font-bold">
+                        {selectedProduct.category || "Geral"}
+                      </Badge>
+                      {selectedProduct.sale_price ? (
+                        <Badge variant="outline" className="text-xs font-bold text-primary border-primary/20">
+                          {brl(selectedProduct.sale_price)}
+                        </Badge>
+                      ) : null}
+                    </div>
+                    <p className="text-xs text-muted-foreground font-mono mt-0.5">
+                      SKU Base: <strong>{selectedProduct.sku || `PROD-${selectedProduct.id.slice(0, 8)}`}</strong>
+                    </p>
+                  </div>
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => setSelectedProduct(null)}
+                    className="h-8 text-xs font-bold text-muted-foreground hover:text-foreground shrink-0"
+                    onClick={() => {
+                      setSelectedProduct(null);
+                      setQuantities({});
+                    }}
                   >
-                    <X className="size-4 mr-1" /> Trocar
+                    <X className="size-3.5 mr-1" /> Trocar
                   </Button>
                 </div>
 
-                <div className="space-y-2">
-                  <Label>Tipo de Código</Label>
+                {/* Formato de Código */}
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-bold">Tipo de Código</Label>
                   <div className="flex gap-2">
                     <Button
                       type="button"
                       variant={type === "CODE128" ? "default" : "outline"}
                       onClick={() => setType("CODE128")}
-                      className="flex-1"
+                      className="flex-1 h-9 text-xs font-bold"
                     >
                       <Barcode className="mr-2 size-4" />
-                      Barras
+                      Código de Barras (CODE128)
                     </Button>
                     <Button
                       type="button"
                       variant={type === "QR" ? "default" : "outline"}
                       onClick={() => setType("QR")}
-                      className="flex-1"
+                      className="flex-1 h-9 text-xs font-bold"
                     >
                       <QrCode className="mr-2 size-4" />
                       QR Code
@@ -913,60 +1189,193 @@ function LabelsPage() {
                   </div>
                 </div>
 
-                {selectedProduct.category === "Sandálias" ? (
-                  <div className="space-y-2">
-                    <Label>Quantidades por Tamanho</Label>
-                    <div className="grid grid-cols-4 gap-2">
-                      {[
-                        "33",
-                        "34",
-                        "35",
-                        "36",
-                        "37",
-                        "38",
-                        "39",
-                        "40",
-                      ].map((size) => (
-                        <div key={size}>
-                          <Label className="text-[10px]">{size}</Label>
-                          <Input
-                            type="number"
-                            min={0}
-                            value={quantities[size] || ""}
-                            onChange={(e) =>
-                              setQuantities({
-                                ...quantities,
-                                [size]: parseInt(e.target.value) || 0,
-                              })
-                            }
-                          />
-                        </div>
-                      ))}
+                {/* Fluxo com Grade de Numerações (Sandálias / Produtos com Tamanho) */}
+                {selectedProductStockInfo.hasSizes ? (
+                  <div className="space-y-3">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-1 border-b border-border/40">
+                      <span className="text-[11px] uppercase font-bold text-muted-foreground tracking-wider flex items-center gap-1.5">
+                        <Hash className="size-3.5 text-primary" /> Numerações & Quantidades por Tamanho:
+                      </span>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 text-[10px] px-2 font-bold text-muted-foreground hover:text-foreground gap-1"
+                          onClick={handleFillStockQuantities}
+                        >
+                          <RotateCcw className="size-3" />
+                          Estoque Atual
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 text-[10px] px-2 font-bold text-muted-foreground hover:text-foreground"
+                          onClick={handleSetOneOfEach}
+                        >
+                          1 de Cada
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 text-[10px] px-2 font-bold text-destructive hover:bg-destructive/10"
+                          onClick={handleZeroAll}
+                        >
+                          Zerar
+                        </Button>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 max-h-[280px] overflow-y-auto pr-1">
+                      {Object.entries(selectedProductStockInfo.numeracoes).map(([size, rawStockQty]: [string, any]) => {
+                        const stockQty = Number(rawStockQty) || 0;
+                        const currentVal = quantities[size] || 0;
+                        const isAvailable = stockQty > 0;
+                        const baseSku = (selectedProduct.sku || `PROD-${selectedProduct.id.slice(0, 8)}`).trim();
+                        const barcodePreview = baseSku.endsWith(`-${size}`) ? baseSku : `${baseSku}-${size}`;
+
+                        return (
+                          <div
+                            key={size}
+                            className={`p-2.5 rounded-xl border transition-all flex flex-col justify-between gap-2 ${
+                              currentVal > 0
+                                ? "border-primary/60 bg-primary/5 shadow-sm"
+                                : "border-border/60 bg-card hover:border-border"
+                            }`}
+                          >
+                            <div className="flex items-center justify-between">
+                              <span className="text-sm font-black tracking-tight">Tam {size}</span>
+                              <Badge
+                                variant={isAvailable ? "secondary" : "outline"}
+                                className={`text-[9px] px-1.5 py-0 h-4 ${
+                                  isAvailable
+                                    ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 font-bold"
+                                    : "text-muted-foreground opacity-60 font-medium"
+                                }`}
+                              >
+                                {stockQty > 0 ? `${stockQty} un` : "0 un"}
+                              </Badge>
+                            </div>
+
+                            <div className="flex items-center gap-1">
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="icon"
+                                className="size-7 rounded-lg shrink-0 text-muted-foreground hover:text-foreground"
+                                onClick={() =>
+                                  setQuantities((prev) => ({
+                                    ...prev,
+                                    [size]: Math.max(0, (prev[size] || 0) - 1),
+                                  }))
+                                }
+                                disabled={currentVal <= 0}
+                              >
+                                <Minus className="size-3" />
+                              </Button>
+                              <Input
+                                type="number"
+                                min={0}
+                                className="h-7 text-xs text-center font-bold px-1"
+                                value={quantities[size] !== undefined ? quantities[size] : ""}
+                                placeholder="0"
+                                onChange={(e) => {
+                                  const val = parseInt(e.target.value, 10);
+                                  setQuantities((prev) => ({
+                                    ...prev,
+                                    [size]: isNaN(val) ? 0 : Math.max(0, val),
+                                  }));
+                                }}
+                              />
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="icon"
+                                className="size-7 rounded-lg shrink-0 text-muted-foreground hover:text-foreground"
+                                onClick={() =>
+                                  setQuantities((prev) => ({
+                                    ...prev,
+                                    [size]: (prev[size] || 0) + 1,
+                                  }))
+                                }
+                              >
+                                <Plus className="size-3" />
+                              </Button>
+                            </div>
+
+                            <div
+                              className="text-[9px] text-muted-foreground font-mono truncate"
+                              title={`Código de barras único: ${barcodePreview}`}
+                            >
+                              {barcodePreview}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    <div className="bg-muted/30 border border-border/40 rounded-xl p-2.5 flex items-center justify-between text-xs">
+                      <span className="text-[11px] text-muted-foreground flex items-center gap-1.5">
+                        <Sparkles className="size-3.5 text-gold shrink-0" />
+                        Cada tamanho possui seu próprio código de barras exclusivo (<strong>SKU-TAM</strong>).
+                      </span>
+                      <Badge className="bg-gradient-gold border-none shadow-sm text-foreground font-black text-xs px-2.5 py-0.5 shrink-0">
+                        Total: {totalLabelsToGenerate} {totalLabelsToGenerate === 1 ? "etiqueta" : "etiquetas"}
+                      </Badge>
                     </div>
                   </div>
                 ) : (
-                  <div className="space-y-2">
-                    <Label>Quantidade Total</Label>
-                    <Input
-                      type="number"
-                      min={1}
-                      placeholder="Ex: 10"
-                      value={quantities["total"] || ""}
-                      onChange={(e) =>
-                        setQuantities({
-                          ...quantities,
-                          total: parseInt(e.target.value) || 0,
-                        })
-                      }
-                    />
+                  /* Fluxo simples para produtos sem numeração (Bolsas, Carteiras, etc.) */
+                  <div className="space-y-3">
+                    <div className="p-4 bg-muted/30 rounded-xl border border-border/40 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <Label className="text-xs font-bold">Quantidade Total de Etiquetas</Label>
+                        <Badge variant="outline" className="text-[10px] font-semibold">
+                          Estoque disponível: {selectedProductStockInfo.stockQty} un
+                        </Badge>
+                      </div>
+                      <Input
+                        type="number"
+                        min={1}
+                        placeholder="Ex: 10"
+                        value={quantities["total"] || ""}
+                        onChange={(e) =>
+                          setQuantities({
+                            ...quantities,
+                            total: Math.max(0, parseInt(e.target.value, 10) || 0),
+                          })
+                        }
+                        className="h-10 text-base font-bold"
+                      />
+                      <p className="text-[11px] text-muted-foreground font-mono">
+                        Código de barras: <strong>{selectedProduct.sku || `PROD-${selectedProduct.id.slice(0, 8)}`}</strong>
+                      </p>
+                    </div>
+
+                    <div className="flex items-center justify-between p-2.5 bg-muted/40 rounded-xl border border-border/50 text-xs">
+                      <span className="text-muted-foreground font-medium">Total de etiquetas a gerar:</span>
+                      <Badge className="bg-gradient-gold border-none shadow-sm text-foreground font-black text-xs px-2.5 py-0.5">
+                        {totalLabelsToGenerate} {totalLabelsToGenerate === 1 ? "etiqueta" : "etiquetas"}
+                      </Badge>
+                    </div>
                   </div>
                 )}
               </div>
             )}
           </div>
-          <DialogFooter>
-            <Button onClick={handleGenerate} className="w-full">
-              Confirmar
+
+          <DialogFooter className="pt-3 border-t border-border/40">
+            <Button
+              onClick={handleGenerate}
+              className="w-full bg-gradient-gold border-none shadow-gold font-bold h-10"
+              disabled={!selectedProduct || totalLabelsToGenerate <= 0}
+            >
+              <Plus className="size-4 mr-2" />
+              {totalLabelsToGenerate > 0
+                ? `Gerar ${totalLabelsToGenerate} ${totalLabelsToGenerate === 1 ? "Etiqueta" : "Etiquetas"}`
+                : "Selecione as Quantidades"}
             </Button>
           </DialogFooter>
         </DialogContent>

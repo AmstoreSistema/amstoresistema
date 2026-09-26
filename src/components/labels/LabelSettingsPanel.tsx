@@ -828,7 +828,7 @@ export function LabelSettingsPanel({
                     min={0}
                     max={3}
                     step={0.1}
-                    onValueChange={([v]) => updateContent({ lineSpacing: v })}
+                    onValueChange={([v]) => updateContent({ lineSpacing: v ?? 0.5 })}
                   />
                 </div>
 

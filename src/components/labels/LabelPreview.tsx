@@ -20,7 +20,7 @@ function mmToPx(mm: number, scale: number) {
 interface UnifiedLabelCellProps {
   computed: ComputedLabel;
   scale: number;
-  isPrint?: boolean;
+  isPrint?: boolean | undefined;
 }
 
 export function UnifiedLabelCell({
@@ -199,7 +199,7 @@ function BarcodeInline({
           try {
             JsBarcode(el, value, {
               format: "CODE128",
-              width: Math.max(1, Math.floor(width / 75)),
+              width: Math.min(2, Math.max(1, Math.floor(width / 80))),
               height: Math.max(height * 0.7, 10),
               displayValue: showValue,
               fontSize: Math.max(6, Math.min(10, height * 0.25)),

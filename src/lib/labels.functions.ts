@@ -28,11 +28,15 @@ export const generateLabelGrid = createServerFn({ method: "POST" })
     let currentColumn = data.startColumn;
 
     for (const p of data.products) {
+      const barcodeValue = p.numeracao && !p.sku.endsWith(`-${p.numeracao}`)
+        ? `${p.sku}-${p.numeracao}`
+        : p.sku;
+
       for (let i = 0; i < p.quantity; i++) {
         labels.push({
           produto_id: p.id,
           produto_nome: p.name,
-          codigo_barras: p.sku, 
+          codigo_barras: barcodeValue, 
           variacao_nome: p.variacao_nome,
           numeracao: p.numeracao,
           linha: currentLine,

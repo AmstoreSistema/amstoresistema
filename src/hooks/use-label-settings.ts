@@ -531,7 +531,7 @@ export function useLabelSettings() {
           ...preset,
           presetId,
           presetName: preset.presetName || presetId,
-          presetNotes: preset.presetNotes,
+          presetNotes: preset.presetNotes || "",
           paperType,
           paperWidth: preset.paperWidth || paperDim.width,
           paperHeight: preset.paperHeight || paperDim.height,
