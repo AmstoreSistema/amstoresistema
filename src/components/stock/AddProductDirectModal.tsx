@@ -37,6 +37,26 @@ import { brl } from "@/lib/format";
 const PRODUCT_CATEGORIES = ["Bolsa", "Sandálias", "Carteiras", "perfumes"];
 const SIZES = ["33", "34", "35", "36", "37", "38", "39", "40"];
 
+const normalizeCat = (value: unknown) =>
+  String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim()
+    .toLowerCase()
+    .replace(/s$/, "");
+
+const isFootwearCategory = (cat: string) => {
+  const norm = normalizeCat(cat);
+  return (
+    cat === "Sandálias" ||
+    norm.includes("sandali") ||
+    norm.includes("calcad") ||
+    norm.includes("sapato") ||
+    norm.includes("rasteir") ||
+    norm.includes("tamanco")
+  );
+};
+
 export function AddProductDirectModal({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
   const qc = useQueryClient();
   const [loading, setLoading] = React.useState(false);
@@ -71,18 +91,31 @@ export function AddProductDirectModal({ open, onOpenChange }: { open: boolean; o
 
     setLoading(true);
     try {
-      const isSandalia = formData.category.toLowerCase().includes("sandali") || formData.category.toLowerCase().includes("calcad");
-      const totalQty = isSandalia 
-        ? Object.values(quantities).reduce((a, b) => a + (Number(b) || 0), 0)
+      const isFootwear = isFootwearCategory(formData.category);
+
+      // Higieniza as numerações (inteiros positivos > 0)
+      const cleanQuantities: Record<string, number> = {};
+      Object.entries(quantities).forEach(([size, qty]) => {
+        const val = parseInt(String(qty), 10);
+        if (!isNaN(val) && val > 0) {
+          cleanQuantities[size] = val;
+        }
+      });
+
+      const hasFilledSizes = Object.keys(cleanQuantities).length > 0;
+      const isSizedProduct = isFootwear || hasFilledSizes;
+
+      const totalQty = isSizedProduct
+        ? Object.values(cleanQuantities).reduce((a, b) => a + b, 0)
         : 1;
 
       const { data: product, error: pError } = await supabase
         .from("products")
         .insert({
-          name: formData.name,
-          sku: sku,
+          name: formData.name.trim(),
+          sku: sku.trim(),
           category: formData.category,
-          color: formData.color,
+          color: formData.color.trim() || null,
           cost_price: formData.preco_custo,
           sale_price: formData.preco_venda,
           wholesale_price: formData.preco_atacado,
@@ -102,7 +135,7 @@ export function AddProductDirectModal({ open, onOpenChange }: { open: boolean; o
           produto_id: product.id,
           produto_nome: product.name,
           quantidade_disponivel: totalQty,
-          numeracoes: (isSandalia ? quantities : null) as any,
+          numeracoes: isSizedProduct ? (hasFilledSizes ? cleanQuantities : {}) : (null as any),
           preco_custo: formData.preco_custo,
           preco_venda: formData.preco_venda,
           data_entrada: formData.data_entrada || null,
@@ -269,7 +302,7 @@ export function AddProductDirectModal({ open, onOpenChange }: { open: boolean; o
                 />
              </div>
 
-             {(formData.category === "Sandálias" || formData.category.toLowerCase().includes("sandali") || formData.category.toLowerCase().includes("calcad")) && (
+             {isFootwearCategory(formData.category) && (
                 <div className="space-y-3 p-4 rounded-2xl bg-muted/20 border border-dashed border-muted-foreground/20 animate-in fade-in slide-in-from-top-2">
                    <Label className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest">Numerações Disponíveis</Label>
                    <div className="grid grid-cols-8 gap-2">
